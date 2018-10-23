@@ -13,6 +13,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="KnightBus.Core" Version="1.0.0" />
+    <ProjectReference Include="..\KnightBus.Core\KnightBus.Core.csproj" />
   </ItemGroup>
 </Project>
