@@ -40,7 +40,9 @@ namespace KnightBus.Host.Tests.Unit.Middleware
             //act 
             for (int i = 0; i < 10; i++)
             {
+#pragma warning disable 4014
                 middleware.ProcessAsync(messageStateHandler.Object, nextProcessor.Object, CancellationToken.None);
+#pragma warning restore 4014
             }
 
             await Task.Delay(100);

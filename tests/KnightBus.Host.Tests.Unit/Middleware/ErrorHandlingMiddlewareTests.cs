@@ -59,7 +59,7 @@ namespace KnightBus.Host.Tests.Unit.Middleware
             messageStateHandler.Verify(x=> x.AbandonByErrorAsync(It.IsAny<Exception>()), Times.Once);
         }
         [Test]
-        public async Task Should_not_throw_when_abandon_message_on_errors_fails()
+        public void Should_not_throw_when_abandon_message_on_errors_fails()
         {
             //arrange
             var nextProcessor = new Mock<IMessageProcessor>();
