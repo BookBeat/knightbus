@@ -10,11 +10,11 @@ namespace KnightBus.Host
     {
         private readonly ConcurrentDictionary<Type, object> _processors = new ConcurrentDictionary<Type, object>();
 
-        public void RegisterProcessor<T>(IProcessMessage<T> processor) where T : IMessage
+        public StandardMessageProcessorProvider RegisterProcessor<T>(IProcessMessage<T> processor) where T : IMessage
         {
             _processors[typeof(T)] = processor;
+            return this;
         }
-
 
         public IProcessMessage<T> GetProcessor<T>(Type type) where T : IMessage
         {
