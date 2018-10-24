@@ -45,7 +45,7 @@ namespace KnightBus.Core.Tests.Unit
             semaphore.WaitAsync().ContinueWith(task => countable.Object.Count());
             semaphore.WaitAsync().ContinueWith(task => countable.Object.Count());
 #pragma warning restore 4014
-            await Task.Delay(200);
+            await Task.Delay(500);
             //assert
             countable.Verify(x => x.Count(), Times.Once);
             semaphore.Release();
