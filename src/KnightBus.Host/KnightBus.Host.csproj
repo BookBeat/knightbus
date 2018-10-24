@@ -6,10 +6,10 @@
     <Authors>BookBeat</Authors>
     <Description>KnightBus Host</Description>
     <Copyright>Copyright © BookBeat 2018</Copyright>
-    <PackageLicenseUrl>https://raw.githubusercontent.com/BookBeatAB/knightbus/master/LICENSE</PackageLicenseUrl>
+    <PackageLicenseUrl>https://raw.githubusercontent.com/BookBeat/knightbus/master/LICENSE</PackageLicenseUrl>
     <PackageProjectUrl>https://knightbus.readthedocs.io</PackageProjectUrl>
-    <PackageIconUrl>https://raw.githubusercontent.com/BookBeatAB/knightbus-documentation/master/media/images/knighbus-64.png</PackageIconUrl>
-    <RepositoryUrl>https://github.com/BookBeatAB/knightbus</RepositoryUrl>
+    <PackageIconUrl>https://raw.githubusercontent.com/BookBeat/knightbus-documentation/master/media/images/knighbus-64.png</PackageIconUrl>
+    <RepositoryUrl>https://github.com/BookBeat/knightbus</RepositoryUrl>
     <Version>1.0.1</Version>
   </PropertyGroup>
 
