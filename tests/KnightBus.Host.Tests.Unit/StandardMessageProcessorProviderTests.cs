@@ -48,6 +48,20 @@ namespace KnightBus.Host.Tests.Unit
             provider.ListAllProcessors().Should().Contain(x => x == typeof(IProcessCommand<TestCommandTwo, TestTopicSettings>));
         }
         [Test]
+        public void Should_get_registered_multi_processor()
+        {
+            //arrange
+            var provider = new StandardMessageProcessorProvider();
+            var processor = new MultipleCommandProcessor(Mock.Of<ICountable>());
+            provider.RegisterProcessor(processor);
+            //act
+            var processorFound = provider.GetProcessor<TestCommandOne>(typeof(IProcessCommand<TestCommandOne, TestTopicSettings>));
+            var processorFoundTwo = provider.GetProcessor<TestCommandTwo>(typeof(IProcessCommand<TestCommandTwo, TestTopicSettings>));
+            //assert
+            processorFound.Should().Be(processor);
+            processorFoundTwo.Should().Be(processor);
+        }
+        [Test]
         public void Should_register_event_processor()
         {
             //arrange
