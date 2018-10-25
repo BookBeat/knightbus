@@ -6,7 +6,7 @@
 
 KnightBus is a fast, lightweight and extensible messaging framework that supports multiple active messaging transports
 
-[![KnightBus Logo](https://raw.githubusercontent.com/BookBeat/knightbus-documentation/master/media/images/knightbus-logo.png)]
+![KnightBus Logo](https://raw.githubusercontent.com/BookBeat/knightbus-documentation/master/media/images/knightbus-logo.png "KnightBus Logo")
 
 
 
