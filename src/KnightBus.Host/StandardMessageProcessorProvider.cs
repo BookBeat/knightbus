@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using KnightBus.Core;
 using KnightBus.Messages;
 
@@ -40,7 +41,7 @@ namespace KnightBus.Host
 
         public IEnumerable<Type> ListAllProcessors()
         {
-            return _processors.Keys;
+            return _processors.Values.Select(x=> x.GetType()).Distinct();
         }
     }
 }

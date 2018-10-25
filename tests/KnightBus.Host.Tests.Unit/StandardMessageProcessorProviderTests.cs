@@ -19,7 +19,7 @@ namespace KnightBus.Host.Tests.Unit
             provider.RegisterProcessor(new SingleCommandProcessor(Mock.Of<ICountable>()));
             //assert
             provider.ListAllProcessors().Count().Should().Be(1);
-            provider.ListAllProcessors().FirstOrDefault().Should().Be(typeof(IProcessCommand<TestCommand, TestTopicSettings>));
+            provider.ListAllProcessors().FirstOrDefault().Should().Be(typeof(SingleCommandProcessor));
         }
 
         [Test]
@@ -43,9 +43,8 @@ namespace KnightBus.Host.Tests.Unit
             //act
             provider.RegisterProcessor(new MultipleCommandProcessor(Mock.Of<ICountable>()));
             //assert
-            provider.ListAllProcessors().Count().Should().Be(2);
-            provider.ListAllProcessors().Should().Contain(x => x == typeof(IProcessCommand<TestCommandOne, TestTopicSettings>));
-            provider.ListAllProcessors().Should().Contain(x => x == typeof(IProcessCommand<TestCommandTwo, TestTopicSettings>));
+            provider.ListAllProcessors().Count().Should().Be(1);
+            provider.ListAllProcessors().Should().Contain(x => x == typeof(MultipleCommandProcessor));
         }
         [Test]
         public void Should_get_registered_multi_processor()
@@ -70,7 +69,7 @@ namespace KnightBus.Host.Tests.Unit
             provider.RegisterProcessor(new EventProcessor(Mock.Of<ICountable>()));
             //assert
             provider.ListAllProcessors().Count().Should().Be(1);
-            provider.ListAllProcessors().Should().Contain(x => x == typeof(IProcessEvent<TestEvent, TestSubscription, TestTopicSettings>));
+            provider.ListAllProcessors().Should().Contain(x => x == typeof(EventProcessor));
         }
         [Test]
         public void Should_get_registered_event_processor()
