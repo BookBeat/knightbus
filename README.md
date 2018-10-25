@@ -38,10 +38,10 @@ class Program
 
     static async Task MainAsync()
     {
-        var serviceBusConnection = "your-connection-string";
-
         var knightBusHost = new KnightBusHost()
-            .UseTransport(new ServiceBusTransport(serviceBusConnection))
+            //Multiple active transports
+            .UseTransport(new ServiceBusTransport("sb-connection"))
+            .UseTransport(new StorageBusTransport("storage-connection"))
             .Configure(configuration => configuration
                 .UseMessageProcessorProvider(new StandardMessageProcessorProvider()
                     .RegisterProcessor(new CommandProcessor()))
