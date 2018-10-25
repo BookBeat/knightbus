@@ -6,9 +6,6 @@ using KnightBus.Azure.ServiceBus.Messages;
 using KnightBus.Core;
 using KnightBus.Host;
 using KnightBus.Messages;
-using KnightBus.SimpleInjector;
-using SimpleInjector;
-using SimpleInjector.Lifestyles;
 
 namespace KnightBus.Examples.Azure.ServiceBus
 {
@@ -23,21 +20,13 @@ namespace KnightBus.Examples.Azure.ServiceBus
         {
             var serviceBusConnection = "your-connection-string";
 
-            //Register the container
-            var container = new Container();
-            container.Options.DefaultScopedLifestyle = new AsyncScopedLifestyle();
-            container.Register<IProcessCommand<SampleServiceBusMessage, SomeProcessingSetting>, SampleServiceBusMessageProcessor>(Lifestyle.Scoped);
-            //Or register all commands from an assembly
-            //container.Register(typeof(IProcessCommand<,>), typeof(SampleServiceBusMessage).Assembly, Lifestyle.Scoped);
-            container.Verify();
-
-            //Initialize the KnightBus Host
             var knightBusHost = new KnightBusHost()
                 //Enable the ServiceBus Transport
                 .UseTransport(new ServiceBusTransport(serviceBusConnection))
                 .Configure(configuration => configuration
-                    //Use SimpleInjector to resolve our MessageProcessors
-                    .UseSimpleInjector(container)
+                    //Register our message processors without IoC using the standard provider
+                    .UseMessageProcessorProvider(new StandardMessageProcessorProvider()
+                        .RegisterProcessor(new SampleServiceBusMessageProcessor()))
                 );
 
             //Start the KnightBus Host, it will now connect to the ServiceBus and listen to the SampleServiceBusMessageMapping.QueueName
