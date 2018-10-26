@@ -52,3 +52,33 @@ class Program
 }
 ```
 
+## Bring your own Middleware
+
+KnightBus supports inserting your own middleware into the execution pipeline. 
+
+```csharp
+public class CustomThrottlingMiddleware : IMessageProcessorMiddleware
+    {
+        private readonly SemaphoreQueue _semaphoreQueue;
+        public int CurrentCount => _semaphoreQueue.CurrentCount;
+
+        public CustomThrottlingMiddleware(int maxConcurrent)
+        {
+            _semaphoreQueue = new SemaphoreQueue(maxConcurrent);
+        }
+        public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, IMessageProcessor next, CancellationToken cancellationToken) where T : class, IMessage
+        {
+            try
+            {
+                await _semaphoreQueue.WaitAsync().ConfigureAwait(false);
+                await next.ProcessAsync(messageStateHandler, cancellationToken).ConfigureAwait(false);
+            }
+            finally
+            {
+                _semaphoreQueue.Release();
+            }
+        }
+    }
+```
+
+
