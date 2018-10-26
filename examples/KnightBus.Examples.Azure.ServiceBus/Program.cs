@@ -26,7 +26,8 @@ namespace KnightBus.Examples.Azure.ServiceBus
                 .Configure(configuration => configuration
                     //Register our message processors without IoC using the standard provider
                     .UseMessageProcessorProvider(new StandardMessageProcessorProvider()
-                        .RegisterProcessor(new SampleServiceBusMessageProcessor()))
+                        .RegisterProcessor(new SampleServiceBusMessageProcessor())
+                        .RegisterProcessor(new SampleServiceBusEventProcessor()))
                 );
 
             //Start the KnightBus Host, it will now connect to the ServiceBus and listen to the SampleServiceBusMessageMapping.QueueName
@@ -37,10 +38,14 @@ namespace KnightBus.Examples.Azure.ServiceBus
             //Send some Messages and watch them print in the console
             for (var i = 0; i < 10; i++)
             {
-                await client.SendAsync(new SampleServiceBusMessage { Message = $"Hello from message {i}" });
+                await client.SendAsync(new SampleServiceBusMessage { Message = $"Hello from command {i}" });
+            }
+            for (var i = 0; i < 10; i++)
+            {
+                await client.PublishEventAsync(new SampleServiceBusEvent { Message = $"Hello from event {i}" });
             }
 
-            
+
             Console.ReadKey();
         }
 
@@ -48,18 +53,55 @@ namespace KnightBus.Examples.Azure.ServiceBus
         {
             public string Message { get; set; }
         }
-        class SampleServiceBusMessageMapping : IMessageMapping<SampleServiceBusMessage>
+
+        class SampleServiceBusEvent : IServiceBusEvent
         {
-            public string QueueName => "your-queue-name";
+            public string Message { get; set; }
         }
 
-        class SampleServiceBusMessageProcessor : IProcessCommand<SampleServiceBusMessage, SomeProcessingSetting>
+        class SampleServiceBusMessageMapping : IMessageMapping<SampleServiceBusMessage>
+        {
+            public string QueueName => "your-queue";
+        }
+
+        class SampleServiceBusEventMapping : IMessageMapping<SampleServiceBusEvent>
+        {
+            public string QueueName => "your-topic";
+        }
+
+        class SampleServiceBusMessageProcessor :
+            IProcessCommand<SampleServiceBusMessage, SomeProcessingSetting>,
+            IProcessEvent<SampleServiceBusEvent, EventSubscriptionOne, SomeProcessingSetting>
         {
             public Task ProcessAsync(SampleServiceBusMessage message, CancellationToken cancellationToken)
             {
-                Console.WriteLine($"Message processor received: '{message.Message}'");
+                Console.WriteLine($"Received command: '{message.Message}'");
                 return Task.CompletedTask;
             }
+
+            public Task ProcessAsync(SampleServiceBusEvent message, CancellationToken cancellationToken)
+            {
+                Console.WriteLine($"Received event: '{message.Message}'");
+                return Task.CompletedTask;
+            }
+        }
+
+        class SampleServiceBusEventProcessor : IProcessEvent<SampleServiceBusEvent, EventSubscriptionTwo, SomeProcessingSetting>
+        {
+            public Task ProcessAsync(SampleServiceBusEvent message, CancellationToken cancellationToken)
+            {
+                Console.WriteLine($"Also received event: '{message.Message}'");
+                return Task.CompletedTask;
+            }
+        }
+
+        class EventSubscriptionOne : IEventSubscription<SampleServiceBusEvent>
+        {
+            public string Name => "subscription-1";
+        }
+        class EventSubscriptionTwo : IEventSubscription<SampleServiceBusEvent>
+        {
+            public string Name => "subscription-2";
         }
 
         class SomeProcessingSetting : IProcessingSettings
