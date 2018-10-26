@@ -4,7 +4,7 @@
 [![NuGet](https://img.shields.io/nuget/v/KnightBus.Core.svg)](https://www.nuget.org/packages/KnightBus.Core/) 
 [![Documentation Status](https://readthedocs.org/projects/knightbus/badge/?version=latest)](https://knightbus.readthedocs.io/en/latest/?badge=latest)
 
-## KnightBus is a fast, lightweight and extensible messaging framework that supports multiple active messaging transports
+## KnightBus is a fast, lightweight and extensible messaging framework that supports multiple active message transports
 
 [Find the official KnightBus documentation here](https://knightbus.readthedocs.io/)
 
