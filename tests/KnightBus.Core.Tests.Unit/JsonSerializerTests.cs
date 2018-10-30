@@ -16,7 +16,7 @@ namespace KnightBus.Core.Tests.Unit
             var message = new AttachmentCommand
             {
                 Message = "Hello",
-                Attachment = new DummyAttachment { Filename = "filename.txt" }
+                Attachment = new MessageAttachment("filename.txt", "text/plain", new MemoryStream())
             };
             //act
             var serialized = serializer.Serialize(message);
@@ -24,14 +24,6 @@ namespace KnightBus.Core.Tests.Unit
             //assert
             deserialized.Attachment.Should().BeNull();
             deserialized.Message.Should().Be("Hello");
-        }
-
-        private class DummyAttachment : IMessageAttachment
-        {
-            public string Filename { get; set; }
-            public string ContentType { get; }
-            public long Length { get; }
-            public Stream Stream { get; }
         }
 
         public class AttachmentCommand : ICommandWithAttachment, ICommand

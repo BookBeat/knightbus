@@ -22,12 +22,7 @@ namespace KnightBus.Host.Tests.Unit.Middleware
             var message = new AttachmentCommand();
             var nextProcessor = new Mock<IMessageProcessor>();
             var stream = new MemoryStream(Encoding.UTF8.GetBytes("this is a stream"));
-            var attachment = new TestAttachment
-            {
-                ContentType = "text/plain",
-                Filename = "test.txt",
-                Stream = stream
-            };
+            var attachment = new MessageAttachment("test.txt", "text/plain", stream);
             var stateHandler = new Mock<IMessageStateHandler<AttachmentCommand>>();
             stateHandler.Setup(x => x.GetMessageAsync()).ReturnsAsync(message);
             stateHandler.Setup(x=> x.MessageProperties).Returns(new Dictionary<string, string>{ {AttachmentUtility.AttachmentKey, "89BDF3DB-896C-448D-A84E-872CBA8DBC9F" }});
@@ -61,14 +56,6 @@ namespace KnightBus.Host.Tests.Unit.Middleware
             //assert
             attachmentProvider.Verify(x=> x.GetAttachmentAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
             nextProcessor.Verify(x => x.ProcessAsync(stateHandler.Object, CancellationToken.None), Times.Once);
-        }
-
-        private class TestAttachment : IMessageAttachment
-        {
-            public string Filename { get; set; }
-            public string ContentType { get; set; }
-            public long Length { get; }
-            public Stream Stream { get; set; }
         }
     }
 }
