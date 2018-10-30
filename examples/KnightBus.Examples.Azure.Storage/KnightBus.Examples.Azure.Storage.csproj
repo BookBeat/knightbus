@@ -6,6 +6,6 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="KnightBus.Azure.Storage" Version="1.0.1" />
-    <PackageReference Include="KnightBus.Host" Version="1.0.3" />
+    <PackageReference Include="KnightBus.Host" Version="1.0.4" />
   </ItemGroup>
 </Project>

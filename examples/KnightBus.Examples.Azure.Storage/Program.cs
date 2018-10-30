@@ -1,4 +1,6 @@
 using System;
+using System.IO;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Azure.Storage;
@@ -18,7 +20,7 @@ namespace KnightBus.Examples.Azure.Storage
 
         static async Task MainAsync()
         {
-            var storageConnection = "";
+            var storageConnection = "your-connection-string";
 
             var knightBusHost = new KnightBusHost()
                 //Enable the StorageBus Transport
@@ -37,13 +39,18 @@ namespace KnightBus.Examples.Azure.Storage
             await knightBusHost.StartAsync();
 
             //Initiate the client
-            var client = new StorageBus(new StorageBusConfiguration(storageConnection));
+            var client = new StorageBus(new StorageBusConfiguration(storageConnection)
+            {
+                //The client must also have attachments enabled to send them
+                AttachmentProvider = new BlobStorageMessageAttachmentProvider(storageConnection)
+            });
             //Send some Messages and watch them print in the console
             for (var i = 0; i < 10; i++)
             {
                 await client.SendAsync(new SampleStorageBusMessage
                 {
-                    Message = $"Hello from command {i}"
+                    Message = $"Hello from command {i}",
+                    Attachment = new MessageAttachment($"file{i}.txt", "text/plain", new MemoryStream(Encoding.UTF8.GetBytes($"this is a stream from Message {i}")))
                 });
             }
 
@@ -65,7 +72,12 @@ namespace KnightBus.Examples.Azure.Storage
         {
             public Task ProcessAsync(SampleStorageBusMessage message, CancellationToken cancellationToken)
             {
-                Console.WriteLine($"Received command: '{message.Message}'");
+                using (var streamReader = new StreamReader(message.Attachment.Stream))
+                {
+                    Console.WriteLine($"Received command: '{message.Message}'");
+                    Console.WriteLine($"Attach file contents:'{streamReader.ReadToEnd()}'");
+                }
+
                 return Task.CompletedTask;
             }
         }
