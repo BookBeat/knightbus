@@ -8,7 +8,7 @@ namespace KnightBus.Host
     {
         private readonly List<IMessageProcessorMiddleware> _middlewares = new List<IMessageProcessorMiddleware>();
 
-        public MiddlewarePipeline(IEnumerable<IMessageProcessorMiddleware> hostMiddlewares, ITransportConfiguration transportConfiguration, ILog log)
+        public MiddlewarePipeline(IEnumerable<IMessageProcessorMiddleware> hostMiddlewares, ITransportChannelFactory transportChannelFactory, ILog log)
         {
 
             //Add default outlying middlewares
@@ -17,12 +17,7 @@ namespace KnightBus.Host
             //Add host-global middlewares
             _middlewares.AddRange(hostMiddlewares);
             //Add transport middlewares
-            _middlewares.AddRange(transportConfiguration.Middlewares);
-            
-            if (transportConfiguration?.AttachmentProvider != null)
-            {
-                _middlewares.Add(new AttachmentMiddleware(transportConfiguration.AttachmentProvider));
-            }
+            _middlewares.AddRange(transportChannelFactory.Middlewares);
         }
 
         public IMessageProcessor GetPipeline(IMessageProcessor baseProcessor)

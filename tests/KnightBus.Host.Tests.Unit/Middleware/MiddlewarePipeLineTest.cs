@@ -22,7 +22,7 @@ namespace KnightBus.Host.Tests.Unit.Middleware
             {
                 middlewares.Add(new TestMiddleware(executionOrderList, i));
             }
-            var transportConfig = new Mock<ITransportConfiguration>();
+            var transportConfig = new Mock<ITransportChannelFactory>();
             transportConfig.Setup(x => x.Middlewares).Returns(middlewares);
             var finalProcessor = new Mock<IMessageProcessor>();
             var pipeline = new MiddlewarePipeline(new List<IMessageProcessorMiddleware>(), transportConfig.Object, Mock.Of<ILog>());

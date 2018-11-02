@@ -5,7 +5,8 @@
     /// </summary>
     public interface ITransport
     {
-        ITransportFactory[] TransportFactories { get; }
-        ITransportConfiguration Configuration { get; }
+        ITransportChannelFactory[] TransportChannelFactories { get; }
+        ITransport ConfigureChannels(ITransportConfiguration configuration);
+        ITransport UseMiddleware(IMessageProcessorMiddleware middleware);
     }
 }

@@ -4,10 +4,14 @@ namespace KnightBus.Host.DefaultMiddlewares
 {
     public static class ThrottlingMiddlewareExtensions
     {
-        public static ITransport ThrottleTransport(this ITransport configuration, int maxConcurrent)
+        public static ITransport ThrottleTransport(this ITransport transport, int maxConcurrent)
         {
-            configuration.Configuration.Middlewares.Add(new ThrottlingMiddleware(maxConcurrent));
-            return configuration;
+            foreach (var transportFactory in transport.TransportChannelFactories)
+            {
+                transportFactory.Middlewares.Add(new ThrottlingMiddleware(maxConcurrent));
+            }
+
+            return transport;
         }
         public static IHostConfiguration ThrottleHost(this IHostConfiguration configuration, int maxConcurrent)
         {

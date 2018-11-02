@@ -37,7 +37,7 @@ namespace KnightBus.Host
         {
             if(!_transports.Any()) throw new TransportMissingException("No transports configured");
 
-            _locator = new MessageProcessorLocator(_configuration, _transports.SelectMany(transport=> transport.TransportFactories).ToArray());
+            _locator = new MessageProcessorLocator(_configuration, _transports.SelectMany(transport=> transport.TransportChannelFactories).ToArray());
             var queueReaders = _locator.Locate();
             foreach (var queueReader in queueReaders)
             {

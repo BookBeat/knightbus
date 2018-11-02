@@ -8,10 +8,10 @@ using Timer = System.Timers.Timer;
 
 namespace KnightBus.Host.Singleton
 {
-    internal class SingletonTransportStarter : IStartTransport
+    internal class SingletonChannelReceiver : IChannelReceiver
     {
         private Timer _timer;
-        private readonly IStartTransport _transport;
+        private readonly IChannelReceiver _channelReceiver;
         private readonly ISingletonLockManager _lockManager;
         private ILog _log;
         private SingletonTimerScope _singletonScope;
@@ -20,20 +20,20 @@ namespace KnightBus.Host.Singleton
         public ITransportConfiguration Configuration { get; }
         internal double TimerIntervalMs { get; set; } = TimeSpan.FromMinutes(1).TotalMilliseconds;
 
-        public SingletonTransportStarter(IStartTransport transport, ISingletonLockManager lockManager, ILog log)
+        public SingletonChannelReceiver(IChannelReceiver channelReceiver, ISingletonLockManager lockManager, ILog log)
         {
-            _transport = transport;
+            _channelReceiver = channelReceiver;
             _lockManager = lockManager;
             _log = log;
-            _lockId = transport.GetType().FullName;
+            _lockId = channelReceiver.GetType().FullName;
             //MaxConcurrent and Prefetch must have specific  values to work with a singleton implementation.
             //Override those and let the other values be set from the specific implementation
             Settings = new SingletonProcessingSettings
             {
-                MessageLockTimeout = _transport.Settings.MessageLockTimeout,
-                DeadLetterDeliveryLimit = _transport.Settings.DeadLetterDeliveryLimit
+                MessageLockTimeout = _channelReceiver.Settings.MessageLockTimeout,
+                DeadLetterDeliveryLimit = _channelReceiver.Settings.DeadLetterDeliveryLimit
             };
-            _transport.Settings = Settings;
+            _channelReceiver.Settings = Settings;
         }
 
         private void TimerElapsed(object sender, ElapsedEventArgs e)
@@ -61,7 +61,7 @@ namespace KnightBus.Host.Singleton
             {
                 _singletonScope = new SingletonTimerScope(_log, lockHandle, true);
                 _log.Information("Starting Singleton Processor with name {ProcessorName}", _lockId);
-                await _transport.StartAsync().ConfigureAwait(false);
+                await _channelReceiver.StartAsync().ConfigureAwait(false);
             }
             else
             {

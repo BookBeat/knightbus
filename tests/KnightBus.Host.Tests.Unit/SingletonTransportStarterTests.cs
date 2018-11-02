@@ -21,9 +21,9 @@ namespace KnightBus.Host.Tests.Unit
             lockManager.SetupSequence(x => x.TryLockAsync(It.IsAny<string>(), TimeSpan.FromSeconds(60), CancellationToken.None))
                 .ReturnsAsync(Mock.Of<ISingletonLockHandle>())
                 .ReturnsAsync(null);
-            var underlyingReader = new Mock<IStartTransport>();
+            var underlyingReader = new Mock<IChannelReceiver>();
             underlyingReader.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);
-            var singletonStarter = new SingletonTransportStarter(underlyingReader.Object, lockManager.Object, Mock.Of<ILog>()) { TimerIntervalMs = 1000 };
+            var singletonStarter = new SingletonChannelReceiver(underlyingReader.Object, lockManager.Object, Mock.Of<ILog>()) { TimerIntervalMs = 1000 };
             //act
             await singletonStarter.StartAsync();
             await singletonStarter.StartAsync();
@@ -41,9 +41,9 @@ namespace KnightBus.Host.Tests.Unit
                 .ReturnsAsync(Mock.Of<ISingletonLockHandle>())
                 .ReturnsAsync(null)
                 .ReturnsAsync(Mock.Of<ISingletonLockHandle>());
-            var underlyingReader = new Mock<IStartTransport>();
+            var underlyingReader = new Mock<IChannelReceiver>();
             underlyingReader.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);
-            var singletonStarter = new SingletonTransportStarter(underlyingReader.Object, lockManager.Object, Mock.Of<ILog>()) { TimerIntervalMs = 1000 };
+            var singletonStarter = new SingletonChannelReceiver(underlyingReader.Object, lockManager.Object, Mock.Of<ILog>()) { TimerIntervalMs = 1000 };
             //act
             await singletonStarter.StartAsync();
             await singletonStarter.StartAsync();
@@ -57,10 +57,10 @@ namespace KnightBus.Host.Tests.Unit
         {
             //arrange
             var lockManager = new Mock<ISingletonLockManager>();
-            var underlyingReader = new Mock<IStartTransport>();
+            var underlyingReader = new Mock<IChannelReceiver>();
             underlyingReader.Setup(x => x.Settings).Returns(new SingletonHorrificSettings());
             //act
-            var singletonStarter = new SingletonTransportStarter(underlyingReader.Object, lockManager.Object, Mock.Of<ILog>()) { TimerIntervalMs = 1000 };
+            var singletonStarter = new SingletonChannelReceiver(underlyingReader.Object, lockManager.Object, Mock.Of<ILog>()) { TimerIntervalMs = 1000 };
             //assert
             singletonStarter.Settings.PrefetchCount.Should().Be(0);
             singletonStarter.Settings.MaxConcurrentCalls.Should().Be(1);

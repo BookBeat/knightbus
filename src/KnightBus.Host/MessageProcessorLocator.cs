@@ -10,18 +10,18 @@ namespace KnightBus.Host
         private readonly IHostConfiguration _configuration;
         private readonly TransportStarterFactory _transportStarterFactory;
 
-        public MessageProcessorLocator(IHostConfiguration configuration, ITransportFactory[] transportFactories)
+        public MessageProcessorLocator(IHostConfiguration configuration, ITransportChannelFactory[] transportChannelFactories)
         {
             _configuration = configuration;
-            _transportStarterFactory = new TransportStarterFactory(transportFactories, configuration);
+            _transportStarterFactory = new TransportStarterFactory(transportChannelFactories, configuration);
         }
 
-        public IEnumerable<IStartTransport> Locate()
+        public IEnumerable<IChannelReceiver> Locate()
         {
             return GetQueueReaders().Concat(GetQueueSubscriptionReaders());
         }
 
-        private IEnumerable<IStartTransport> GetQueueReaders()
+        private IEnumerable<IChannelReceiver> GetQueueReaders()
         {
             var processors = _configuration.MessageProcessorProvider.ListAllProcessors();
 
@@ -40,7 +40,7 @@ namespace KnightBus.Host
             }
         }
 
-        private IEnumerable<IStartTransport> GetQueueSubscriptionReaders()
+        private IEnumerable<IChannelReceiver> GetQueueSubscriptionReaders()
         {
             var processors = _configuration.MessageProcessorProvider.ListAllProcessors();
             foreach (var processor in processors)

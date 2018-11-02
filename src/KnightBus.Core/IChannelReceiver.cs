@@ -2,10 +2,9 @@
 
 namespace KnightBus.Core
 {
-    public interface IStartTransport
+    public interface IChannelReceiver
     {
         Task StartAsync();
         IProcessingSettings Settings { get; set; }
-        ITransportConfiguration Configuration { get; }
     }
 }

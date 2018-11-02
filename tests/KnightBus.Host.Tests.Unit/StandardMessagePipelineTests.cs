@@ -34,7 +34,7 @@ namespace KnightBus.Host.Tests.Unit
             {
                 new ThrottlingMiddleware(1)
             };
-            var transportConfiguration = new Mock<ITransportConfiguration>();
+            var transportConfiguration = new Mock<ITransportChannelFactory>();
             transportConfiguration.Setup(x => x.Middlewares).Returns(new List<IMessageProcessorMiddleware>());
             var pipeline = new MiddlewarePipeline(middlewares, transportConfiguration.Object, _logger.Object);
             _messageProcessor = pipeline.GetPipeline(new MessageProcessor<MultipleCommandProcessor>(_messageHandlerProvider.Object));

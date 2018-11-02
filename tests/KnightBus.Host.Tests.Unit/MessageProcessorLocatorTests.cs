@@ -16,15 +16,15 @@ namespace KnightBus.Host.Tests.Unit
     public class MessageProcessorLocatorTests
     {
         private StandardMessageProcessorProvider _messageHandlerProvider;
-        private Mock<ITransportFactory> _queueStarterFactory;
+        private Mock<ITransportChannelFactory> _queueStarterFactory;
 
         [SetUp]
         public void Setup()
         {
             _messageHandlerProvider = new StandardMessageProcessorProvider();
-            _queueStarterFactory = new Mock<ITransportFactory>();
+            _queueStarterFactory = new Mock<ITransportChannelFactory>();
             var transportConfiguration = new Mock<ITransportConfiguration>();
-            transportConfiguration.Setup(x => x.Middlewares).Returns(new List<IMessageProcessorMiddleware>());
+            _queueStarterFactory.Setup(x => x.Middlewares).Returns(new List<IMessageProcessorMiddleware>());
             _queueStarterFactory.Setup(x => x.Configuration).Returns(transportConfiguration.Object);
         }
 
@@ -39,7 +39,7 @@ namespace KnightBus.Host.Tests.Unit
             }, new[]{ _queueStarterFactory.Object });
             _queueStarterFactory.Setup(x => x.CanCreate(typeof(TestCommand))).Returns(true);
             _queueStarterFactory.Setup(x => x.Create(typeof(TestCommand), null, typeof(TestTopicSettings), It.IsAny<HostConfiguration>(), It.IsAny<IMessageProcessor>()))
-                .Returns(Mock.Of<IStartTransport>()).Verifiable();
+                .Returns(Mock.Of<IChannelReceiver>()).Verifiable();
             _messageHandlerProvider.RegisterProcessor(new SingleCommandProcessor(Mock.Of<ICountable>()));
             //act
             var reader = Enumerable.ToList(locator.Locate());
@@ -59,9 +59,9 @@ namespace KnightBus.Host.Tests.Unit
             _queueStarterFactory.Setup(x => x.CanCreate(typeof(TestCommandOne))).Returns(true);
             _queueStarterFactory.Setup(x => x.CanCreate(typeof(TestCommandTwo))).Returns(true);
             _queueStarterFactory.Setup(x => x.Create(typeof(TestCommandOne), null, typeof(TestTopicSettings), It.IsAny<HostConfiguration>(), It.IsAny<IMessageProcessor>()))
-                .Returns(Mock.Of<IStartTransport>()).Verifiable();
+                .Returns(Mock.Of<IChannelReceiver>()).Verifiable();
             _queueStarterFactory.Setup(x => x.Create(typeof(TestCommandTwo), null, typeof(TestTopicSettings), It.IsAny<HostConfiguration>(), It.IsAny<IMessageProcessor>()))
-                .Returns(Mock.Of<IStartTransport>()).Verifiable();
+                .Returns(Mock.Of<IChannelReceiver>()).Verifiable();
             _messageHandlerProvider.RegisterProcessor(new MultipleCommandProcessor(Mock.Of<ICountable>()));
             //act
             var reader = Enumerable.ToList(locator.Locate());
@@ -94,7 +94,7 @@ namespace KnightBus.Host.Tests.Unit
             }, new[] { _queueStarterFactory.Object });
             _queueStarterFactory.Setup(x => x.CanCreate(typeof(TestEvent))).Returns(true);
             _queueStarterFactory.Setup(x => x.Create(typeof(TestEvent), typeof(TestSubscription), typeof(TestTopicSettings), It.IsAny<HostConfiguration>(), It.IsAny<IMessageProcessor>()))
-                .Returns(Mock.Of<IStartTransport>()).Verifiable();
+                .Returns(Mock.Of<IChannelReceiver>()).Verifiable();
             _messageHandlerProvider.RegisterProcessor(new EventProcessor(Mock.Of<ICountable>()));
             //act
             var reader = Enumerable.ToList(locator.Locate());
@@ -112,7 +112,7 @@ namespace KnightBus.Host.Tests.Unit
                 MessageProcessorProvider = _messageHandlerProvider,
                 SingletonLockManager = Mock.Of<ISingletonLockManager>()
             }, new[] { _queueStarterFactory.Object });
-            var underlyingQueueStarter = new Mock<IStartTransport>();
+            var underlyingQueueStarter = new Mock<IChannelReceiver>();
             underlyingQueueStarter.Setup(x => x.Settings).Returns(new SingletonProcessingSettings
             {
                 MessageLockTimeout = TimeSpan.FromMinutes(1),
@@ -125,7 +125,7 @@ namespace KnightBus.Host.Tests.Unit
             //act
             var reader = Enumerable.ToList(locator.Locate());
             //assert
-            var valid = reader.Where(x => x is SingletonTransportStarter).ToList();
+            var valid = reader.Where(x => x is SingletonChannelReceiver).ToList();
             valid.Count.Should().Be(1);
         }
     }
