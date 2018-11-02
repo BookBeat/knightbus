@@ -2,12 +2,11 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
-using KnightBus.Core;
-using KnightBus.Host.DefaultMiddlewares;
+using KnightBus.Core.DefaultMiddlewares;
 using Moq;
 using NUnit.Framework;
 
-namespace KnightBus.Host.Tests.Unit.Middleware
+namespace KnightBus.Core.Tests.Unit
 {
     [TestFixture]
     public class ThrottlingMiddlewareTests

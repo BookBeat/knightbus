@@ -1,12 +1,11 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using KnightBus.Core;
 using KnightBus.Messages;
 
-namespace KnightBus.Host.DefaultMiddlewares
+namespace KnightBus.Core.DefaultMiddlewares
 {
-    internal class ErrorHandlingMiddleware : IMessageProcessorMiddleware
+    public class ErrorHandlingMiddleware : IMessageProcessorMiddleware
     {
         private readonly ILog _log;
 

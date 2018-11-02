@@ -1,5 +1,6 @@
 using KnightBus.Azure.Storage.Singleton;
 using KnightBus.Core;
+using KnightBus.Core.DefaultMiddlewares;
 
 namespace KnightBus.Azure.Storage
 {
@@ -7,14 +8,14 @@ namespace KnightBus.Azure.Storage
     {
         public static ITransport UseBlobStorageAttachments(this ITransport transport, string connectionString)
         {
-            transport.Configuration.AttachmentProvider = new BlobStorageMessageAttachmentProvider(connectionString);
+            transport.UseMiddleware(new AttachmentMiddleware(new BlobStorageMessageAttachmentProvider(connectionString)));
             return transport;
         }
 
-        public static ITransportConfiguration UseBlobStorageAttachments(this ITransportConfiguration transportConfiguration, string connectionString)
+        public static IHostConfiguration UseBlobStorageAttachments(this IHostConfiguration configuration, string connectionString)
         {
-            transportConfiguration.AttachmentProvider = new BlobStorageMessageAttachmentProvider(connectionString);
-            return transportConfiguration;
+            configuration.Middlewares.Add(new AttachmentMiddleware(new BlobStorageMessageAttachmentProvider(connectionString)));
+            return configuration;
         }
 
         public static IHostConfiguration UseBlobStorageLockManager(this IHostConfiguration configuration, string connectionString)

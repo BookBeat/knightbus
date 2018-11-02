@@ -1,6 +1,5 @@
 using System.IO;
 using FluentAssertions;
-using KnightBus.Messages;
 using NUnit.Framework;
 
 namespace KnightBus.Core.Tests.Unit
@@ -24,13 +23,6 @@ namespace KnightBus.Core.Tests.Unit
             //assert
             deserialized.Attachment.Should().BeNull();
             deserialized.Message.Should().Be("Hello");
-        }
-
-        public class AttachmentCommand : ICommandWithAttachment, ICommand
-        {
-            public string Message { get; set; }
-            public string MessageId { get; set; }
-            public IMessageAttachment Attachment { get; set; }
         }
     }
 }

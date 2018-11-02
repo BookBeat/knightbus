@@ -1,11 +1,10 @@
 using System.Threading;
 using System.Threading.Tasks;
-using KnightBus.Core;
 using KnightBus.Messages;
 
-namespace KnightBus.Host.DefaultMiddlewares
+namespace KnightBus.Core.DefaultMiddlewares
 {
-    internal class DeadLetterMiddleware : IMessageProcessorMiddleware
+    public class DeadLetterMiddleware : IMessageProcessorMiddleware
     {
         public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, IMessageProcessor next, CancellationToken cancellationToken) where T : class, IMessage
         {

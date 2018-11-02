@@ -1,6 +1,4 @@
-using KnightBus.Core;
-
-namespace KnightBus.Host.DefaultMiddlewares
+namespace KnightBus.Core.DefaultMiddlewares
 {
     public static class ThrottlingMiddlewareExtensions
     {

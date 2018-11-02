@@ -13,7 +13,7 @@ namespace KnightBus.Azure.ServiceBus
         }
 
         public ITransportConfiguration Configuration { get; set; }
-        public IList<IMessageProcessorMiddleware> Middlewares { get; }
+        public IList<IMessageProcessorMiddleware> Middlewares { get; } = new List<IMessageProcessorMiddleware>();
 
         public IChannelReceiver Create(Type messageType, Type subscriptionType, Type settingsType, IHostConfiguration configuration, IMessageProcessor processor)
         {

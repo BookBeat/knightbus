@@ -1,12 +1,11 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using KnightBus.Core;
 using KnightBus.Messages;
 
-namespace KnightBus.Host.DefaultMiddlewares
+namespace KnightBus.Core.DefaultMiddlewares
 {
-    internal class AttachmentMiddleware : IMessageProcessorMiddleware
+    public class AttachmentMiddleware : IMessageProcessorMiddleware
     {
         private readonly IMessageAttachmentProvider _attachmentProvider;
 

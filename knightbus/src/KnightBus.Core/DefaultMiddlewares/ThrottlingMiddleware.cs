@@ -1,11 +1,10 @@
 using System.Threading;
 using System.Threading.Tasks;
-using KnightBus.Core;
 using KnightBus.Messages;
 
-namespace KnightBus.Host.DefaultMiddlewares
+namespace KnightBus.Core.DefaultMiddlewares
 {
-    internal class ThrottlingMiddleware : IMessageProcessorMiddleware
+    public class ThrottlingMiddleware : IMessageProcessorMiddleware
     {
         private readonly SemaphoreQueue _semaphoreQueue;
         public int CurrentCount => _semaphoreQueue.CurrentCount;

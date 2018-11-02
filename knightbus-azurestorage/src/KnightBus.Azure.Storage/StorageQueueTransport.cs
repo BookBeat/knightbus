@@ -8,7 +8,7 @@ using KnightBus.Core;
 [assembly: InternalsVisibleTo("KnightBus.Azure.Storage.Tests.Unit")]
 namespace KnightBus.Azure.Storage
 {
-    internal class StorageQueueTransport<T, TSettings> : IStartTransport
+    internal class StorageQueueTransport<T, TSettings> : IChannelReceiver
         where T : class, IStorageQueueCommand
         where TSettings : class, IProcessingSettings, new()
     {

@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using KnightBus.Core;
-using KnightBus.Host.DefaultMiddlewares;
+using KnightBus.Core.DefaultMiddlewares;
 
 namespace KnightBus.Host
 {
