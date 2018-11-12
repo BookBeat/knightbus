@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using KnightBus.Azure.Storage.Messages;
 using KnightBus.Core;
 using KnightBus.Messages;
 using Microsoft.WindowsAzure.Storage;
@@ -15,12 +16,12 @@ namespace KnightBus.Azure.Storage
         Task<int> GetQueueCountAsync();
         Task DeadLetterAsync(StorageQueueMessage message);
         Task<int> GetDeadLetterCountAsync();
-        Task<List<StorageQueueMessage>> PeekDeadLettersAsync<T>(int count) where T : IMessage;
-        Task<StorageQueueMessage> ReceiveDeadLetterAsync<T>() where T : IMessage;
+        Task<List<StorageQueueMessage>> PeekDeadLettersAsync<T>(int count) where T : IStorageQueueCommand;
+        Task<StorageQueueMessage> ReceiveDeadLetterAsync<T>() where T : IStorageQueueCommand;
         Task CompleteAsync(StorageQueueMessage message);
         Task AbandonByErrorAsync(StorageQueueMessage message, TimeSpan? visibilityTimeout);
-        Task SendAsync<T>(T message, TimeSpan? delay) where T : IMessage;
-        Task<List<StorageQueueMessage>> GetMessagesAsync<T>(int count, TimeSpan? lockDuration) where T : IMessage;
+        Task SendAsync<T>(T message, TimeSpan? delay) where T : IStorageQueueCommand;
+        Task<List<StorageQueueMessage>> GetMessagesAsync<T>(int count, TimeSpan? lockDuration) where T : IStorageQueueCommand;
         Task CreateIfNotExistsAsync();
         Task DeleteIfExistsAsync();
     }
@@ -94,7 +95,7 @@ namespace KnightBus.Azure.Storage
             await _queue.UpdateMessageAsync(cloudQueueMessage, visibilityTimeout.Value, MessageUpdateFields.Content | MessageUpdateFields.Visibility).ConfigureAwait(false);
         }
 
-        public async Task SendAsync<T>(T message, TimeSpan? delay) where T : IMessage
+        public async Task SendAsync<T>(T message, TimeSpan? delay) where T : IStorageQueueCommand
         {
 
             var storageMessage = new StorageQueueMessage(message)
@@ -140,13 +141,13 @@ namespace KnightBus.Azure.Storage
             }
         }
 
-        public Task<List<StorageQueueMessage>> PeekDeadLettersAsync<T>(int count) where T : IMessage
+        public Task<List<StorageQueueMessage>> PeekDeadLettersAsync<T>(int count) where T : IStorageQueueCommand
         {
             return GetMessagesAsync<T>(count, null, _dlQueue);
         }
 
 
-        public async Task<StorageQueueMessage> ReceiveDeadLetterAsync<T>() where T : IMessage
+        public async Task<StorageQueueMessage> ReceiveDeadLetterAsync<T>() where T : IStorageQueueCommand
         {
             var messages = await PeekDeadLettersAsync<T>(1).ConfigureAwait(false);
             if (!messages.Any()) return null;
@@ -186,11 +187,11 @@ namespace KnightBus.Azure.Storage
             ).ConfigureAwait(false);
         }
 
-        public Task<List<StorageQueueMessage>> GetMessagesAsync<T>(int count, TimeSpan? lockDuration) where T : IMessage
+        public Task<List<StorageQueueMessage>> GetMessagesAsync<T>(int count, TimeSpan? lockDuration) where T : IStorageQueueCommand
         {
             return GetMessagesAsync<T>(count, lockDuration, _queue);
         }
-        private async Task<List<StorageQueueMessage>> GetMessagesAsync<T>(int count, TimeSpan? lockDuration, CloudQueue queue) where T : IMessage
+        private async Task<List<StorageQueueMessage>> GetMessagesAsync<T>(int count, TimeSpan? lockDuration, CloudQueue queue) where T : IStorageQueueCommand
         {
             var messages = (await queue.GetMessagesAsync(count, lockDuration, null, null).ConfigureAwait(false)).ToList();
             if (!messages.Any()) return new List<StorageQueueMessage>();

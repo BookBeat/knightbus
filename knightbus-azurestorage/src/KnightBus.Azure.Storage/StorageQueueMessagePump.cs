@@ -2,8 +2,8 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using KnightBus.Azure.Storage.Messages;
 using KnightBus.Core;
-using KnightBus.Messages;
 
 namespace KnightBus.Azure.Storage
 {
@@ -24,7 +24,7 @@ namespace KnightBus.Azure.Storage
             _maxConcurrent = new SemaphoreSlim(_settings.MaxConcurrentCalls);
         }
 
-        public Task StartAsync<T>(Func<StorageQueueMessage, CancellationToken, Task> action) where T : IMessage
+        public Task StartAsync<T>(Func<StorageQueueMessage, CancellationToken, Task> action) where T : IStorageQueueCommand
         {
             _runningTask = Task.Run(async () =>
             {
@@ -36,7 +36,7 @@ namespace KnightBus.Azure.Storage
             return Task.CompletedTask;
         }
 
-        internal async Task PumpAsync<T>(Func<StorageQueueMessage, CancellationToken, Task> action) where T : IMessage
+        internal async Task PumpAsync<T>(Func<StorageQueueMessage, CancellationToken, Task> action) where T : IStorageQueueCommand
         {
             var messagesFound = false;
             try

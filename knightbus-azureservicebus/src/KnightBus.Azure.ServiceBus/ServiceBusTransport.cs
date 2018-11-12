@@ -37,6 +37,6 @@ namespace KnightBus.Azure.ServiceBus
             return this;
         }
 
-        public ITransportChannelFactory[] TransportChannelFactories { get; private set; }
+        public ITransportChannelFactory[] TransportChannelFactories { get; }
     }
 }

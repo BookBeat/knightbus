@@ -4,24 +4,34 @@ namespace KnightBus.Azure.Storage
 {
     public class StorageTransport : ITransport
     {
-        private readonly StorageBusConfiguration _configuration;
+        public StorageTransport(string connectionString):this(new StorageBusConfiguration(connectionString))
+        {}
+
+        public StorageTransport(IStorageBusConfiguration configuration)
+        {
+            TransportChannelFactories = new ITransportChannelFactory[]{new StorageQueueTransportFactory(configuration), };
+        }
+
         public ITransportChannelFactory[] TransportChannelFactories { get; }
+
         public ITransport ConfigureChannels(ITransportConfiguration configuration)
         {
-            throw new System.NotImplementedException();
+            foreach (var channelFactory in TransportChannelFactories)
+            {
+                channelFactory.Configuration = configuration;
+            }
+
+            return this;
         }
 
         public ITransport UseMiddleware(IMessageProcessorMiddleware middleware)
         {
-            throw new System.NotImplementedException();
-        }
+            foreach (var channelFactory in TransportChannelFactories)
+            {
+                channelFactory.Middlewares.Add(middleware);
+            }
 
-        public ITransportConfiguration Configuration => _configuration;
-
-        public StorageTransport(string connectionString)
-        {
-            _configuration = new StorageBusConfiguration(connectionString);
-            TransportChannelFactories = new ITransportChannelFactory[]{ new StorageQueueTransportFactory(_configuration), };
+            return this;
         }
     }
 }

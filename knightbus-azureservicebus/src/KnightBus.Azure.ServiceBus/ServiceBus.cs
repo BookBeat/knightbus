@@ -9,7 +9,7 @@ using Microsoft.Azure.ServiceBus;
 
 namespace KnightBus.Azure.ServiceBus
 {
-    public interface IServiceBusClient
+    public interface IServiceBus
     {
         /// <summary>
         /// Schedules a queue message for delivery a certain time into the future
@@ -32,7 +32,7 @@ namespace KnightBus.Azure.ServiceBus
         Task PublishEventAsync<T>(T message) where T : IServiceBusEvent;
     }
 
-    public class ServiceBusClient : IServiceBusClient
+    public class ServiceBus : IServiceBus
     {
         private readonly IServiceBusConfiguration _configuration;
         private readonly IClientFactory _clientFactory;
@@ -43,7 +43,7 @@ namespace KnightBus.Azure.ServiceBus
             _attachmentProvider = attachmentProvider;
         }
 
-        public ServiceBusClient(IServiceBusConfiguration configuration)
+        public ServiceBus(IServiceBusConfiguration configuration)
         {
             _configuration = configuration;
             _clientFactory = new ClientFactory(configuration.ConnectionString);
