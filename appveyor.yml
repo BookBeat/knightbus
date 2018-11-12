@@ -6,7 +6,9 @@ build_script:
 test_script:
 - cmd: >-
     dotnet test knightbus/tests/KnightBus.Core.Tests.Unit/KnightBus.Core.Tests.Unit.csproj --logger:Appveyor
+
     dotnet test knightbus/tests/KnightBus.Host.Tests.Unit/KnightBus.Host.Tests.Unit.csproj --logger:Appveyor
+    
     dotnet test knightbus-azurestorage/tests/KnightBus.Azure.Storage.Tests.Unit/KnightBus.Azure.Storage.Tests.Unit.csproj --logger:Appveyor
 artifacts:
 - path: '**\bin\Release\*.nupkg'
