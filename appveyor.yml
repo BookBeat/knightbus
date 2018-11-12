@@ -3,10 +3,6 @@ image: Visual Studio 2017
 build_script:
 - cmd: >-
     dotnet build knightbus\KnightBus.sln --configuration Release
-    dotnet build knightbus-azureservicebus\KnightBus.Azure.ServiceBus.sln --configuration Release
-    dotnet build knightbus-azurestorage\KnightBus.Azure.Storage.sln --configuration Release
-    dotnet build knightbus-serilog\KnightBus.Serilog.sln --configuration Release
-    dotnet build knightbus-simpleinjector\KnightBus.SimpleInjector.sln --configuration Release
 test_script:
 - cmd: >-
     dotnet test knightbus/tests/KnightBus.Core.Tests.Unit/KnightBus.Core.Tests.Unit.csproj --logger:Appveyor
