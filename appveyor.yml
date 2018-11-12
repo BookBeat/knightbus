@@ -2,13 +2,13 @@ version: 2.0.{build}
 image: Visual Studio 2017
 build_script:
 - cmd: >-
-    dotnet build knightbus\KnightBus.sln --configuration Release
+    dotnet build KnightBus.sln --configuration Release
 test_script:
 - cmd: >-
     dotnet test knightbus/tests/KnightBus.Core.Tests.Unit/KnightBus.Core.Tests.Unit.csproj --logger:Appveyor
 
     dotnet test knightbus/tests/KnightBus.Host.Tests.Unit/KnightBus.Host.Tests.Unit.csproj --logger:Appveyor
-    
+
     dotnet test knightbus-azurestorage/tests/KnightBus.Azure.Storage.Tests.Unit/KnightBus.Azure.Storage.Tests.Unit.csproj --logger:Appveyor
 artifacts:
 - path: '**\bin\Release\*.nupkg'
