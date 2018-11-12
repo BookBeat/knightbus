@@ -58,7 +58,7 @@ namespace KnightBus.Azure.ServiceBus
 
             try
             {
-                // No existing client found, try and create one making sure parallell threads do not compete
+                // No existing client found, try and create one making sure parallel threads do not compete
                 await _semaphore.WaitAsync().ConfigureAwait(false);
 
                 // After we have waited, another thread might have created the client we're looking for
@@ -86,7 +86,7 @@ namespace KnightBus.Azure.ServiceBus
 
             try
             {
-                // No existing client found, try and create one making sure parallell threads do not compete
+                // No existing client found, try and create one making sure parallel threads do not compete
                 await _semaphore.WaitAsync().ConfigureAwait(false);
 
                 // After we have waited, another thread might have created the client we're looking for
@@ -113,7 +113,7 @@ namespace KnightBus.Azure.ServiceBus
 
             try
             {
-                // No existing client found, try and create one making sure parallell threads do not compete
+                // No existing client found, try and create one making sure parallel threads do not compete
                 await _semaphore.WaitAsync().ConfigureAwait(false);
 
                 // After we have waited, another thread might have created the client we're looking for

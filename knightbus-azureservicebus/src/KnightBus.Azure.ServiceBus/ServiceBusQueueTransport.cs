@@ -15,7 +15,6 @@ namespace KnightBus.Azure.ServiceBus
     {
         private readonly IClientFactory _clientFactory;
         public IProcessingSettings Settings { get; set; }
-        public ITransportConfiguration Configuration => _configuration;
         private readonly ILog _log;
         private readonly ServiceBusConfiguration _configuration;
         private readonly IMessageProcessor _processor;

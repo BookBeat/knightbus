@@ -7,13 +7,12 @@ using Microsoft.Azure.ServiceBus.Management;
 
 namespace KnightBus.Azure.ServiceBus
 {
-    internal class ServiceBusTopicTransport<TTopic, TSubscription, TSettings> : IChannelReceiver
+    internal class ServiceBusTopicTransport<TTopic, TSettings> : IChannelReceiver
         where TTopic : class, IEvent
-        where TSubscription : class, IEventSubscription<TTopic>, new() where TSettings : class, IProcessingSettings, new()
+        where TSettings : class, IProcessingSettings, new()
     {
         private readonly IClientFactory _clientFactory;
         public IProcessingSettings Settings { get; set; }
-        public ITransportConfiguration Configuration => _configuration;
         private readonly ManagementClient _managementClient;
         private readonly IEventSubscription<TTopic> _subscription;
         private readonly ILog _log;
