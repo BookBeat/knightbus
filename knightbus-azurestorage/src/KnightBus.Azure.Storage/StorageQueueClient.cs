@@ -68,7 +68,7 @@ namespace KnightBus.Azure.Storage
         {
             var deadLetterMessage = new CloudQueueMessage(_serializer.Serialize(message.Properties));
             await _dlQueue.AddMessageAsync(deadLetterMessage, TimeSpan.MaxValue, null, null, null)
-                .ContinueWith(task => _queue.DeleteMessageAsync(message.QueueMessageId, message.PopReciept), TaskContinuationOptions.OnlyOnRanToCompletion)
+                .ContinueWith(task => _queue.DeleteMessageAsync(message.QueueMessageId, message.PopReceipt), TaskContinuationOptions.OnlyOnRanToCompletion)
                 .ConfigureAwait(false);
         }
 
@@ -81,7 +81,7 @@ namespace KnightBus.Azure.Storage
         public async Task CompleteAsync(StorageQueueMessage message)
         {
             await Task.WhenAll(
-                    _queue.DeleteMessageAsync(message.QueueMessageId, message.PopReciept),
+                    _queue.DeleteMessageAsync(message.QueueMessageId, message.PopReceipt),
                     TryDeleteBlob(message.BlobMessageId))
                 .ConfigureAwait(false);
         }
@@ -89,7 +89,7 @@ namespace KnightBus.Azure.Storage
         public async Task AbandonByErrorAsync(StorageQueueMessage message, TimeSpan? visibilityTimeout)
         {
             visibilityTimeout = visibilityTimeout ?? TimeSpan.Zero;
-            var cloudQueueMessage = new CloudQueueMessage(message.QueueMessageId, message.PopReciept);
+            var cloudQueueMessage = new CloudQueueMessage(message.QueueMessageId, message.PopReceipt);
             cloudQueueMessage.SetMessageContent(_serializer.Serialize(message.Properties));
             await _queue.UpdateMessageAsync(cloudQueueMessage, visibilityTimeout.Value, MessageUpdateFields.Content | MessageUpdateFields.Visibility).ConfigureAwait(false);
         }
@@ -152,7 +152,7 @@ namespace KnightBus.Azure.Storage
             if (!messages.Any()) return null;
             var message = messages.Single();
 
-            await _dlQueue.DeleteMessageAsync(message.QueueMessageId, message.PopReciept)
+            await _dlQueue.DeleteMessageAsync(message.QueueMessageId, message.PopReceipt)
                 .ContinueWith(task => TryDeleteBlob(message.BlobMessageId), TaskContinuationOptions.OnlyOnRanToCompletion);
 
             return message;
@@ -203,7 +203,7 @@ namespace KnightBus.Azure.Storage
                     {
                         QueueMessageId = queueMessage.Id,
                         DequeueCount = queueMessage.DequeueCount,
-                        PopReciept = queueMessage.PopReceipt,
+                        PopReceipt = queueMessage.PopReceipt,
                         Properties = TryDeserializeProperties(queueMessage.AsString)
                     };
                     var content = await _container.GetBlockBlobReference(message.BlobMessageId).DownloadTextAsync().ConfigureAwait(false);
@@ -216,7 +216,7 @@ namespace KnightBus.Azure.Storage
                     {
                         QueueMessageId = queueMessage.Id,
                         DequeueCount = queueMessage.DequeueCount,
-                        PopReciept = queueMessage.PopReceipt,
+                        PopReceipt = queueMessage.PopReceipt,
                         Properties = TryDeserializeProperties(queueMessage.AsString)
                     };
 

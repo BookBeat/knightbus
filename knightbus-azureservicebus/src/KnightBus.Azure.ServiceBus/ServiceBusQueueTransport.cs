@@ -9,9 +9,8 @@ using Microsoft.Azure.ServiceBus.Management;
 [assembly: InternalsVisibleTo("BB.Common.KnightBus.Tests.Unit")]
 namespace KnightBus.Azure.ServiceBus
 {
-    internal class ServiceBusQueueTransport<T, TSettings> : IChannelReceiver
+    internal class ServiceBusQueueTransport<T> : IChannelReceiver
         where T : class, ICommand
-        where TSettings : class, IProcessingSettings, new()
     {
         private readonly IClientFactory _clientFactory;
         public IProcessingSettings Settings { get; set; }
@@ -22,7 +21,7 @@ namespace KnightBus.Azure.ServiceBus
         private QueueClient _client;
         private readonly ManagementClient _managementClient;
 
-        public ServiceBusQueueTransport(TSettings settings, ServiceBusConfiguration configuration, IHostConfiguration hostConfiguration, IMessageProcessor processor)
+        public ServiceBusQueueTransport(IProcessingSettings settings, ServiceBusConfiguration configuration, IHostConfiguration hostConfiguration, IMessageProcessor processor)
         {
             _configuration = configuration;
             _processor = processor;

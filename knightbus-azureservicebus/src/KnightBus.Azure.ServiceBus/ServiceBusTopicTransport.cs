@@ -7,9 +7,8 @@ using Microsoft.Azure.ServiceBus.Management;
 
 namespace KnightBus.Azure.ServiceBus
 {
-    internal class ServiceBusTopicTransport<TTopic, TSettings> : IChannelReceiver
+    internal class ServiceBusTopicTransport<TTopic> : IChannelReceiver
         where TTopic : class, IEvent
-        where TSettings : class, IProcessingSettings, new()
     {
         private readonly IClientFactory _clientFactory;
         public IProcessingSettings Settings { get; set; }
@@ -22,7 +21,7 @@ namespace KnightBus.Azure.ServiceBus
         private SubscriptionClient _client;
         
 
-        public ServiceBusTopicTransport(TSettings settings, IEventSubscription<TTopic> subscription, ServiceBusConfiguration configuration, IHostConfiguration hostConfiguration, IMessageProcessor processor)
+        public ServiceBusTopicTransport(IProcessingSettings settings, IEventSubscription<TTopic> subscription, ServiceBusConfiguration configuration, IHostConfiguration hostConfiguration, IMessageProcessor processor)
         {
             Settings = settings;
             _managementClient = new ManagementClient(configuration.ConnectionString);

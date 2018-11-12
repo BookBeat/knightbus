@@ -19,7 +19,7 @@ namespace KnightBus.Azure.ServiceBus
         {
             var settings = Activator.CreateInstance(settingsType);
             var topicSubscription = Activator.CreateInstance(subscriptionType);
-            var queueReaderType = typeof(ServiceBusTopicTransport<,>).MakeGenericType(messageType, settingsType);
+            var queueReaderType = typeof(ServiceBusTopicTransport<>).MakeGenericType(messageType);
             var queueReader = (IChannelReceiver)Activator.CreateInstance(queueReaderType, settings, topicSubscription, Configuration, configuration, processor);
             return queueReader;
         }

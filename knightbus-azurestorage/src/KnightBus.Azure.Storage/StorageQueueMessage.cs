@@ -21,7 +21,7 @@ namespace KnightBus.Azure.Storage
         }
 
         internal string QueueMessageId { get; set; }
-        public string PopReciept { get; internal set; }
+        public string PopReceipt { get; internal set; }
         public IMessage Message { get; internal set; }
         public int DequeueCount { get; set; }
         public Dictionary<string, string> Properties { get; internal set; } = new Dictionary<string, string>();
