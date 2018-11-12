@@ -14,15 +14,13 @@ namespace KnightBus.Azure.ServiceBus
     {
         private readonly IReceiverClient _client;
         private readonly Message _sbMessage;
-        private readonly IMessageAttachmentProvider _attachmentProvider;
         private readonly T _message;
 
-        public ServiceBusMessageStateHandler(IReceiverClient client, Message sbMessage, IMessageSerializer serializer, IMessageAttachmentProvider attachmentProvider, int deadLetterDeliveryLimit)
+        public ServiceBusMessageStateHandler(IReceiverClient client, Message sbMessage, IMessageSerializer serializer, int deadLetterDeliveryLimit)
         {
             DeadLetterDeliveryLimit = deadLetterDeliveryLimit;
             _client = client;
             _sbMessage = sbMessage;
-            _attachmentProvider = attachmentProvider;
             _message = serializer.Deserialize<T>(Encoding.UTF8.GetString(_sbMessage.Body));
         }
 
@@ -33,14 +31,6 @@ namespace KnightBus.Azure.ServiceBus
 
         public async Task CompleteAsync()
         {
-            if (typeof(ICommandWithAttachment).IsAssignableFrom(typeof(T)))
-            {
-                var queueName = AutoMessageMapper.GetQueueName<T>();
-                foreach (var attachmentId in AttachmentUtility.GetAttachmentIds(MessageProperties))
-                {
-                    await _attachmentProvider.DeleteAttachmentAsync(queueName, attachmentId).ConfigureAwait(false);
-                }
-            }
             await _client.CompleteAsync(_sbMessage.SystemProperties.LockToken).ConfigureAwait(false);
         }
 

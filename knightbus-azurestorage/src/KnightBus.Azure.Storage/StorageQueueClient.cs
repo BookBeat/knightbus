@@ -82,7 +82,7 @@ namespace KnightBus.Azure.Storage
         {
             await Task.WhenAll(
                     _queue.DeleteMessageAsync(message.QueueMessageId, message.PopReciept),
-                    TryDeleteBlob(message.BlobMessageId), TryDeleteAttachments(message))
+                    TryDeleteBlob(message.BlobMessageId))
                 .ConfigureAwait(false);
         }
 
@@ -157,18 +157,6 @@ namespace KnightBus.Azure.Storage
 
             return message;
         }
-
-        private async Task TryDeleteAttachments(StorageQueueMessage message)
-        {
-            if (message.Message is ICommandWithAttachment)
-            {
-                foreach (var attachmentId in message.GetAttachmentIds())
-                {
-                    await _attachmentProvider.DeleteAttachmentAsync(_queueName, attachmentId);
-                }
-            }
-        }
-
         private async Task TryDeleteBlob(string id)
         {
             try
