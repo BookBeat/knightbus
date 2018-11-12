@@ -42,7 +42,6 @@ namespace KnightBus.Azure.Storage
             var storage = CloudStorageAccount.Parse(configuration.ConnectionString);
             var queueClient = storage.CreateCloudQueueClient();
             var blobClient = storage.CreateCloudBlobClient();
-            storage.CreateCloudTableClient();
 
             _queue = queueClient.GetQueueReference(queueName);
             _dlQueue = queueClient.GetQueueReference(GetDeadLetterName(queueName));

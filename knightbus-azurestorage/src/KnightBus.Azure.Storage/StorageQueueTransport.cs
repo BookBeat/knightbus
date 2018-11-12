@@ -17,7 +17,6 @@ namespace KnightBus.Azure.Storage
         private readonly IMessageProcessor _processor;
         private readonly IHostConfiguration _hostConfiguration;
         public IProcessingSettings Settings { get; set; }
-        public ITransportConfiguration Configuration => _storageOptions;
         private StorageQueueMessagePump _messagePump;
         
 
