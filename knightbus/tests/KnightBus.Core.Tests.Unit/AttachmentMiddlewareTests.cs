@@ -28,7 +28,7 @@ namespace KnightBus.Host.Tests.Unit.Middleware
             stateHandler.Setup(x => x.GetMessageAsync()).ReturnsAsync(message);
             stateHandler.Setup(x=> x.MessageProperties).Returns(new Dictionary<string, string>{ {AttachmentUtility.AttachmentKey, "89BDF3DB-896C-448D-A84E-872CBA8DBC9F" }});
             var attachmentProvider = new Mock<IMessageAttachmentProvider>();
-            attachmentProvider.Setup(x => x.GetAttachmentAsync("attachmentcommand", It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            attachmentProvider.Setup(x => x.GetAttachmentAsync(AutoMessageMapper.GetQueueName<AttachmentCommand>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(attachment);
             var middleware = new AttachmentMiddleware(attachmentProvider.Object);
             //act
@@ -41,6 +41,28 @@ namespace KnightBus.Host.Tests.Unit.Middleware
         }
 
         [Test]
+        public async Task Should_delete_attachment_when_finished()
+        {
+            //arrange
+            var message = new AttachmentCommand();
+            var nextProcessor = new Mock<IMessageProcessor>();
+            var stream = new MemoryStream(Encoding.UTF8.GetBytes("this is a stream"));
+            var attachment = new MessageAttachment("test.txt", "text/plain", stream);
+            var stateHandler = new Mock<IMessageStateHandler<AttachmentCommand>>();
+            stateHandler.Setup(x => x.GetMessageAsync()).ReturnsAsync(message);
+            stateHandler.Setup(x => x.MessageProperties).Returns(new Dictionary<string, string> { { AttachmentUtility.AttachmentKey, "89BDF3DB-896C-448D-A84E-872CBA8DBC9F" } });
+            var attachmentProvider = new Mock<IMessageAttachmentProvider>();
+            attachmentProvider.Setup(x => x.GetAttachmentAsync(AutoMessageMapper.GetQueueName<AttachmentCommand>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(attachment);
+            var middleware = new AttachmentMiddleware(attachmentProvider.Object);
+            //act
+            await middleware.ProcessAsync(stateHandler.Object, nextProcessor.Object, CancellationToken.None);
+            //assert
+            attachmentProvider.Verify(x=> x.DeleteAttachmentAsync(AutoMessageMapper.GetQueueName<AttachmentCommand>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+            
+        }
+
+        [Test]
         public async Task Should_not_attach_attachments_for_other_commands()
         {
             //arrange
@@ -49,7 +71,7 @@ namespace KnightBus.Host.Tests.Unit.Middleware
             var stateHandler = new Mock<IMessageStateHandler<TestCommand>>();
             stateHandler.Setup(x => x.GetMessageAsync()).ReturnsAsync(message);
             var attachmentProvider = new Mock<IMessageAttachmentProvider>();
-            attachmentProvider.Setup(x => x.GetAttachmentAsync("testcommand", It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            attachmentProvider.Setup(x => x.GetAttachmentAsync(AutoMessageMapper.GetQueueName<TestCommand>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(default(IMessageAttachment));
             var middleware = new AttachmentMiddleware(attachmentProvider.Object);
             //act

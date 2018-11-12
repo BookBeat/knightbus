@@ -8,4 +8,9 @@ namespace KnightBus.Core.Tests.Unit
         public string MessageId { get; set; }
         public IMessageAttachment Attachment { get; set; }
     }
+
+    public class AttachmentCommandMapping:IMessageMapping<AttachmentCommand>
+    {
+        public string QueueName => "attachment-queue";
+    }
 }
