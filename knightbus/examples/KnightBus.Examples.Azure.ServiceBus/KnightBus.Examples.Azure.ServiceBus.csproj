@@ -6,8 +6,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="KnightBus.Azure.ServiceBus" Version="1.0.2" />
-    <PackageReference Include="KnightBus.Host" Version="1.0.4" />
+    <ProjectReference Include="..\..\..\knightbus-azureservicebus\src\KnightBus.Azure.ServiceBus\KnightBus.Azure.ServiceBus.csproj" />
+    <ProjectReference Include="..\..\src\KnightBus.Host\KnightBus.Host.csproj" />
   </ItemGroup>
 
 </Project>

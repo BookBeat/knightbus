@@ -27,6 +27,18 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Azure.Storage", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Azure.Storage.Tests.Unit", "knightbus-azurestorage\tests\KnightBus.Azure.Storage.Tests.Unit\KnightBus.Azure.Storage.Tests.Unit.csproj", "{21E733BA-CB28-4337-939D-8C5E3A2EB200}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Examples.Azure.ServiceBus", "knightbus\examples\KnightBus.Examples.Azure.ServiceBus\KnightBus.Examples.Azure.ServiceBus.csproj", "{FC27C3D5-3EA2-4746-B00A-6D93E4F5ED77}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Examples.Azure.Storage", "knightbus\examples\KnightBus.Examples.Azure.Storage\KnightBus.Examples.Azure.Storage.csproj", "{8D857EE4-99A6-491B-AC65-16403C0088D3}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples", "Examples", "{1A7A20B2-65E7-4712-B93B-4AA3F73017A8}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Transports", "Transports", "{60DD8989-3730-42B9-BD7B-3B38A6208FFB}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AzureServiceBus", "AzureServiceBus", "{BFEEC811-DB77-4EF0-B43E-238FAF440E3A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AzureStorage", "AzureStorage", "{46D48336-73CC-4A9B-8B5F-14725D2AFFB4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -81,9 +93,28 @@ Global
 		{21E733BA-CB28-4337-939D-8C5E3A2EB200}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{21E733BA-CB28-4337-939D-8C5E3A2EB200}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{21E733BA-CB28-4337-939D-8C5E3A2EB200}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FC27C3D5-3EA2-4746-B00A-6D93E4F5ED77}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FC27C3D5-3EA2-4746-B00A-6D93E4F5ED77}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FC27C3D5-3EA2-4746-B00A-6D93E4F5ED77}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FC27C3D5-3EA2-4746-B00A-6D93E4F5ED77}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8D857EE4-99A6-491B-AC65-16403C0088D3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8D857EE4-99A6-491B-AC65-16403C0088D3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8D857EE4-99A6-491B-AC65-16403C0088D3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8D857EE4-99A6-491B-AC65-16403C0088D3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{82F7F082-02F0-448E-B63A-1FC00B41AC02} = {BFEEC811-DB77-4EF0-B43E-238FAF440E3A}
+		{1153465A-C28E-4FEE-9D26-7A80114AB229} = {BFEEC811-DB77-4EF0-B43E-238FAF440E3A}
+		{7FE700F2-1DD3-42F4-B4E1-C9F36B9E2FBF} = {46D48336-73CC-4A9B-8B5F-14725D2AFFB4}
+		{EB4B0858-2DF9-4BCC-AAE9-2B3FB071DBEF} = {46D48336-73CC-4A9B-8B5F-14725D2AFFB4}
+		{21E733BA-CB28-4337-939D-8C5E3A2EB200} = {46D48336-73CC-4A9B-8B5F-14725D2AFFB4}
+		{FC27C3D5-3EA2-4746-B00A-6D93E4F5ED77} = {1A7A20B2-65E7-4712-B93B-4AA3F73017A8}
+		{8D857EE4-99A6-491B-AC65-16403C0088D3} = {1A7A20B2-65E7-4712-B93B-4AA3F73017A8}
+		{BFEEC811-DB77-4EF0-B43E-238FAF440E3A} = {60DD8989-3730-42B9-BD7B-3B38A6208FFB}
+		{46D48336-73CC-4A9B-8B5F-14725D2AFFB4} = {60DD8989-3730-42B9-BD7B-3B38A6208FFB}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {14950A56-4265-429E-AF71-2D98B3B8AC48}

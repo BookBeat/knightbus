@@ -4,8 +4,9 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp2.1</TargetFramework>
   </PropertyGroup>
+
   <ItemGroup>
-    <PackageReference Include="KnightBus.Azure.Storage" Version="1.0.1" />
-    <PackageReference Include="KnightBus.Host" Version="1.0.4" />
+    <ProjectReference Include="..\..\..\knightbus-azurestorage\src\KnightBus.Azure.Storage\KnightBus.Azure.Storage.csproj" />
+    <ProjectReference Include="..\..\src\KnightBus.Host\KnightBus.Host.csproj" />
   </ItemGroup>
 </Project>
