@@ -3,15 +3,29 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.28010.2046
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Core", "src\KnightBus.Core\KnightBus.Core.csproj", "{E08DA575-CB4C-473B-9A6C-1AAFF05BD15B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Core", "knightbus\src\KnightBus.Core\KnightBus.Core.csproj", "{E08DA575-CB4C-473B-9A6C-1AAFF05BD15B}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Host", "src\KnightBus.Host\KnightBus.Host.csproj", "{44A2794E-2A9A-4532-93C7-77342AC74AD9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Host", "knightbus\src\KnightBus.Host\KnightBus.Host.csproj", "{44A2794E-2A9A-4532-93C7-77342AC74AD9}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Messages", "src\KnightBus.Messages\KnightBus.Messages.csproj", "{9B68E4F6-E70B-4261-8568-7AD595C965F8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Messages", "knightbus\src\KnightBus.Messages\KnightBus.Messages.csproj", "{9B68E4F6-E70B-4261-8568-7AD595C965F8}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Core.Tests.Unit", "tests\KnightBus.Core.Tests.Unit\KnightBus.Core.Tests.Unit.csproj", "{D56F494C-EE29-4FA9-9FA8-785E496C73AF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Core.Tests.Unit", "knightbus\tests\KnightBus.Core.Tests.Unit\KnightBus.Core.Tests.Unit.csproj", "{D56F494C-EE29-4FA9-9FA8-785E496C73AF}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Host.Tests.Unit", "tests\KnightBus.Host.Tests.Unit\KnightBus.Host.Tests.Unit.csproj", "{227165A5-9C2C-4F4A-ABB0-AFDF7F26A47B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Host.Tests.Unit", "knightbus\tests\KnightBus.Host.Tests.Unit\KnightBus.Host.Tests.Unit.csproj", "{227165A5-9C2C-4F4A-ABB0-AFDF7F26A47B}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.SimpleInjector", "knightbus-simpleinjector\src\KnightBus.SimpleInjector\KnightBus.SimpleInjector.csproj", "{FEEB7C70-DEE9-47CA-A5F7-A6427F8C2163}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Serilog", "knightbus-serilog\src\KnightBus.Serilog\KnightBus.Serilog.csproj", "{3B4450C2-82CD-4BA0-BF4F-9B8D140662D3}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Azure.ServiceBus.Messages", "knightbus-azureservicebus\src\KnightBus.Azure.ServiceBus.Messages\KnightBus.Azure.ServiceBus.Messages.csproj", "{82F7F082-02F0-448E-B63A-1FC00B41AC02}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Azure.ServiceBus", "knightbus-azureservicebus\src\KnightBus.Azure.ServiceBus\KnightBus.Azure.ServiceBus.csproj", "{1153465A-C28E-4FEE-9D26-7A80114AB229}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Azure.Storage.Messages", "knightbus-azurestorage\src\KnightBus.Azure.Storage.Messages\KnightBus.Azure.Storage.Messages.csproj", "{7FE700F2-1DD3-42F4-B4E1-C9F36B9E2FBF}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Azure.Storage", "knightbus-azurestorage\src\KnightBus.Azure.Storage\KnightBus.Azure.Storage.csproj", "{EB4B0858-2DF9-4BCC-AAE9-2B3FB071DBEF}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Azure.Storage.Tests.Unit", "knightbus-azurestorage\tests\KnightBus.Azure.Storage.Tests.Unit\KnightBus.Azure.Storage.Tests.Unit.csproj", "{21E733BA-CB28-4337-939D-8C5E3A2EB200}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,6 +53,34 @@ Global
 		{227165A5-9C2C-4F4A-ABB0-AFDF7F26A47B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{227165A5-9C2C-4F4A-ABB0-AFDF7F26A47B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{227165A5-9C2C-4F4A-ABB0-AFDF7F26A47B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FEEB7C70-DEE9-47CA-A5F7-A6427F8C2163}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FEEB7C70-DEE9-47CA-A5F7-A6427F8C2163}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FEEB7C70-DEE9-47CA-A5F7-A6427F8C2163}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FEEB7C70-DEE9-47CA-A5F7-A6427F8C2163}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3B4450C2-82CD-4BA0-BF4F-9B8D140662D3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3B4450C2-82CD-4BA0-BF4F-9B8D140662D3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3B4450C2-82CD-4BA0-BF4F-9B8D140662D3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3B4450C2-82CD-4BA0-BF4F-9B8D140662D3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{82F7F082-02F0-448E-B63A-1FC00B41AC02}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{82F7F082-02F0-448E-B63A-1FC00B41AC02}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{82F7F082-02F0-448E-B63A-1FC00B41AC02}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{82F7F082-02F0-448E-B63A-1FC00B41AC02}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1153465A-C28E-4FEE-9D26-7A80114AB229}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1153465A-C28E-4FEE-9D26-7A80114AB229}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1153465A-C28E-4FEE-9D26-7A80114AB229}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1153465A-C28E-4FEE-9D26-7A80114AB229}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7FE700F2-1DD3-42F4-B4E1-C9F36B9E2FBF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7FE700F2-1DD3-42F4-B4E1-C9F36B9E2FBF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7FE700F2-1DD3-42F4-B4E1-C9F36B9E2FBF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7FE700F2-1DD3-42F4-B4E1-C9F36B9E2FBF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EB4B0858-2DF9-4BCC-AAE9-2B3FB071DBEF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EB4B0858-2DF9-4BCC-AAE9-2B3FB071DBEF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EB4B0858-2DF9-4BCC-AAE9-2B3FB071DBEF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EB4B0858-2DF9-4BCC-AAE9-2B3FB071DBEF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{21E733BA-CB28-4337-939D-8C5E3A2EB200}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{21E733BA-CB28-4337-939D-8C5E3A2EB200}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{21E733BA-CB28-4337-939D-8C5E3A2EB200}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{21E733BA-CB28-4337-939D-8C5E3A2EB200}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net461</TargetFrameworks>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Authors>BookBeat</Authors>
+    <Description>KnightBus Host</Description>
+    <Copyright>Copyright © BookBeat 2018</Copyright>
+    <PackageLicenseUrl>https://raw.githubusercontent.com/BookBeat/knightbus/master/LICENSE</PackageLicenseUrl>
+    <PackageProjectUrl>https://knightbus.readthedocs.io</PackageProjectUrl>
+    <PackageIconUrl>https://raw.githubusercontent.com/BookBeat/knightbus-documentation/master/media/images/knighbus-64.png</PackageIconUrl>
+    <RepositoryUrl>https://github.com/BookBeat/knightbus</RepositoryUrl>
+    <Version>2.0.0-rc.1</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\KnightBus.Core\KnightBus.Core.csproj" />
+  </ItemGroup>
+</Project>
