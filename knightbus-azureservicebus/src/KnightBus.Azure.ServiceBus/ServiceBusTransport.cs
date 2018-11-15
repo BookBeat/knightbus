@@ -12,8 +12,8 @@ namespace KnightBus.Azure.ServiceBus
         {
             TransportChannelFactories = new ITransportChannelFactory[]
             {
-                new ServiceBusQueueTransportFactory(configuration),
-                new ServiceBusTopicTransportFactory(configuration)
+                new ServiceBusQueueChannelFactory(configuration),
+                new ServiceBusTopicChannelFactory(configuration)
             };
         }
 

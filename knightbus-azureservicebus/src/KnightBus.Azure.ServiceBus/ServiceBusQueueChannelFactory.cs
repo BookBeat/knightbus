@@ -1,13 +1,13 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using KnightBus.Azure.ServiceBus.Messages;
 using KnightBus.Core;
 
 namespace KnightBus.Azure.ServiceBus
 {
-    internal class ServiceBusTopicTransportFactory : ITransportChannelFactory
+    internal class ServiceBusQueueChannelFactory : ITransportChannelFactory
     {
-        public ServiceBusTopicTransportFactory(IServiceBusConfiguration configuration)
+        public ServiceBusQueueChannelFactory(IServiceBusConfiguration configuration)
         {
             Configuration = configuration;
         }
@@ -18,15 +18,15 @@ namespace KnightBus.Azure.ServiceBus
         public IChannelReceiver Create(Type messageType, Type subscriptionType, Type settingsType, IHostConfiguration configuration, IMessageProcessor processor)
         {
             var settings = Activator.CreateInstance(settingsType);
-            var topicSubscription = Activator.CreateInstance(subscriptionType);
-            var queueReaderType = typeof(ServiceBusTopicTransport<>).MakeGenericType(messageType);
-            var queueReader = (IChannelReceiver)Activator.CreateInstance(queueReaderType, settings, topicSubscription, Configuration, configuration, processor);
+            var queueReaderType = typeof(ServiceBusQueueTransport<>).MakeGenericType(messageType);
+            var queueReader = (IChannelReceiver)Activator.CreateInstance(queueReaderType, settings, Configuration, configuration, processor);
             return queueReader;
         }
 
+        
         public bool CanCreate(Type messageType)
         {
-            return typeof(IServiceBusEvent).IsAssignableFrom(messageType);
+            return typeof(IServiceBusCommand).IsAssignableFrom(messageType);
         }
     }
 }
