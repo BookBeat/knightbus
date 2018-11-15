@@ -4,6 +4,9 @@ using KnightBus.Messages;
 
 namespace KnightBus.Core
 {
+    /// <summary>
+    /// File attachment provider
+    /// </summary>
     public interface IMessageAttachmentProvider
     {
         Task<IMessageAttachment> GetAttachmentAsync(string queueName, string id, CancellationToken cancellationToken = default(CancellationToken));

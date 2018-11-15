@@ -5,6 +5,9 @@ using Newtonsoft.Json.Serialization;
 
 namespace KnightBus.Core
 {
+    /// <summary>
+    /// Default serializer
+    /// </summary>
     public class JsonMessageSerializer : IMessageSerializer
     {
         public JsonSerializerSettings Settings { get; set; }

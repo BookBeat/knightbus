@@ -2,6 +2,9 @@
 
 namespace KnightBus.Core
 {
+    /// <summary>
+    /// Generic logging interface
+    /// </summary>
     public interface ILog
     {
         void Error(Exception e, string template, params object[] objects);

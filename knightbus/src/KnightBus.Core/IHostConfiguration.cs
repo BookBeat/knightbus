@@ -3,6 +3,9 @@ using KnightBus.Core.Singleton;
 
 namespace KnightBus.Core
 {
+    /// <summary>
+    /// Host specific configuration
+    /// </summary>
     public interface IHostConfiguration
     {
         IList<IMessageProcessorMiddleware> Middlewares { get; }
