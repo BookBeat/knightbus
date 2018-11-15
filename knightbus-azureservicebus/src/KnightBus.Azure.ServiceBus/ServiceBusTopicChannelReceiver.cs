@@ -7,7 +7,7 @@ using Microsoft.Azure.ServiceBus.Management;
 
 namespace KnightBus.Azure.ServiceBus
 {
-    internal class ServiceBusTopicTransport<TTopic> : IChannelReceiver
+    internal class ServiceBusTopicChannelReceiver<TTopic> : IChannelReceiver
         where TTopic : class, IEvent
     {
         private readonly IClientFactory _clientFactory;
@@ -21,7 +21,7 @@ namespace KnightBus.Azure.ServiceBus
         private SubscriptionClient _client;
         
 
-        public ServiceBusTopicTransport(IProcessingSettings settings, IEventSubscription<TTopic> subscription, ServiceBusConfiguration configuration, IHostConfiguration hostConfiguration, IMessageProcessor processor)
+        public ServiceBusTopicChannelReceiver(IProcessingSettings settings, IEventSubscription<TTopic> subscription, ServiceBusConfiguration configuration, IHostConfiguration hostConfiguration, IMessageProcessor processor)
         {
             Settings = settings;
             _managementClient = new ManagementClient(configuration.ConnectionString);
@@ -29,7 +29,7 @@ namespace KnightBus.Azure.ServiceBus
             _log = hostConfiguration.Log;
             _configuration = configuration;
             _processor = processor;
-            //new client factory per ServiceBusTopicTransport means a separate communication channel per reader instead of a shared
+            //new client factory per ServiceBusTopicChannelReceiver means a separate communication channel per reader instead of a shared
             _clientFactory = new ClientFactory(configuration.ConnectionString);
         }
 

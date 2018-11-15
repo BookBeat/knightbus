@@ -18,7 +18,7 @@ namespace KnightBus.Azure.ServiceBus
         public IChannelReceiver Create(Type messageType, Type subscriptionType, Type settingsType, IHostConfiguration configuration, IMessageProcessor processor)
         {
             var settings = Activator.CreateInstance(settingsType);
-            var queueReaderType = typeof(ServiceBusQueueTransport<>).MakeGenericType(messageType);
+            var queueReaderType = typeof(ServiceBusQueueChannelReceiver<>).MakeGenericType(messageType);
             var queueReader = (IChannelReceiver)Activator.CreateInstance(queueReaderType, settings, Configuration, configuration, processor);
             return queueReader;
         }
