@@ -16,8 +16,11 @@
 | ------- | ------------ |
 | [KnightBus.Host](https://www.nuget.org/packages/KnightBus.Host/) | [![KnightBus.Host](https://img.shields.io/nuget/v/KnightBus.Host.svg)](https://www.nuget.org/packages/KnightBus.Host/) |
 | [KnightBus.Core](https://www.nuget.org/packages/KnightBus.Core/) | [![KnightBus.Core](https://img.shields.io/nuget/v/KnightBus.Core.svg)](https://www.nuget.org/packages/KnightBus.Core/) |
+| [KnightBus.Messages](https://www.nuget.org/packages/KnightBus.Messages/) | [![KnightBus.Messages](https://img.shields.io/nuget/v/KnightBus.Messages.svg)](https://www.nuget.org/packages/KnightBus.Messages/) |
 | [KnightBus.Azure.ServiceBus](https://www.nuget.org/packages/KnightBus.Azure.ServiceBus/) | [![KnightBus.Azure.ServiceBus](https://img.shields.io/nuget/v/KnightBus.Azure.ServiceBus.svg)](https://www.nuget.org/packages/KnightBus.Azure.ServiceBus/) |
+| [KnightBus.Azure.ServiceBus.Messages](https://www.nuget.org/packages/KnightBus.Azure.ServiceBus.Messages/) | [![KnightBus.Azure.ServiceBus.Messages](https://img.shields.io/nuget/v/KnightBus.Azure.ServiceBus.Messages.svg)](https://www.nuget.org/packages/KnightBus.Azure.ServiceBus.Messages/) |
 | [KnightBus.Azure.Storage](https://www.nuget.org/packages/KnightBus.Azure.Storage/) | [![KnightBus.Azure.Storage](https://img.shields.io/nuget/v/KnightBus.Azure.Storage.svg)](https://www.nuget.org/packages/KnightBus.Azure.Storage/) |
+| [KnightBus.Azure.Storage.Messages](https://www.nuget.org/packages/KnightBus.Azure.Storage.Messages/) | [![KnightBus.Azure.Storage.Messages](https://img.shields.io/nuget/v/KnightBus.Azure.Storage.Messages.svg)](https://www.nuget.org/packages/KnightBus.Azure.Storage.Messages/) |
 | [KnightBus.Serilog](https://www.nuget.org/packages/KnightBus.Serilog/) | [![KnightBus.Serilog](https://img.shields.io/nuget/v/KnightBus.Serilog.svg)](https://www.nuget.org/packages/KnightBus.Serilog/) |
 | [KnightBus.SimpleInjector](https://www.nuget.org/packages/KnightBus.SimpleInjector/) | [![KnightBus.SimpleInjector](https://img.shields.io/nuget/v/KnightBus.SimpleInjector.svg)](https://www.nuget.org/packages/KnightBus.SimpleInjector/) |
 
