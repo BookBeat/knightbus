@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using KnightBus.Azure.Storage.Messages;
 using KnightBus.Core;
+using KnightBus.Core.Exceptions;
 using KnightBus.Messages;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
@@ -102,8 +103,10 @@ namespace KnightBus.Azure.Storage
                 BlobMessageId = Guid.NewGuid().ToString()
             };
             
-            if (_attachmentProvider != null && typeof(ICommandWithAttachment).IsAssignableFrom(typeof(T)))
+            if (typeof(ICommandWithAttachment).IsAssignableFrom(typeof(T)))
             {
+                if(_attachmentProvider == null) throw new AttachmentProviderMissingException();
+
                 var attachmentMessage = (ICommandWithAttachment)message;
                 if (attachmentMessage.Attachment != null)
                 {

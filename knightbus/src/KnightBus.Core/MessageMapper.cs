@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Reflection;
+using KnightBus.Core.Exceptions;
 using KnightBus.Messages;
 
 namespace KnightBus.Core

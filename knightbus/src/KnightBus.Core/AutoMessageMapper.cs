@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using KnightBus.Core.Exceptions;
 using KnightBus.Messages;
 
 namespace KnightBus.Core

@@ -19,17 +19,13 @@ namespace KnightBus.Azure.ServiceBus
     {
         private readonly string _connectionString;
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
-        private ConcurrentDictionary<Type, QueueClient> QueueClients { get; }
-        private ConcurrentDictionary<Type, TopicClient> TopicClients { get; }
-        private ConcurrentDictionary<Type, SubscriptionClient> SubscriptionClients { get; }
+        private ConcurrentDictionary<Type, QueueClient> QueueClients { get; } = new ConcurrentDictionary<Type, QueueClient>();
+        private ConcurrentDictionary<Type, TopicClient> TopicClients { get; } = new ConcurrentDictionary<Type, TopicClient>();
+        private ConcurrentDictionary<Type, SubscriptionClient> SubscriptionClients { get; } = new ConcurrentDictionary<Type, SubscriptionClient>();
 
         public ClientFactory(string connectionString)
         {
             _connectionString = connectionString;
-
-            QueueClients = new ConcurrentDictionary<Type, QueueClient>();
-            TopicClients = new ConcurrentDictionary<Type, TopicClient>();
-            SubscriptionClients = new ConcurrentDictionary<Type, SubscriptionClient>();
         }
 
         private QueueClient CreateQueueClient<T>() where T : ICommand
