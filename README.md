@@ -6,9 +6,20 @@
 
 ## KnightBus is a fast, lightweight and extensible messaging framework that supports multiple active message transports
 
+
 [Find the official KnightBus documentation here](https://knightbus.readthedocs.io/)
 
-![KnightBus Logo](https://raw.githubusercontent.com/BookBeat/knightbus-documentation/master/media/images/knightbus-logo.png "KnightBus Logo")
+<img src="https://raw.githubusercontent.com/BookBeat/knightbus-documentation/master/media/images/knightbus-logo.png" alt="KnightBus Logo" width="300"/>
+
+
+| Package | NuGet Stable | NuGet Pre-release | Downloads | MyGet |
+| ------- | ------------ | ----------------- | --------- | ----- |
+| [KnightBus.Host](https://www.nuget.org/packages/KnightBus.Host/) | [![KnightBus.Host](https://img.shields.io/nuget/v/KnightBus.Host.svg)](https://www.nuget.org/packages/KnightBus.Host/) |
+| [KnightBus.Core](https://www.nuget.org/packages/KnightBus.Core/) | [![KnightBus.Core](https://img.shields.io/nuget/v/KnightBus.Core.svg)](https://www.nuget.org/packages/KnightBus.Core/) |
+| [KnightBus.Azure.ServiceBus](https://www.nuget.org/packages/KnightBus.Azure.ServiceBus/) | [![KnightBus.Azure.ServiceBus](https://img.shields.io/nuget/v/KnightBus.Azure.ServiceBus.svg)](https://www.nuget.org/packages/KnightBus.Azure.ServiceBus/) |
+| [KnightBus.Azure.Storage](https://www.nuget.org/packages/KnightBus.Azure.Storage/) | [![KnightBus.Azure.Storage](https://img.shields.io/nuget/v/KnightBus.Azure.Storage.svg)](https://www.nuget.org/packages/KnightBus.Azure.Storage/) |
+| [KnightBus.Serilog](https://www.nuget.org/packages/KnightBus.Serilog/) | [![KnightBus.Serilog](https://img.shields.io/nuget/v/KnightBus.Serilog.svg)](https://www.nuget.org/packages/KnightBus.Serilog/) |
+| [KnightBus.SimpleInjector](https://www.nuget.org/packages/KnightBus.SimpleInjector/) | [![KnightBus.SimpleInjector](https://img.shields.io/nuget/v/KnightBus.SimpleInjector.svg)](https://www.nuget.org/packages/KnightBus.SimpleInjector/) |
 
 ## Message Processing
 ```csharp
@@ -16,7 +27,7 @@ public class CommandProcessor : IProcessCommand<SampleCommand, SampleSettings>,
 {
     public CommandProcessor(ISomeDependency dependency)
     {
-        //You can use bring your own container for dependency injection
+        //You can use your own container for dependency injection
     }
 
     public Task ProcessAsync(SampleCommand message, CancellationToken cancellationToken)
