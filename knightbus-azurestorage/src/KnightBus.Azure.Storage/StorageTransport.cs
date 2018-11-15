@@ -9,7 +9,7 @@ namespace KnightBus.Azure.Storage
 
         public StorageTransport(IStorageBusConfiguration configuration)
         {
-            TransportChannelFactories = new ITransportChannelFactory[]{new StorageQueueTransportFactory(configuration), };
+            TransportChannelFactories = new ITransportChannelFactory[]{new StorageQueueChannelFactory(configuration), };
         }
 
         public ITransportChannelFactory[] TransportChannelFactories { get; }
