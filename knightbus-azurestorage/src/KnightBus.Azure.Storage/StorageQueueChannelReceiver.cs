@@ -8,7 +8,7 @@ using KnightBus.Core;
 [assembly: InternalsVisibleTo("KnightBus.Azure.Storage.Tests.Unit")]
 namespace KnightBus.Azure.Storage
 {
-    internal class StorageQueueTransport<T> : IChannelReceiver
+    internal class StorageQueueChannelReceiver<T> : IChannelReceiver
         where T : class, IStorageQueueCommand
     {
         private IStorageQueueClient _storageQueueClient;
@@ -19,7 +19,7 @@ namespace KnightBus.Azure.Storage
         private StorageQueueMessagePump _messagePump;
         
 
-        public StorageQueueTransport(IProcessingSettings settings, IMessageProcessor processor, IHostConfiguration hostConfiguration, IStorageBusConfiguration storageOptions)
+        public StorageQueueChannelReceiver(IProcessingSettings settings, IMessageProcessor processor, IHostConfiguration hostConfiguration, IStorageBusConfiguration storageOptions)
         {
             if (settings.PrefetchCount > 32)
                 throw new ArgumentOutOfRangeException(nameof(settings),

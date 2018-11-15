@@ -4,6 +4,7 @@ using System.Text;
 using System.Threading.Tasks;
 using KnightBus.Azure.ServiceBus.Messages;
 using KnightBus.Core;
+using KnightBus.Core.Exceptions;
 using KnightBus.Messages;
 using Microsoft.Azure.ServiceBus;
 
@@ -94,8 +95,10 @@ namespace KnightBus.Azure.ServiceBus
                 ContentType = _configuration.MessageSerializer.ContentType
             };
 
-            if (_attachmentProvider != null && typeof(ICommandWithAttachment).IsAssignableFrom(typeof(T)))
+            if (typeof(ICommandWithAttachment).IsAssignableFrom(typeof(T)))
             {
+                if(_attachmentProvider == null) throw new AttachmentProviderMissingException();
+
                 var attachmentMessage = (ICommandWithAttachment)body;
                 if (attachmentMessage.Attachment != null)
                 {

@@ -9,7 +9,7 @@ using Microsoft.Azure.ServiceBus.Management;
 [assembly: InternalsVisibleTo("BB.Common.KnightBus.Tests.Unit")]
 namespace KnightBus.Azure.ServiceBus
 {
-    internal class ServiceBusQueueTransport<T> : IChannelReceiver
+    internal class ServiceBusQueueChannelReceiver<T> : IChannelReceiver
         where T : class, ICommand
     {
         private readonly IClientFactory _clientFactory;
@@ -21,13 +21,13 @@ namespace KnightBus.Azure.ServiceBus
         private QueueClient _client;
         private readonly ManagementClient _managementClient;
 
-        public ServiceBusQueueTransport(IProcessingSettings settings, ServiceBusConfiguration configuration, IHostConfiguration hostConfiguration, IMessageProcessor processor)
+        public ServiceBusQueueChannelReceiver(IProcessingSettings settings, ServiceBusConfiguration configuration, IHostConfiguration hostConfiguration, IMessageProcessor processor)
         {
             _configuration = configuration;
             _processor = processor;
             Settings = settings;
             _log = hostConfiguration.Log;
-            //new client factory per ServiceBusQueueTransport means a separate communication channel per reader instead of a shared
+            //new client factory per ServiceBusQueueChannelReceiver means a separate communication channel per reader instead of a shared
             _clientFactory = new ClientFactory(configuration.ConnectionString);
             _managementClient = new ManagementClient(configuration.ConnectionString);
         }

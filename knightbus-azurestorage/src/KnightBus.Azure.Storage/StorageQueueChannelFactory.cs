@@ -5,9 +5,9 @@ using KnightBus.Core;
 
 namespace KnightBus.Azure.Storage
 {
-    internal class StorageQueueTransportFactory : ITransportChannelFactory
+    internal class StorageQueueChannelFactory : ITransportChannelFactory
     {
-        public StorageQueueTransportFactory(IStorageBusConfiguration configuration)
+        public StorageQueueChannelFactory(IStorageBusConfiguration configuration)
         {
             Configuration = configuration;
         }
@@ -19,7 +19,7 @@ namespace KnightBus.Azure.Storage
         public IChannelReceiver Create(Type messageType, Type subscriptionType, Type settingsType, IHostConfiguration configuration, IMessageProcessor processor)
         {
             var settings = Activator.CreateInstance(settingsType);
-            var queueReaderType = typeof(StorageQueueTransport<>).MakeGenericType(messageType);
+            var queueReaderType = typeof(StorageQueueChannelReceiver<>).MakeGenericType(messageType);
             var queueReader = (IChannelReceiver)Activator.CreateInstance(queueReaderType, settings, processor, configuration, Configuration);
             return queueReader;
         }

@@ -15,7 +15,7 @@ namespace KnightBus.Azure.Storage.Tests.Unit
       //act
       Action act = () =>
       {
-        var storageQueueReader = new StorageQueueTransport<LongRunningTestCommand>(
+        var storageQueueReader = new StorageQueueChannelReceiver<LongRunningTestCommand>(
                   new TooHighPrefetchSettings(),
               Mock.Of<IMessageProcessor>(), Mock.Of<IHostConfiguration>(), new StorageBusConfiguration(""));
       };
