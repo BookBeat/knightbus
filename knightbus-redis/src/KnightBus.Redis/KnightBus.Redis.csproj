@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="StackExchange.Redis" Version="2.0.513" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\knightbus\src\KnightBus.Core\KnightBus.Core.csproj" />
+    <ProjectReference Include="..\KnightBus.Redis.Messages\KnightBus.Redis.Messages.csproj" />
+  </ItemGroup>
+
+</Project>

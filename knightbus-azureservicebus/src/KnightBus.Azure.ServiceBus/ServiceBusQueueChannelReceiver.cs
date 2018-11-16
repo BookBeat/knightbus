@@ -15,13 +15,13 @@ namespace KnightBus.Azure.ServiceBus
         private readonly IClientFactory _clientFactory;
         public IProcessingSettings Settings { get; set; }
         private readonly ILog _log;
-        private readonly ServiceBusConfiguration _configuration;
+        private readonly IServiceBusConfiguration _configuration;
         private readonly IMessageProcessor _processor;
         private int _deadLetterLimit;
         private IQueueClient _client;
         private readonly ManagementClient _managementClient;
 
-        public ServiceBusQueueChannelReceiver(IProcessingSettings settings, ServiceBusConfiguration configuration, IHostConfiguration hostConfiguration, IMessageProcessor processor)
+        public ServiceBusQueueChannelReceiver(IProcessingSettings settings, IServiceBusConfiguration configuration, IHostConfiguration hostConfiguration, IMessageProcessor processor)
         {
             _configuration = configuration;
             _processor = processor;
