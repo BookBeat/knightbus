@@ -42,13 +42,14 @@ namespace KnightBus.Examples.Redis
             });
             //Send some Messages and watch them print in the console
             var sw = new Stopwatch();
-            //sw.Start();
-            //var tasks = Enumerable.Range(0, 100000).Select(i => client.SendAsync(new SampleStorageBusMessage
-            //{
-            //    Message = $"Hello from command {i}",
-            //}));
+            
+            var tasks = Enumerable.Range(0, 100000).Select(i => new SampleStorageBusMessage
+            {
+                Message = $"Hello from command {i}",
+            });
+            sw.Start();
+            await client.SendAsync(tasks);
 
-            //await Task.WhenAll(tasks);
             Console.WriteLine($"Elapsed {sw.Elapsed}");
             Console.ReadKey();
         }
