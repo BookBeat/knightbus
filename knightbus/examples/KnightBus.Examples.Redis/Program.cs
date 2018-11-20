@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
@@ -31,6 +29,7 @@ namespace KnightBus.Examples.Redis
                     //Register our message processors without IoC using the standard provider
                     .UseMessageProcessorProvider(new StandardMessageProcessorProvider()
                         .RegisterProcessor(new SampleStorageBusMessageProcessor()))
+                    .AddMiddleware(new PerformanceLogging())
                 );
 
             //Start the KnightBus Host, it will now connect to the StorageBus and listen to the SampleStorageBusMessageMapping.QueueName
@@ -42,13 +41,15 @@ namespace KnightBus.Examples.Redis
             });
             //Send some Messages and watch them print in the console
             var sw = new Stopwatch();
-            
+
             var tasks = Enumerable.Range(0, 100000).Select(i => new SampleStorageBusMessage
             {
                 Message = $"Hello from command {i}",
-            });
+            }).ToList();
+
             sw.Start();
-            await client.SendAsync(tasks);
+            await client.SendAsync<SampleStorageBusMessage>(tasks);
+            
 
             Console.WriteLine($"Elapsed {sw.Elapsed}");
             Console.ReadKey();
@@ -57,6 +58,7 @@ namespace KnightBus.Examples.Redis
         class SampleStorageBusMessage : IRedisCommand
         {
             public string Message { get; set; }
+            public string Id { get; } = Guid.NewGuid().ToString("N");
         }
 
         class SampleStorageBusMessageMapping : IMessageMapping<SampleStorageBusMessage>
@@ -68,15 +70,38 @@ namespace KnightBus.Examples.Redis
         {
             public Task ProcessAsync(SampleStorageBusMessage message, CancellationToken cancellationToken)
             {
-                Console.WriteLine($"Received command: '{message.Message}'");
+                //Console.WriteLine($"Received command: '{message.Message}'");
                 return Task.CompletedTask;
+            }
+        }
+
+        public class PerformanceLogging : IMessageProcessorMiddleware
+        {
+            private int _count;
+            private readonly Stopwatch _stopwatch = new Stopwatch();
+
+            public PerformanceLogging()
+            {
+               
+            }
+            public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, IMessageProcessor next, CancellationToken cancellationToken) where T : class, IMessage
+            {
+                if (!_stopwatch.IsRunning)
+                {
+                    _stopwatch.Start();
+                }
+                await next.ProcessAsync(messageStateHandler, cancellationToken).ConfigureAwait(false);
+                if (++_count % 1000 == 0)
+                {
+                    Console.WriteLine($"Processed {_count} messages in {_stopwatch.Elapsed} {_count / _stopwatch.Elapsed.TotalSeconds} m/s");
+                }
             }
         }
 
         class SomeProcessingSetting : IProcessingSettings
         {
-            public int MaxConcurrentCalls => 1000;
-            public int PrefetchCount => 1000;
+            public int MaxConcurrentCalls => 100000;
+            public int PrefetchCount => 400;
             public TimeSpan MessageLockTimeout => TimeSpan.FromMinutes(5);
             public int DeadLetterDeliveryLimit => 2;
         }
