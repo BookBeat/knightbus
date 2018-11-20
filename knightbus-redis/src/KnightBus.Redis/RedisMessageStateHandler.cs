@@ -11,40 +11,38 @@ namespace KnightBus.Redis
 {
     internal class RedisMessageStateHandler<T> : IMessageStateHandler<T> where T : class, IMessage, IRedisCommand
     {
-        private readonly IConnectionMultiplexer _connection;
+        private readonly IDatabase db;
         private readonly RedisConfiguration _configuration;
         private readonly RedisMessage<T> _redisMessage;
         private readonly string _queueName;
+        
 
         public RedisMessageStateHandler(IConnectionMultiplexer connection, RedisConfiguration configuration, RedisMessage<T> redisMessage, IMessageSerializer serializer, int deadLetterDeliveryLimit, string queueName)
         {
-            _connection = connection;
+            db = connection.GetDatabase(configuration.DatabaseId);
             _configuration = configuration;
             _redisMessage = redisMessage;
             DeadLetterDeliveryLimit = deadLetterDeliveryLimit;
             _queueName = queueName;
         }
 
-        public int DeliveryCount => (int)_redisMessage.HashEntries.Single(h => h.Name == RedisHashKeys.DeliveryCount).Value;
+        public int DeliveryCount => int.Parse(_redisMessage.HashEntries[RedisHashKeys.DeliveryCount]);
         public int DeadLetterDeliveryLimit { get; }
 
-        public IDictionary<string, string> MessageProperties { get; }
+        public IDictionary<string, string> MessageProperties => _redisMessage.HashEntries;
         public Task CompleteAsync()
         {
-            var db = _connection.GetDatabase(_configuration.DatabaseId);
-            return db.HashDeleteAsync(_redisMessage.HashKey, _redisMessage.HashEntries.Select(h => h.Name).ToArray());
+            return db.HashDeleteAsync(_redisMessage.HashKey, _redisMessage.HashEntries.Select(h => (RedisValue)h.Key).ToArray());
         }
 
-        public async Task AbandonByErrorAsync(Exception e)
+        public Task AbandonByErrorAsync(Exception e)
         {
-            var db = _connection.GetDatabase(_configuration.DatabaseId);
-            await db.ListRightPushAsync(_queueName, _redisMessage.RedisValue);
+            return db.ListRightPushAsync(_queueName, _redisMessage.RedisValue);
         }
 
-        public async Task DeadLetterAsync(int deadLetterLimit)
+        public Task DeadLetterAsync(int deadLetterLimit)
         {
-            var db = _connection.GetDatabase(_configuration.DatabaseId);
-            await db.ListRightPushAsync(RedisQueueConventions.GetDeadLetterQueueName(_queueName), _redisMessage.RedisValue);
+            return db.ListRightPushAsync(RedisQueueConventions.GetDeadLetterQueueName(_queueName), _redisMessage.RedisValue);
         }
 
         public Task<T> GetMessageAsync()
