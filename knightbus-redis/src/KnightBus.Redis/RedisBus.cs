@@ -16,7 +16,9 @@ namespace KnightBus.Redis
     public interface IRedisBus
     {
         Task SendAsync<T>(T message) where T : IRedisCommand;
-        Task SendAsync<T>(IList<T> messages) where T : IRedisCommand;
+        Task SendAsync<T>(IEnumerable<T> messages) where T : IRedisCommand;
+        Task PublishAsync<T>(T message) where T : IRedisEvent;
+        Task PublishAsync<T>(IEnumerable<T> messages) where T : IRedisEvent;
     }
 
     public class RedisBus : IRedisBus
@@ -40,29 +42,57 @@ namespace KnightBus.Redis
 
         public Task SendAsync<T>(T message) where T : IRedisCommand
         {
-            var db = _multiplexer.GetDatabase(_configuration.DatabaseId);
             var queueName = AutoMessageMapper.GetQueueName<T>();
-
-
-            return Task.WhenAll(
-                UploadAttachment(message, queueName, db),
-                db.ListRightPushAsync(queueName, _configuration.MessageSerializer.Serialize(message)),
-                db.PublishAsync(queueName, 0, CommandFlags.FireAndForget)
-                );
+            return SendAsync(message, queueName);
         }
-        public Task SendAsync<T>(IList<T> messages) where T : IRedisCommand
+        public Task SendAsync<T>(IEnumerable<T> messages) where T : IRedisCommand
+        {
+            var queueName = AutoMessageMapper.GetQueueName<T>();
+            return SendAsync<T>(messages.ToList(), queueName);
+        }
+
+        private Task SendAsync<T>(IList<T> messages, string queueName) where T : IRedisMessage
         {
             var db = _multiplexer.GetDatabase(_configuration.DatabaseId);
-            var queueName = AutoMessageMapper.GetQueueName<T>();
             var serialized = messages.Select(m => (RedisValue)_configuration.MessageSerializer.Serialize(m)).ToArray();
             return Task.WhenAll(
                 UploadAttachments(messages, queueName, db),
                 db.ListRightPushAsync(queueName, serialized),
                 db.PublishAsync(queueName, 0, CommandFlags.FireAndForget)
-                );
+            );
         }
 
-        private async Task UploadAttachment<T>(T message, string queueName, IDatabase db) where T : IRedisCommand
+        private Task SendAsync<T>(T message, string queueName) where T : IRedisMessage
+        {
+            var db = _multiplexer.GetDatabase(_configuration.DatabaseId);
+            return Task.WhenAll(
+                UploadAttachment(message, queueName, db),
+                db.ListRightPushAsync(queueName, _configuration.MessageSerializer.Serialize(message)),
+                db.PublishAsync(queueName, 0, CommandFlags.FireAndForget)
+            );
+        }
+
+        public async Task PublishAsync<T>(T message) where T : IRedisEvent
+        {
+            var db = _multiplexer.GetDatabase(_configuration.DatabaseId);
+            var queueName = AutoMessageMapper.GetQueueName<T>();
+            var subscriptions = await db.SetMembersAsync(RedisQueueConventions.GetSubscriptionKey(queueName)).ConfigureAwait(false);
+            if(subscriptions == null) return;
+            await Task.WhenAll(subscriptions.Select(sub => SendAsync(message, RedisQueueConventions.GetSubscriptionQueueName(queueName, sub)))).ConfigureAwait(false);
+        }
+
+        public async Task PublishAsync<T>(IEnumerable<T> messages) where T : IRedisEvent
+        {
+            var db = _multiplexer.GetDatabase(_configuration.DatabaseId);
+            var queueName = AutoMessageMapper.GetQueueName<T>();
+            var subscriptions = await db.SetMembersAsync(RedisQueueConventions.GetSubscriptionKey(queueName)).ConfigureAwait(false);
+            if (subscriptions == null) return;
+            var messageList = messages.ToList();
+            await Task.WhenAll(subscriptions.Select(sub => SendAsync<T>(messageList, RedisQueueConventions.GetSubscriptionQueueName(queueName, sub)))).ConfigureAwait(false);
+        }
+        
+
+        private async Task UploadAttachment<T>(T message, string queueName, IDatabase db) where T : IRedisMessage
         {
             if (typeof(ICommandWithAttachment).IsAssignableFrom(typeof(T)))
             {
@@ -71,13 +101,13 @@ namespace KnightBus.Redis
                 if (attachmentMessage.Attachment != null)
                 {
                     var attachmentId = Guid.NewGuid().ToString("N");
-                    await db.HashSetAsync(RedisQueueConventions.GetHashKey(message.Id, queueName), AttachmentUtility.AttachmentKey, attachmentId).ConfigureAwait(false);
+                    await db.HashSetAsync(RedisQueueConventions.GetHashKey(queueName, message.Id), AttachmentUtility.AttachmentKey, attachmentId).ConfigureAwait(false);
                     await _attachmentProvider.UploadAttachmentAsync(queueName, attachmentId, attachmentMessage.Attachment).ConfigureAwait(false);
                 }
             }
         }
 
-        private Task UploadAttachments<T>(IList<T> messages, string queueName, IDatabase db) where T : IRedisCommand
+        private Task UploadAttachments<T>(IEnumerable<T> messages, string queueName, IDatabase db) where T : IRedisMessage
         {
             if (typeof(ICommandWithAttachment).IsAssignableFrom(typeof(T)))
             {

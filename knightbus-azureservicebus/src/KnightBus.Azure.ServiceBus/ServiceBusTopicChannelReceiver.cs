@@ -15,13 +15,13 @@ namespace KnightBus.Azure.ServiceBus
         private readonly ManagementClient _managementClient;
         private readonly IEventSubscription<TTopic> _subscription;
         private readonly ILog _log;
-        private readonly ServiceBusConfiguration _configuration;
+        private readonly IServiceBusConfiguration _configuration;
         private readonly IMessageProcessor _processor;
         private int _deadLetterLimit;
         private ISubscriptionClient _client;
         
 
-        public ServiceBusTopicChannelReceiver(IProcessingSettings settings, IEventSubscription<TTopic> subscription, ServiceBusConfiguration configuration, IHostConfiguration hostConfiguration, IMessageProcessor processor)
+        public ServiceBusTopicChannelReceiver(IProcessingSettings settings, IEventSubscription<TTopic> subscription, IServiceBusConfiguration configuration, IHostConfiguration hostConfiguration, IMessageProcessor processor)
         {
             Settings = settings;
             _managementClient = new ManagementClient(configuration.ConnectionString);

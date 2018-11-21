@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using KnightBus.Core;
 using KnightBus.Messages;
@@ -9,18 +8,16 @@ using StackExchange.Redis;
 
 namespace KnightBus.Redis
 {
-    internal class RedisMessageStateHandler<T> : IMessageStateHandler<T> where T : class, IMessage, IRedisCommand
+    internal class RedisMessageStateHandler<T> : IMessageStateHandler<T> where T : class, IMessage, IRedisMessage
     {
-        private readonly IDatabase db;
-        private readonly RedisConfiguration _configuration;
+        private readonly IDatabase _db;
         private readonly RedisMessage<T> _redisMessage;
         private readonly string _queueName;
-        
 
-        public RedisMessageStateHandler(IConnectionMultiplexer connection, RedisConfiguration configuration, RedisMessage<T> redisMessage, IMessageSerializer serializer, int deadLetterDeliveryLimit, string queueName)
+
+        public RedisMessageStateHandler(IConnectionMultiplexer connection, RedisConfiguration configuration, RedisMessage<T> redisMessage, int deadLetterDeliveryLimit, string queueName)
         {
-            db = connection.GetDatabase(configuration.DatabaseId);
-            _configuration = configuration;
+            _db = connection.GetDatabase(configuration.DatabaseId);
             _redisMessage = redisMessage;
             DeadLetterDeliveryLimit = deadLetterDeliveryLimit;
             _queueName = queueName;
@@ -32,17 +29,19 @@ namespace KnightBus.Redis
         public IDictionary<string, string> MessageProperties => _redisMessage.HashEntries;
         public Task CompleteAsync()
         {
-            return db.HashDeleteAsync(_redisMessage.HashKey, _redisMessage.HashEntries.Select(h => (RedisValue)h.Key).ToArray());
+            return _db.KeyDeleteAsync(_redisMessage.HashKey);
         }
 
         public Task AbandonByErrorAsync(Exception e)
         {
-            return db.ListRightPushAsync(_queueName, _redisMessage.RedisValue);
+            return Task.WhenAll(
+                _db.ListRightPushAsync(_queueName, _redisMessage.RedisValue),
+                _db.PublishAsync(_queueName, 0, CommandFlags.FireAndForget));
         }
 
         public Task DeadLetterAsync(int deadLetterLimit)
         {
-            return db.ListRightPushAsync(RedisQueueConventions.GetDeadLetterQueueName(_queueName), _redisMessage.RedisValue);
+            return _db.ListRightPushAsync(RedisQueueConventions.GetDeadLetterQueueName(_queueName), _redisMessage.RedisValue);
         }
 
         public Task<T> GetMessageAsync()

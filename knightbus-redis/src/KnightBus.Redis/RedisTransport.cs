@@ -1,4 +1,5 @@
 ﻿using KnightBus.Core;
+using StackExchange.Redis;
 
 namespace KnightBus.Redis
 {
@@ -8,9 +9,11 @@ namespace KnightBus.Redis
         { }
         public RedisTransport(RedisConfiguration configuration)
         {
+            var multiplexer = ConnectionMultiplexer.Connect(configuration.ConnectionString);
             TransportChannelFactories = new ITransportChannelFactory[]
             {
-                new RedisChannelFactory(configuration)
+                new RedisCommandChannelFactory(configuration, multiplexer),
+                new RedisEventChannelFactory(configuration, multiplexer), 
             };
         }
 

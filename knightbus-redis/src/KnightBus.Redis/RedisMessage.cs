@@ -4,10 +4,10 @@ using StackExchange.Redis;
 
 namespace KnightBus.Redis
 {
-    internal class RedisMessage<T> where T : class, IRedisCommand
+    internal class RedisMessage<T> where T : class, IRedisMessage
     {
         private readonly string _queueName;
-        public string HashKey => RedisQueueConventions.GetHashKey(Message.Id, _queueName);
+        public string HashKey => RedisQueueConventions.GetHashKey(_queueName, Message.Id);
         public T Message { get; }
         public RedisValue RedisValue { get; }
         public IDictionary<string, string> HashEntries { get; }

@@ -2,13 +2,17 @@
 using System.Collections.Generic;
 using KnightBus.Core;
 using KnightBus.Redis.Messages;
+using StackExchange.Redis;
 
 namespace KnightBus.Redis
 {
-    public class RedisChannelFactory : ITransportChannelFactory
+    internal class RedisCommandChannelFactory : ITransportChannelFactory
     {
-        public RedisChannelFactory(RedisConfiguration configuration)
+        private readonly IConnectionMultiplexer _connectionMultiplexer;
+
+        public RedisCommandChannelFactory(RedisConfiguration configuration, IConnectionMultiplexer connectionMultiplexer)
         {
+            _connectionMultiplexer = connectionMultiplexer;
             Configuration = configuration;
         }
 
@@ -17,8 +21,8 @@ namespace KnightBus.Redis
         public IChannelReceiver Create(Type messageType, Type subscriptionType, Type settingsType, IHostConfiguration configuration, IMessageProcessor processor)
         {
             var settings = Activator.CreateInstance(settingsType);
-            var queueReaderType = typeof(RedisChannelReceiver<>).MakeGenericType(messageType);
-            var queueReader = (IChannelReceiver)Activator.CreateInstance(queueReaderType, settings, Configuration, configuration, processor);
+            var queueReaderType = typeof(RedisCommandChannelReceiver<>).MakeGenericType(messageType);
+            var queueReader = (IChannelReceiver)Activator.CreateInstance(queueReaderType, _connectionMultiplexer, settings, Configuration, configuration, processor);
             return queueReader;
         }
 
