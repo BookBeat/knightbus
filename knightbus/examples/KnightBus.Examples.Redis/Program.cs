@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
@@ -8,6 +10,7 @@ using KnightBus.Host;
 using KnightBus.Messages;
 using KnightBus.Redis;
 using KnightBus.Redis.Messages;
+using StackExchange.Redis;
 
 namespace KnightBus.Examples.Redis
 {
@@ -22,68 +25,161 @@ namespace KnightBus.Examples.Redis
         {
             var redisConnection = "string";
 
+            var multiplexer = ConnectionMultiplexer.Connect(redisConnection);
             var knightBusHost = new KnightBusHost()
-                //Enable the StorageBus Transport
+                //Enable the Redis Transport
                 .UseTransport(new RedisTransport(redisConnection))
                 .Configure(configuration => configuration
+                     //Enable reading attachments from Redis
+                    .UseRedisAttachments(multiplexer, new RedisConfiguration(redisConnection))
                     //Register our message processors without IoC using the standard provider
                     .UseMessageProcessorProvider(new StandardMessageProcessorProvider()
-                        .RegisterProcessor(new SampleStorageBusMessageProcessor()))
+                        .RegisterProcessor(new SampleRedisMessageProcessor())
+                        .RegisterProcessor(new RedisEventProcessor())
+                        .RegisterProcessor(new RedisEventProcessorTwo())
+                        .RegisterProcessor(new RedisEventProcessorThree())
+                    )
                     .AddMiddleware(new PerformanceLogging())
                 );
 
-            //Start the KnightBus Host, it will now connect to the StorageBus and listen to the SampleStorageBusMessageMapping.QueueName
+            //Start the KnightBus Host, it will now connect to the Redis and listen
             await knightBusHost.StartAsync();
 
             //Initiate the client
-            var client = new RedisBus(new RedisConfiguration(redisConnection)
-            {
-            });
+            var client = new RedisBus(new RedisConfiguration(redisConnection));
+            client.EnableAttachments(new RedisAttachmentProvider(multiplexer, new RedisConfiguration(redisConnection)));
             //Send some Messages and watch them print in the console
+            var messageCount = 100000;
             var sw = new Stopwatch();
-
-            var tasks = Enumerable.Range(0, 100000).Select(i => new SampleStorageBusMessage
+            Console.WriteLine($"Press Any Key to start sending {messageCount} commands");
+            Console.ReadKey();
+            var commands = Enumerable.Range(0, messageCount).Select(i => new SampleRedisCommand
             {
-                Message = $"Hello from command {i}",
+                Message = $"Hello from command {i}"
             }).ToList();
 
             sw.Start();
-            await client.SendAsync<SampleStorageBusMessage>(tasks);
-            
-
+            await client.SendAsync<SampleRedisCommand>(commands);
             Console.WriteLine($"Elapsed {sw.Elapsed}");
+            Console.WriteLine($"Press Any Key to start sending {10} commands with attachments");
             Console.ReadKey();
+
+            var attachmentCommands = Enumerable.Range(0, 10).Select(i => new SampleRedisAttachmentCommand()
+            {
+                Message = $"Hello from command with attachment {i}",
+                Attachment = new MessageAttachment($"file{i}.txt", "text/plain", new MemoryStream(Encoding.UTF8.GetBytes($"this is a stream from Message {i}")))
+            }).ToList();
+            await client.SendAsync<SampleRedisAttachmentCommand>(attachmentCommands);
+            
+            Console.WriteLine($"Press Any Key to start sending {10} commands with attachments");
+            Console.ReadKey();
+
+            var events = Enumerable.Range(0, 10).Select(i => new SampleRedisEvent
+            {
+                Message = $"Hello from event {i}"
+            }).ToList();
+            await client.PublishAsync<SampleRedisEvent>(events);
+            Console.ReadKey();
+
         }
 
-        class SampleStorageBusMessage : IRedisCommand
+        class SampleRedisCommand : IRedisCommand
         {
             public string Message { get; set; }
-            public string Id { get; } = Guid.NewGuid().ToString("N");
+            public string Id { get; set; } = Guid.NewGuid().ToString("N");
         }
 
-        class SampleStorageBusMessageMapping : IMessageMapping<SampleStorageBusMessage>
+        class SampleRedisAttachmentCommand : IRedisCommand, ICommandWithAttachment
         {
-            public string QueueName => "your-queue";
+            public string Message { get; set; }
+            public string Id { get; set; } = Guid.NewGuid().ToString("N");
+            public IMessageAttachment Attachment { get; set; }
         }
 
-        class SampleStorageBusMessageProcessor : IProcessCommand<SampleStorageBusMessage, SomeProcessingSetting>
+        class SampleRedisEvent : IRedisEvent
         {
-            public Task ProcessAsync(SampleStorageBusMessage message, CancellationToken cancellationToken)
+            public string Message { get; set; }
+            public string Id { get; set; } = Guid.NewGuid().ToString("N");
+        }
+
+        class SampleRedisMessageMapping : IMessageMapping<SampleRedisCommand>
+        {
+            public string QueueName => "sample-redis-command";
+        }
+        class SampleRedisMessageAttachmentMapping : IMessageMapping<SampleRedisAttachmentCommand>
+        {
+            public string QueueName => "sample-redis-attachment-command";
+        }
+
+        class SampleRedisEventMapping : IMessageMapping<SampleRedisEvent>
+        {
+            public string QueueName => "sample-redis-event";
+        }
+
+        class SampleRedisMessageProcessor : 
+            IProcessCommand<SampleRedisCommand, ExtremeRedisProcessingSetting>,
+            IProcessCommand<SampleRedisAttachmentCommand, RedisProcessingSetting>
+        {
+            public Task ProcessAsync(SampleRedisCommand command, CancellationToken cancellationToken)
             {
-                //Console.WriteLine($"Received command: '{message.Message}'");
+                return Task.CompletedTask;
+            }
+
+            public Task ProcessAsync(SampleRedisAttachmentCommand command, CancellationToken cancellationToken)
+            {
+                Console.WriteLine($"Received command: '{command.Message}'");
+                using (var streamReader = new StreamReader(command.Attachment.Stream))
+                {
+                    Console.WriteLine($"Attach file contents:'{streamReader.ReadToEnd()}'");
+                }
+
                 return Task.CompletedTask;
             }
         }
+
+        class RedisEventProcessor : IProcessEvent<SampleRedisEvent, EventSubscriptionOne, RedisProcessingSetting>
+        {
+            public Task ProcessAsync(SampleRedisEvent message, CancellationToken cancellationToken)
+            {
+                Console.WriteLine($"Handler 1: '{message.Message}'");
+                return Task.CompletedTask;
+            }
+        }
+        class RedisEventProcessorTwo : IProcessEvent<SampleRedisEvent, EventSubscriptionTwo, RedisProcessingSetting>
+        {
+            public Task ProcessAsync(SampleRedisEvent message, CancellationToken cancellationToken)
+            {
+                Console.WriteLine($"Handler 2: '{message.Message}' \nSimulating retry and dead lettering");
+                throw new Exception();
+            }
+        }
+        class RedisEventProcessorThree : IProcessEvent<SampleRedisEvent, EventSubscriptionThree, RedisProcessingSetting>
+        {
+            public Task ProcessAsync(SampleRedisEvent message, CancellationToken cancellationToken)
+            {
+                Console.WriteLine($"Handler 3: '{message.Message}'");
+                return Task.CompletedTask;
+            }
+        }
+        class EventSubscriptionOne:IEventSubscription<SampleRedisEvent>
+        {
+            public string Name => "sub-one";
+        }
+        class EventSubscriptionTwo : IEventSubscription<SampleRedisEvent>
+        {
+            public string Name => "sub-two";
+        }
+        class EventSubscriptionThree : IEventSubscription<SampleRedisEvent>
+        {
+            public string Name => "sub-three";
+        }
+
 
         public class PerformanceLogging : IMessageProcessorMiddleware
         {
             private int _count;
             private readonly Stopwatch _stopwatch = new Stopwatch();
 
-            public PerformanceLogging()
-            {
-               
-            }
             public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, IMessageProcessor next, CancellationToken cancellationToken) where T : class, IMessage
             {
                 if (!_stopwatch.IsRunning)
@@ -98,12 +194,19 @@ namespace KnightBus.Examples.Redis
             }
         }
 
-        class SomeProcessingSetting : IProcessingSettings
+        class ExtremeRedisProcessingSetting : IProcessingSettings
         {
             public int MaxConcurrentCalls => 100000;
-            public int PrefetchCount => 400;
+            public int PrefetchCount => 1000;
             public TimeSpan MessageLockTimeout => TimeSpan.FromMinutes(5);
-            public int DeadLetterDeliveryLimit => 2;
+            public int DeadLetterDeliveryLimit => 5;
+        }
+        class RedisProcessingSetting : IProcessingSettings
+        {
+            public int MaxConcurrentCalls => 1;
+            public int PrefetchCount => 10;
+            public TimeSpan MessageLockTimeout => TimeSpan.FromMinutes(5);
+            public int DeadLetterDeliveryLimit => 5;
         }
     }
 }
