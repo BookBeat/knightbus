@@ -1,7 +1,17 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Authors>BookBeat</Authors>
+    <Description>Redis Transport for KnightBus</Description>
+    <Copyright>Copyright © BookBeat 2018</Copyright>
+    <PackageLicenseUrl>https://raw.githubusercontent.com/BookBeat/knightbus/master/LICENSE</PackageLicenseUrl>
+    <PackageProjectUrl>https://knightbus.readthedocs.io</PackageProjectUrl>
+    <PackageIconUrl>https://raw.githubusercontent.com/BookBeat/knightbus-documentation/master/media/images/knighbus-64.png</PackageIconUrl>
+    <RepositoryUrl>https://github.com/BookBeat/knightbus</RepositoryUrl>
+    <Version>0.0.1-preview.1</Version>
+    <PackageTags>knightbus;redis;queues;messaging</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
@@ -9,7 +19,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\knightbus-azurestorage\src\KnightBus.Azure.Storage\KnightBus.Azure.Storage.csproj" />
     <ProjectReference Include="..\..\..\knightbus\src\KnightBus.Core\KnightBus.Core.csproj" />
     <ProjectReference Include="..\KnightBus.Redis.Messages\KnightBus.Redis.Messages.csproj" />
   </ItemGroup>
