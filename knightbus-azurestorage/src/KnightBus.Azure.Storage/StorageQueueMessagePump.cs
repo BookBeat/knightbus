@@ -42,7 +42,7 @@ namespace KnightBus.Azure.Storage
             try
             {
                 var prefetchCount = _settings.PrefetchCount > 0 ? _settings.PrefetchCount : 1;
-                var messages = await _storageQueueClient.GetMessagesAsync<T>(prefetchCount, _settings.MessageLockTimeout);
+                var messages = await _storageQueueClient.GetMessagesAsync<T>(prefetchCount, _settings.MessageLockTimeout).ConfigureAwait(false);
                 messagesFound = messages.Any();
                 foreach (var message in messages)
                 {

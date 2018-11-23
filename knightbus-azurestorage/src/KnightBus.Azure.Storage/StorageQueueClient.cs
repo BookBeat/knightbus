@@ -112,7 +112,7 @@ namespace KnightBus.Azure.Storage
                 {
                     var attachmentIds = new List<string>();
                     var attachmentId = Guid.NewGuid().ToString("N");
-                    await _attachmentProvider.UploadAttachmentAsync(_queueName, attachmentId, attachmentMessage.Attachment);
+                    await _attachmentProvider.UploadAttachmentAsync(_queueName, attachmentId, attachmentMessage.Attachment).ConfigureAwait(false);
                     attachmentIds.Add(attachmentId);
                     storageMessage.Properties[AttachmentUtility.AttachmentKey] = string.Join(",", attachmentIds);
                 }
@@ -156,7 +156,7 @@ namespace KnightBus.Azure.Storage
             var message = messages.Single();
 
             await _dlQueue.DeleteMessageAsync(message.QueueMessageId, message.PopReceipt)
-                .ContinueWith(task => TryDeleteBlob(message.BlobMessageId), TaskContinuationOptions.OnlyOnRanToCompletion);
+                .ContinueWith(task => TryDeleteBlob(message.BlobMessageId), TaskContinuationOptions.OnlyOnRanToCompletion).ConfigureAwait(false);
 
             return message;
         }
@@ -226,7 +226,7 @@ namespace KnightBus.Azure.Storage
                     deadLetterMessage.Properties["Error"] = "Could not find the message blob. Something is really wrong.";
 
                     //If we cannot find the message blob something is really wrong, dead letter the message right away
-                    await DeadLetterAsync(deadLetterMessage);
+                    await DeadLetterAsync(deadLetterMessage).ConfigureAwait(false);
                 }
             }
             return messageContainers;

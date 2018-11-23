@@ -74,7 +74,7 @@ namespace KnightBus.Azure.ServiceBus
         private async Task OnMessageAsync(Message message, CancellationToken cancellationToken)
         {
             var stateHandler = new ServiceBusMessageStateHandler<TTopic>(_client, message, _configuration.MessageSerializer, _deadLetterLimit);
-            await _processor.ProcessAsync(stateHandler, cancellationToken);
+            await _processor.ProcessAsync(stateHandler, cancellationToken).ConfigureAwait(false);
         }
     }
 }
