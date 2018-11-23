@@ -41,7 +41,7 @@ namespace KnightBus.Host
             var queueReaders = _locator.Locate();
             foreach (var queueReader in queueReaders)
             {
-                await queueReader.StartAsync();
+                await queueReader.StartAsync().ConfigureAwait(false);
             }
         }
 

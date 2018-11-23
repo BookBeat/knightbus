@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using KnightBus.Azure.ServiceBus.Messages;
@@ -61,7 +62,7 @@ namespace KnightBus.Azure.ServiceBus
         public async Task SendAsync<T>(IList<T> messages) where T : IServiceBusCommand
         {
             var client = await _clientFactory.GetQueueClient<T>().ConfigureAwait(false);
-
+            if(!messages.Any()) return;
             var sbMessages = new List<Message>();
             foreach (var message in messages)
             {
@@ -105,7 +106,7 @@ namespace KnightBus.Azure.ServiceBus
                     var attachmentIds = new List<string>();
                     var id = Guid.NewGuid().ToString("N");
                     var queueName = AutoMessageMapper.GetQueueName<T>();
-                    await _attachmentProvider.UploadAttachmentAsync(queueName, id, attachmentMessage.Attachment);
+                    await _attachmentProvider.UploadAttachmentAsync(queueName, id, attachmentMessage.Attachment).ConfigureAwait(false);
                     attachmentIds.Add(id);
                     message.UserProperties[AttachmentUtility.AttachmentKey] = string.Join(",", attachmentIds);
                 }
