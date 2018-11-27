@@ -24,7 +24,7 @@ namespace KnightBus.Host
             return this;
         }
 
-        public KnightBusHost Configure(Func<IHostConfiguration,IHostConfiguration> configuration)
+        public KnightBusHost Configure(Func<IHostConfiguration, IHostConfiguration> configuration)
         {
             _configuration = configuration(_configuration);
             return this;
@@ -35,14 +35,18 @@ namespace KnightBus.Host
         /// <returns></returns>
         public async Task StartAsync()
         {
-            if(!_transports.Any()) throw new TransportMissingException("No transports configured");
-
-            _locator = new MessageProcessorLocator(_configuration, _transports.SelectMany(transport=> transport.TransportChannelFactories).ToArray());
-            var queueReaders = _locator.Locate();
+            if (!_transports.Any()) throw new TransportMissingException("No transports configured");
+            ConsoleWriter.WriteLine("KnightBus starting");
+            _locator = new MessageProcessorLocator(_configuration, _transports.SelectMany(transport => transport.TransportChannelFactories).ToArray());
+            var queueReaders = _locator.Locate().ToList();
+            ConsoleWriter.Write("Starting receivers [");
             foreach (var queueReader in queueReaders)
             {
                 await queueReader.StartAsync().ConfigureAwait(false);
+                Console.Write(".");
             }
+            Console.WriteLine("]");
+            ConsoleWriter.WriteLine("KnightBus started");
         }
 
         public async Task StartAndBlockAsync()

@@ -33,7 +33,7 @@ namespace KnightBus.Host
                     var messageType = processorInterface.GenericTypeArguments[0];
                     var settingsType = processorInterface.GenericTypeArguments[1];
 
-                    Console.WriteLine($"Found command processor {processor.Name}<{messageType.Name}, {settingsType.Name}>");
+                    ConsoleWriter.WriteLine($"Found {processor.Name}<{messageType.Name}, {settingsType.Name}>");
 
                     yield return _transportStarterFactory.CreateQueueReader(messageType, null, processorInterface, settingsType, processor);
                 }
@@ -52,7 +52,7 @@ namespace KnightBus.Host
                     var subscriptionType = processorInterface.GenericTypeArguments[1];
                     var settingsType = processorInterface.GenericTypeArguments[2];
 
-                    Console.WriteLine($"Found event processor {processor.Name}<{messageType.Name}, {subscriptionType.Name}, {settingsType.Name}>");
+                    ConsoleWriter.WriteLine($"Found {processor.Name}<{messageType.Name}, {subscriptionType.Name}, {settingsType.Name}>");
                     yield return _transportStarterFactory.CreateQueueReader(messageType, subscriptionType, processorInterface, settingsType, processor);
                 }
             }
