@@ -20,9 +20,8 @@ namespace KnightBus.Host
             var typedMessage = await messageStateHandler.GetMessageAsync().ConfigureAwait(false);
             var messageHandler = _processorProvider.GetProcessor<T>(typeof(TMessageProcessor));
 
-            await messageHandler.ProcessAsync(typedMessage, cancellationToken)
-                .ContinueWith(task => messageStateHandler.CompleteAsync(), TaskContinuationOptions.OnlyOnRanToCompletion)
-                .ConfigureAwait(false);
+            await messageHandler.ProcessAsync(typedMessage, cancellationToken).ConfigureAwait(false);
+            await messageStateHandler.CompleteAsync().ConfigureAwait(false);
         }
     }
 }
