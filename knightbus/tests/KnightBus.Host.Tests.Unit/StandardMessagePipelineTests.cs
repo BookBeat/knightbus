@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -76,7 +75,7 @@ namespace KnightBus.Host.Tests.Unit
             //act
             await _messageProcessor.ProcessAsync(_stateHandler.Object, CancellationToken.None);
             //assert
-            _stateHandler.Verify(x => x.AbandonByErrorAsync(It.IsAny<Exception>()), Times.Once);
+            _stateHandler.Verify(x => x.AbandonByErrorAsync(It.IsAny<TestException>()), Times.Once);
         }
 
         [Test]
@@ -89,9 +88,7 @@ namespace KnightBus.Host.Tests.Unit
             //act
             await _messageProcessor.ProcessAsync(_stateHandler.Object, CancellationToken.None);
             //assert
-            _logger.Verify(x => x.Error(It.IsAny<Exception>(), "Error processing message {@TestCommandOne}", It.IsAny<TestCommandOne>()), Times.Once);
+            _logger.Verify(x => x.Error(It.IsAny<TestException>(), "Error processing message {@TestCommandOne}", It.IsAny<TestCommandOne>()), Times.Once);
         }
-
-        
     }
 }
