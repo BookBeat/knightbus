@@ -26,7 +26,7 @@ namespace KnightBus.SimpleInjector
             var allTypes = _container.GetCurrentRegistrations()
                 .Select(x => x.Registration.ImplementationType)
                 .Distinct();
-            return ReflectionHelper.GetAllTypesImplementingOpenGenericInterface(typeof(IProcessMessage<>), allTypes);
+            return ReflectionHelper.GetAllTypesImplementingOpenGenericInterface(typeof(IProcessMessage<>), allTypes).Distinct();
         }
     }
 }
