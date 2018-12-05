@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using KnightBus.Core;
 
 namespace KnightBus.Azure.Storage
@@ -16,7 +15,5 @@ namespace KnightBus.Azure.Storage
         }
         public string ConnectionString { get; }
         public IMessageSerializer MessageSerializer { get; set; } = new JsonMessageSerializer();
-        public IMessageAttachmentProvider AttachmentProvider { get; set; }
-        public IList<IMessageProcessorMiddleware> Middlewares { get; } = new List<IMessageProcessorMiddleware>();
     }
 }

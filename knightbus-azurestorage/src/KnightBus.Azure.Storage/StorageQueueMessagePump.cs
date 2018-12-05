@@ -12,7 +12,7 @@ namespace KnightBus.Azure.Storage
         private readonly IStorageQueueClient _storageQueueClient;
         private readonly IProcessingSettings _settings;
         private readonly ILog _log;
-        private readonly TimeSpan _pollingInterval = TimeSpan.FromMilliseconds(300);
+        private readonly TimeSpan _pollingInterval = TimeSpan.FromMilliseconds(5000);
         private readonly SemaphoreSlim _maxConcurrent;
         private Task _runningTask;
 
@@ -59,7 +59,7 @@ namespace KnightBus.Azure.Storage
             }
             finally
             {
-                if (messagesFound)
+                if (!messagesFound)
                 {
                     //Only delay pump if no messages were found
                     await Task.Delay(_pollingInterval).ConfigureAwait(false);

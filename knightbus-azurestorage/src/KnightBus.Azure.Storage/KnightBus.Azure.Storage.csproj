@@ -10,7 +10,7 @@
     <PackageProjectUrl>https://knightbus.readthedocs.io</PackageProjectUrl>
     <PackageIconUrl>https://raw.githubusercontent.com/BookBeat/knightbus-documentation/master/media/images/knighbus-64.png</PackageIconUrl>
     <RepositoryUrl>https://github.com/BookBeat/knightbus</RepositoryUrl>
-    <Version>2.0.1</Version>
+    <Version>2.1.0</Version>
     <PackageTags>knightbus;azure storage;blob;queues;messaging</PackageTags>
   </PropertyGroup>
 
