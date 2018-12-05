@@ -40,7 +40,7 @@ namespace KnightBus.Azure.Storage
         private async Task Initialize()
         {
             var queueName = AutoMessageMapper.GetQueueName<T>();
-            _storageQueueClient = new StorageQueueClient(_storageOptions, queueName);
+            _storageQueueClient = new StorageQueueClient(_storageOptions, null, queueName);
             await _storageQueueClient.CreateIfNotExistsAsync().ConfigureAwait(false);
             _messagePump = new StorageQueueMessagePump(_storageQueueClient, Settings, _hostConfiguration.Log);
         }

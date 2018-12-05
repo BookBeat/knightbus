@@ -39,11 +39,8 @@ namespace KnightBus.Examples.Azure.Storage
             await knightBusHost.StartAsync();
 
             //Initiate the client
-            var client = new StorageBus(new StorageBusConfiguration(storageConnection)
-            {
-                //The client must also have attachments enabled to send them
-                AttachmentProvider = new BlobStorageMessageAttachmentProvider(storageConnection)
-            });
+            var client = new StorageBus(new StorageBusConfiguration(storageConnection));
+            client.EnableAttachments(new BlobStorageMessageAttachmentProvider(storageConnection));
             //Send some Messages and watch them print in the console
             for (var i = 0; i < 10; i++)
             {

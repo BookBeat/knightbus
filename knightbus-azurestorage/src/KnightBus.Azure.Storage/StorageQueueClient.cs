@@ -31,13 +31,14 @@ namespace KnightBus.Azure.Storage
     {
         private readonly string _queueName;
         private readonly IMessageSerializer _serializer;
-        private IMessageAttachmentProvider _attachmentProvider;
+        private readonly IMessageAttachmentProvider _attachmentProvider;
         private readonly CloudQueue _queue;
         private readonly CloudQueue _dlQueue;
         private readonly CloudBlobContainer _container;
 
-        public StorageQueueClient(IStorageBusConfiguration configuration, string queueName)
+        public StorageQueueClient(IStorageBusConfiguration configuration, IMessageAttachmentProvider attachmentProvider, string queueName)
         {
+            _attachmentProvider = attachmentProvider;
             _queueName = queueName;
             _serializer = configuration.MessageSerializer;
             var storage = CloudStorageAccount.Parse(configuration.ConnectionString);
@@ -47,11 +48,6 @@ namespace KnightBus.Azure.Storage
             _queue = queueClient.GetQueueReference(queueName);
             _dlQueue = queueClient.GetQueueReference(GetDeadLetterName(queueName));
             _container = blobClient.GetContainerReference(queueName);
-        }
-
-        public void EnableAttachments(IMessageAttachmentProvider attachmentProvider)
-        {
-            _attachmentProvider = attachmentProvider;
         }
 
         public static string GetDeadLetterName(string queueName)
