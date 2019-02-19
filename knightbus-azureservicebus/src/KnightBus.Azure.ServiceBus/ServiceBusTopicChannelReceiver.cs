@@ -18,7 +18,7 @@ namespace KnightBus.Azure.ServiceBus
         private readonly ServiceBusConfiguration _configuration;
         private readonly IMessageProcessor _processor;
         private int _deadLetterLimit;
-        private SubscriptionClient _client;
+        private ISubscriptionClient _client;
         
 
         public ServiceBusTopicChannelReceiver(IProcessingSettings settings, IEventSubscription<TTopic> subscription, ServiceBusConfiguration configuration, IHostConfiguration hostConfiguration, IMessageProcessor processor)

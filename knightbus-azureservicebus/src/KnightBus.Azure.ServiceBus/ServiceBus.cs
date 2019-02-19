@@ -8,6 +8,7 @@ using KnightBus.Core;
 using KnightBus.Core.Exceptions;
 using KnightBus.Messages;
 using Microsoft.Azure.ServiceBus;
+using Microsoft.Azure.ServiceBus.Core;
 
 namespace KnightBus.Azure.ServiceBus
 {
@@ -37,55 +38,110 @@ namespace KnightBus.Azure.ServiceBus
     public class ServiceBus : IServiceBus
     {
         private readonly IServiceBusConfiguration _configuration;
-        private readonly IClientFactory _clientFactory;
         private IMessageAttachmentProvider _attachmentProvider;
+        private const int DefaultRetryCount = 3;
+
+        internal IClientFactory ClientFactory { get; set; }
 
         public void EnableAttachments(IMessageAttachmentProvider attachmentProvider)
         {
             _attachmentProvider = attachmentProvider;
         }
 
-        public ServiceBus(IServiceBusConfiguration configuration)
+        public ServiceBus(IServiceBusConfiguration config)
         {
-            _configuration = configuration;
-            _clientFactory = new ClientFactory(configuration.ConnectionString);
+            ClientFactory = new ClientFactory(config.ConnectionString);
+            _configuration = config;
         }
 
         public async Task SendAsync<T>(T message) where T : IServiceBusCommand
         {
-            var client = await _clientFactory.GetQueueClient<T>().ConfigureAwait(false);
+            var client = await ClientFactory.GetQueueClient<T>().ConfigureAwait(false);
             var sbMessage = await CreateMessageAsync(message).ConfigureAwait(false);
 
-            await client.SendAsync(sbMessage).ConfigureAwait(false);
+            await SendAsync(client, sbMessage, DefaultRetryCount).ConfigureAwait(false);
         }
 
         public async Task SendAsync<T>(IList<T> messages) where T : IServiceBusCommand
         {
-            var client = await _clientFactory.GetQueueClient<T>().ConfigureAwait(false);
-            if(!messages.Any()) return;
+            var client = await ClientFactory.GetQueueClient<T>().ConfigureAwait(false);
+            if (!messages.Any()) return;
             var sbMessages = new List<Message>();
             foreach (var message in messages)
             {
                 sbMessages.Add(await CreateMessageAsync(message).ConfigureAwait(false));
             }
 
-            await client.SendAsync(sbMessages).ConfigureAwait(false);
+            await SendAsync(client, sbMessages, DefaultRetryCount).ConfigureAwait(false);
         }
 
         public async Task ScheduleAsync<T>(T message, TimeSpan span) where T : IServiceBusCommand
         {
-            var client = await _clientFactory.GetQueueClient<T>().ConfigureAwait(false);
+            var client = await ClientFactory.GetQueueClient<T>().ConfigureAwait(false);
             var sbMessage = await CreateMessageAsync(message).ConfigureAwait(false);
             sbMessage.ScheduledEnqueueTimeUtc = DateTime.UtcNow.Add(span);
 
-            await client.SendAsync(sbMessage).ConfigureAwait(false);
+            await ScheduleAsync(client, sbMessage, DefaultRetryCount).ConfigureAwait(false);
         }
 
         public async Task PublishEventAsync<T>(T message) where T : IServiceBusEvent
         {
-            var client = await _clientFactory.GetTopicClient<T>().ConfigureAwait(false);
+            var client = await ClientFactory.GetTopicClient<T>().ConfigureAwait(false);
             var brokeredMessage = await CreateMessageAsync(message).ConfigureAwait(false);
-            await client.SendAsync(brokeredMessage).ConfigureAwait(false);
+
+            await PublishEventAsync(client, brokeredMessage, DefaultRetryCount).ConfigureAwait(false);
+        }
+
+        private async Task SendAsync(ISenderClient client, Message message, int retryCount)
+        {
+            try
+            {
+                await client.SendAsync(message).ConfigureAwait(false);
+            }
+            catch (ServiceBusCommunicationException) when (retryCount > 0)
+            {
+                await Task.Delay(GetRetryDelay(retryCount)).ConfigureAwait(false);
+                await SendAsync(client, message, retryCount - 1).ConfigureAwait(false);
+            }
+        }
+
+        private async Task SendAsync(ISenderClient client, IList<Message> messages, int retryCount)
+        {
+            try
+            {
+                await client.SendAsync(messages).ConfigureAwait(false);
+            }
+            catch (ServiceBusCommunicationException) when (retryCount > 0)
+            {
+                await Task.Delay(GetRetryDelay(retryCount)).ConfigureAwait(false);
+                await SendAsync(client, messages, retryCount - 1).ConfigureAwait(false);
+            }
+        }
+
+        private async Task ScheduleAsync(ISenderClient client, Message message, int retryCount)
+        {
+            try
+            {
+                await client.SendAsync(message).ConfigureAwait(false);
+            }
+            catch (ServiceBusCommunicationException) when (retryCount > 0)
+            {
+                await Task.Delay(GetRetryDelay(retryCount)).ConfigureAwait(false);
+                await ScheduleAsync(client, message, retryCount - 1).ConfigureAwait(false);
+            }
+        }
+
+        private async Task PublishEventAsync(ISenderClient client, Message message, int retryCount) 
+        {
+            try
+            {
+                await client.SendAsync(message).ConfigureAwait(false);
+            }
+            catch (ServiceBusCommunicationException) when (retryCount > 0)
+            {
+                await Task.Delay(GetRetryDelay(retryCount)).ConfigureAwait(false);
+                await PublishEventAsync(client, message, retryCount - 1).ConfigureAwait(false);
+            }
         }
 
         private async Task<Message> CreateMessageAsync<T>(T body) where T : IMessage
@@ -98,7 +154,7 @@ namespace KnightBus.Azure.ServiceBus
 
             if (typeof(ICommandWithAttachment).IsAssignableFrom(typeof(T)))
             {
-                if(_attachmentProvider == null) throw new AttachmentProviderMissingException();
+                if (_attachmentProvider == null) throw new AttachmentProviderMissingException();
 
                 var attachmentMessage = (ICommandWithAttachment)body;
                 if (attachmentMessage.Attachment != null)
@@ -113,6 +169,17 @@ namespace KnightBus.Azure.ServiceBus
             }
 
             return message;
+        }
+
+        private TimeSpan GetRetryDelay(int count)
+        {
+            switch (count)
+            {
+                case 3: return TimeSpan.FromMilliseconds(300);
+                case 2: return TimeSpan.FromMilliseconds(600);
+                case 1: return TimeSpan.FromMilliseconds(900);
+                default: return TimeSpan.FromMilliseconds(300);
+            }
         }
     }
 }
