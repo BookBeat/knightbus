@@ -173,13 +173,8 @@ namespace KnightBus.Azure.ServiceBus
 
         private TimeSpan GetRetryDelay(int count)
         {
-            switch (count)
-            {
-                case 3: return TimeSpan.FromMilliseconds(300);
-                case 2: return TimeSpan.FromMilliseconds(600);
-                case 1: return TimeSpan.FromMilliseconds(900);
-                default: return TimeSpan.FromMilliseconds(300);
-            }
+            const int defaultRetryDelayInMilliseconds = 300;
+            return TimeSpan.FromMilliseconds(defaultRetryDelayInMilliseconds * count);
         }
     }
 }
