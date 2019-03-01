@@ -30,7 +30,14 @@ namespace KnightBus.Azure.Storage
 
         public Task AbandonByErrorAsync(Exception e)
         {
-            _message.Properties["Error"] = e.ToString();
+            var errorMessage = e.ToString();
+            if (errorMessage.Length > 30000)
+            {
+                //Messages on the storagebus cannot exceed 64KB. Stay in the safe range without calculating the exact allowed length
+                errorMessage = errorMessage.Substring(0, 30000);
+            }
+
+            _message.Properties["Error"] = errorMessage;
             return _queueClient.AbandonByErrorAsync(_message, TimeSpan.FromSeconds(2));
         }
 
