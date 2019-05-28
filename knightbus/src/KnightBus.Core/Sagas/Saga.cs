@@ -25,7 +25,7 @@ namespace KnightBus.Core.Sagas
         /// <summary>
         /// Retrieve a mapping function for a message
         /// </summary>
-        Func<IMessage, string> GetMapping<TMessage>() where TMessage : IMessage;
+        Func<TMessage, string> GetMapping<TMessage>() where TMessage : IMessage;
 
         Type StartMessageType { get; }
         ISagaStore SagaStore { get; set; }
@@ -34,7 +34,7 @@ namespace KnightBus.Core.Sagas
     public class Saga<T> : ISaga<T> where T : ISagaData
     {
         public T Data { get; set; }
-        private Dictionary<Type, Func<IMessage, string>> _mappings = new Dictionary<Type, Func<IMessage, string>>();
+        private Dictionary<Type, object> _mappings = new Dictionary<Type, object>();
         private Func<IMessage, string> _startMapping;
         public ISagaStore SagaStore { get; set; }
 
@@ -42,7 +42,7 @@ namespace KnightBus.Core.Sagas
         {
             if (!_mappings.ContainsKey(typeof(TMessage)))
             {
-                _mappings.Add(typeof(TMessage), mapping as Func<IMessage, string>);
+                _mappings.Add(typeof(TMessage), mapping);
             }
         }
 
@@ -52,9 +52,9 @@ namespace KnightBus.Core.Sagas
             StartMessageType = typeof(TMessage);
         }
 
-        public Func<IMessage, string> GetMapping<TMessage>() where TMessage : IMessage
+        public Func<TMessage, string> GetMapping<TMessage>() where TMessage : IMessage
         {
-            return _mappings[typeof(TMessage)];
+            return _mappings[typeof(TMessage)] as Func<TMessage, string>;
         }
 
         public Type StartMessageType { get; private set; }
