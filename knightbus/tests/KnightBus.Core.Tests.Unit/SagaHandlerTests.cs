@@ -26,12 +26,13 @@ namespace KnightBus.Core.Tests.Unit
 
         internal class TestSagaData : ISagaData
         {
+            public string Key { get; }
         }
         internal class TestSaga : Saga<TestSagaData>
         {
             public TestSaga()
             {
-                MapStartMessage<TestSagaStartMessage>(m => m.MessageId);
+                MessageMapper.MapStartMessage<TestSagaStartMessage>(m => m.MessageId);
             }
         }
         internal class TestSagaStartMessage : IMessage

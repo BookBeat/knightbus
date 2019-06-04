@@ -6,28 +6,47 @@ using NUnit.Framework;
 namespace KnightBus.Core.Tests.Unit
 {
     [TestFixture]
-    public class SagaTests
+    public class SagaMapperTests
     {
         [Test]
-        public void Should_map_messages()
+        public void Should_map_start_message()
         {
             //arrange
-            var saga = new TestSaga();
+            var mapper = new SagaMessageMapper();
+            mapper.MapStartMessage<TestMessage>(m=> m.Id);
             //act
-            var mapping = saga.GetMapping<TestMessage>();
+            var mapping = mapper.GetMapping<TestMessage>();
             //assert
             mapping.Should().NotBeNull();
+            mapper.IsStartMessage(typeof(TestMessage)).Should().BeTrue();
             mapping.Invoke(new TestMessage {Id = "an_id"}).Should().Be("an_id");
+        }
+
+        [Test]
+        public void Should_map_message()
+        {
+            //arrange
+            var mapper = new SagaMessageMapper();
+            mapper.MapMessage<TestMessage>(m => m.Id);
+            //act
+            var mapping = mapper.GetMapping<TestMessage>();
+            //assert
+            mapping.Should().NotBeNull();
+            mapper.IsStartMessage(typeof(TestMessage)).Should().BeFalse();
+            mapping.Invoke(new TestMessage { Id = "an_id" }).Should().Be("an_id");
         }
 
         internal class TestSaga : Saga<TestSagaData>
         {
             public TestSaga()
             {
-                MapStartMessage<TestMessage>(m=> m.Id);
+                MessageMapper.MapStartMessage<TestMessage>(m=> m.Id);
             }
         }
-        internal class TestSagaData:ISagaData { }
+        internal class TestSagaData:ISagaData
+        {
+            public string Key { get; }
+        }
         internal class TestMessage :IMessage
         {
             public string Id { get; set; }

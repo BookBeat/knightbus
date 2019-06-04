@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -17,52 +16,21 @@ namespace KnightBus.Core.Sagas
         /// Stateful data associated with the Saga
         /// </summary>
         T Data { get; set; }
-        /// <summary>
-        /// Map a message to a Saga, all messages must be mapped
-        /// </summary>
-        void MapMessage<TMessage>(Func<TMessage, string> mapping) where TMessage : IMessage;
-        void MapStartMessage<TMessage>(Func<TMessage, string> mapping) where TMessage : IMessage;
-        /// <summary>
-        /// Retrieve a mapping function for a message
-        /// </summary>
-        Func<TMessage, string> GetMapping<TMessage>() where TMessage : IMessage;
-
-        Type StartMessageType { get; }
+        ISagaMessageMapper MessageMapper { get; }
         ISagaStore SagaStore { get; set; }
     }
 
     public class Saga<T> : ISaga<T> where T : ISagaData
     {
+
         public T Data { get; set; }
-        private Dictionary<Type, object> _mappings = new Dictionary<Type, object>();
-        private Func<IMessage, string> _startMapping;
+        public ISagaMessageMapper MessageMapper { get; } = new SagaMessageMapper();
         public ISagaStore SagaStore { get; set; }
-
-        public void MapMessage<TMessage>(Func<TMessage, string> mapping) where TMessage : IMessage
-        {
-            if (!_mappings.ContainsKey(typeof(TMessage)))
-            {
-                _mappings.Add(typeof(TMessage), mapping);
-            }
-        }
-
-        public void MapStartMessage<TMessage>(Func<TMessage, string> mapping) where TMessage : IMessage
-        {
-            MapMessage<TMessage>(mapping);
-            StartMessageType = typeof(TMessage);
-        }
-
-        public Func<TMessage, string> GetMapping<TMessage>() where TMessage : IMessage
-        {
-            return _mappings[typeof(TMessage)] as Func<TMessage, string>;
-        }
-
-        public Type StartMessageType { get; private set; }
     }
 
     public interface ISagaData
     {
-
+        string Key { get; }
     }
 
     public interface ISagaStore 
@@ -122,11 +90,11 @@ namespace KnightBus.Core.Sagas
         {
             _saga.SagaStore = _sagaStore;
             TSagaData sagaData;
-            var id = _saga.GetMapping<TMessage>().Invoke(_message);
+            var id = _saga.MessageMapper.GetMapping<TMessage>().Invoke(_message);
 
-            if (_saga.StartMessageType == typeof(TMessage))
+            if (_saga.MessageMapper.IsStartMessage(typeof(TMessage)))
             {
-                sagaData = await _sagaStore.Create<TSagaData>(id, new TSagaData());
+                sagaData = await _sagaStore.Create(id, new TSagaData());
             }
             else
             {
