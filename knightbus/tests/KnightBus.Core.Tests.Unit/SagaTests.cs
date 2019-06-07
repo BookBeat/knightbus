@@ -36,20 +36,21 @@ namespace KnightBus.Core.Tests.Unit
             mapping.Invoke(new TestMessage { Id = "an_id" }).Should().Be("an_id");
         }
 
-        internal class TestSaga : Saga<TestSagaData>
+        [Test]
+        public void Should_throw_unmapped_message()
         {
-            public TestSaga()
-            {
-                MessageMapper.MapStartMessage<TestMessage>(m=> m.Id);
-            }
+            //arrange
+            var mapper = new SagaMessageMapper();
+            //act & assert
+            mapper.Invoking(x=> x.GetMapping<UnMappedMessage>()).Should().Throw<SagaMessageMappingNotFoundException>();
         }
-        internal class TestSagaData:ISagaData
-        {
-            public string Key { get; }
-        }
+        
         internal class TestMessage :IMessage
         {
             public string Id { get; set; }
+        }
+        internal class UnMappedMessage : IMessage
+        {
         }
     }
 }

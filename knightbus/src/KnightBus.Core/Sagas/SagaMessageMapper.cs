@@ -32,12 +32,25 @@ namespace KnightBus.Core.Sagas
 
         public Func<TMessage, string> GetMapping<TMessage>() where TMessage : IMessage
         {
-            return _mappings[typeof(TMessage)] as Func<TMessage, string>;
+            try
+            {
+                return _mappings[typeof(TMessage)] as Func<TMessage, string>;
+            }
+            catch (KeyNotFoundException)
+            {
+                throw new SagaMessageMappingNotFoundException(typeof(TMessage));
+            }
         }
 
         public bool IsStartMessage(Type type)
         {
             return _startMessages.Contains(type);
         }
+    }
+
+    public class SagaMessageMappingNotFoundException : Exception
+    {
+        public SagaMessageMappingNotFoundException(Type type) : base($"No mapping found for message {type.FullName}")
+        { }
     }
 }
