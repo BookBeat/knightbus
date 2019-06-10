@@ -22,7 +22,7 @@ namespace KnightBus.Core.Tests.Unit
             //act
             await handler.Initialize();
             //assert
-            store.Verify(x => x.Create(id, It.IsAny<TestSagaData>()), Times.Once);
+            store.Verify(x => x.Create(saga.Id, id, It.IsAny<TestSagaData>()), Times.Once);
         }
 
         [Test]
@@ -54,9 +54,9 @@ namespace KnightBus.Core.Tests.Unit
             handler.Awaiting(x => x.Initialize()).Should().Throw<SagaMessageMappingNotFoundException>();
         }
 
-        internal class TestSagaData : ISagaData
+        internal class TestSagaData
         {
-            public string Id { get; }
+            
         }
         internal class TestSaga : Saga<TestSagaData>
         {

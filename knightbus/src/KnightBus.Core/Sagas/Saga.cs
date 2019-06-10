@@ -6,9 +6,10 @@ namespace KnightBus.Core.Sagas
     public interface ISaga
     {
         string Id { get; }
+        string InstanceId { get; set; }
         ISagaMessageMapper MessageMapper { get; }
     }
-    public interface ISaga<T> : ISaga where T : ISagaData
+    public interface ISaga<T> : ISaga
     {
         /// <summary>
         /// Stateful data associated with the Saga
@@ -21,35 +22,29 @@ namespace KnightBus.Core.Sagas
         Task FailAsync();
     }
 
-    public abstract class Saga<T> : ISaga<T> where T : ISagaData
+    public abstract class Saga<T> : ISaga<T>
     {
         public abstract string Id { get; }
+        public string InstanceId { get; set; }
         public T Data { get; set; }
         public ISagaMessageMapper MessageMapper { get; } = new SagaMessageMapper();
         public ISagaStore SagaStore { get; set; }
         public virtual Task CompleteAsync()
         {
-            return SagaStore.Complete(Id, Data.Id);
+            return SagaStore.Complete(Id, InstanceId);
         }
 
         public virtual Task UpdateAsync(T sagaData)
         {
-            return SagaStore.Update(Data.Id, sagaData);
+            return SagaStore.Update(Id, InstanceId, sagaData);
         }
 
         public virtual Task FailAsync()
         {
-            return SagaStore.Fail(Id, Data.Id);
+            return SagaStore.Fail(Id, InstanceId);
         }
     }
 
-    public interface ISagaData
-    {
-        /// <summary>
-        /// The unique id for a specific saga
-        /// </summary>
-        string Id { get; }
-    }
 
     public class SagaAlreadyStartedException : Exception { }
     public class SagaNotFoundStartedException : Exception { }

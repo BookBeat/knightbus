@@ -3,7 +3,7 @@ using KnightBus.Messages;
 
 namespace KnightBus.Core.Sagas
 {
-    public class SagaHandler<TSagaData, TMessage> where TSagaData : ISagaData, new() where TMessage : IMessage
+    public class SagaHandler<TSagaData, TMessage> where TSagaData : new() where TMessage : IMessage
     {
         private readonly ISagaStore _sagaStore;
         private readonly ISaga<TSagaData> _saga;
@@ -20,15 +20,14 @@ namespace KnightBus.Core.Sagas
         {
             _saga.SagaStore = _sagaStore;
             TSagaData sagaData;
-            var id = _saga.MessageMapper.GetMapping<TMessage>().Invoke(_message);
-
+            _saga.InstanceId = _saga.MessageMapper.GetMapping<TMessage>().Invoke(_message);
             if (_saga.MessageMapper.IsStartMessage(typeof(TMessage)))
             {
-                sagaData = await _sagaStore.Create(id, new TSagaData());
+                sagaData = await _sagaStore.Create(_saga.Id, _saga.InstanceId, new TSagaData());
             }
             else
             {
-                sagaData = await _sagaStore.GetSaga<TSagaData>(_saga.Id, id);
+                sagaData = await _sagaStore.GetSaga<TSagaData>(_saga.Id, _saga.InstanceId);
             }
 
             _saga.Data = sagaData;
