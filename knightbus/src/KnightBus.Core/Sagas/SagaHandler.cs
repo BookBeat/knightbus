@@ -28,7 +28,7 @@ namespace KnightBus.Core.Sagas
             }
             else
             {
-                sagaData = await _sagaStore.GetSaga<TSagaData>(id);
+                sagaData = await _sagaStore.GetSaga<TSagaData>(_saga.Id, id);
             }
 
             _saga.Data = sagaData;

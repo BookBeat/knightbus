@@ -38,7 +38,7 @@ namespace KnightBus.Core.Tests.Unit
             //act
             await handler.Initialize();
             //assert
-            store.Verify(x => x.GetSaga<TestSagaData>(id), Times.Once);
+            store.Verify(x => x.GetSaga<TestSagaData>(saga.Id, id), Times.Once);
         }
 
         [Test]
@@ -56,7 +56,7 @@ namespace KnightBus.Core.Tests.Unit
 
         internal class TestSagaData : ISagaData
         {
-            public string Key { get; }
+            public string Id { get; }
         }
         internal class TestSaga : Saga<TestSagaData>
         {
@@ -64,6 +64,8 @@ namespace KnightBus.Core.Tests.Unit
             {
                 MessageMapper.MapStartMessage<TestSagaStartMessage>(m => m.MessageId);
             }
+
+            public override string Id => "saga-id";
         }
         internal class TestSagaStartMessage : IMessage
         {
