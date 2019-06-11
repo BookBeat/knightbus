@@ -6,12 +6,12 @@ using KnightBus.Messages;
 
 namespace KnightBus.Core.Sagas
 {
-    public class SagaMiddleWare : IMessageProcessorMiddleware
+    public class SagaMiddleware : IMessageProcessorMiddleware
     {
         private readonly IMessageProcessorProvider _processorProvider;
         private readonly ISagaStore _sagaStore;
 
-        public SagaMiddleWare(IMessageProcessorProvider processorProvider, ISagaStore sagaStore)
+        public SagaMiddleware(IMessageProcessorProvider processorProvider, ISagaStore sagaStore)
         {
             _processorProvider = processorProvider;
             _sagaStore = sagaStore;
@@ -19,7 +19,7 @@ namespace KnightBus.Core.Sagas
         public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, IMessageProcessor next, CancellationToken cancellationToken) where T : class, IMessage
         {
             //Is this a saga
-            var processor = _processorProvider.GetProcessor<T>(typeof(T));
+            var processor = _processorProvider.GetProcessor<T>(typeof(IProcessMessage<T>));
             //Find Saga or create one 
             if (processor is ISaga)
             {

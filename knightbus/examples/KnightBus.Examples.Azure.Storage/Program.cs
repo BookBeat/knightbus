@@ -1,11 +1,14 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Azure.Storage;
 using KnightBus.Azure.Storage.Messages;
+using KnightBus.Azure.Storage.Sagas;
 using KnightBus.Core;
+using KnightBus.Core.Sagas;
 using KnightBus.Host;
 using KnightBus.Messages;
 
@@ -32,7 +35,11 @@ namespace KnightBus.Examples.Azure.Storage
                     .UseBlobStorageLockManager(storageConnection)
                     //Register our message processors without IoC using the standard provider
                     .UseMessageProcessorProvider(new StandardMessageProcessorProvider()
-                        .RegisterProcessor(new SampleStorageBusMessageProcessor()))
+                        .RegisterProcessor(new SampleStorageBusMessageProcessor())
+                        .RegisterProcessor(new SampleSagaMessageProcessor())
+                    )
+                    //Enable Saga support using the table storage Saga store
+                    .EnableSagas(new StorageTableSagaStore(storageConnection))
                 );
 
             //Start the KnightBus Host, it will now connect to the StorageBus and listen to the SampleStorageBusMessageMapping.QueueName
@@ -51,6 +58,9 @@ namespace KnightBus.Examples.Azure.Storage
                 });
             }
 
+            await client.SendAsync(new SampleSagaStartMessage {Message = "This is a saga start message"});
+            await client.SendAsync(new SampleSagaMessage {Message = "This is a saga message"});
+
             Console.ReadKey();
         }
 
@@ -63,6 +73,26 @@ namespace KnightBus.Examples.Azure.Storage
         class SampleStorageBusMessageMapping : IMessageMapping<SampleStorageBusMessage>
         {
             public string QueueName => "your-queue";
+        }
+
+        class SampleSagaStartMessage : IStorageQueueCommand
+        {
+            public string Id { get; set; } = "c1e06984-d946-4c70-a8aa-e32e44c6407e";
+            public string Message { get; set; }
+        }
+        class SampleSagaStartMessageMapping : IMessageMapping<SampleSagaStartMessage>
+        {
+            public string QueueName => "your-saga-start";
+        }
+
+        class SampleSagaMessage : IStorageQueueCommand
+        {
+            public string Id { get; set; } = "c1e06984-d946-4c70-a8aa-e32e44c6407e";
+            public string Message { get; set; }
+        }
+        class SampleSagaMessageMapping : IMessageMapping<SampleSagaMessage>
+        {
+            public string QueueName => "your-saga-message";
         }
 
         class SampleStorageBusMessageProcessor : IProcessCommand<SampleStorageBusMessage, SomeProcessingSetting>
@@ -78,7 +108,46 @@ namespace KnightBus.Examples.Azure.Storage
                 return Task.CompletedTask;
             }
         }
-        
+
+        class SampleSagaMessageProcessor: Saga<MySagaData>,
+            IProcessCommand<SampleSagaMessage, SomeProcessingSetting>, 
+            IProcessCommand<SampleSagaStartMessage, SomeProcessingSetting>
+        {
+            public SampleSagaMessageProcessor()
+            {
+                //Map the messages to the Saga
+                MessageMapper.MapStartMessage<SampleSagaStartMessage>(m=> m.Id);
+                MessageMapper.MapMessage<SampleSagaMessage>(m=> m.Id);
+            }
+            public override string PartitionKey => "sample-saga";
+            public async Task ProcessAsync(SampleSagaMessage message, CancellationToken cancellationToken)
+            {
+                Data.Messages.Add(message.Message);
+                await UpdateAsync(Data);
+                Console.WriteLine("Messages stored:");
+                foreach (var dataMessage in Data.Messages)
+                {
+                    Console.WriteLine(dataMessage);
+                }
+            }
+
+            public async Task ProcessAsync(SampleSagaStartMessage message, CancellationToken cancellationToken)
+            {
+                Data.Messages.Add(message.Message);
+                await CompleteAsync();
+                Console.WriteLine("Messages stored:");
+                foreach (var dataMessage in Data.Messages)
+                {
+                    Console.WriteLine(dataMessage);
+                }
+            }
+        }
+
+        class MySagaData
+        {
+            public List<string> Messages { get; set; } = new List<string>();
+        }
+
         class SomeProcessingSetting : IProcessingSettings
         {
             public int MaxConcurrentCalls => 1;
