@@ -8,6 +8,5 @@ namespace KnightBus.Core.Sagas
         Task<T> Create<T>(string partitionKey, string id, T sagaData);
         Task Update<T>(string partitionKey, string id, T sagaData);
         Task Complete(string partitionKey, string id);
-        Task Fail(string partitionKey, string id);
     }
 }

@@ -30,10 +30,6 @@ namespace KnightBus.Core.Sagas
         /// Updated the Saga Data.
         /// </summary>
         Task UpdateAsync(T sagaData);
-        /// <summary>
-        /// Mark the Saga as failed
-        /// </summary>
-        Task FailAsync();
     }
 
     public abstract class Saga<T> : ISaga<T>
@@ -51,11 +47,6 @@ namespace KnightBus.Core.Sagas
         public virtual Task UpdateAsync(T sagaData)
         {
             return SagaStore.Update(PartitionKey, Id, sagaData);
-        }
-
-        public virtual Task FailAsync()
-        {
-            return SagaStore.Fail(PartitionKey, Id);
         }
     }
 }
