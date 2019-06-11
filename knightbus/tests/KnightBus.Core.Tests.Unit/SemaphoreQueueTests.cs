@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Moq;
@@ -21,7 +22,7 @@ namespace KnightBus.Core.Tests.Unit
             for (var i = 0; i < 5000; i++)
             {
                 var intCopy = i;
-                tasks.Add(semaphore.WaitAsync().ContinueWith(task =>
+                tasks.Add(semaphore.WaitAsync(CancellationToken.None).ContinueWith(task =>
                 {
                     semaphore.Release();
                     return numbers[intCopy] = intCopy;
@@ -41,13 +42,34 @@ namespace KnightBus.Core.Tests.Unit
             var countable = new Mock<ICountable>();
             //act
 #pragma warning disable 4014
-            semaphore.WaitAsync().ContinueWith(task => countable.Object.Count());
-            semaphore.WaitAsync().ContinueWith(task => countable.Object.Count());
-            semaphore.WaitAsync().ContinueWith(task => countable.Object.Count());
+            semaphore.WaitAsync(CancellationToken.None).ContinueWith(task => countable.Object.Count());
+            semaphore.WaitAsync(CancellationToken.None).ContinueWith(task => countable.Object.Count());
+            semaphore.WaitAsync(CancellationToken.None).ContinueWith(task => countable.Object.Count());
 #pragma warning restore 4014
             await Task.Delay(500);
             //assert
             countable.Verify(x => x.Count(), Times.Once);
+            semaphore.Release();
+        }
+
+        [Test]
+        public async Task Should_Cancel()
+        {
+            //arrange
+            var tokenSource = new CancellationTokenSource();
+            var token = tokenSource.Token;
+            
+            var semaphore = new SemaphoreQueue(1);
+            var countable = new Mock<ICountable>();
+            
+            tokenSource.Cancel();
+            
+#pragma warning disable 4014
+            semaphore.WaitAsync(token).ContinueWith(task => countable.Object.Count());
+#pragma warning restore 4014
+            await Task.Delay(500);
+            //assert
+            countable.Verify(x => x.Count(), Times.Never);
             semaphore.Release();
         }
     }

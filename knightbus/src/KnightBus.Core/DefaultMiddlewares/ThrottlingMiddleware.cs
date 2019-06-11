@@ -17,7 +17,7 @@ namespace KnightBus.Core.DefaultMiddlewares
         {
             try
             {
-                await _semaphoreQueue.WaitAsync().ConfigureAwait(false);
+                await _semaphoreQueue.WaitAsync(cancellationToken).ConfigureAwait(false);
                 await next.ProcessAsync(messageStateHandler, cancellationToken).ConfigureAwait(false);
             }
             finally
