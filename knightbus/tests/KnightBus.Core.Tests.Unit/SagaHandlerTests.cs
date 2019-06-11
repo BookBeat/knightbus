@@ -22,7 +22,7 @@ namespace KnightBus.Core.Tests.Unit
             //act
             await handler.Initialize();
             //assert
-            store.Verify(x => x.Create(saga.Id, id, It.IsAny<TestSagaData>()), Times.Once);
+            store.Verify(x => x.Create(saga.PartitionKey, id, It.IsAny<TestSagaData>()), Times.Once);
         }
 
         [Test]
@@ -38,7 +38,7 @@ namespace KnightBus.Core.Tests.Unit
             //act
             await handler.Initialize();
             //assert
-            store.Verify(x => x.GetSaga<TestSagaData>(saga.Id, id), Times.Once);
+            store.Verify(x => x.GetSaga<TestSagaData>(saga.PartitionKey, id), Times.Once);
         }
 
         [Test]
@@ -65,7 +65,7 @@ namespace KnightBus.Core.Tests.Unit
                 MessageMapper.MapStartMessage<TestSagaStartMessage>(m => m.MessageId);
             }
 
-            public override string Id => "saga-id";
+            public override string PartitionKey => "saga-id";
         }
         internal class TestSagaStartMessage : IMessage
         {

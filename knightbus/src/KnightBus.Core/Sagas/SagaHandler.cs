@@ -20,14 +20,14 @@ namespace KnightBus.Core.Sagas
         {
             _saga.SagaStore = _sagaStore;
             TSagaData sagaData;
-            _saga.InstanceId = _saga.MessageMapper.GetMapping<TMessage>().Invoke(_message);
+            _saga.Id = _saga.MessageMapper.GetMapping<TMessage>().Invoke(_message);
             if (_saga.MessageMapper.IsStartMessage(typeof(TMessage)))
             {
-                sagaData = await _sagaStore.Create(_saga.Id, _saga.InstanceId, new TSagaData());
+                sagaData = await _sagaStore.Create(_saga.PartitionKey, _saga.Id, new TSagaData());
             }
             else
             {
-                sagaData = await _sagaStore.GetSaga<TSagaData>(_saga.Id, _saga.InstanceId);
+                sagaData = await _sagaStore.GetSaga<TSagaData>(_saga.PartitionKey, _saga.Id);
             }
 
             _saga.Data = sagaData;
