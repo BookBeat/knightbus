@@ -6,7 +6,7 @@ namespace KnightBus.Core.Sagas
 {
     public class InMemorySagaStore : ISagaStore
     {
-        private ConcurrentDictionary<string, object> _sagas = new ConcurrentDictionary<string, object>();
+        private readonly ConcurrentDictionary<string, object> _sagas = new ConcurrentDictionary<string, object>();
 
         public Task<T> GetSaga<T>(string partitionKey, string id)
         {
@@ -15,19 +15,19 @@ namespace KnightBus.Core.Sagas
                 return Task.FromResult((T)saga);
             }
 
-            throw new SagaNotFoundException();
+            throw new SagaNotFoundException(partitionKey, id);
         }
 
         public Task<T> Create<T>(string partitionKey, string id, T sagaData)
         {
             if (_sagas.TryGetValue(partitionKey + id, out var saga))
             {
-                throw new SagaAlreadyStartedException();
+                throw new SagaAlreadyStartedException(partitionKey, id);
             }
 
             if (!_sagas.TryAdd(partitionKey + id, sagaData))
             {
-                throw new SagaStorageFailedException();
+                throw new SagaStorageFailedException(partitionKey, id);
             }
 
             return Task.FromResult(sagaData);
@@ -42,7 +42,7 @@ namespace KnightBus.Core.Sagas
                 return Task.CompletedTask;
             }
 
-            throw new SagaNotFoundException();
+            throw new SagaNotFoundException(partitionKey, id);
         }
 
         public Task Complete(string partitionKey, string id)

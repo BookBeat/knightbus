@@ -1,7 +1,9 @@
-﻿using System;
-
-namespace KnightBus.Core.Sagas.Exceptions
+﻿namespace KnightBus.Core.Sagas.Exceptions
 {
-    public class SagaAlreadyStartedException : Exception { }
-    public class SagaStorageFailedException : Exception { }
+    public class SagaAlreadyStartedException : SagaException
+    {
+        public SagaAlreadyStartedException(string partitionKey, string id) : base(partitionKey, id)
+        {
+        }
+    }
 }

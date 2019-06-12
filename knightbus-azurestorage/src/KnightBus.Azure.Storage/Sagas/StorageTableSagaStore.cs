@@ -30,7 +30,7 @@ namespace KnightBus.Azure.Storage.Sagas
             }
             catch (StorageException e) when(e.RequestInformation.HttpStatusCode == 404)
             {
-                throw new SagaNotFoundException();
+                throw new SagaNotFoundException(partitionKey, id);
             }
         }
 
@@ -50,7 +50,7 @@ namespace KnightBus.Azure.Storage.Sagas
             }
             catch (StorageException e) when(e.RequestInformation.HttpStatusCode == 409)
             {
-                throw new SagaAlreadyStartedException();
+                throw new SagaAlreadyStartedException(partitionKey, id);
             }
         }
 
@@ -70,15 +70,14 @@ namespace KnightBus.Azure.Storage.Sagas
             }
             catch (StorageException e) when(e.RequestInformation.HttpStatusCode == 404)
             {
-                throw new SagaNotFoundException();
+                throw new SagaNotFoundException(partitionKey, id);
             }
         }
 
         public async Task Complete(string partitionKey, string id)
         {
             var operation = TableOperation.Delete(new SagaTableData { PartitionKey = partitionKey, RowKey = id, ETag = "*"});
-            var result = await _table.ExecuteAsync(operation);
-            if (result.HttpStatusCode < 200 || result.HttpStatusCode > 299) throw new SagaStorageFailedException();
+            await _table.ExecuteAsync(operation).ConfigureAwait(false);
         }
 
         private async Task<TableResult> OptimisticExecuteAsync(Func<Task<TableResult>> func)
