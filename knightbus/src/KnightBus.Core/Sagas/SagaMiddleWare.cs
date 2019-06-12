@@ -9,21 +9,28 @@ namespace KnightBus.Core.Sagas
 {
     public class SagaMiddleware : IMessageProcessorMiddleware
     {
-        private readonly IMessageProcessorProvider _processorProvider;
         private readonly ISagaStore _sagaStore;
+        private bool _initialized;
+        private bool _saga;
 
-        public SagaMiddleware(IMessageProcessorProvider processorProvider, ISagaStore sagaStore)
+        public SagaMiddleware(ISagaStore sagaStore)
         {
-            _processorProvider = processorProvider;
             _sagaStore = sagaStore;
         }
         public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, IPipelineInformation pipelineInformation, IMessageProcessor next, CancellationToken cancellationToken) where T : class, IMessage
         {
             //Is this a saga
-            var processor = _processorProvider.GetProcessor<T>(pipelineInformation.ProcessorInterfaceType);
-            //Find Saga or create one 
-            if (processor is ISaga)
+            if (!_initialized)
             {
+                var processor = pipelineInformation.HostConfiguration.MessageProcessorProvider.GetProcessor<T>(pipelineInformation.ProcessorInterfaceType);
+                _saga = processor is ISaga;
+                _initialized = true;
+            }
+
+             
+            if (_saga)
+            {
+                var processor = pipelineInformation.HostConfiguration.MessageProcessorProvider.GetProcessor<T>(pipelineInformation.ProcessorInterfaceType);
                 var sagaType = ReflectionHelper.GetAllInterfacesImplementingOpenGenericInterface(processor.GetType(), typeof(ISaga<>)).Single();
                 var sagaDataType = sagaType.GenericTypeArguments[0];
 

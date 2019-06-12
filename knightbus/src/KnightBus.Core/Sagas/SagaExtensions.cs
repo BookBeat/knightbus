@@ -4,7 +4,7 @@
     {
         public static IHostConfiguration EnableSagas(this IHostConfiguration configuration, ISagaStore store)
         {
-            configuration.Middlewares.Add(new SagaMiddleware(configuration.MessageProcessorProvider, store));
+            configuration.Middlewares.Add(new SagaMiddleware(store));
             return configuration;
         }
     }
