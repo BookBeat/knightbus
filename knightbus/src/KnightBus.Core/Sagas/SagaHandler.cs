@@ -3,7 +3,12 @@ using KnightBus.Messages;
 
 namespace KnightBus.Core.Sagas
 {
-    public class SagaHandler<TSagaData, TMessage> where TSagaData : new() where TMessage : IMessage
+    public interface ISagaHandler
+    {
+        Task Initialize();
+    }
+    public class SagaHandler<TSagaData, TMessage> : ISagaHandler 
+        where TSagaData : new() where TMessage : IMessage
     {
         private readonly ISagaStore _sagaStore;
         private readonly ISaga<TSagaData> _saga;

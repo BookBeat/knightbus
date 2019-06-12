@@ -49,16 +49,17 @@ namespace KnightBus.Examples.Azure.Storage
             var client = new StorageBus(new StorageBusConfiguration(storageConnection));
             client.EnableAttachments(new BlobStorageMessageAttachmentProvider(storageConnection));
             //Send some Messages and watch them print in the console
-            for (var i = 0; i < 10; i++)
-            {
-                await client.SendAsync(new SampleStorageBusMessage
-                {
-                    Message = $"Hello from command {i}",
-                    Attachment = new MessageAttachment($"file{i}.txt", "text/plain", new MemoryStream(Encoding.UTF8.GetBytes($"this is a stream from Message {i}")))
-                });
-            }
+            //for (var i = 0; i < 10; i++)
+            //{
+            //    await client.SendAsync(new SampleStorageBusMessage
+            //    {
+            //        Message = $"Hello from command {i}",
+            //        Attachment = new MessageAttachment($"file{i}.txt", "text/plain", new MemoryStream(Encoding.UTF8.GetBytes($"this is a stream from Message {i}")))
+            //    });
+            //}
 
-            await client.SendAsync(new SampleSagaStartMessage {Message = "This is a saga start message"});
+            await client.SendAsync(new SampleSagaStartMessage { Message = "This is a saga start message" });
+            await Task.Delay(1000);
             await client.SendAsync(new SampleSagaMessage {Message = "This is a saga message"});
 
             Console.ReadKey();
@@ -85,7 +86,7 @@ namespace KnightBus.Examples.Azure.Storage
             public string QueueName => "your-saga-start";
         }
 
-        class SampleSagaMessage : IStorageQueueCommand
+        public class SampleSagaMessage : IStorageQueueCommand
         {
             public string Id { get; set; } = "c1e06984-d946-4c70-a8aa-e32e44c6407e";
             public string Message { get; set; }
@@ -120,7 +121,7 @@ namespace KnightBus.Examples.Azure.Storage
                 MessageMapper.MapMessage<SampleSagaMessage>(m=> m.Id);
             }
             public override string PartitionKey => "sample-saga";
-            public async Task ProcessAsync(SampleSagaMessage message, CancellationToken cancellationToken)
+            public async Task ProcessAsync(SampleSagaStartMessage message, CancellationToken cancellationToken)
             {
                 Data.Messages.Add(message.Message);
                 await UpdateAsync(Data);
@@ -131,7 +132,7 @@ namespace KnightBus.Examples.Azure.Storage
                 }
             }
 
-            public async Task ProcessAsync(SampleSagaStartMessage message, CancellationToken cancellationToken)
+            public async Task ProcessAsync(SampleSagaMessage message, CancellationToken cancellationToken)
             {
                 Data.Messages.Add(message.Message);
                 await CompleteAsync();

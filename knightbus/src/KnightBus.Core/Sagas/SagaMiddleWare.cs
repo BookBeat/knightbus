@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using KnightBus.Core.Sagas.Exceptions;
 using KnightBus.Messages;
 
 namespace KnightBus.Core.Sagas
@@ -19,7 +20,7 @@ namespace KnightBus.Core.Sagas
         public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, IPipelineInformation pipelineInformation, IMessageProcessor next, CancellationToken cancellationToken) where T : class, IMessage
         {
             //Is this a saga
-            var processor = _processorProvider.GetProcessor<T>(typeof(IProcessMessage<T>));
+            var processor = _processorProvider.GetProcessor<T>(pipelineInformation.ProcessorInterfaceType);
             //Find Saga or create one 
             if (processor is ISaga)
             {
@@ -27,7 +28,16 @@ namespace KnightBus.Core.Sagas
                 var sagaDataType = sagaType.GenericTypeArguments[0];
 
                 var sagaHandlerType = typeof(SagaHandler<,>).MakeGenericType(sagaDataType, typeof(T));
-                var sagaHandler = Activator.CreateInstance(sagaHandlerType, _sagaStore, processor, await messageStateHandler.GetMessageAsync().ConfigureAwait(false));
+                var sagaHandler = (ISagaHandler)Activator.CreateInstance(sagaHandlerType, _sagaStore, processor, await messageStateHandler.GetMessageAsync().ConfigureAwait(false));
+                try
+                {
+                    await sagaHandler.Initialize().ConfigureAwait(false);
+                }
+                catch (SagaAlreadyStartedException)
+                {
+                    await messageStateHandler.CompleteAsync().ConfigureAwait(false);
+                    return;
+                }
             }
 
             await next.ProcessAsync(messageStateHandler, cancellationToken).ConfigureAwait(false);

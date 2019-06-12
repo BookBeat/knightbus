@@ -23,10 +23,15 @@ namespace KnightBus.Azure.Storage.Sagas
         public async Task<T> GetSaga<T>(string partitionKey, string id)
         {
             var operation = TableOperation.Retrieve<SagaTableData>(partitionKey, id);
-            var result = await _table.ExecuteAsync(operation).ConfigureAwait(false);
-            if(result.HttpStatusCode == 404) throw new SagaNotFoundException();
-
-            return JsonConvert.DeserializeObject<T>(((SagaTableData)result.Result).Json);
+            try
+            {
+                var result = await _table.ExecuteAsync(operation).ConfigureAwait(false);
+                return JsonConvert.DeserializeObject<T>(((SagaTableData)result.Result).Json);
+            }
+            catch (StorageException e) when(e.RequestInformation.HttpStatusCode == 404)
+            {
+                throw new SagaNotFoundException();
+            }
         }
 
         public async Task<T> Create<T>(string partitionKey, string id, T sagaData)
@@ -38,11 +43,15 @@ namespace KnightBus.Azure.Storage.Sagas
                 Json = JsonConvert.SerializeObject(sagaData)
             });
 
-            var result = await OptimisticExecuteAsync(() => _table.ExecuteAsync(operation)).ConfigureAwait(false);
-            if(result.HttpStatusCode == 409) throw new SagaAlreadyStartedException();
-            if(result.HttpStatusCode < 200 || result.HttpStatusCode > 299) throw new SagaStorageFailedException();
-            
-            return JsonConvert.DeserializeObject<T>(((SagaTableData)result.Result).Json);
+            try
+            {
+                var result = await OptimisticExecuteAsync(() => _table.ExecuteAsync(operation)).ConfigureAwait(false);
+                return JsonConvert.DeserializeObject<T>(((SagaTableData)result.Result).Json);
+            }
+            catch (StorageException e) when(e.RequestInformation.HttpStatusCode == 409)
+            {
+                throw new SagaAlreadyStartedException();
+            }
         }
 
         public async Task Update<T>(string partitionKey, string id, T sagaData)
@@ -51,28 +60,38 @@ namespace KnightBus.Azure.Storage.Sagas
             {
                 PartitionKey = partitionKey,
                 RowKey = id,
+                ETag = "*",
                 Json = JsonConvert.SerializeObject(sagaData)
             });
 
-            var result = await _table.ExecuteAsync(operation).ConfigureAwait(false);
-            if (result.HttpStatusCode == 404) throw new SagaNotFoundException();
-            if (result.HttpStatusCode < 200 || result.HttpStatusCode > 299) throw new SagaStorageFailedException();
+            try
+            {
+                await _table.ExecuteAsync(operation).ConfigureAwait(false);
+            }
+            catch (StorageException e) when(e.RequestInformation.HttpStatusCode == 404)
+            {
+                throw new SagaNotFoundException();
+            }
         }
 
         public async Task Complete(string partitionKey, string id)
         {
-            var operation = TableOperation.Delete(new SagaTableData {PartitionKey = partitionKey, RowKey = id});
+            var operation = TableOperation.Delete(new SagaTableData { PartitionKey = partitionKey, RowKey = id, ETag = "*"});
             var result = await _table.ExecuteAsync(operation);
             if (result.HttpStatusCode < 200 || result.HttpStatusCode > 299) throw new SagaStorageFailedException();
         }
 
         private async Task<TableResult> OptimisticExecuteAsync(Func<Task<TableResult>> func)
         {
-            var result = await func.Invoke().ConfigureAwait(false);
-            if (result.HttpStatusCode != 404) return result;
-
-            await _table.CreateIfNotExistsAsync().ConfigureAwait(false);
-            return await func.Invoke().ConfigureAwait(false);
+            try
+            {
+                return await func.Invoke().ConfigureAwait(false);
+            }
+            catch (StorageException e) when (e.RequestInformation.HttpStatusCode == 404)
+            {
+                await _table.CreateIfNotExistsAsync().ConfigureAwait(false);
+                return await func.Invoke().ConfigureAwait(false);
+            }
         }
     }
 }
