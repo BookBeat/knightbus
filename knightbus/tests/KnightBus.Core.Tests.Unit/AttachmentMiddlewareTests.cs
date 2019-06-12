@@ -32,7 +32,7 @@ namespace KnightBus.Host.Tests.Unit.Middleware
                 .ReturnsAsync(attachment);
             var middleware = new AttachmentMiddleware(attachmentProvider.Object);
             //act
-            await middleware.ProcessAsync(stateHandler.Object, nextProcessor.Object, CancellationToken.None);
+            await middleware.ProcessAsync(stateHandler.Object, Mock.Of<IPipelineInformation>(), nextProcessor.Object, CancellationToken.None);
             //assert
             stream.CanRead.Should().BeFalse("It should have been disposed");
             message.Attachment.Filename.Should().Be("test.txt");
@@ -56,7 +56,7 @@ namespace KnightBus.Host.Tests.Unit.Middleware
                 .ReturnsAsync(attachment);
             var middleware = new AttachmentMiddleware(attachmentProvider.Object);
             //act
-            await middleware.ProcessAsync(stateHandler.Object, nextProcessor.Object, CancellationToken.None);
+            await middleware.ProcessAsync(stateHandler.Object, Mock.Of<IPipelineInformation>(), nextProcessor.Object, CancellationToken.None);
             //assert
             attachmentProvider.Verify(x=> x.DeleteAttachmentAsync(AutoMessageMapper.GetQueueName<AttachmentCommand>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
             
@@ -75,7 +75,7 @@ namespace KnightBus.Host.Tests.Unit.Middleware
                 .ReturnsAsync(default(IMessageAttachment));
             var middleware = new AttachmentMiddleware(attachmentProvider.Object);
             //act
-            await middleware.ProcessAsync(stateHandler.Object, nextProcessor.Object, CancellationToken.None);
+            await middleware.ProcessAsync(stateHandler.Object, Mock.Of<IPipelineInformation>(), nextProcessor.Object, CancellationToken.None);
             //assert
             attachmentProvider.Verify(x=> x.GetAttachmentAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
             nextProcessor.Verify(x => x.ProcessAsync(stateHandler.Object, CancellationToken.None), Times.Once);

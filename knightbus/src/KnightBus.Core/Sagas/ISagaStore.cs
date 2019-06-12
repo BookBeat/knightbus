@@ -2,7 +2,7 @@
 
 namespace KnightBus.Core.Sagas
 {
-    public interface ISagaStore 
+    public interface ISagaStore
     {
         Task<T> GetSaga<T>(string partitionKey, string id);
         Task<T> Create<T>(string partitionKey, string id, T sagaData);

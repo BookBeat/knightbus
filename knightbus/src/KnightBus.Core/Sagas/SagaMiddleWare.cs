@@ -16,7 +16,7 @@ namespace KnightBus.Core.Sagas
             _processorProvider = processorProvider;
             _sagaStore = sagaStore;
         }
-        public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, IMessageProcessor next, CancellationToken cancellationToken) where T : class, IMessage
+        public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, IPipelineInformation pipelineInformation, IMessageProcessor next, CancellationToken cancellationToken) where T : class, IMessage
         {
             //Is this a saga
             var processor = _processorProvider.GetProcessor<T>(typeof(IProcessMessage<T>));

@@ -19,7 +19,7 @@ namespace KnightBus.ApplicationInsights
         {
             _client = new TelemetryClient(configuration);
         }
-        public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, IMessageProcessor next, CancellationToken cancellationToken) where T : class, IMessage
+        public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, IPipelineInformation pipelineInformation, IMessageProcessor next, CancellationToken cancellationToken) where T : class, IMessage
         {
 
             var messageName = typeof(T).FullName;

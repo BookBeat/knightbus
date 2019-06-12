@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using KnightBus.Azure.Storage.Messages;
 using KnightBus.Core;
+using KnightBus.Messages;
 
 namespace KnightBus.Azure.Storage
 {
@@ -16,11 +17,10 @@ namespace KnightBus.Azure.Storage
 
         public IList<IMessageProcessorMiddleware> Middlewares { get; } = new List<IMessageProcessorMiddleware>();
 
-        public IChannelReceiver Create(Type messageType, Type subscriptionType, Type settingsType, IHostConfiguration configuration, IMessageProcessor processor)
+        public IChannelReceiver Create(Type messageType, IEventSubscription subscription, IProcessingSettings processingSettings, IHostConfiguration configuration, IMessageProcessor processor)
         {
-            var settings = Activator.CreateInstance(settingsType);
             var queueReaderType = typeof(StorageQueueChannelReceiver<>).MakeGenericType(messageType);
-            var queueReader = (IChannelReceiver)Activator.CreateInstance(queueReaderType, settings, processor, configuration, Configuration);
+            var queueReader = (IChannelReceiver)Activator.CreateInstance(queueReaderType, processingSettings, processor, configuration, Configuration);
             return queueReader;
         }
 

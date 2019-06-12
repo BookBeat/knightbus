@@ -21,7 +21,7 @@ namespace KnightBus.Core.Tests.Unit
             
             var middleware = new ThrottlingMiddleware(1);
             //act 
-            var action = new Func<Task>(() => middleware.ProcessAsync(messageStateHandler.Object, nextProcessor.Object, CancellationToken.None));
+            var action = new Func<Task>(() => middleware.ProcessAsync(messageStateHandler.Object, Mock.Of<IPipelineInformation>(), nextProcessor.Object, CancellationToken.None));
             action.Should().Throw<Exception>();
             //assert
             middleware.CurrentCount.Should().Be(1);
@@ -40,7 +40,7 @@ namespace KnightBus.Core.Tests.Unit
             for (int i = 0; i < 10; i++)
             {
 #pragma warning disable 4014
-                middleware.ProcessAsync(messageStateHandler.Object, nextProcessor.Object, CancellationToken.None);
+                middleware.ProcessAsync(messageStateHandler.Object, Mock.Of<IPipelineInformation>(), nextProcessor.Object, CancellationToken.None);
 #pragma warning restore 4014
             }
 

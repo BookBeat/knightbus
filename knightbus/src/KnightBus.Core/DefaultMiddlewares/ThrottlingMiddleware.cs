@@ -13,7 +13,7 @@ namespace KnightBus.Core.DefaultMiddlewares
         {
             _semaphoreQueue = new SemaphoreQueue(maxConcurrent);
         }
-        public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, IMessageProcessor next, CancellationToken cancellationToken) where T : class, IMessage
+        public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, IPipelineInformation pipelineInformation, IMessageProcessor next, CancellationToken cancellationToken) where T : class, IMessage
         {
             try
             {

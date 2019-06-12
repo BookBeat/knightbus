@@ -6,7 +6,7 @@ namespace KnightBus.Core.DefaultMiddlewares
 {
     public class DeadLetterMiddleware : IMessageProcessorMiddleware
     {
-        public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, IMessageProcessor next, CancellationToken cancellationToken) where T : class, IMessage
+        public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, IPipelineInformation pipelineInformation, IMessageProcessor next, CancellationToken cancellationToken) where T : class, IMessage
         {
             if (messageStateHandler.DeliveryCount > messageStateHandler.DeadLetterDeliveryLimit)
             {
