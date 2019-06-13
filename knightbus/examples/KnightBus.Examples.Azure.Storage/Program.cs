@@ -51,14 +51,14 @@ namespace KnightBus.Examples.Azure.Storage
 
             
             //Send some Messages and watch them print in the console
-            //for (var i = 0; i < 10; i++)
-            //{
-            //    await client.SendAsync(new SampleStorageBusMessage
-            //    {
-            //        Message = $"Hello from command {i}",
-            //        Attachment = new MessageAttachment($"file{i}.txt", "text/plain", new MemoryStream(Encoding.UTF8.GetBytes($"this is a stream from Message {i}")))
-            //    });
-            //}
+            for (var i = 0; i < 10; i++)
+            {
+                await client.SendAsync(new SampleStorageBusMessage
+                {
+                    Message = $"Hello from command {i}",
+                    Attachment = new MessageAttachment($"file{i}.txt", "text/plain", new MemoryStream(Encoding.UTF8.GetBytes($"this is a stream from Message {i}")))
+                });
+            }
 
             await client.SendAsync(new SampleSagaStartMessage { Message = "This is a saga start message" });
             Console.ReadKey();
