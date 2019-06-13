@@ -25,8 +25,8 @@ namespace KnightBus.Redis
         {
             var db = _multiplexer.GetDatabase(_configuration.DatabaseId);
 
-            var metadataHash = await db.HashGetAllAsync(RedisQueueConventions.GetAttachmentMetadataKey(queueName, id));
-            var data = await db.StringGetAsync(RedisQueueConventions.GetAttachmentBinaryKey(queueName, id));
+            var metadataHash = await db.HashGetAllAsync(RedisQueueConventions.GetAttachmentMetadataKey(queueName, id)).ConfigureAwait(false);
+            var data = await db.StringGetAsync(RedisQueueConventions.GetAttachmentBinaryKey(queueName, id)).ConfigureAwait(false);
             var metadata = metadataHash.ToStringDictionary();
             return new MessageAttachment(metadata[FileName], metadata[ContentType], new MemoryStream(data));
         }

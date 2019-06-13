@@ -35,9 +35,9 @@ namespace KnightBus.Examples.Redis
                     //Register our message processors without IoC using the standard provider
                     .UseMessageProcessorProvider(new StandardMessageProcessorProvider()
                         .RegisterProcessor(new SampleRedisMessageProcessor())
-                        .RegisterProcessor(new RedisEventProcessor())
-                        .RegisterProcessor(new RedisEventProcessorTwo())
-                        .RegisterProcessor(new RedisEventProcessorThree())
+                        //.RegisterProcessor(new RedisEventProcessor())
+                        //.RegisterProcessor(new RedisEventProcessorTwo())
+                        //.RegisterProcessor(new RedisEventProcessorThree())
                     )
                     .AddMiddleware(new PerformanceLogging())
                 );
@@ -117,8 +117,8 @@ namespace KnightBus.Examples.Redis
         }
 
         class SampleRedisMessageProcessor : 
-            IProcessCommand<SampleRedisCommand, ExtremeRedisProcessingSetting>,
-            IProcessCommand<SampleRedisAttachmentCommand, RedisProcessingSetting>
+            IProcessCommand<SampleRedisCommand, ExtremeRedisProcessingSetting>
+            
         {
             public Task ProcessAsync(SampleRedisCommand command, CancellationToken cancellationToken)
             {
@@ -197,7 +197,7 @@ namespace KnightBus.Examples.Redis
         class ExtremeRedisProcessingSetting : IProcessingSettings
         {
             public int MaxConcurrentCalls => 100000;
-            public int PrefetchCount => 1000;
+            public int PrefetchCount => 10000;
             public TimeSpan MessageLockTimeout => TimeSpan.FromMinutes(5);
             public int DeadLetterDeliveryLimit => 5;
         }

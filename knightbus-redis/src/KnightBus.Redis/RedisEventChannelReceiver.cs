@@ -22,9 +22,9 @@ namespace KnightBus.Redis
         public override async Task StartAsync()
         {
             var db = ConnectionMultiplexer.GetDatabase(_configuration.DatabaseId);
-            await db.SetAddAsync(RedisQueueConventions.GetSubscriptionKey(AutoMessageMapper.GetQueueName<T>()), _subscription.Name);
+            await db.SetAddAsync(RedisQueueConventions.GetSubscriptionKey(AutoMessageMapper.GetQueueName<T>()), _subscription.Name).ConfigureAwait(false);
 
-            await base.StartAsync();
+            await base.StartAsync().ConfigureAwait(false);
         }
     }
 }
