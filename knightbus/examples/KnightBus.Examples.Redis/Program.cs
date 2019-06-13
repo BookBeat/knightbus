@@ -82,7 +82,7 @@ namespace KnightBus.Examples.Redis
             Console.ReadKey();
 
         }
-
+        
         class SampleRedisCommand : IRedisCommand
         {
             public string Message { get; set; }
@@ -180,7 +180,7 @@ namespace KnightBus.Examples.Redis
             private int _count;
             private readonly Stopwatch _stopwatch = new Stopwatch();
 
-            public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, IMessageProcessor next, CancellationToken cancellationToken) where T : class, IMessage
+            public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, IPipelineInformation pipelineInformation, IMessageProcessor next, CancellationToken cancellationToken) where T : class, IMessage
             {
                 if (!_stopwatch.IsRunning)
                 {
