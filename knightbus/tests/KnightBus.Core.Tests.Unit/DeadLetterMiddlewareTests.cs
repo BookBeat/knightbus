@@ -19,7 +19,7 @@ namespace KnightBus.Core.Tests.Unit
             messageStateHandler.Setup(x => x.DeliveryCount).Returns(2);
             var middleware = new DeadLetterMiddleware();
             //act
-            await middleware.ProcessAsync(messageStateHandler.Object, nextProcessor.Object, CancellationToken.None);
+            await middleware.ProcessAsync(messageStateHandler.Object, Mock.Of<IPipelineInformation>(), nextProcessor.Object, CancellationToken.None);
             //assert
             messageStateHandler.Verify(x=> x.DeadLetterAsync(1), Times.Once);
         }
@@ -34,7 +34,7 @@ namespace KnightBus.Core.Tests.Unit
             messageStateHandler.Setup(x => x.DeliveryCount).Returns(2);
             var middleware = new DeadLetterMiddleware();
             //act
-            await middleware.ProcessAsync(messageStateHandler.Object, nextProcessor.Object, CancellationToken.None);
+            await middleware.ProcessAsync(messageStateHandler.Object, Mock.Of<IPipelineInformation>(), nextProcessor.Object, CancellationToken.None);
             //assert
             nextProcessor.Verify(x=> x.ProcessAsync(messageStateHandler.Object, CancellationToken.None), Times.Never);
         }
@@ -48,7 +48,7 @@ namespace KnightBus.Core.Tests.Unit
             messageStateHandler.Setup(x => x.DeliveryCount).Returns(1);
             var middleware = new DeadLetterMiddleware();
             //act
-            await middleware.ProcessAsync(messageStateHandler.Object, nextProcessor.Object, CancellationToken.None);
+            await middleware.ProcessAsync(messageStateHandler.Object, Mock.Of<IPipelineInformation>(), nextProcessor.Object, CancellationToken.None);
             //assert
             messageStateHandler.Verify(x => x.DeadLetterAsync(1), Times.Never);
             nextProcessor.Verify(x => x.ProcessAsync(messageStateHandler.Object, CancellationToken.None), Times.Once);

@@ -3,6 +3,7 @@ using System.Linq;
 using KnightBus.Core;
 using KnightBus.Core.Singleton;
 using KnightBus.Host.Singleton;
+using KnightBus.Messages;
 
 namespace KnightBus.Host
 {
@@ -10,7 +11,7 @@ namespace KnightBus.Host
     {
         private readonly ITransportChannelFactory[] _transportChannelFactories;
         private readonly IHostConfiguration _configuration;
-        
+
         public TransportStarterFactory(ITransportChannelFactory[] transportChannelFactories, IHostConfiguration configuration)
         {
             _transportChannelFactories = transportChannelFactories;
@@ -24,9 +25,14 @@ namespace KnightBus.Host
             var queueReader = _transportChannelFactories.SingleOrDefault(factory => factory.CanCreate(messageType));
             if (queueReader == null) throw new TransportMissingException(messageType);
 
-            var pipeline = new MiddlewarePipeline(_configuration.Middlewares, queueReader, _configuration.Log);
+            var processingSettings = (IProcessingSettings)Activator.CreateInstance(settingsType);
 
-            var starter = queueReader.Create(messageType, subscriptionType, settingsType, _configuration, pipeline.GetPipeline(processorInstance));
+            var eventSubscription = subscriptionType == null? null: (IEventSubscription)Activator.CreateInstance(subscriptionType);
+            var pipelineInformation = new PipelineInformation(processorInterface, eventSubscription, processingSettings, _configuration);
+
+            var pipeline = new MiddlewarePipeline(_configuration.Middlewares, pipelineInformation, queueReader, _configuration.Log);
+            
+            var starter = queueReader.Create(messageType, eventSubscription, processingSettings, _configuration, pipeline.GetPipeline(processorInstance));
             return GetQueueReaderStarter(starter, processor);
         }
 

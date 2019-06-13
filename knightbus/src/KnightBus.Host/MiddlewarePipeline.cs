@@ -6,10 +6,12 @@ namespace KnightBus.Host
 {
     internal class MiddlewarePipeline
     {
+        private readonly IPipelineInformation _pipelineInformation;
         private readonly List<IMessageProcessorMiddleware> _middlewares = new List<IMessageProcessorMiddleware>();
 
-        public MiddlewarePipeline(IEnumerable<IMessageProcessorMiddleware> hostMiddlewares, ITransportChannelFactory transportChannelFactory, ILog log)
+        public MiddlewarePipeline(IEnumerable<IMessageProcessorMiddleware> hostMiddlewares, IPipelineInformation pipelineInformation, ITransportChannelFactory transportChannelFactory, ILog log)
         {
+            _pipelineInformation = pipelineInformation;
 
             //Add default outlying middlewares
             _middlewares.Add(new ErrorHandlingMiddleware(log));
@@ -26,7 +28,7 @@ namespace KnightBus.Host
             processors[processors.Length - 1] = baseProcessor;
             for (var i = processors.Length - 2; i >= 0; i--)
             {
-                processors[i] = new MiddlewareWrapper(_middlewares[i], processors[i + 1]);
+                processors[i] = new MiddlewareWrapper(_middlewares[i], _pipelineInformation, processors[i + 1]);
             }
 
             return processors[0];

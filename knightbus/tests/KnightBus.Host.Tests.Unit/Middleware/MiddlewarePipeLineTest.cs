@@ -25,7 +25,7 @@ namespace KnightBus.Host.Tests.Unit.Middleware
             var transportConfig = new Mock<ITransportChannelFactory>();
             transportConfig.Setup(x => x.Middlewares).Returns(middlewares);
             var finalProcessor = new Mock<IMessageProcessor>();
-            var pipeline = new MiddlewarePipeline(new List<IMessageProcessorMiddleware>(), transportConfig.Object, Mock.Of<ILog>());
+            var pipeline = new MiddlewarePipeline(new List<IMessageProcessorMiddleware>(), Mock.Of<IPipelineInformation>(), transportConfig.Object, Mock.Of<ILog>());
             //act
             var chain = pipeline.GetPipeline(finalProcessor.Object);
             await chain.ProcessAsync(Mock.Of<IMessageStateHandler<TestCommand>>(), CancellationToken.None);
@@ -48,7 +48,7 @@ namespace KnightBus.Host.Tests.Unit.Middleware
                 _list = list;
                 _order = order;
             }
-            public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, IMessageProcessor next, CancellationToken cancellationToken) where T : class, IMessage
+            public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, IPipelineInformation pipelineInformation, IMessageProcessor next, CancellationToken cancellationToken) where T : class, IMessage
             {
                 await next.ProcessAsync(messageStateHandler, cancellationToken).ContinueWith(task => _list.Add(_order), cancellationToken);
             }

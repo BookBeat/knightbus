@@ -38,7 +38,7 @@ namespace KnightBus.Host.Tests.Unit
                 
             }, new[]{ _queueStarterFactory.Object });
             _queueStarterFactory.Setup(x => x.CanCreate(typeof(TestCommand))).Returns(true);
-            _queueStarterFactory.Setup(x => x.Create(typeof(TestCommand), null, typeof(TestTopicSettings), It.IsAny<HostConfiguration>(), It.IsAny<IMessageProcessor>()))
+            _queueStarterFactory.Setup(x => x.Create(typeof(TestCommand), null, It.IsAny<TestTopicSettings>(), It.IsAny<HostConfiguration>(), It.IsAny<IMessageProcessor>()))
                 .Returns(Mock.Of<IChannelReceiver>()).Verifiable();
             _messageHandlerProvider.RegisterProcessor(new SingleCommandProcessor(Mock.Of<ICountable>()));
             //act
@@ -58,9 +58,9 @@ namespace KnightBus.Host.Tests.Unit
             }, new[] { _queueStarterFactory.Object });
             _queueStarterFactory.Setup(x => x.CanCreate(typeof(TestCommandOne))).Returns(true);
             _queueStarterFactory.Setup(x => x.CanCreate(typeof(TestCommandTwo))).Returns(true);
-            _queueStarterFactory.Setup(x => x.Create(typeof(TestCommandOne), null, typeof(TestTopicSettings), It.IsAny<HostConfiguration>(), It.IsAny<IMessageProcessor>()))
+            _queueStarterFactory.Setup(x => x.Create(typeof(TestCommandOne), null, It.IsAny<TestTopicSettings>(), It.IsAny<HostConfiguration>(), It.IsAny<IMessageProcessor>()))
                 .Returns(Mock.Of<IChannelReceiver>()).Verifiable();
-            _queueStarterFactory.Setup(x => x.Create(typeof(TestCommandTwo), null, typeof(TestTopicSettings), It.IsAny<HostConfiguration>(), It.IsAny<IMessageProcessor>()))
+            _queueStarterFactory.Setup(x => x.Create(typeof(TestCommandTwo), null, It.IsAny<TestTopicSettings>(), It.IsAny<HostConfiguration>(), It.IsAny<IMessageProcessor>()))
                 .Returns(Mock.Of<IChannelReceiver>()).Verifiable();
             _messageHandlerProvider.RegisterProcessor(new MultipleCommandProcessor(Mock.Of<ICountable>()));
             //act
@@ -93,7 +93,7 @@ namespace KnightBus.Host.Tests.Unit
                 MessageProcessorProvider = _messageHandlerProvider,
             }, new[] { _queueStarterFactory.Object });
             _queueStarterFactory.Setup(x => x.CanCreate(typeof(TestEvent))).Returns(true);
-            _queueStarterFactory.Setup(x => x.Create(typeof(TestEvent), typeof(TestSubscription), typeof(TestTopicSettings), It.IsAny<HostConfiguration>(), It.IsAny<IMessageProcessor>()))
+            _queueStarterFactory.Setup(x => x.Create(typeof(TestEvent), It.IsAny<TestSubscription>(), It.IsAny<TestTopicSettings>(), It.IsAny<HostConfiguration>(), It.IsAny<IMessageProcessor>()))
                 .Returns(Mock.Of<IChannelReceiver>()).Verifiable();
             _messageHandlerProvider.RegisterProcessor(new EventProcessor(Mock.Of<ICountable>()));
             //act
@@ -119,7 +119,7 @@ namespace KnightBus.Host.Tests.Unit
                 DeadLetterDeliveryLimit = 1
             });
             _queueStarterFactory.Setup(x => x.CanCreate(typeof(SingletonCommand))).Returns(true);
-            _queueStarterFactory.Setup(x => x.Create(typeof(SingletonCommand), null, typeof(TestTopicSettings), It.IsAny<IHostConfiguration>(), It.IsAny<IMessageProcessor>()))
+            _queueStarterFactory.Setup(x => x.Create(typeof(SingletonCommand), null, It.IsAny<TestTopicSettings>(), It.IsAny<IHostConfiguration>(), It.IsAny<IMessageProcessor>()))
                 .Returns(underlyingQueueStarter.Object).Verifiable();
             _messageHandlerProvider.RegisterProcessor(new SingletonCommandProcessor());
             //act

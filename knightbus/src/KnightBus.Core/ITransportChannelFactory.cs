@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using KnightBus.Messages;
 
 namespace KnightBus.Core
 {
@@ -10,7 +11,7 @@ namespace KnightBus.Core
     {
         ITransportConfiguration Configuration { get; set; }
         IList<IMessageProcessorMiddleware> Middlewares { get; }
-        IChannelReceiver Create(Type messageType, Type subscriptionType, Type settingsType, IHostConfiguration configuration, IMessageProcessor processor);
+        IChannelReceiver Create(Type messageType, IEventSubscription subscription, IProcessingSettings processingSettings, IHostConfiguration configuration, IMessageProcessor processor);
         bool CanCreate(Type messageType);
     }
 }

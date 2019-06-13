@@ -16,7 +16,7 @@ namespace KnightBus.SimpleInjector
             _container = container;
         }
 
-        public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, IMessageProcessor next, CancellationToken cancellationToken) where T : class, IMessage
+        public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, IPipelineInformation pipelineInformation, IMessageProcessor next, CancellationToken cancellationToken) where T : class, IMessage
         {
             using (AsyncScopedLifestyle.BeginScope(_container))
             {
