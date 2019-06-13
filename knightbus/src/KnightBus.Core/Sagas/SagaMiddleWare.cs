@@ -40,8 +40,9 @@ namespace KnightBus.Core.Sagas
                 {
                     await sagaHandler.Initialize().ConfigureAwait(false);
                 }
-                catch (SagaAlreadyStartedException)
+                catch (SagaAlreadyStartedException e)
                 {
+                    pipelineInformation.HostConfiguration.Log.Information(e, "Saga already started");
                     await messageStateHandler.CompleteAsync().ConfigureAwait(false);
                     return;
                 }

@@ -131,7 +131,7 @@ namespace KnightBus.Examples.Azure.Storage
             public async Task ProcessAsync(SampleSagaMessage message, CancellationToken cancellationToken)
             {
                 Console.WriteLine($"Counter is {Data.Counter}");
-                if (Data.Counter == 10)
+                if (Data.Counter == 5)
                 {
                     Console.WriteLine("Finishing Saga");
                     await CompleteAsync();
