@@ -25,6 +25,10 @@ namespace KnightBus.Examples.Azure.Storage
         {
             var storageConnection = "your-connection-string";
 
+            //Initiate the client
+            var client = new StorageBus(new StorageBusConfiguration(storageConnection));
+            client.EnableAttachments(new BlobStorageMessageAttachmentProvider(storageConnection));
+
             var knightBusHost = new KnightBusHost()
                 //Enable the StorageBus Transport
                 .UseTransport(new StorageTransport(storageConnection)
@@ -36,7 +40,7 @@ namespace KnightBus.Examples.Azure.Storage
                     //Register our message processors without IoC using the standard provider
                     .UseMessageProcessorProvider(new StandardMessageProcessorProvider()
                         .RegisterProcessor(new SampleStorageBusMessageProcessor())
-                        .RegisterProcessor(new SampleSagaMessageProcessor())
+                        .RegisterProcessor(new SampleSagaMessageProcessor(client))
                     )
                     //Enable Saga support using the table storage Saga store
                     .EnableSagas(new StorageTableSagaStore(storageConnection))
@@ -45,9 +49,7 @@ namespace KnightBus.Examples.Azure.Storage
             //Start the KnightBus Host, it will now connect to the StorageBus and listen to the SampleStorageBusMessageMapping.QueueName
             await knightBusHost.StartAsync();
 
-            //Initiate the client
-            var client = new StorageBus(new StorageBusConfiguration(storageConnection));
-            client.EnableAttachments(new BlobStorageMessageAttachmentProvider(storageConnection));
+            
             //Send some Messages and watch them print in the console
             //for (var i = 0; i < 10; i++)
             //{
@@ -59,9 +61,6 @@ namespace KnightBus.Examples.Azure.Storage
             //}
 
             await client.SendAsync(new SampleSagaStartMessage { Message = "This is a saga start message" });
-            await Task.Delay(1000);
-            await client.SendAsync(new SampleSagaMessage {Message = "This is a saga message"});
-
             Console.ReadKey();
         }
 
@@ -89,7 +88,6 @@ namespace KnightBus.Examples.Azure.Storage
         public class SampleSagaMessage : IStorageQueueCommand
         {
             public string Id { get; set; } = "c1e06984-d946-4c70-a8aa-e32e44c6407e";
-            public string Message { get; set; }
         }
         class SampleSagaMessageMapping : IMessageMapping<SampleSagaMessage>
         {
@@ -114,8 +112,11 @@ namespace KnightBus.Examples.Azure.Storage
             IProcessCommand<SampleSagaMessage, SomeProcessingSetting>, 
             IProcessCommand<SampleSagaStartMessage, SomeProcessingSetting>
         {
-            public SampleSagaMessageProcessor()
+            private readonly IStorageBus _storageBus;
+
+            public SampleSagaMessageProcessor(IStorageBus storageBus)
             {
+                _storageBus = storageBus;
                 //Map the messages to the Saga
                 MessageMapper.MapStartMessage<SampleSagaStartMessage>(m=> m.Id);
                 MessageMapper.MapMessage<SampleSagaMessage>(m=> m.Id);
@@ -123,30 +124,29 @@ namespace KnightBus.Examples.Azure.Storage
             public override string PartitionKey => "sample-saga";
             public async Task ProcessAsync(SampleSagaStartMessage message, CancellationToken cancellationToken)
             {
-                Data.Messages.Add(message.Message);
-                await UpdateAsync();
-                Console.WriteLine("Messages stored:");
-                foreach (var dataMessage in Data.Messages)
-                {
-                    Console.WriteLine(dataMessage);
-                }
+                Console.WriteLine(message.Message);
+                await _storageBus.SendAsync(new SampleSagaMessage());
             }
 
             public async Task ProcessAsync(SampleSagaMessage message, CancellationToken cancellationToken)
             {
-                Data.Messages.Add(message.Message);
-                await CompleteAsync();
-                Console.WriteLine("Messages stored:");
-                foreach (var dataMessage in Data.Messages)
+                Console.WriteLine($"Counter is {Data.Counter}");
+                if (Data.Counter == 10)
                 {
-                    Console.WriteLine(dataMessage);
+                    Console.WriteLine("Finishing Saga");
+                    await CompleteAsync();
+                    return;
                 }
+
+                Data.Counter++;
+                await UpdateAsync();
+                await _storageBus.SendAsync(new SampleSagaMessage());
             }
         }
 
         class MySagaData
         {
-            public List<string> Messages { get; set; } = new List<string>();
+            public int Counter { get; set; }
         }
 
         class SomeProcessingSetting : IProcessingSettings
