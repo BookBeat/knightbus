@@ -27,9 +27,9 @@ namespace KnightBus.Core.Sagas
         /// </summary>
         Task CompleteAsync();
         /// <summary>
-        /// Updated the Saga Data.
+        /// Update the Saga Data.
         /// </summary>
-        Task UpdateAsync(T sagaData);
+        Task UpdateAsync();
     }
 
     public abstract class Saga<T> : ISaga<T>
@@ -44,9 +44,9 @@ namespace KnightBus.Core.Sagas
             return SagaStore.Complete(PartitionKey, Id);
         }
 
-        public virtual Task UpdateAsync(T sagaData)
+        public virtual Task UpdateAsync()
         {
-            return SagaStore.Update(PartitionKey, Id, sagaData);
+            return SagaStore.Update(PartitionKey, Id, Data);
         }
     }
 }

@@ -124,7 +124,7 @@ namespace KnightBus.Examples.Azure.Storage
             public async Task ProcessAsync(SampleSagaStartMessage message, CancellationToken cancellationToken)
             {
                 Data.Messages.Add(message.Message);
-                await UpdateAsync(Data);
+                await UpdateAsync();
                 Console.WriteLine("Messages stored:");
                 foreach (var dataMessage in Data.Messages)
                 {
