@@ -18,7 +18,6 @@ namespace KnightBus.Redis
         private readonly string _queueName;
         protected readonly IConnectionMultiplexer ConnectionMultiplexer;
         private readonly IProcessingSettings _settings;
-        private IConnectionMultiplexer _multiplexer;
         private CancellationTokenSource _pumpDelayCancellationTokenSource = new CancellationTokenSource();
         private Task _runningTask;
         private IDatabase _db;
@@ -35,9 +34,8 @@ namespace KnightBus.Redis
 
         public virtual async Task StartAsync()
         {
-            _multiplexer = await StackExchange.Redis.ConnectionMultiplexer.ConnectAsync(_configuration.ConnectionString).ConfigureAwait(false);
-            _db = _multiplexer.GetDatabase(_configuration.DatabaseId);
-            var sub = _multiplexer.GetSubscriber();
+            _db = ConnectionMultiplexer.GetDatabase(_configuration.DatabaseId);
+            var sub = ConnectionMultiplexer.GetSubscriber();
             await sub.SubscribeAsync(_queueName, Handler);
 
             _runningTask = Task.Factory.StartNew(async () =>
@@ -138,7 +136,7 @@ namespace KnightBus.Redis
 
         private async Task ProcessMessageAsync(RedisMessage<T> redisMessage, CancellationToken cancellationToken)
         {
-            var stateHandler = new RedisMessageStateHandler<T>(_multiplexer, _configuration, redisMessage, _settings.DeadLetterDeliveryLimit, _queueName);
+            var stateHandler = new RedisMessageStateHandler<T>(ConnectionMultiplexer, _configuration, redisMessage, _settings.DeadLetterDeliveryLimit, _queueName);
             await _processor.ProcessAsync(stateHandler, cancellationToken).ConfigureAwait(false);
         }
     }
