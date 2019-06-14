@@ -35,9 +35,10 @@ namespace KnightBus.Examples.Redis
                     //Register our message processors without IoC using the standard provider
                     .UseMessageProcessorProvider(new StandardMessageProcessorProvider()
                         .RegisterProcessor(new SampleRedisMessageProcessor())
-                        //.RegisterProcessor(new RedisEventProcessor())
-                        //.RegisterProcessor(new RedisEventProcessorTwo())
-                        //.RegisterProcessor(new RedisEventProcessorThree())
+                        .RegisterProcessor(new SampleRedisAttachmentProcessor())
+                        .RegisterProcessor(new RedisEventProcessor())
+                        .RegisterProcessor(new RedisEventProcessorTwo())
+                        .RegisterProcessor(new RedisEventProcessorThree())
                     )
                     .AddMiddleware(new PerformanceLogging())
                 );
@@ -49,10 +50,10 @@ namespace KnightBus.Examples.Redis
             var client = new RedisBus(new RedisConfiguration(redisConnection));
             client.EnableAttachments(new RedisAttachmentProvider(multiplexer, new RedisConfiguration(redisConnection)));
             //Send some Messages and watch them print in the console
-            var messageCount = 100000;
+            var messageCount = 10;
             var sw = new Stopwatch();
-            Console.WriteLine($"Press Any Key to start sending {messageCount} commands");
-            Console.ReadKey();
+            
+            
             var commands = Enumerable.Range(0, messageCount).Select(i => new SampleRedisCommand
             {
                 Message = $"Hello from command {i}"
@@ -61,8 +62,8 @@ namespace KnightBus.Examples.Redis
             sw.Start();
             await client.SendAsync<SampleRedisCommand>(commands);
             Console.WriteLine($"Elapsed {sw.Elapsed}");
-            Console.WriteLine($"Press Any Key to start sending {10} commands with attachments");
-            Console.ReadKey();
+            
+            
 
             var attachmentCommands = Enumerable.Range(0, 10).Select(i => new SampleRedisAttachmentCommand()
             {
@@ -71,8 +72,8 @@ namespace KnightBus.Examples.Redis
             }).ToList();
             await client.SendAsync<SampleRedisAttachmentCommand>(attachmentCommands);
             
-            Console.WriteLine($"Press Any Key to start sending {10} commands with attachments");
-            Console.ReadKey();
+            
+            
 
             var events = Enumerable.Range(0, 10).Select(i => new SampleRedisEvent
             {
@@ -125,6 +126,11 @@ namespace KnightBus.Examples.Redis
                 return Task.CompletedTask;
             }
 
+            
+        }
+
+        class SampleRedisAttachmentProcessor : IProcessCommand<SampleRedisAttachmentCommand, RedisProcessingSetting>
+        {
             public Task ProcessAsync(SampleRedisAttachmentCommand command, CancellationToken cancellationToken)
             {
                 Console.WriteLine($"Received command: '{command.Message}'");

@@ -57,7 +57,7 @@ namespace KnightBus.Redis
             var serialized = messages.Select(m => (RedisValue)_configuration.MessageSerializer.Serialize(m)).ToArray();
             return Task.WhenAll(
                 UploadAttachments(messages, queueName, db),
-                db.ListRightPushAsync(queueName, serialized),
+                db.ListLeftPushAsync(queueName, serialized),
                 db.PublishAsync(queueName, 0, CommandFlags.FireAndForget)
             );
         }
@@ -67,7 +67,7 @@ namespace KnightBus.Redis
             var db = _multiplexer.GetDatabase(_configuration.DatabaseId);
             return Task.WhenAll(
                 UploadAttachment(message, queueName, db),
-                db.ListRightPushAsync(queueName, _configuration.MessageSerializer.Serialize(message)),
+                db.ListLeftPushAsync(queueName, _configuration.MessageSerializer.Serialize(message)),
                 db.PublishAsync(queueName, 0, CommandFlags.FireAndForget)
             );
         }

@@ -3,6 +3,7 @@
     public static class RedisQueueConventions
     {
         public static string GetHashKey(string queueName, string id) => $"{queueName}:msg:{id}";
+        public static string GetProcessingQueueName(string queueName) => $"{queueName}:processing";
         public static string GetDeadLetterQueueName(string queueName) => $"{queueName}:deadletter";
         public static string GetSubscriptionKey(string queueName) => $"{queueName}:subs";
         public static string GetSubscriptionQueueName(string queueName, string subscription) => $"{queueName}:subs:{subscription}";

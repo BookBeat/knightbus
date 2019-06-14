@@ -29,19 +29,26 @@ namespace KnightBus.Redis
         public IDictionary<string, string> MessageProperties => _redisMessage.HashEntries;
         public Task CompleteAsync()
         {
-            return _db.KeyDeleteAsync(_redisMessage.HashKey);
+            return Task.WhenAll(
+                _db.KeyDeleteAsync(_redisMessage.HashKey),
+                _db.ListRemoveAsync(RedisQueueConventions.GetProcessingQueueName(_queueName), _redisMessage.RedisValue));
+
         }
 
         public Task AbandonByErrorAsync(Exception e)
         {
             return Task.WhenAll(
-                _db.ListRightPushAsync(_queueName, _redisMessage.RedisValue),
+                _db.HashSetAsync(_redisMessage.HashKey, RedisHashKeys.Errors,$"{e.Message}\n{e.StackTrace}"),
+                _db.ListLeftPushAsync(_queueName, _redisMessage.RedisValue),
+                _db.ListRemoveAsync(RedisQueueConventions.GetProcessingQueueName(_queueName), _redisMessage.RedisValue),
                 _db.PublishAsync(_queueName, 0, CommandFlags.FireAndForget));
         }
 
         public Task DeadLetterAsync(int deadLetterLimit)
         {
-            return _db.ListRightPushAsync(RedisQueueConventions.GetDeadLetterQueueName(_queueName), _redisMessage.RedisValue);
+            return Task.WhenAll(
+                _db.ListLeftPushAsync(RedisQueueConventions.GetDeadLetterQueueName(_queueName), _redisMessage.RedisValue),
+                _db.ListRemoveAsync(RedisQueueConventions.GetProcessingQueueName(_queueName), _redisMessage.RedisValue));
         }
 
         public Task<T> GetMessageAsync()
