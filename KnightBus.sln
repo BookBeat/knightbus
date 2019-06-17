@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28010.2046
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29009.5
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Core", "knightbus\src\KnightBus.Core\KnightBus.Core.csproj", "{E08DA575-CB4C-473B-9A6C-1AAFF05BD15B}"
 EndProject
@@ -39,15 +39,15 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AzureServiceBus", "AzureSer
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AzureStorage", "AzureStorage", "{46D48336-73CC-4A9B-8B5F-14725D2AFFB4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.Redis", "knightbus-redis\src\KnightBus.Redis\KnightBus.Redis.csproj", "{937D8E35-3F93-43DC-B5BD-81D758B06256}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Redis", "knightbus-redis\src\KnightBus.Redis\KnightBus.Redis.csproj", "{937D8E35-3F93-43DC-B5BD-81D758B06256}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.Redis.Messages", "knightbus-redis\src\KnightBus.Redis.Messages\KnightBus.Redis.Messages.csproj", "{C8BD5072-287A-45F9-8734-F4EE505ABB0F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Redis.Messages", "knightbus-redis\src\KnightBus.Redis.Messages\KnightBus.Redis.Messages.csproj", "{C8BD5072-287A-45F9-8734-F4EE505ABB0F}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Redis", "Redis", "{09D121DD-771E-478D-8E10-080D65929948}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.Examples.Redis", "knightbus\examples\KnightBus.Examples.Redis\KnightBus.Examples.Redis.csproj", "{04087FF9-1A26-4230-807F-135E452453C3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Examples.Redis", "knightbus\examples\KnightBus.Examples.Redis\KnightBus.Examples.Redis.csproj", "{04087FF9-1A26-4230-807F-135E452453C3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.Microsoft.DependencyInjection", "knightbus-microsoft-dependencyinjection\src\KnightBus.Microsoft.DependencyInjection\KnightBus.Microsoft.DependencyInjection.csproj", "{0CF87A75-F4E6-43E5-AD33-8F0190CC7E1C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Microsoft.DependencyInjection", "knightbus-microsoft-dependencyinjection\src\KnightBus.Microsoft.DependencyInjection\KnightBus.Microsoft.DependencyInjection.csproj", "{0CF87A75-F4E6-43E5-AD33-8F0190CC7E1C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -119,6 +119,10 @@ Global
 		{C8BD5072-287A-45F9-8734-F4EE505ABB0F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C8BD5072-287A-45F9-8734-F4EE505ABB0F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C8BD5072-287A-45F9-8734-F4EE505ABB0F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{04087FF9-1A26-4230-807F-135E452453C3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{04087FF9-1A26-4230-807F-135E452453C3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{04087FF9-1A26-4230-807F-135E452453C3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{04087FF9-1A26-4230-807F-135E452453C3}.Release|Any CPU.Build.0 = Release|Any CPU
 		{0CF87A75-F4E6-43E5-AD33-8F0190CC7E1C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{0CF87A75-F4E6-43E5-AD33-8F0190CC7E1C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0CF87A75-F4E6-43E5-AD33-8F0190CC7E1C}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -141,7 +145,6 @@ Global
 		{C8BD5072-287A-45F9-8734-F4EE505ABB0F} = {09D121DD-771E-478D-8E10-080D65929948}
 		{09D121DD-771E-478D-8E10-080D65929948} = {60DD8989-3730-42B9-BD7B-3B38A6208FFB}
 		{04087FF9-1A26-4230-807F-135E452453C3} = {1A7A20B2-65E7-4712-B93B-4AA3F73017A8}
-		{B2075298-B4EE-4BD1-B541-D47C3E8A82D3} = {BFEEC811-DB77-4EF0-B43E-238FAF440E3A}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {14950A56-4265-429E-AF71-2D98B3B8AC48}
