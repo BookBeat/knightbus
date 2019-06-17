@@ -19,8 +19,10 @@ namespace KnightBus.Redis
         protected readonly IConnectionMultiplexer ConnectionMultiplexer;
         private readonly IProcessingSettings _settings;
         private CancellationTokenSource _pumpDelayCancellationTokenSource = new CancellationTokenSource();
-        private Task _runningTask;
+        private Task _messagePumpTask;
+        private Task _lostMessageTask;
         private IDatabase _db;
+        private LostMessageBackgroundService<T> _lostMessageService;
 
         public RedisChannelReceiver(IConnectionMultiplexer connectionMultiplexer, string queueName, IProcessingSettings settings, RedisConfiguration configuration, IMessageProcessor processor)
         {
@@ -38,12 +40,15 @@ namespace KnightBus.Redis
             var sub = ConnectionMultiplexer.GetSubscriber();
             await sub.SubscribeAsync(_queueName, Handler);
 
-            _runningTask = Task.Factory.StartNew(async () =>
+            _messagePumpTask = Task.Factory.StartNew(async () =>
             {
                 while (true)
                     if (!await PumpAsync().ConfigureAwait(false))
                         await Delay(_pumpDelayCancellationTokenSource.Token).ConfigureAwait(false);
             }, TaskCreationOptions.LongRunning);
+            _lostMessageService = new LostMessageBackgroundService<T>(_db, _configuration.MessageSerializer, _settings.MessageLockTimeout, _queueName);
+            _lostMessageTask = _lostMessageService.Start(CancellationToken.None);
+
         }
 
 
@@ -126,6 +131,7 @@ namespace KnightBus.Redis
             var tasks = new Task[]
             {
                 _db.HashIncrementAsync(hashKey, RedisHashKeys.DeliveryCount, 1),
+                _db.HashSetAsync(hashKey, RedisHashKeys.LastProcessDate, DateTimeOffset.Now.ToUnixTimeMilliseconds()),
                 hashGetTask = _db.HashGetAllAsync(hashKey)
             };
             await Task.WhenAll(tasks).ConfigureAwait(false);
