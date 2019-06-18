@@ -130,8 +130,8 @@ namespace KnightBus.Redis
             Task<HashEntry[]> hashGetTask;
             var tasks = new Task[]
             {
-                _db.HashIncrementAsync(hashKey, RedisHashKeys.DeliveryCount, 1),
                 _db.HashSetAsync(hashKey, RedisHashKeys.LastProcessDate, DateTimeOffset.Now.ToUnixTimeMilliseconds()),
+                _db.HashIncrementAsync(hashKey, RedisHashKeys.DeliveryCount, 1),
                 hashGetTask = _db.HashGetAllAsync(hashKey)
             };
             await Task.WhenAll(tasks).ConfigureAwait(false);

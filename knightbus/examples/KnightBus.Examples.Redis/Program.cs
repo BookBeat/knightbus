@@ -50,10 +50,10 @@ namespace KnightBus.Examples.Redis
             var client = new RedisBus(new RedisConfiguration(redisConnection));
             client.EnableAttachments(new RedisAttachmentProvider(multiplexer, new RedisConfiguration(redisConnection)));
             //Send some Messages and watch them print in the console
-            var messageCount = 100000;
+            var messageCount = 100;
             var sw = new Stopwatch();
-            
-            
+
+
             var commands = Enumerable.Range(0, messageCount).Select(i => new SampleRedisCommand
             {
                 Message = $"Hello from command {i}"
@@ -62,24 +62,24 @@ namespace KnightBus.Examples.Redis
             sw.Start();
             await client.SendAsync<SampleRedisCommand>(commands);
             Console.WriteLine($"Elapsed {sw.Elapsed}");
-            
-            
+            Console.ReadKey();
 
-            var attachmentCommands = Enumerable.Range(0, 10).Select(i => new SampleRedisAttachmentCommand()
-            {
-                Message = $"Hello from command with attachment {i}",
-                Attachment = new MessageAttachment($"file{i}.txt", "text/plain", new MemoryStream(Encoding.UTF8.GetBytes($"this is a stream from Message {i}")))
-            }).ToList();
-            await client.SendAsync<SampleRedisAttachmentCommand>(attachmentCommands);
-            
-            
-            
 
-            var events = Enumerable.Range(0, 10).Select(i => new SampleRedisEvent
-            {
-                Message = $"Hello from event {i}"
-            }).ToList();
-            await client.PublishAsync<SampleRedisEvent>(events);
+            //var attachmentCommands = Enumerable.Range(0, 10).Select(i => new SampleRedisAttachmentCommand()
+            //{
+            //    Message = $"Hello from command with attachment {i}",
+            //    Attachment = new MessageAttachment($"file{i}.txt", "text/plain", new MemoryStream(Encoding.UTF8.GetBytes($"this is a stream from Message {i}")))
+            //}).ToList();
+            //await client.SendAsync<SampleRedisAttachmentCommand>(attachmentCommands);
+
+
+
+
+            //var events = Enumerable.Range(0, 10).Select(i => new SampleRedisEvent
+            //{
+            //    Message = $"Hello from event {i}"
+            //}).ToList();
+            //await client.PublishAsync<SampleRedisEvent>(events);
             Console.ReadKey();
 
         }
@@ -203,7 +203,7 @@ namespace KnightBus.Examples.Redis
         class ExtremeRedisProcessingSetting : IProcessingSettings
         {
             public int MaxConcurrentCalls => 1000;
-            public int PrefetchCount => 100;
+            public int PrefetchCount => 10000;
             public TimeSpan MessageLockTimeout => TimeSpan.FromSeconds(5);
             public int DeadLetterDeliveryLimit => 5;
         }
