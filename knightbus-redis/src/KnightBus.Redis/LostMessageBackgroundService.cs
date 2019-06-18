@@ -14,6 +14,7 @@ namespace KnightBus.Redis
         private readonly IMessageSerializer _serializer;
         private readonly TimeSpan _messageTimeout;
         private readonly string _queueName;
+        private readonly Random _random;
 
 
         internal LostMessageBackgroundService(IDatabase db, IMessageSerializer serializer, TimeSpan messageTimeout, string queueName)
@@ -22,54 +23,62 @@ namespace KnightBus.Redis
             _serializer = serializer;
             _messageTimeout = messageTimeout;
             _queueName = queueName;
+            _random = new Random(Guid.NewGuid().GetHashCode());
         }
 
         internal async Task Start(CancellationToken cancellationToken)
         {
-            await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken).ConfigureAwait(false);
+            //Randomly delay so not all tasks fire at once
+            await Task.Delay(TimeSpan.FromSeconds(_random.Next(1, 60)), cancellationToken).ConfigureAwait(false);
             while (!cancellationToken.IsCancellationRequested)
             {
                 await DetectAndHandleLostMessages(_queueName).ConfigureAwait(false);
-                await Task.Delay(TimeSpan.FromMinutes(1), cancellationToken).ConfigureAwait(false);
+                await Task.Delay(TimeSpan.FromMinutes(2), cancellationToken).ConfigureAwait(false);
             }
         }
 
 
         private async Task DetectAndHandleLostMessages(string queueName)
         {
-            const int take = 10;
+            const int take = 100;
             var start = -take;
             var stop = -1;
             while (true)
             {
                 var listItems = await _db.ListRangeAsync(RedisQueueConventions.GetProcessingQueueName(queueName), start, stop).ConfigureAwait(false);
                 if (!listItems.Any()) break;
-                await Task.WhenAll(listItems.Select(redisValue => HandlePotentiallyLostMessage(queueName, redisValue))).ConfigureAwait(false);
-                if (listItems.Length < 10) break;
+                foreach (var listItem in listItems)
+                {
+                    var (lost, message) = await HandlePotentiallyLostMessage(queueName, listItem).ConfigureAwait(false);
+                    if (lost)
+                    {
+                        await RecoverLostMessageAsync(queueName, listItem, message.Id).ConfigureAwait(false);
+                        await Task.Delay(TimeSpan.FromMilliseconds(10)).ConfigureAwait(false);
+                    }
+                }
+                if (listItems.Length < take) break;
 
                 start -= take;
                 stop -= take;
             }
         }
 
-        private async Task<bool> HandlePotentiallyLostMessage(string queueName, RedisValue listItem)
+        private async Task<(bool lost, T message)> HandlePotentiallyLostMessage(string queueName, RedisValue listItem)
         {
             var message = _serializer.Deserialize<T>(listItem);
-            var hash = await _db.HashGetAllAsync(RedisQueueConventions.GetHashKey(queueName, message.Id)).ConfigureAwait(false);
+            var hash = await _db.HashGetAsync(RedisQueueConventions.GetHashKey(queueName, message.Id), RedisHashKeys.LastProcessDate).ConfigureAwait(false);
 
-            if (hash != null)
+            if (hash.IsNull)
             {
-                var hashEntry = hash.Single(x => x.Name == RedisHashKeys.LastProcessDate);
-                var processTimeStamp = DateTimeOffset.FromUnixTimeMilliseconds(long.Parse(hashEntry.Value));
+                var processTimeStamp = DateTimeOffset.FromUnixTimeMilliseconds(long.Parse(hash));
                 if (processTimeStamp + _messageTimeout < DateTimeOffset.Now)
                 {
                     //Message is lost or has exceeded maximum processing time
-                    await RecoverLostMessageAsync(queueName, listItem, message.Id).ConfigureAwait(false);
-                    return true;
+                    return (true, message);
                 }
             }
 
-            return false;
+            return (false, default);
         }
 
         private async Task RecoverLostMessageAsync(string queueName, RedisValue redisMessage, string id)

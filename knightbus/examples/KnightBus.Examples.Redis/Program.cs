@@ -50,7 +50,7 @@ namespace KnightBus.Examples.Redis
             var client = new RedisBus(new RedisConfiguration(redisConnection));
             client.EnableAttachments(new RedisAttachmentProvider(multiplexer, new RedisConfiguration(redisConnection)));
             //Send some Messages and watch them print in the console
-            var messageCount = 10;
+            var messageCount = 100000;
             var sw = new Stopwatch();
             
             
@@ -155,8 +155,8 @@ namespace KnightBus.Examples.Redis
         {
             public Task ProcessAsync(SampleRedisEvent message, CancellationToken cancellationToken)
             {
-                Console.WriteLine($"Handler 2: '{message.Message}' \nSimulating retry and dead lettering");
-                throw new Exception();
+                Console.WriteLine($"Handler 2: '{message.Message}'");
+                return Task.CompletedTask;
             }
         }
         class RedisEventProcessorThree : IProcessEvent<SampleRedisEvent, EventSubscriptionThree, RedisProcessingSetting>
@@ -202,16 +202,16 @@ namespace KnightBus.Examples.Redis
 
         class ExtremeRedisProcessingSetting : IProcessingSettings
         {
-            public int MaxConcurrentCalls => 100000;
-            public int PrefetchCount => 10000;
-            public TimeSpan MessageLockTimeout => TimeSpan.FromMinutes(5);
+            public int MaxConcurrentCalls => 1000;
+            public int PrefetchCount => 100;
+            public TimeSpan MessageLockTimeout => TimeSpan.FromSeconds(5);
             public int DeadLetterDeliveryLimit => 5;
         }
         class RedisProcessingSetting : IProcessingSettings
         {
             public int MaxConcurrentCalls => 1;
             public int PrefetchCount => 10;
-            public TimeSpan MessageLockTimeout => TimeSpan.FromMinutes(5);
+            public TimeSpan MessageLockTimeout => TimeSpan.FromSeconds(5);
             public int DeadLetterDeliveryLimit => 5;
         }
     }
