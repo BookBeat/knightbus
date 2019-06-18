@@ -76,8 +76,8 @@ namespace KnightBus.Redis
         private async Task<(bool lost, T message, RedisValue listItem)> HandlePotentiallyLostMessage(string queueName, RedisValue listItem)
         {
             var message = _serializer.Deserialize<T>(listItem);
-            var hashKey = RedisQueueConventions.GetHashKey(queueName, message.Id);
-            var hash = await _db.HashGetAsync(hashKey, RedisHashKeys.LastProcessDate).ConfigureAwait(false);
+            var lastProcessedKey = RedisQueueConventions.GetMessageExpirationKey(queueName, message.Id);
+            var hash = await _db.StringGetAsync(lastProcessedKey).ConfigureAwait(false);
 
             if (!hash.IsNull)
             {
@@ -90,10 +90,7 @@ namespace KnightBus.Redis
             }
             else
             {
-                await Task.WhenAll(
-                    _db.HashSetAsync(hashKey, RedisHashKeys.LastProcessDate, DateTimeOffset.Now.Add(-_messageTimeout).ToUnixTimeMilliseconds()),
-                    _db.KeyExpireAsync(hashKey, GetDelay() + GetDelay())
-                ).ConfigureAwait(false);
+                await _db.StringSetAsync(lastProcessedKey, DateTimeOffset.Now.Add(-_messageTimeout).ToUnixTimeMilliseconds(), GetDelay()+GetDelay()).ConfigureAwait(false);
             }
 
             return (false, default, listItem);
@@ -101,13 +98,13 @@ namespace KnightBus.Redis
 
         private async Task<bool> RecoverLostMessageAsync(string queueName, RedisValue redisMessage, string id)
         {
-            var hashKey = RedisQueueConventions.GetHashKey(queueName, id);
+            var lastProcessedKey = RedisQueueConventions.GetMessageExpirationKey(queueName, id);
 #pragma warning disable 4014
             var tran = _db.CreateTransaction();
-            tran.AddCondition(Condition.HashExists(hashKey, RedisHashKeys.LastProcessDate));
-            tran.ListRemoveAsync(RedisQueueConventions.GetProcessingQueueName(queueName), redisMessage);
+            tran.AddCondition(Condition.KeyExists(lastProcessedKey));
+            tran.ListRemoveAsync(RedisQueueConventions.GetProcessingQueueName(queueName), redisMessage,-1);
             tran.ListLeftPushAsync(queueName, redisMessage);
-            tran.HashDeleteAsync(hashKey, RedisHashKeys.LastProcessDate);
+            tran.KeyDeleteAsync(lastProcessedKey);
 
 #pragma warning restore 4014
             var result = await tran.ExecuteAsync().ConfigureAwait(false);

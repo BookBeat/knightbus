@@ -4,6 +4,5 @@
     {
         public const string DeliveryCount = "dcount";
         public const string Errors = "errors";
-        public const string LastProcessDate = "lpd";
     }
 }

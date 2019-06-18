@@ -125,12 +125,12 @@ namespace KnightBus.Redis
             var listItem = await _db.ListRightPopLeftPushAsync(_queueName, RedisQueueConventions.GetProcessingQueueName(_queueName)).ConfigureAwait(false);
             if (listItem.IsNullOrEmpty) return null;
             var message = _configuration.MessageSerializer.Deserialize<T>(listItem);
-            var hashKey = RedisQueueConventions.GetHashKey(_queueName, message.Id);
+            var hashKey = RedisQueueConventions.GetMessageHashKey(_queueName, message.Id);
 
             Task<HashEntry[]> hashGetTask;
             var tasks = new Task[]
             {
-                _db.HashSetAsync(hashKey, RedisHashKeys.LastProcessDate, DateTimeOffset.Now.ToUnixTimeMilliseconds()),
+                _db.StringSetAsync(RedisQueueConventions.GetMessageExpirationKey(_queueName, message.Id), DateTimeOffset.Now.ToUnixTimeMilliseconds()),
                 _db.HashIncrementAsync(hashKey, RedisHashKeys.DeliveryCount, 1),
                 hashGetTask = _db.HashGetAllAsync(hashKey)
             };

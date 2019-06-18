@@ -101,7 +101,7 @@ namespace KnightBus.Redis
                 if (attachmentMessage.Attachment != null)
                 {
                     var attachmentId = Guid.NewGuid().ToString("N");
-                    await db.HashSetAsync(RedisQueueConventions.GetHashKey(queueName, message.Id), AttachmentUtility.AttachmentKey, attachmentId).ConfigureAwait(false);
+                    await db.HashSetAsync(RedisQueueConventions.GetMessageHashKey(queueName, message.Id), AttachmentUtility.AttachmentKey, attachmentId).ConfigureAwait(false);
                     await _attachmentProvider.UploadAttachmentAsync(queueName, attachmentId, attachmentMessage.Attachment).ConfigureAwait(false);
                 }
             }
