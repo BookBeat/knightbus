@@ -21,7 +21,7 @@ namespace KnightBus.Redis
 
         public static IHostConfiguration UseRedisSagaStore(this IHostConfiguration configuration, IConnectionMultiplexer multiplexer, RedisConfiguration redisConfiguration)
         {
-            configuration.EnableSagas(new RedisSagaStore(multiplexer, redisConfiguration.DatabaseId));
+            configuration.EnableSagas(new RedisSagaStore(multiplexer, redisConfiguration.DatabaseId, redisConfiguration.MessageSerializer));
             return configuration;
         }
     }
