@@ -1,5 +1,6 @@
 ﻿using KnightBus.Core;
 using KnightBus.Core.DefaultMiddlewares;
+using KnightBus.Core.Sagas;
 using StackExchange.Redis;
 
 namespace KnightBus.Redis
@@ -15,6 +16,12 @@ namespace KnightBus.Redis
         public static IHostConfiguration UseRedisAttachments(this IHostConfiguration configuration, IConnectionMultiplexer multiplexer, RedisConfiguration redisConfiguration)
         {
             configuration.Middlewares.Add(new AttachmentMiddleware(new RedisAttachmentProvider(multiplexer, redisConfiguration)));
+            return configuration;
+        }
+
+        public static IHostConfiguration UseRedisSagaStore(this IHostConfiguration configuration, IConnectionMultiplexer multiplexer, RedisConfiguration redisConfiguration)
+        {
+            configuration.EnableSagas(new RedisSagaStore(multiplexer, redisConfiguration.DatabaseId));
             return configuration;
         }
     }
