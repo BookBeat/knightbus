@@ -18,9 +18,9 @@ namespace KnightBus.Redis
         private readonly Random _random;
 
 
-        internal LostMessageBackgroundService(IDatabase db, IMessageSerializer serializer, TimeSpan messageTimeout, string queueName)
+        internal LostMessageBackgroundService(IConnectionMultiplexer multiplexer, int dbId, IMessageSerializer serializer, TimeSpan messageTimeout, string queueName)
         {
-            _db = db;
+            _db = multiplexer.GetDatabase(dbId);
             _serializer = serializer;
             _messageTimeout = messageTimeout;
             _queueName = queueName;

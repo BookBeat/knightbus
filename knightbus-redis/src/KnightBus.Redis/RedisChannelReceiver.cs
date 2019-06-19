@@ -13,7 +13,7 @@ namespace KnightBus.Redis
         where T : class, IRedisMessage
     {
         private readonly RedisConfiguration _configuration;
-        private readonly SemaphoreSlim _maxConcurrent;
+        private readonly SemaphoreQueue _maxConcurrent;
         private readonly IMessageProcessor _processor;
         private readonly string _queueName;
         protected readonly IConnectionMultiplexer ConnectionMultiplexer;
@@ -31,7 +31,7 @@ namespace KnightBus.Redis
             _configuration = configuration;
             _processor = processor;
             _queueName = queueName;
-            _maxConcurrent = new SemaphoreSlim(settings.MaxConcurrentCalls);
+            _maxConcurrent = new SemaphoreQueue(settings.MaxConcurrentCalls);
         }
 
         public virtual async Task StartAsync()
@@ -46,7 +46,7 @@ namespace KnightBus.Redis
                     if (!await PumpAsync().ConfigureAwait(false))
                         await Delay(_pumpDelayCancellationTokenSource.Token).ConfigureAwait(false);
             }, TaskCreationOptions.LongRunning);
-            _lostMessageService = new LostMessageBackgroundService<T>(_db, _configuration.MessageSerializer, _settings.MessageLockTimeout, _queueName);
+            _lostMessageService = new LostMessageBackgroundService<T>(ConnectionMultiplexer, _configuration.DatabaseId, _configuration.MessageSerializer, _settings.MessageLockTimeout, _queueName);
             _lostMessageTask = _lostMessageService.Start(CancellationToken.None);
 
         }
@@ -81,7 +81,7 @@ namespace KnightBus.Redis
                 foreach (var redisMessage in await GetMessagesAsync(prefetchCount).ConfigureAwait(false))
                     if (redisMessage != null)
                     {
-                        await _maxConcurrent.WaitAsync().ConfigureAwait(false);
+                        await _maxConcurrent.WaitAsync(CancellationToken.None).ConfigureAwait(false);
                         var cts = new CancellationTokenSource(_settings.MessageLockTimeout);
 #pragma warning disable 4014
                         ProcessMessageAsync(redisMessage, cts.Token).ContinueWith(task2 => _maxConcurrent.Release());
