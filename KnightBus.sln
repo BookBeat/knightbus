@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28010.2046
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29009.5
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Core", "knightbus\src\KnightBus.Core\KnightBus.Core.csproj", "{E08DA575-CB4C-473B-9A6C-1AAFF05BD15B}"
 EndProject
@@ -43,7 +43,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Azure.ServiceBus.
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.ApplicationInsights", "knightbus-applicationinsights\src\KnightBus.ApplicationInsights\KnightBus.ApplicationInsights.csproj", "{0B201B24-B796-42AA-BD85-556ACB5E6C35}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.Microsoft.DependencyInjection", "knightbus-microsoft-dependencyinjection\src\KnightBus.Microsoft.DependencyInjection\KnightBus.Microsoft.DependencyInjection.csproj", "{0CF87A75-F4E6-43E5-AD33-8F0190CC7E1C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Microsoft.DependencyInjection", "knightbus-microsoft-dependencyinjection\src\KnightBus.Microsoft.DependencyInjection\KnightBus.Microsoft.DependencyInjection.csproj", "{0CF87A75-F4E6-43E5-AD33-8F0190CC7E1C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.SqlServer", "knightbus-sqlserver\KnightBus.SqlServer\KnightBus.SqlServer.csproj", "{3F7DFF68-258C-4DA8-96EF-83DC4996C940}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.SqlServer.Tests.Integration", "knightbus-sqlserver\KnightBus.SqlServer.Tests.Integration\KnightBus.SqlServer.Tests.Integration.csproj", "{572C138D-9F91-4991-B32D-DA90A98B6441}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -119,6 +123,14 @@ Global
 		{0CF87A75-F4E6-43E5-AD33-8F0190CC7E1C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0CF87A75-F4E6-43E5-AD33-8F0190CC7E1C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0CF87A75-F4E6-43E5-AD33-8F0190CC7E1C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3F7DFF68-258C-4DA8-96EF-83DC4996C940}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3F7DFF68-258C-4DA8-96EF-83DC4996C940}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3F7DFF68-258C-4DA8-96EF-83DC4996C940}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3F7DFF68-258C-4DA8-96EF-83DC4996C940}.Release|Any CPU.Build.0 = Release|Any CPU
+		{572C138D-9F91-4991-B32D-DA90A98B6441}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{572C138D-9F91-4991-B32D-DA90A98B6441}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{572C138D-9F91-4991-B32D-DA90A98B6441}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{572C138D-9F91-4991-B32D-DA90A98B6441}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
