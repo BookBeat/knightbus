@@ -1,4 +1,5 @@
-﻿using System.Data;
+﻿using System;
+using System.Data;
 using System.Data.SqlClient;
 using System.Threading.Tasks;
 using KnightBus.Core;
@@ -12,7 +13,7 @@ namespace KnightBus.SqlServer
         private readonly string _connectionString;
         private readonly IMessageSerializer _serializer;
         private const string _tableName = "Sagas";
-        private const string _schema = "KnightBus";
+        private const string _schema = "dbo";
 
         public SqlServerSagaStore(string connectionString, IMessageSerializer serializer)
         {
@@ -35,6 +36,23 @@ namespace KnightBus.SqlServer
             command.Parameters.AddWithValue("@PartitionKey", partitionKey);
             command.Parameters.AddWithValue("@Id", id);
             return command;
+        }
+
+        private async Task CreateSagaTable(SqlConnection connection)
+        {
+            var ddl = $@"IF NOT (EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES 
+                         WHERE TABLE_SCHEMA = '{_schema}' AND  TABLE_NAME = '{_tableName}'))
+                         BEGIN
+                            CREATE TABLE {_schema}.{_tableName} 
+                            (
+                                PartitionKey NVARCHAR(50),
+                                Id NVARCHAR(50),
+                                Json NVARCHAR(4000),
+                                PRIMARY KEY (PartitionKey, Id)
+                            )
+                         END";
+            var command = new SqlCommand(ddl, connection);
+            await command.ExecuteNonQueryAsync();
         }
 
         public async Task<T> GetSaga<T>(string partitionKey, string id)
@@ -60,7 +78,15 @@ namespace KnightBus.SqlServer
                 var sql = $@"INSERT INTO {_schema}.{_tableName} (PartitionKey, Id, Json) VALUES (@PartitionKey, @Id, @Json)";
                 var command = GetCommandWithParameters(sql, connection, partitionKey, id);
                 command.Parameters.AddWithValue("@Json", json);
-                await command.ExecuteNonQueryAsync();
+                try
+                {
+                    await command.ExecuteNonQueryAsync();
+                }
+                catch (SqlException e) when (e.Number == 208)
+                {
+                    await CreateSagaTable(connection);
+                    return await Create(partitionKey, id, sagaData);
+                }
             }
 
             return sagaData;
@@ -75,7 +101,7 @@ namespace KnightBus.SqlServer
                 var command = GetCommandWithParameters(sql, connection, partitionKey, id);
                 command.Parameters.AddWithValue("@Json", json);
                 var result = await command.ExecuteNonQueryAsync().ConfigureAwait(false);
-                if(result == 0) throw new SagaNotFoundException(partitionKey, id);
+                if (result == 0) throw new SagaNotFoundException(partitionKey, id);
             }
         }
 
