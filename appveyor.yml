@@ -10,6 +10,8 @@ test_script:
     dotnet test knightbus/tests/KnightBus.Host.Tests.Unit/KnightBus.Host.Tests.Unit.csproj --logger:Appveyor
 
     dotnet test knightbus-azurestorage/tests/KnightBus.Azure.Storage.Tests.Unit/KnightBus.Azure.Storage.Tests.Unit.csproj --logger:Appveyor
+
+    dotnet test knightbus-sqlserver/tests/KnightBus.SqlServer.Tests.Integration/KnightBus.SqlServer.Tests.Integration --logger:Appveyor
 artifacts:
 - path: '**\bin\Release\*.nupkg'
 deploy:
