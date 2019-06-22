@@ -61,12 +61,21 @@ namespace KnightBus.SqlServer
             {
                 var sql = $@"SELECT Json FROM {_schema}.{_tableName} WHERE PartitionKey = @PartitionKey AND Id = @Id";
                 var command = GetCommandWithParameters(sql, connection, partitionKey, id);
-                var result = await command.ExecuteReaderAsync(CommandBehavior.SingleResult).ConfigureAwait(false);
+                try
+                {
+                    var result = await command.ExecuteReaderAsync(CommandBehavior.SingleResult).ConfigureAwait(false);
 
-                if (!result.HasRows) throw new SagaNotFoundException(partitionKey, id);
+                    if (!result.HasRows) throw new SagaNotFoundException(partitionKey, id);
 
-                var json = result.GetString(0);
-                return _serializer.Deserialize<T>(json);
+                    await result.ReadAsync().ConfigureAwait(false);
+                    var json = result.GetString(0);
+                    return _serializer.Deserialize<T>(json);
+                }
+                catch (SqlException e) when (e.Number == 208)
+                {
+                    await CreateSagaTable(connection);
+                    return await GetSaga<T>(partitionKey, id).ConfigureAwait(false);
+                }
             }
         }
 
@@ -85,7 +94,11 @@ namespace KnightBus.SqlServer
                 catch (SqlException e) when (e.Number == 208)
                 {
                     await CreateSagaTable(connection);
-                    return await Create(partitionKey, id, sagaData);
+                    return await Create(partitionKey, id, sagaData).ConfigureAwait(false);
+                }
+                catch (SqlException e) when (e.Number == 2627)
+                {
+                    throw new SagaAlreadyStartedException(partitionKey, id);
                 }
             }
 
@@ -100,8 +113,16 @@ namespace KnightBus.SqlServer
                 var sql = $@"UPDATE {_schema}.{_tableName} SET Json = @Json WHERE PartitionKey = @PartitionKey AND Id = @Id";
                 var command = GetCommandWithParameters(sql, connection, partitionKey, id);
                 command.Parameters.AddWithValue("@Json", json);
-                var result = await command.ExecuteNonQueryAsync().ConfigureAwait(false);
-                if (result == 0) throw new SagaNotFoundException(partitionKey, id);
+                try
+                {
+                    var result = await command.ExecuteNonQueryAsync().ConfigureAwait(false);
+                    if (result == 0) throw new SagaNotFoundException(partitionKey, id);
+                }
+                catch (SqlException e) when (e.Number == 208)
+                {
+                    await CreateSagaTable(connection);
+                    await Update(partitionKey, id, sagaData).ConfigureAwait(false);
+                }
             }
         }
 
@@ -112,8 +133,16 @@ namespace KnightBus.SqlServer
                 var sql = $@"DELETE FROM {_schema}.{_tableName} WHERE PartitionKey = @PartitionKey AND Id = @Id";
                 var command = GetCommandWithParameters(sql, connection, partitionKey, id);
 
-                var result = await command.ExecuteNonQueryAsync();
-                if (result == 0) throw new SagaNotFoundException(partitionKey, id);
+                try
+                {
+                    var result = await command.ExecuteNonQueryAsync();
+                    if (result == 0) throw new SagaNotFoundException(partitionKey, id);
+                }
+                catch (SqlException e) when (e.Number == 208)
+                {
+                    await CreateSagaTable(connection);
+                    await Complete(partitionKey, id).ConfigureAwait(false);
+                }
             }
         }
     }
