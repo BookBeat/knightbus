@@ -24,6 +24,7 @@
 | [KnightBus.Serilog](https://www.nuget.org/packages/KnightBus.Serilog/) | [![KnightBus.Serilog](https://img.shields.io/nuget/v/KnightBus.Serilog.svg)](https://www.nuget.org/packages/KnightBus.Serilog/) |
 | [KnightBus.SimpleInjector](https://www.nuget.org/packages/KnightBus.SimpleInjector/) | [![KnightBus.SimpleInjector](https://img.shields.io/nuget/v/KnightBus.SimpleInjector.svg)](https://www.nuget.org/packages/KnightBus.SimpleInjector/) |
 | [KnightBus.ApplicationInsights](https://www.nuget.org/packages/KnightBus.ApplicationInsights/) | [![KnightBus.ApplicationInsights](https://img.shields.io/nuget/v/KnightBus.ApplicationInsights.svg)](https://www.nuget.org/packages/KnightBus.ApplicationInsights/) |
+| [KnightBus.SqlServer](https://www.nuget.org/packages/KnightBus.SqlServer/) | [![KnightBus.SqlServer](https://img.shields.io/nuget/v/KnightBus.SqlServer.svg)](https://www.nuget.org/packages/KnightBus.SqlServer/) |
 
 ## Message Processing
 ```csharp
