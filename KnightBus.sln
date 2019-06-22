@@ -45,9 +45,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.ApplicationInsigh
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Microsoft.DependencyInjection", "knightbus-microsoft-dependencyinjection\src\KnightBus.Microsoft.DependencyInjection\KnightBus.Microsoft.DependencyInjection.csproj", "{0CF87A75-F4E6-43E5-AD33-8F0190CC7E1C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.SqlServer", "knightbus-sqlserver\KnightBus.SqlServer\KnightBus.SqlServer.csproj", "{3F7DFF68-258C-4DA8-96EF-83DC4996C940}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.SqlServer", "knightbus-sqlserver\src\KnightBus.SqlServer\KnightBus.SqlServer.csproj", "{CBC472AD-DA1B-47AE-8C66-C1876EA8B2E1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.SqlServer.Tests.Integration", "knightbus-sqlserver\KnightBus.SqlServer.Tests.Integration\KnightBus.SqlServer.Tests.Integration.csproj", "{572C138D-9F91-4991-B32D-DA90A98B6441}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.SqlServer.Tests.Integration", "knightbus-sqlserver\tests\KnightBus.SqlServer.Tests.Integration\KnightBus.SqlServer.Tests.Integration.csproj", "{90EBD6DE-4C45-499F-9972-306EC972CC38}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -123,14 +123,14 @@ Global
 		{0CF87A75-F4E6-43E5-AD33-8F0190CC7E1C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0CF87A75-F4E6-43E5-AD33-8F0190CC7E1C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0CF87A75-F4E6-43E5-AD33-8F0190CC7E1C}.Release|Any CPU.Build.0 = Release|Any CPU
-		{3F7DFF68-258C-4DA8-96EF-83DC4996C940}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{3F7DFF68-258C-4DA8-96EF-83DC4996C940}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{3F7DFF68-258C-4DA8-96EF-83DC4996C940}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{3F7DFF68-258C-4DA8-96EF-83DC4996C940}.Release|Any CPU.Build.0 = Release|Any CPU
-		{572C138D-9F91-4991-B32D-DA90A98B6441}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{572C138D-9F91-4991-B32D-DA90A98B6441}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{572C138D-9F91-4991-B32D-DA90A98B6441}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{572C138D-9F91-4991-B32D-DA90A98B6441}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CBC472AD-DA1B-47AE-8C66-C1876EA8B2E1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CBC472AD-DA1B-47AE-8C66-C1876EA8B2E1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CBC472AD-DA1B-47AE-8C66-C1876EA8B2E1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CBC472AD-DA1B-47AE-8C66-C1876EA8B2E1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{90EBD6DE-4C45-499F-9972-306EC972CC38}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{90EBD6DE-4C45-499F-9972-306EC972CC38}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{90EBD6DE-4C45-499F-9972-306EC972CC38}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{90EBD6DE-4C45-499F-9972-306EC972CC38}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

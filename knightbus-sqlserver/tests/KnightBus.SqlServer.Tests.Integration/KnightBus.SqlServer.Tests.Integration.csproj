@@ -12,6 +12,6 @@
     <PackageReference Include="NUnit3TestAdapter" Version="3.10.0" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\KnightBus.SqlServer\KnightBus.SqlServer.csproj" />
+    <ProjectReference Include="..\..\src\KnightBus.SqlServer\KnightBus.SqlServer.csproj" />
   </ItemGroup>
 </Project>
