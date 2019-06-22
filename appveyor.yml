@@ -1,5 +1,6 @@
 version: 2.0.{build}
 image: Visual Studio 2017
+services: mssql2014
 build_script:
 - cmd: >-
     dotnet build KnightBus.sln --configuration Release
