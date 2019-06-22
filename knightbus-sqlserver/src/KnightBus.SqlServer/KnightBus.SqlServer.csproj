@@ -4,27 +4,22 @@
     <TargetFrameworks>netstandard2.0;net461</TargetFrameworks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Authors>BookBeat</Authors>
-    <Description>Azure Service Bus Transport for KnightBus</Description>
+    <Description>Sql Server for KnightBus</Description>
     <Copyright>Copyright © BookBeat 2019</Copyright>
     <PackageLicenseUrl>https://raw.githubusercontent.com/BookBeat/knightbus/master/LICENSE</PackageLicenseUrl>
     <PackageProjectUrl>https://knightbus.readthedocs.io</PackageProjectUrl>
     <PackageIconUrl>https://raw.githubusercontent.com/BookBeat/knightbus-documentation/master/media/images/knighbus-64.png</PackageIconUrl>
     <RepositoryUrl>https://github.com/BookBeat/knightbus</RepositoryUrl>
     <Version>2.4.1</Version>
-    <PackageTags>knightbus;azure servicebus;amqp;queues;messaging</PackageTags>
+    <PackageTags>knightbus;sql;sql server;saga;</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.ServiceBus" Version="3.1.1" />
+    <PackageReference Include="System.Data.SqlClient" Version="4.6.1" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\knightbus\src\KnightBus.Core\KnightBus.Core.csproj" />
-    <ProjectReference Include="..\KnightBus.Azure.ServiceBus.Messages\KnightBus.Azure.ServiceBus.Messages.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Reference Include="System.Net.Http" Condition="'$(TargetFramework)' == 'net461'" />
   </ItemGroup>
 
 </Project>
