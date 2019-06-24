@@ -123,12 +123,12 @@ namespace KnightBus.Examples.Redis
             public string SagaId => "9a9f5f4d8abe4c88ad1ba4510f31b605";
         }
 
-        class sampleRedisSagaStarterCommandMapping : IMessageMapping<SampleRedisSagaStarterCommand>
+        class SampleRedisSagaStarterCommandMapping : IMessageMapping<SampleRedisSagaStarterCommand>
         {
             public string QueueName => "sample-redis-saga-start-command";
         }
 
-        class sampleRedisSagaCommandMapping : IMessageMapping<SampleRedisSagaCommand>
+        class SampleRedisSagaCommandMapping : IMessageMapping<SampleRedisSagaCommand>
         {
             public string QueueName => "sample-redis-saga-command";
         }
