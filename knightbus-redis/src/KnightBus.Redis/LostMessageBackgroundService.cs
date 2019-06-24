@@ -13,16 +13,18 @@ namespace KnightBus.Redis
     {
         private readonly IDatabase _db;
         private readonly IMessageSerializer _serializer;
+        private readonly ILog _log;
         private readonly TimeSpan _messageTimeout;
         private readonly TimeSpan _minimumInterval = TimeSpan.FromMinutes(1);
         private readonly string _queueName;
         private readonly Random _random;
 
 
-        internal LostMessageBackgroundService(IConnectionMultiplexer multiplexer, int dbId, IMessageSerializer serializer, TimeSpan messageTimeout, string queueName)
+        internal LostMessageBackgroundService(IConnectionMultiplexer multiplexer, int dbId, IMessageSerializer serializer, ILog log, TimeSpan messageTimeout, string queueName)
         {
             _db = multiplexer.GetDatabase(dbId);
             _serializer = serializer;
+            _log = log;
             _messageTimeout = messageTimeout;
             _queueName = queueName;
             _random = new Random(Guid.NewGuid().GetHashCode());
@@ -50,27 +52,34 @@ namespace KnightBus.Redis
             const int take = 50;
             var start = -take;
             var stop = -1;
-            while (true)
+            try
             {
-                var listItems = await _db.ListRangeAsync(RedisQueueConventions.GetProcessingQueueName(queueName), start, stop).ConfigureAwait(false);
-                if (!listItems.Any()) break;
-                Debug.WriteLine($"Found {listItems.Length} processing in {queueName}");
-
-                var checkedItems = await Task.WhenAll(listItems.Select(item => HandlePotentiallyLostMessage(queueName, item))).ConfigureAwait(false);
-
-                foreach (var (lost, message, listItem) in checkedItems.Where(item => item.lost))
+                while (true)
                 {
-                    if (await RecoverLostMessageAsync(queueName, listItem, message.Id).ConfigureAwait(false))
-                    {
-                        //Shift offset since we manipulated the end of the list and are using offsets
-                        start += 1;
-                        stop += 1;
-                    }
-                }
-                if (listItems.Length < take) break;
+                    var listItems = await _db.ListRangeAsync(RedisQueueConventions.GetProcessingQueueName(queueName), start, stop).ConfigureAwait(false);
+                    if (!listItems.Any()) break;
+                    Debug.WriteLine($"Found {listItems.Length} processing in {queueName}");
 
-                start -= take;
-                stop -= take;
+                    var checkedItems = await Task.WhenAll(listItems.Select(item => HandlePotentiallyLostMessage(queueName, item))).ConfigureAwait(false);
+
+                    foreach (var (lost, message, listItem) in checkedItems.Where(item => item.lost))
+                    {
+                        if (await RecoverLostMessageAsync(queueName, listItem, message.Id).ConfigureAwait(false))
+                        {
+                            //Shift offset since we manipulated the end of the list and are using offsets
+                            start += 1;
+                            stop += 1;
+                        }
+                    }
+                    if (listItems.Length < take) break;
+
+                    start -= take;
+                    stop -= take;
+                }
+            }
+            catch (Exception e)
+            {
+                _log.Error(e, "Error in redis lost message service");
             }
         }
 

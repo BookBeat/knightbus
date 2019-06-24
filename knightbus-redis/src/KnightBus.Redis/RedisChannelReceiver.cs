@@ -48,7 +48,7 @@ namespace KnightBus.Redis
                     if (!await PumpAsync().ConfigureAwait(false))
                         await Delay(_pumpDelayCancellationTokenSource.Token).ConfigureAwait(false);
             }, TaskCreationOptions.LongRunning);
-            _lostMessageService = new LostMessageBackgroundService<T>(ConnectionMultiplexer, _redisConfiguration.DatabaseId, _redisConfiguration.MessageSerializer, _settings.MessageLockTimeout, _queueName);
+            _lostMessageService = new LostMessageBackgroundService<T>(ConnectionMultiplexer, _redisConfiguration.DatabaseId, _redisConfiguration.MessageSerializer, _hostConfiguration.Log, _settings.MessageLockTimeout, _queueName);
             _lostMessageTask = _lostMessageService.Start(CancellationToken.None);
 
         }
