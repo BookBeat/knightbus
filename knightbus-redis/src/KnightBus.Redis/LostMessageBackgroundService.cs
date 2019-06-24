@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -45,7 +46,7 @@ namespace KnightBus.Redis
 
         private async Task DetectAndHandleLostMessages(string queueName)
         {
-            Console.WriteLine($"Finding lost messages from {queueName}");
+            Debug.WriteLine($"Finding lost messages from {queueName}");
             const int take = 50;
             var start = -take;
             var stop = -1;
@@ -53,7 +54,7 @@ namespace KnightBus.Redis
             {
                 var listItems = await _db.ListRangeAsync(RedisQueueConventions.GetProcessingQueueName(queueName), start, stop).ConfigureAwait(false);
                 if (!listItems.Any()) break;
-                Console.WriteLine($"Found {listItems.Length} processing in {queueName}");
+                Debug.WriteLine($"Found {listItems.Length} processing in {queueName}");
 
                 var checkedItems = await Task.WhenAll(listItems.Select(item => HandlePotentiallyLostMessage(queueName, item))).ConfigureAwait(false);
 
@@ -108,7 +109,7 @@ namespace KnightBus.Redis
 
 #pragma warning restore 4014
             var result = await tran.ExecuteAsync().ConfigureAwait(false);
-            Console.WriteLine($"Handled lost message {id}");
+            Debug.WriteLine($"Handled lost message {id}");
             return result;
         }
     }
