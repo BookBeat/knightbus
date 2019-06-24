@@ -21,7 +21,7 @@ namespace KnightBus.Core.Sagas
 
             var processor = pipelineInformation.HostConfiguration.MessageProcessorProvider.GetProcessor<T>(pipelineInformation.ProcessorInterfaceType);
 
-            if (processor is ISaga)
+            if (processor is ISaga saga)
             {
 
                 var sagaType = ReflectionHelper.GetAllInterfacesImplementingOpenGenericInterface(processor.GetType(), typeof(ISaga<>)).Single();
@@ -39,9 +39,25 @@ namespace KnightBus.Core.Sagas
                     await messageStateHandler.CompleteAsync().ConfigureAwait(false);
                     return;
                 }
-            }
 
-            await next.ProcessAsync(messageStateHandler, cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    await next.ProcessAsync(messageStateHandler, cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception)
+                {
+                    if (saga.MessageMapper.IsStartMessage(typeof(T)))
+                    {
+                        //If we have started a saga but the start message fails then we must make sure the message can be retried
+                        await _sagaStore.Complete(saga.PartitionKey, saga.Id).ConfigureAwait(false);
+                    }
+                    throw;
+                }
+            }
+            else
+            {
+                await next.ProcessAsync(messageStateHandler, cancellationToken).ConfigureAwait(false);
+            }
         }
     }
 }
