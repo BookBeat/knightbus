@@ -12,7 +12,8 @@ namespace KnightBus.Redis
     internal abstract class RedisChannelReceiver<T> : IChannelReceiver
         where T : class, IRedisMessage
     {
-        private readonly RedisConfiguration _configuration;
+        private readonly RedisConfiguration _redisConfiguration;
+        private readonly IHostConfiguration _hostConfiguration;
         private readonly SemaphoreQueue _maxConcurrent;
         private readonly IMessageProcessor _processor;
         private readonly string _queueName;
@@ -24,11 +25,12 @@ namespace KnightBus.Redis
         private IDatabase _db;
         private LostMessageBackgroundService<T> _lostMessageService;
 
-        public RedisChannelReceiver(IConnectionMultiplexer connectionMultiplexer, string queueName, IProcessingSettings settings, RedisConfiguration configuration, IMessageProcessor processor)
+        protected RedisChannelReceiver(IConnectionMultiplexer connectionMultiplexer, string queueName, IProcessingSettings settings, RedisConfiguration redisConfiguration, IHostConfiguration hostConfiguration, IMessageProcessor processor)
         {
             ConnectionMultiplexer = connectionMultiplexer;
             _settings = settings;
-            _configuration = configuration;
+            _redisConfiguration = redisConfiguration;
+            _hostConfiguration = hostConfiguration;
             _processor = processor;
             _queueName = queueName;
             _maxConcurrent = new SemaphoreQueue(settings.MaxConcurrentCalls);
@@ -36,9 +38,9 @@ namespace KnightBus.Redis
 
         public virtual async Task StartAsync()
         {
-            _db = ConnectionMultiplexer.GetDatabase(_configuration.DatabaseId);
+            _db = ConnectionMultiplexer.GetDatabase(_redisConfiguration.DatabaseId);
             var sub = ConnectionMultiplexer.GetSubscriber();
-            await sub.SubscribeAsync(_queueName, Handler);
+            await sub.SubscribeAsync(_queueName, MessageSignalReceivedHandler);
 
             _messagePumpTask = Task.Factory.StartNew(async () =>
             {
@@ -46,7 +48,7 @@ namespace KnightBus.Redis
                     if (!await PumpAsync().ConfigureAwait(false))
                         await Delay(_pumpDelayCancellationTokenSource.Token).ConfigureAwait(false);
             }, TaskCreationOptions.LongRunning);
-            _lostMessageService = new LostMessageBackgroundService<T>(ConnectionMultiplexer, _configuration.DatabaseId, _configuration.MessageSerializer, _settings.MessageLockTimeout, _queueName);
+            _lostMessageService = new LostMessageBackgroundService<T>(ConnectionMultiplexer, _redisConfiguration.DatabaseId, _redisConfiguration.MessageSerializer, _settings.MessageLockTimeout, _queueName);
             _lostMessageTask = _lostMessageService.Start(CancellationToken.None);
 
         }
@@ -67,7 +69,7 @@ namespace KnightBus.Redis
             }
         }
 
-        private void Handler(RedisChannel channel, RedisValue redisValue)
+        private void MessageSignalReceivedHandler(RedisChannel channel, RedisValue redisValue)
         {
             //Cancel the pumps delay
             _pumpDelayCancellationTokenSource.Cancel();
@@ -96,8 +98,8 @@ namespace KnightBus.Redis
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
-                throw;
+                _hostConfiguration.Log.Error(e, "Redis message pump error");
+                return false;
             }
         }
 
@@ -122,26 +124,38 @@ namespace KnightBus.Redis
 
         private async Task<RedisMessage<T>> GetMessageAsync()
         {
-            var listItem = await _db.ListRightPopLeftPushAsync(_queueName, RedisQueueConventions.GetProcessingQueueName(_queueName)).ConfigureAwait(false);
-            if (listItem.IsNullOrEmpty) return null;
-            var message = _configuration.MessageSerializer.Deserialize<T>(listItem);
-            var hashKey = RedisQueueConventions.GetMessageHashKey(_queueName, message.Id);
-
-            Task<HashEntry[]> hashGetTask;
-            var tasks = new Task[]
+            try
             {
-                _db.StringSetAsync(RedisQueueConventions.GetMessageExpirationKey(_queueName, message.Id), DateTimeOffset.Now.ToUnixTimeMilliseconds()),
-                _db.HashIncrementAsync(hashKey, RedisHashKeys.DeliveryCount, 1),
-                hashGetTask = _db.HashGetAllAsync(hashKey)
-            };
-            await Task.WhenAll(tasks).ConfigureAwait(false);
+                var listItem = await _db.ListRightPopLeftPushAsync(_queueName, RedisQueueConventions.GetProcessingQueueName(_queueName)).ConfigureAwait(false);
+                if (listItem.IsNullOrEmpty) return null;
+                var message = _redisConfiguration.MessageSerializer.Deserialize<T>(listItem);
+                var hashKey = RedisQueueConventions.GetMessageHashKey(_queueName, message.Id);
 
-            return new RedisMessage<T>(listItem, message, hashGetTask.Result, _queueName);
+                var tasks = new Task[]
+                {
+                    _db.StringSetAsync(RedisQueueConventions.GetMessageExpirationKey(_queueName, message.Id), DateTimeOffset.Now.ToUnixTimeMilliseconds()),
+                    _db.HashIncrementAsync(hashKey, RedisHashKeys.DeliveryCount, 1),
+                };
+                await Task.WhenAll(tasks).ConfigureAwait(false);
+                var hash = await _db.HashGetAllAsync(hashKey).ConfigureAwait(false);
+
+                return new RedisMessage<T>(listItem, message, hash, _queueName);
+            }
+            catch (RedisTimeoutException e)
+            {
+                _hostConfiguration.Log.Error(e, "Error retrieving redis message");
+                return null;
+            }
+            catch (RedisException e)
+            {
+                _hostConfiguration.Log.Error(e, "Error retrieving redis message");
+                return null;
+            }
         }
 
         private async Task ProcessMessageAsync(RedisMessage<T> redisMessage, CancellationToken cancellationToken)
         {
-            var stateHandler = new RedisMessageStateHandler<T>(ConnectionMultiplexer, _configuration, redisMessage, _settings.DeadLetterDeliveryLimit, _queueName);
+            var stateHandler = new RedisMessageStateHandler<T>(ConnectionMultiplexer, _redisConfiguration, redisMessage, _settings.DeadLetterDeliveryLimit, _queueName);
             await _processor.ProcessAsync(stateHandler, cancellationToken).ConfigureAwait(false);
         }
     }

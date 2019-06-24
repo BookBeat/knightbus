@@ -8,7 +8,7 @@ namespace KnightBus.Redis
         where T : class, IRedisCommand
     {
         public RedisCommandChannelReceiver(IConnectionMultiplexer connectionMultiplexer, IProcessingSettings settings, RedisConfiguration configuration, IHostConfiguration hostConfiguration, IMessageProcessor processor)
-            : base(connectionMultiplexer, AutoMessageMapper.GetQueueName<T>(), settings, configuration, processor)
+            : base(connectionMultiplexer, AutoMessageMapper.GetQueueName<T>(), settings, configuration, hostConfiguration, processor)
         {
         }
     }
