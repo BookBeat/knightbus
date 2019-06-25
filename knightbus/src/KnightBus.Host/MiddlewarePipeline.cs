@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using KnightBus.Core;
 using KnightBus.Core.DefaultMiddlewares;
 
@@ -15,9 +16,19 @@ namespace KnightBus.Host
 
             //Add default outlying middlewares
             _middlewares.Add(new ErrorHandlingMiddleware(log));
+
+            //See if there is a IMessageScopeProviderMiddleware that needs to be placed before the other middlewares
+            var processorMiddlewares = hostMiddlewares as IList<IMessageProcessorMiddleware> ?? hostMiddlewares.ToList();
+            var scopeProvider = processorMiddlewares.SingleOrDefault(scopeMiddleware => scopeMiddleware is IMessageScopeProviderMiddleware);
+            if (scopeProvider != null)
+            {
+                _middlewares.Add(scopeProvider);
+                processorMiddlewares.Remove(scopeProvider);
+            }
+            
             _middlewares.Add(new DeadLetterMiddleware());
             //Add host-global middlewares
-            _middlewares.AddRange(hostMiddlewares);
+            _middlewares.AddRange(processorMiddlewares);
             //Add transport middlewares
             _middlewares.AddRange(transportChannelFactory.Middlewares);
         }

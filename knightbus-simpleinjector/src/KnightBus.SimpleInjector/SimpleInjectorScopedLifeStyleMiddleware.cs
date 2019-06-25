@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
@@ -7,7 +8,7 @@ using SimpleInjector.Lifestyles;
 
 namespace KnightBus.SimpleInjector
 {
-    public class SimpleInjectorScopedLifeStyleMiddleware : IMessageProcessorMiddleware
+    public class SimpleInjectorScopedLifeStyleMiddleware : IMessageScopeProviderMiddleware
     {
         private readonly Container _container;
 

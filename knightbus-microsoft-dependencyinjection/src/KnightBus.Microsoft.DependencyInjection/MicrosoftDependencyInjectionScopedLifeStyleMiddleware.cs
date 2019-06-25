@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace KnightBus.Microsoft.DependencyInjection
 {
-    public class MicrosoftDependencyInjectionScopedLifeStyleMiddleware : IMessageProcessorMiddleware
+    public class MicrosoftDependencyInjectionScopedLifeStyleMiddleware : IMessageScopeProviderMiddleware
     {
         private readonly IServiceProvider _serviceProvider;
 
