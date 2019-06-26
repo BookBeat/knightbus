@@ -14,13 +14,17 @@ namespace KnightBus.Core.Tests.Unit
         public async Task Should_dead_letter_messages()
         {
             //arrange
+            var pipeline = new Mock<IPipelineInformation>();
+            var hostConfiguration = new Mock<IHostConfiguration>();
+            hostConfiguration.Setup(x => x.MessageProcessorProvider).Returns(Mock.Of<IMessageProcessorProvider>());
+            pipeline.Setup(x => x.HostConfiguration).Returns(hostConfiguration.Object);
             var nextProcessor = new Mock<IMessageProcessor>();
             var messageStateHandler = new Mock<IMessageStateHandler<TestCommand>>();
             messageStateHandler.Setup(x => x.DeadLetterDeliveryLimit).Returns(1);
             messageStateHandler.Setup(x => x.DeliveryCount).Returns(2);
             var middleware = new DeadLetterMiddleware();
             //act
-            await middleware.ProcessAsync(messageStateHandler.Object, Mock.Of<IPipelineInformation>(), nextProcessor.Object, CancellationToken.None);
+            await middleware.ProcessAsync(messageStateHandler.Object, pipeline.Object, nextProcessor.Object, CancellationToken.None);
             //assert
             messageStateHandler.Verify(x => x.DeadLetterAsync(1), Times.Once);
         }
@@ -29,13 +33,17 @@ namespace KnightBus.Core.Tests.Unit
         public async Task Should_not_continue_after_dead_letter_messages()
         {
             //arrange
+            var pipeline = new Mock<IPipelineInformation>();
+            var hostConfiguration = new Mock<IHostConfiguration>();
+            hostConfiguration.Setup(x => x.MessageProcessorProvider).Returns(Mock.Of<IMessageProcessorProvider>());
+            pipeline.Setup(x => x.HostConfiguration).Returns(hostConfiguration.Object);
             var nextProcessor = new Mock<IMessageProcessor>();
             var messageStateHandler = new Mock<IMessageStateHandler<TestCommand>>();
             messageStateHandler.Setup(x => x.DeadLetterDeliveryLimit).Returns(1);
             messageStateHandler.Setup(x => x.DeliveryCount).Returns(2);
             var middleware = new DeadLetterMiddleware();
             //act
-            await middleware.ProcessAsync(messageStateHandler.Object, Mock.Of<IPipelineInformation>(), nextProcessor.Object, CancellationToken.None);
+            await middleware.ProcessAsync(messageStateHandler.Object, pipeline.Object, nextProcessor.Object, CancellationToken.None);
             //assert
             nextProcessor.Verify(x => x.ProcessAsync(messageStateHandler.Object, CancellationToken.None), Times.Never);
         }
