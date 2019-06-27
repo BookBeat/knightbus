@@ -18,7 +18,7 @@ namespace KnightBus.Host
             _middlewares.Add(new ErrorHandlingMiddleware(log));
 
             //See if there is a IMessageScopeProviderMiddleware that needs to be placed before the other middlewares
-            var processorMiddlewares = hostMiddlewares as IList<IMessageProcessorMiddleware> ?? hostMiddlewares.ToList();
+            var processorMiddlewares = new List<IMessageProcessorMiddleware>(hostMiddlewares);
             var scopeProvider = processorMiddlewares.SingleOrDefault(scopeMiddleware => scopeMiddleware is IMessageScopeProviderMiddleware);
             if (scopeProvider != null)
             {
