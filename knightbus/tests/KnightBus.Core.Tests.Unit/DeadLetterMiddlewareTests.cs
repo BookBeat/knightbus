@@ -93,7 +93,7 @@ namespace KnightBus.Core.Tests.Unit
             messageStateHandler.Verify(x => x.DeadLetterAsync(1), Times.Once);
         }
 
-        private class DeadLetterTestProcessor : IProcessDeadletter<TestCommand>, IProcessCommand<TestCommand, DeadLetterTestProcessor.TestSettings>
+        private class DeadLetterTestProcessor : IProcessBeforeDeadLetter<TestCommand>, IProcessCommand<TestCommand, DeadLetterTestProcessor.TestSettings>
         {
             private readonly ICountable _countable;
 

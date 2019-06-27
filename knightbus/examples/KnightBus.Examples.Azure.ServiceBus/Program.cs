@@ -88,7 +88,7 @@ namespace KnightBus.Examples.Azure.ServiceBus
 
         class SampleServiceBusEventProcessor : 
             IProcessEvent<SampleServiceBusEvent, EventSubscriptionTwo, SomeProcessingSetting>,
-            IProcessDeadletter<SampleServiceBusEvent>
+            IProcessBeforeDeadLetter<SampleServiceBusEvent>
         {
             public Task ProcessAsync(SampleServiceBusEvent message, CancellationToken cancellationToken)
             {
