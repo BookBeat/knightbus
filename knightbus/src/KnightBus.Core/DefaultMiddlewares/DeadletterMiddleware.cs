@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Messages;
@@ -10,6 +11,20 @@ namespace KnightBus.Core.DefaultMiddlewares
         {
             if (messageStateHandler.DeliveryCount > messageStateHandler.DeadLetterDeliveryLimit)
             {
+                var processor = pipelineInformation.HostConfiguration.MessageProcessorProvider.GetProcessor<T>(pipelineInformation.ProcessorInterfaceType);
+                if (processor is IProcessBeforeDeadLetter<T> deadletterProcessor)
+                {
+                    var message = await messageStateHandler.GetMessageAsync().ConfigureAwait(false);
+                    try
+                    {
+                        await deadletterProcessor.BeforeDeadLetterAsync(message, cancellationToken).ConfigureAwait(false);
+                    }
+                    catch (Exception e)
+                    {
+                        pipelineInformation.HostConfiguration.Log.Error(e, "Failed before deadletter processing {@" + typeof(T).Name + "}", message);
+                    }
+                }
+
                 await messageStateHandler.DeadLetterAsync(messageStateHandler.DeadLetterDeliveryLimit).ConfigureAwait(false);
                 return;
             }

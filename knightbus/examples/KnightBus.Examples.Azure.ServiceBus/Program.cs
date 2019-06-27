@@ -86,11 +86,19 @@ namespace KnightBus.Examples.Azure.ServiceBus
             }
         }
 
-        class SampleServiceBusEventProcessor : IProcessEvent<SampleServiceBusEvent, EventSubscriptionTwo, SomeProcessingSetting>
+        class SampleServiceBusEventProcessor : 
+            IProcessEvent<SampleServiceBusEvent, EventSubscriptionTwo, SomeProcessingSetting>,
+            IProcessBeforeDeadLetter<SampleServiceBusEvent>
         {
             public Task ProcessAsync(SampleServiceBusEvent message, CancellationToken cancellationToken)
             {
                 Console.WriteLine($"Also received event: '{message.Message}'");
+                throw new Exception("Trigger retry");
+            }
+
+            public Task BeforeDeadLetterAsync(SampleServiceBusEvent message, CancellationToken cancellationToken)
+            {
+                Console.WriteLine($"Dead lettering event: '{message.Message}'");
                 return Task.CompletedTask;
             }
         }

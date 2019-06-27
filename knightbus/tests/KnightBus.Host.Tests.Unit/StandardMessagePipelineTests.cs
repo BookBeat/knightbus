@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -17,6 +18,8 @@ namespace KnightBus.Host.Tests.Unit
         private Mock<ICountable> _countable;
         private Mock<ILog> _logger;
         private Mock<IMessageProcessorProvider> _messageHandlerProvider;
+        private Mock<IPipelineInformation> _pipelineInformation;
+        private Mock<IHostConfiguration> _hostConfiguration;
 
 
         [SetUp]
@@ -29,13 +32,18 @@ namespace KnightBus.Host.Tests.Unit
             _messageHandlerProvider.Setup(x => x.GetProcessor<TestCommandOne>(typeof(MultipleCommandProcessor))).Returns(
                 () => new MultipleCommandProcessor(_countable.Object)
             );
+            _hostConfiguration = new Mock<IHostConfiguration>();
+            _hostConfiguration.Setup(x => x.MessageProcessorProvider).Returns(_messageHandlerProvider.Object);
+            _pipelineInformation = new Mock<IPipelineInformation>();
+            _pipelineInformation.Setup(x => x.HostConfiguration).Returns(_hostConfiguration.Object);
+
             var middlewares = new List<IMessageProcessorMiddleware>
             {
                 new ThrottlingMiddleware(1)
             };
             var transportConfiguration = new Mock<ITransportChannelFactory>();
             transportConfiguration.Setup(x => x.Middlewares).Returns(new List<IMessageProcessorMiddleware>());
-            var pipeline = new MiddlewarePipeline(middlewares, Mock.Of<IPipelineInformation>(), transportConfiguration.Object, _logger.Object);
+            var pipeline = new MiddlewarePipeline(middlewares, _pipelineInformation.Object, transportConfiguration.Object, _logger.Object);
             _messageProcessor = pipeline.GetPipeline(new MessageProcessor<MultipleCommandProcessor>(_messageHandlerProvider.Object));
         }
 
@@ -57,6 +65,7 @@ namespace KnightBus.Host.Tests.Unit
         public async Task Should_deadletter_message()
         {
             //arrange
+            _stateHandler.Setup(x => x.GetMessageAsync()).ReturnsAsync(new TestCommandOne());
             _stateHandler.Setup(x => x.DeliveryCount).Returns(2);
             _stateHandler.Setup(x => x.DeadLetterDeliveryLimit).Returns(1);
             //act
