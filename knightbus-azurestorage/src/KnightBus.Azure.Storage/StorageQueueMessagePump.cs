@@ -47,7 +47,15 @@ namespace KnightBus.Azure.Storage
                 foreach (var message in messages)
                 {
                     var cts = new CancellationTokenSource(_settings.MessageLockTimeout);
-                    await _maxConcurrent.WaitAsync(cts.Token).ConfigureAwait(false);
+                    try
+                    {
+                        await _maxConcurrent.WaitAsync(cts.Token).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        //If we are still waiting when the message has not been scheduled for execution timeouts
+                        continue;
+                    }
 #pragma warning disable 4014 //No need to await the result, let's keep the pump going
                     action.Invoke(message, cts.Token).ContinueWith(task => _maxConcurrent.Release());
 #pragma warning restore 4014

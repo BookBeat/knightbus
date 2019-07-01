@@ -28,6 +28,25 @@ namespace KnightBus.Core.Tests.Unit
         }
 
         [Test]
+        public async Task Should_release_throttle_when_cancellation_token_cancelled()
+        {
+            //arrange
+            var nextProcessor = new Mock<IMessageProcessor>();
+            var messageStateHandler = new Mock<IMessageStateHandler<TestCommand>>();
+            var cts = new CancellationTokenSource();
+            cts.Cancel();
+            nextProcessor.Setup(x => x.ProcessAsync(messageStateHandler.Object, cts.Token)).Throws<Exception>();
+
+            var middleware = new ThrottlingMiddleware(1);
+            //act 
+            middleware.Awaiting(x=> x.ProcessAsync(messageStateHandler.Object, Mock.Of<IPipelineInformation>(), nextProcessor.Object, cts.Token))
+                .Should().Throw<OperationCanceledException>();
+            
+            //assert
+            middleware.CurrentCount.Should().Be(1);
+        }
+
+        [Test]
         public async  Task Should_throttle()
         {
             //arrange
