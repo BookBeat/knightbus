@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -60,17 +61,14 @@ namespace KnightBus.Core.Tests.Unit
             var token = tokenSource.Token;
             
             var semaphore = new SemaphoreQueue(1);
-            var countable = new Mock<ICountable>();
-            
+
             tokenSource.Cancel();
-            
-#pragma warning disable 4014
-            semaphore.WaitAsync(token).ContinueWith(task => countable.Object.Count());
-#pragma warning restore 4014
-            await Task.Delay(500);
+
+            semaphore.Awaiting(x=>  x.WaitAsync(token))
+                .Should().Throw<OperationCanceledException>();
+
             //assert
-            countable.Verify(x => x.Count(), Times.Never);
-            semaphore.Release();
+            semaphore.CurrentCount.Should().Be(1);
         }
     }
 }

@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Messages;
@@ -15,9 +16,9 @@ namespace KnightBus.Core.DefaultMiddlewares
         }
         public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, IPipelineInformation pipelineInformation, IMessageProcessor next, CancellationToken cancellationToken) where T : class, IMessage
         {
+            await _semaphoreQueue.WaitAsync(cancellationToken);
             try
             {
-                await _semaphoreQueue.WaitAsync(cancellationToken).ConfigureAwait(false);
                 await next.ProcessAsync(messageStateHandler, cancellationToken).ConfigureAwait(false);
             }
             finally
