@@ -26,8 +26,14 @@ namespace KnightBus.Core
             _semaphore.WaitAsync(cancellationToken).ContinueWith(t =>
             {
                 if (_queue.TryDequeue(out var popped))
-                    popped.SetResult(true);
-            }, cancellationToken);
+                {
+                    if(t.IsCanceled)
+                        popped.SetCanceled();
+                    else
+                        popped.SetResult(true);
+                }
+                    
+            });
             return tcs.Task;
         }
 
