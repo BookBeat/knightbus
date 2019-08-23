@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="FluentAssertions" Version="4.19.4" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.3.0" />
+    <PackageReference Include="Moq" Version="4.7.142" />
+    <PackageReference Include="NUnit" Version="3.8.1" />
+    <PackageReference Include="NUnit3TestAdapter" Version="3.8.0" />
+    <PackageReference Include="TeamCity.VSTest.TestAdapter" Version="1.0.5" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\BB.Common.KnightWatch\BB.Common.KnightWatch.csproj" />
+  </ItemGroup>
+</Project>

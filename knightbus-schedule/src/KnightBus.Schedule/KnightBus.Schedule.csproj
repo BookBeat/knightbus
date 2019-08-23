@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net461</TargetFrameworks>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Version>2.1.1</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Quartz" Version="3.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\knightbus-azurestorage\src\KnightBus.Azure.Storage\KnightBus.Azure.Storage.csproj" />
+  </ItemGroup>
+
+</Project>

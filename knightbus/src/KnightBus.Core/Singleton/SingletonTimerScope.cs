@@ -1,11 +1,9 @@
 using System;
 using System.Threading;
 using System.Timers;
-using KnightBus.Core;
-using KnightBus.Core.Singleton;
 using Timer = System.Timers.Timer;
 
-namespace KnightBus.Host.Singleton
+namespace KnightBus.Core.Singleton
 {
     public class SingletonTimerScope : IDisposable
     {

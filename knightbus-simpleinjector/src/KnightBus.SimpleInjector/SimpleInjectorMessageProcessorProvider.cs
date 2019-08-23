@@ -4,6 +4,7 @@ using System.Linq;
 using KnightBus.Core;
 using KnightBus.Messages;
 using SimpleInjector;
+using SimpleInjector.Lifestyles;
 
 namespace KnightBus.SimpleInjector
 {
@@ -27,6 +28,41 @@ namespace KnightBus.SimpleInjector
                 .Select(x => x.Registration.ImplementationType)
                 .Distinct();
             return ReflectionHelper.GetAllTypesImplementingOpenGenericInterface(typeof(IProcessMessage<>), allTypes).Distinct();
+        }
+    }
+
+    public class SimpleInjectorDependencyInjection : IDependencyInjection
+    {
+        private readonly Container _container;
+
+        public SimpleInjectorDependencyInjection(Container container)
+        {
+            _container = container;
+        }
+
+        public IDisposable GetScope()
+        {
+            return AsyncScopedLifestyle.BeginScope(_container);
+        }
+
+        public T GetInstance<T>() where T : class
+        {
+            return _container.GetInstance<T>();
+        }
+
+        public object GetInstance(Type type)
+        {
+            return _container.GetInstance(type);
+        }
+
+        public IEnumerable<T> GetAllInstances<T>() where T : class
+        {
+            return _container.GetAllInstances<T>();
+        }
+
+        public IEnumerable<object> GetAllInstances(Type type)
+        {
+            return _container.GetAllInstances(type);
         }
     }
 }

@@ -12,4 +12,14 @@ namespace KnightBus.Core
         IProcessMessage<T> GetProcessor<T>(Type type) where T : IMessage;
         IEnumerable<Type> ListAllProcessors();
     }
+
+
+    public interface IDependencyInjection
+    {
+        IDisposable GetScope();
+        T GetInstance<T>() where T : class;
+        object GetInstance(Type type);
+        IEnumerable<T> GetAllInstances<T>() where T : class;
+        IEnumerable<object> GetAllInstances(Type type);
+    }
 }

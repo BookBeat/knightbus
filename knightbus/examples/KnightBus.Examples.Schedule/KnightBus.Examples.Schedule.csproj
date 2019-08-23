@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp2.2</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\knightbus-schedule\src\KnightBus.Schedule\KnightBus.Schedule.csproj" />
+    <ProjectReference Include="..\..\..\knightbus-simpleinjector\src\KnightBus.SimpleInjector\KnightBus.SimpleInjector.csproj" />
+  </ItemGroup>
+
+</Project>
