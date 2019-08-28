@@ -3,7 +3,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
 using KnightBus.Core.Singleton;
-using Microsoft.WindowsAzure.Storage;
 using Quartz;
 
 namespace KnightBus.Schedule
@@ -27,16 +26,7 @@ namespace KnightBus.Schedule
         {
             //Try and get the lock
             var lockId = typeof(T).FullName;
-            ISingletonLockHandle lockHandle;
-            try
-            {
-                lockHandle = await _lockManager.TryLockAsync(lockId, TimeSpan.FromSeconds(60), CancellationToken.None);
-            }
-            catch (StorageException)
-            {
-                //retry once
-                lockHandle = await _lockManager.TryLockAsync(lockId, TimeSpan.FromSeconds(60), CancellationToken.None);
-            }
+            var lockHandle = await _lockManager.TryLockAsync(lockId, TimeSpan.FromSeconds(60), CancellationToken.None);
 
             if (lockHandle == null)
             {
@@ -44,6 +34,7 @@ namespace KnightBus.Schedule
                 return;
             }
             _logger.Information("Executing trigger {TriggerSetting} {LockHandle}", lockId, lockHandle);
+
             using (new SingletonTimerScope(_logger, lockHandle, false))
             {
                 using (_dependencyInjection.GetScope())

@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Reflection;
 using System.Threading.Tasks;
+using KnightBus.Azure.Storage.Singleton;
 using KnightBus.Core;
 using KnightBus.Core.Singleton;
 using KnightBus.Schedule;
@@ -13,8 +16,11 @@ namespace KnightBus.Examples.Schedule
         static void Main(string[] args)
         {
             var container = new Container();
+            container.Register(typeof(IProcessTrigger<>), new List<Assembly>{Assembly.GetExecutingAssembly()});
             var dependency = new SimpleInjectorDependencyInjection(container);
-            ISingletonLockManager singletonLockManager = null;
+            ISingletonLockManager singletonLockManager = new BlobLockManager("");
+            singletonLockManager.InitializeAsync().GetAwaiter().GetResult();
+            container.Verify();
 
             var host = new KnightWatchHost(singletonLockManager, dependency, new NoLogging());
 
