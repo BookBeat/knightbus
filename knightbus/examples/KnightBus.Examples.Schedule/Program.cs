@@ -16,25 +16,15 @@ namespace KnightBus.Examples.Schedule
     {
         static void Main(string[] args)
         {
-            var container = new Container();
-            container.Register(typeof(IProcessTrigger<>), new List<Assembly>{Assembly.GetExecutingAssembly()});
-            var dependency = new SimpleInjectorDependencyInjection(container);
-            ISingletonLockManager singletonLockManager = new BlobLockManager("");
-            singletonLockManager.InitializeAsync().GetAwaiter().GetResult();
-            container.Verify();
-
-            var host = new KnightWatchHost(singletonLockManager, dependency, new NoLogging());
-
-            host.StartAsync(CancellationToken.None).GetAwaiter().GetResult();
-
-            Console.ReadLine();
+            MainAsync(args).GetAwaiter().GetResult();
         }
         static async Task MainAsync(string[] args)
         {
+            var connectionString = "";
             var container = new Container();
             container.Register(typeof(IProcessTrigger<>), new List<Assembly>{Assembly.GetExecutingAssembly()});
             var dependency = new SimpleInjectorDependencyInjection(container);
-            ISingletonLockManager singletonLockManager = new BlobLockManager("");
+            ISingletonLockManager singletonLockManager = new BlobLockManager(connectionString);
             await singletonLockManager.InitializeAsync();
             container.Verify();
 
