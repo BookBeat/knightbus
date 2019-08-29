@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using KnightBus.Core;
 using KnightBus.Core.Singleton;
 using Quartz;
@@ -22,14 +24,14 @@ namespace KnightBus.Schedule
             _log = log;
         }
 
-        public void Start()
+        public async Task StartAsync(CancellationToken cancellationToken)
         {
             var assemblies = AppDomain.CurrentDomain.GetAssemblies();
             var triggerProcessors = ReflectionHelper.GetAllTypesImplementingOpenGenericInterface(typeof(IProcessTrigger<>), assemblies).ToList();
             var schedulerFactory = new StdSchedulerFactory();
-            _scheduler = schedulerFactory.GetScheduler().GetAwaiter().GetResult();
+            _scheduler = await schedulerFactory.GetScheduler(cancellationToken).ConfigureAwait(false);
             _scheduler.JobFactory = new CustomJobFactory(assemblies, _dependencyInjection, _log, _lockManager);
-            _scheduler.Start();
+            await _scheduler.Start(cancellationToken).ConfigureAwait(false);
 
             foreach (var processor in triggerProcessors)
             {
@@ -51,7 +53,7 @@ namespace KnightBus.Schedule
                         .StartNow()
                         .Build();
 
-                    _scheduler.ScheduleJob(job, trigger);    
+                    await _scheduler.ScheduleJob(job, trigger, cancellationToken).ConfigureAwait(false);    
                 }
             }
         }

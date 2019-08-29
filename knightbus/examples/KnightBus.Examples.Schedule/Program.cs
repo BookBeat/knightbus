@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Azure.Storage.Singleton;
 using KnightBus.Core;
@@ -24,7 +25,22 @@ namespace KnightBus.Examples.Schedule
 
             var host = new KnightWatchHost(singletonLockManager, dependency, new NoLogging());
 
-            host.Start();
+            host.StartAsync(CancellationToken.None).GetAwaiter().GetResult();
+
+            Console.ReadLine();
+        }
+        static async Task MainAsync(string[] args)
+        {
+            var container = new Container();
+            container.Register(typeof(IProcessTrigger<>), new List<Assembly>{Assembly.GetExecutingAssembly()});
+            var dependency = new SimpleInjectorDependencyInjection(container);
+            ISingletonLockManager singletonLockManager = new BlobLockManager("");
+            await singletonLockManager.InitializeAsync();
+            container.Verify();
+
+            var host = new KnightWatchHost(singletonLockManager, dependency, new NoLogging());
+
+            await host.StartAsync(CancellationToken.None);
 
             Console.ReadLine();
         }
@@ -37,7 +53,7 @@ namespace KnightBus.Examples.Schedule
 
     public class MyTrigger : IProcessTrigger<EveryMinute>
     {
-        public Task ProcessAsync()
+        public Task ProcessAsync(CancellationToken cancellationToken)
         {
             Console.WriteLine("Yo!");
             return Task.CompletedTask;

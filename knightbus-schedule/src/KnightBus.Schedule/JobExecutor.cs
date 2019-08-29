@@ -42,7 +42,7 @@ namespace KnightBus.Schedule
                     try
                     {
                         var processor = _dependencyInjection.GetInstance<IProcessTrigger<T>>();
-                        await processor.ProcessAsync();
+                        await processor.ProcessAsync(context.CancellationToken);
                     }
                     catch (Exception e)
                     {

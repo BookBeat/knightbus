@@ -1,9 +1,10 @@
-﻿using System.Threading.Tasks;
+﻿using System.Threading;
+using System.Threading.Tasks;
 
 namespace KnightBus.Schedule
 {
     public interface IProcessTrigger<T> where T : class, ITriggerSettings, new()
     {
-        Task ProcessAsync();
+        Task ProcessAsync(CancellationToken cancellationToken);
     }
 }
