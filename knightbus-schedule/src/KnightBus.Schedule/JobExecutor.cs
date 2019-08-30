@@ -26,7 +26,7 @@ namespace KnightBus.Schedule
         {
             //Try and get the lock
             var lockId = typeof(T).FullName;
-            var lockHandle = await _lockManager.TryLockAsync(lockId, TimeSpan.FromSeconds(60), CancellationToken.None);
+            var lockHandle = await _lockManager.TryLockAsync(lockId, TimeSpan.FromSeconds(60), CancellationToken.None).ConfigureAwait(false);
 
             if (lockHandle == null)
             {
@@ -42,7 +42,7 @@ namespace KnightBus.Schedule
                     try
                     {
                         var processor = _dependencyInjection.GetInstance<IProcessTrigger<T>>();
-                        await processor.ProcessAsync(context.CancellationToken);
+                        await processor.ProcessAsync(context.CancellationToken).ConfigureAwait(false);
                     }
                     catch (Exception e)
                     {

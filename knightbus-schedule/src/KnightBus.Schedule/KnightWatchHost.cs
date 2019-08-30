@@ -26,11 +26,13 @@ namespace KnightBus.Schedule
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
+            await _lockManager.InitializeAsync().ConfigureAwait(false);
             var assemblies = AppDomain.CurrentDomain.GetAssemblies();
             var triggerProcessors = ReflectionHelper.GetAllTypesImplementingOpenGenericInterface(typeof(IProcessTrigger<>), assemblies).ToList();
             var schedulerFactory = new StdSchedulerFactory();
             _scheduler = await schedulerFactory.GetScheduler(cancellationToken).ConfigureAwait(false);
-            _scheduler.JobFactory = new CustomJobFactory(assemblies, _dependencyInjection, _log, _lockManager);
+            var jobFactory = new CustomJobFactory();
+            _scheduler.JobFactory = jobFactory;
             await _scheduler.Start(cancellationToken).ConfigureAwait(false);
 
             foreach (var processor in triggerProcessors)
@@ -53,6 +55,8 @@ namespace KnightBus.Schedule
                         .StartNow()
                         .Build();
 
+
+                    jobFactory.AddJob(settingsType, _dependencyInjection, _log, _lockManager);
                     await _scheduler.ScheduleJob(job, trigger, cancellationToken).ConfigureAwait(false);    
                 }
             }

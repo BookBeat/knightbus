@@ -25,7 +25,6 @@ namespace KnightBus.Examples.Schedule
             container.Register(typeof(IProcessTrigger<>), new List<Assembly>{Assembly.GetExecutingAssembly()});
             var dependency = new SimpleInjectorDependencyInjection(container);
             ISingletonLockManager singletonLockManager = new BlobLockManager(connectionString);
-            await singletonLockManager.InitializeAsync();
             container.Verify();
 
             var host = new KnightWatchHost(singletonLockManager, dependency, new NoLogging());
