@@ -43,6 +43,9 @@ namespace KnightBus.Schedule
                 {
                     var settingsType = processorInterface.GenericTypeArguments[0];
                     var settings = (ITriggerSettings)Activator.CreateInstance(settingsType);
+
+                    CronExpression.ValidateExpression(settings.CronExpression);
+
                     var jobType = typeof(JobExecutor<>).MakeGenericType(settingsType);
                     var job = JobBuilder.Create(jobType)
                         .WithIdentity(Guid.NewGuid().ToString())

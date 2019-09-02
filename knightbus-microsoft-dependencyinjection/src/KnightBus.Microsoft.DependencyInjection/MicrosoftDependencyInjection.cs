@@ -35,7 +35,7 @@ namespace KnightBus.Microsoft.DependencyInjection
         {
             var allTypes = _serviceCollection.Select(x => x.ImplementationType).Where(t => t != null).Distinct();
 
-            return ReflectionHelper.GetAllTypesImplementingOpenGenericInterface(typeof(IProcessMessage<>), allTypes).Distinct();
+            return ReflectionHelper.GetAllTypesImplementingOpenGenericInterface(openGeneric, allTypes).Distinct();
         }
     }
 }

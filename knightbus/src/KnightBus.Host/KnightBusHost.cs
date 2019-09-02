@@ -38,9 +38,9 @@ namespace KnightBus.Host
             if (!_transports.Any()) throw new TransportMissingException("No transports configured");
             ConsoleWriter.WriteLine("KnightBus starting");
             _locator = new MessageProcessorLocator(_configuration, _transports.SelectMany(transport => transport.TransportChannelFactories).ToArray());
-            var queueReaders = _locator.Locate().ToList();
+            var channelReceivers = _locator.Locate().ToList();
             ConsoleWriter.Write("Starting receivers [");
-            foreach (var queueReader in queueReaders)
+            foreach (var queueReader in channelReceivers)
             {
                 await queueReader.StartAsync().ConfigureAwait(false);
                 Console.Write(".");
