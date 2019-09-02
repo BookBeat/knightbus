@@ -10,7 +10,7 @@ namespace KnightBus.Core
     {
         IList<IMessageProcessorMiddleware> Middlewares { get; }
         ISingletonLockManager SingletonLockManager { get; set; }
-        IMessageProcessorProvider MessageProcessorProvider { get; set; }
+        IDependencyInjection DependencyInjection { get; set; }
         ILog Log { get; set; }
     }
 }

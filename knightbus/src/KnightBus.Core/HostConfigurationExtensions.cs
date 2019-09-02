@@ -20,9 +20,9 @@ namespace KnightBus.Core
             configuration.SingletonLockManager = lockManager;
             return configuration;
         }
-        public static IHostConfiguration UseMessageProcessorProvider(this IHostConfiguration configuration, IMessageProcessorProvider provider)
+        public static IHostConfiguration UseDependencyInjection(this IHostConfiguration configuration, IDependencyInjection provider)
         {
-            configuration.MessageProcessorProvider = provider;
+            configuration.DependencyInjection = provider;
             return configuration;
         }
     }

@@ -12,7 +12,7 @@ namespace KnightBus.Microsoft.DependencyInjection
         /// </summary>
         public static IHostConfiguration UseMicrosoftDependencyInjection(this IHostConfiguration configuration, IServiceProvider serviceProvider, IServiceCollection serviceCollection)
         {
-            configuration.MessageProcessorProvider = new MicrosoftDependencyInjectionProcessorProvider(serviceProvider, serviceCollection);
+            configuration.DependencyInjection = new MicrosoftDependencyInjection(serviceProvider, serviceCollection);
             configuration.Middlewares.Add(new MicrosoftDependencyInjectionScopedLifeStyleMiddleware(serviceProvider));
             return configuration;
         }

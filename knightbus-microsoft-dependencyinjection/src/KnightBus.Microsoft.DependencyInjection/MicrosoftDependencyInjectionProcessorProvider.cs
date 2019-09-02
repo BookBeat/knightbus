@@ -2,42 +2,19 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using KnightBus.Core;
-using KnightBus.Messages;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace KnightBus.Microsoft.DependencyInjection
 {
-    public class MicrosoftDependencyInjectionProcessorProvider : IMessageProcessorProvider
-    {
-        private readonly IServiceProvider _serviceProvider;
-        private readonly IServiceCollection _serviceCollection;
-
-        public MicrosoftDependencyInjectionProcessorProvider(IServiceProvider serviceProvider, IServiceCollection serviceCollection)
-        {
-            _serviceProvider = serviceProvider;
-            _serviceCollection = serviceCollection;
-        }
-
-        public IProcessMessage<T> GetProcessor<T>(Type type) where T : IMessage
-        {
-            return (IProcessMessage<T>)_serviceProvider.GetService(type);
-        }
-
-        public IEnumerable<Type> ListAllProcessors()
-        {
-            var allTypes = _serviceCollection.Select(x => x.ImplementationType).Where(t => t != null).Distinct();
-
-            return ReflectionHelper.GetAllTypesImplementingOpenGenericInterface(typeof(IProcessMessage<>), allTypes).Distinct();
-        }
-    }
-
     public class MicrosoftDependencyInjection : IDependencyInjection
     {
         private readonly IServiceProvider _provider;
+        private readonly IServiceCollection _serviceCollection;
 
-        public MicrosoftDependencyInjection(IServiceProvider provider)
+        public MicrosoftDependencyInjection(IServiceProvider provider, IServiceCollection serviceCollection)
         {
             _provider = provider;
+            _serviceCollection = serviceCollection;
         }
         public IDisposable GetScope()
         {
@@ -49,19 +26,16 @@ namespace KnightBus.Microsoft.DependencyInjection
             return _provider.GetService<T>();
         }
 
-        public object GetInstance(Type type)
+        public T GetInstance<T>(Type type)
         {
-            return _provider.GetService(type);
+            return (T) _provider.GetService(type);
         }
 
-        public IEnumerable<T> GetAllInstances<T>() where T : class
+        public IEnumerable<Type> GetOpenGenericRegistrations(Type openGeneric)
         {
-            return _provider.GetServices<T>();
-        }
+            var allTypes = _serviceCollection.Select(x => x.ImplementationType).Where(t => t != null).Distinct();
 
-        public IEnumerable<T> GetAllInstances<T>(Type type)
-        {
-            return _provider.GetServices(type).Select(x=> (T)x);
+            return ReflectionHelper.GetAllTypesImplementingOpenGenericInterface(typeof(IProcessMessage<>), allTypes).Distinct();
         }
     }
 }

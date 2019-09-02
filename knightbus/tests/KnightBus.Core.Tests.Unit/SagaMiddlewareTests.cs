@@ -22,12 +22,12 @@ namespace KnightBus.Core.Tests.Unit
             var sagaStore = new Mock<ISagaStore>();
             sagaStore.Setup(x => x.Create<SagaData>(partitionKey, id, It.IsAny<SagaData>())).ThrowsAsync(new SagaAlreadyStartedException(partitionKey, id));
 
-            var messageProcessorProvider = new Mock<IMessageProcessorProvider>();
-            messageProcessorProvider.Setup(x => x.GetProcessor<SagaStartMessage>(typeof(IProcessCommand<SagaStartMessage, Settings>))).Returns(new Saga());
+            var di = new Mock<IDependencyInjection>();
+            di.Setup(x => x.GetInstance<IProcessMessage<SagaStartMessage>>(typeof(IProcessCommand<SagaStartMessage, Settings>))).Returns(new Saga());
 
             var hostConfiguration = new Mock<IHostConfiguration>();
             hostConfiguration.Setup(x => x.Log).Returns(Mock.Of<ILog>());
-            hostConfiguration.Setup(x => x.MessageProcessorProvider).Returns(messageProcessorProvider.Object);
+            hostConfiguration.Setup(x => x.DependencyInjection).Returns(di.Object);
 
             var messageStateHandler = new Mock<IMessageStateHandler<SagaStartMessage>>();
             var pipelineInformation = new Mock<IPipelineInformation>();
@@ -54,12 +54,12 @@ namespace KnightBus.Core.Tests.Unit
 
             var saga = new Saga();
 
-            var messageProcessorProvider = new Mock<IMessageProcessorProvider>();
-            messageProcessorProvider.Setup(x => x.GetProcessor<SagaStartMessage>(typeof(IProcessCommand<SagaStartMessage, Settings>))).Returns(saga);
+            var di = new Mock<IDependencyInjection>();
+            di.Setup(x => x.GetInstance<IProcessMessage<SagaStartMessage>>(typeof(IProcessCommand<SagaStartMessage, Settings>))).Returns(saga);
 
             var hostConfiguration = new Mock<IHostConfiguration>();
             hostConfiguration.Setup(x => x.Log).Returns(Mock.Of<ILog>());
-            hostConfiguration.Setup(x => x.MessageProcessorProvider).Returns(messageProcessorProvider.Object);
+            hostConfiguration.Setup(x => x.DependencyInjection).Returns(di.Object);
 
             var messageStateHandler = new Mock<IMessageStateHandler<SagaStartMessage>>();
             var pipelineInformation = new Mock<IPipelineInformation>();

@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -17,7 +16,7 @@ namespace KnightBus.Host.Tests.Unit
         private Mock<IMessageStateHandler<TestCommandOne>> _stateHandler;
         private Mock<ICountable> _countable;
         private Mock<ILog> _logger;
-        private Mock<IMessageProcessorProvider> _messageHandlerProvider;
+        private Mock<IDependencyInjection> _messageHandlerProvider;
         private Mock<IPipelineInformation> _pipelineInformation;
         private Mock<IHostConfiguration> _hostConfiguration;
 
@@ -25,15 +24,15 @@ namespace KnightBus.Host.Tests.Unit
         [SetUp]
         public void Setup()
         {
-            _messageHandlerProvider = new Mock<IMessageProcessorProvider>();
+            _messageHandlerProvider = new Mock<IDependencyInjection>();
             _logger = new Mock<ILog>();
             _stateHandler = new Mock<IMessageStateHandler<TestCommandOne>>();
             _countable = new Mock<ICountable>();
-            _messageHandlerProvider.Setup(x => x.GetProcessor<TestCommandOne>(typeof(MultipleCommandProcessor))).Returns(
+            _messageHandlerProvider.Setup(x => x.GetInstance<IProcessMessage<TestCommandOne>>(typeof(MultipleCommandProcessor))).Returns(
                 () => new MultipleCommandProcessor(_countable.Object)
             );
             _hostConfiguration = new Mock<IHostConfiguration>();
-            _hostConfiguration.Setup(x => x.MessageProcessorProvider).Returns(_messageHandlerProvider.Object);
+            _hostConfiguration.Setup(x => x.DependencyInjection).Returns(_messageHandlerProvider.Object);
             _pipelineInformation = new Mock<IPipelineInformation>();
             _pipelineInformation.Setup(x => x.HostConfiguration).Returns(_hostConfiguration.Object);
 

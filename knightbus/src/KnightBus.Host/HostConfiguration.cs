@@ -8,7 +8,7 @@ namespace KnightBus.Host
     {
         public IList<IMessageProcessorMiddleware> Middlewares { get; } = new List<IMessageProcessorMiddleware>();
         public ISingletonLockManager SingletonLockManager { get; set; }
-        public IMessageProcessorProvider MessageProcessorProvider { get; set; }
+        public IDependencyInjection DependencyInjection { get; set; }
         public ILog Log { get; set; } = new NoLogging();
     }
 }

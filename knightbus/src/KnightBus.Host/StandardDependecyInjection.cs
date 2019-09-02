@@ -3,14 +3,13 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using KnightBus.Core;
-using KnightBus.Messages;
 
 namespace KnightBus.Host
 {
     /// <summary>
-    /// <see cref="IMessageProcessorProvider"/> when you don't need IoC. Will treat all <see cref="IProcessMessage{T}"/> as singletons.
+    /// <see cref="IDependencyInjection"/> when you don't need IoC. Will treat all <see cref="IProcessMessage{T}"/> as singletons.
     /// </summary>
-    public class StandardMessageProcessorProvider : IMessageProcessorProvider
+    public class StandardDependecyInjection : IDependencyInjection
     {
         private readonly ConcurrentDictionary<Type, object> _processors = new ConcurrentDictionary<Type, object>();
 
@@ -18,7 +17,7 @@ namespace KnightBus.Host
         /// Adds a <see cref="IProcessCommand{T,TSettings}"/> or <see cref="IProcessEvent{TTopic,TTopicSubscription,TSettings}"/> to the provider
         /// </summary>
         /// <param name="processor"><see cref="IProcessCommand{T,TSettings}"/> or <see cref="IProcessEvent{TTopic,TTopicSubscription,TSettings}"/></param>
-        public StandardMessageProcessorProvider RegisterProcessor(object processor)
+        public StandardDependecyInjection RegisterProcessor(object processor)
         {
             Register(processor, typeof(IProcessCommand<,>));
             Register(processor, typeof(IProcessEvent<,,>));
@@ -34,14 +33,31 @@ namespace KnightBus.Host
             }
         }
 
-        public IProcessMessage<T> GetProcessor<T>(Type type) where T : IMessage
+        public IDisposable GetScope()
         {
-            return (IProcessMessage<T>) _processors[type];
+            return new SingletonScope();
         }
 
-        public IEnumerable<Type> ListAllProcessors()
+        public T GetInstance<T>() where T : class
         {
-            return _processors.Values.Select(x=> x.GetType()).Distinct();
+            return (T)_processors[typeof(T)];
+        }
+
+        public T GetInstance<T>(Type type)
+        {
+            return (T)_processors[type];
+        }
+
+        public IEnumerable<Type> GetOpenGenericRegistrations(Type openGeneric)
+        {
+            return _processors.Values.Select(x => x.GetType()).Distinct();
+        }
+    }
+
+    public class SingletonScope : IDisposable
+    {
+        public void Dispose()
+        {
         }
     }
 }

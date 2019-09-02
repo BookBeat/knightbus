@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using KnightBus.Core;
@@ -23,7 +22,7 @@ namespace KnightBus.Host
 
         private IEnumerable<IChannelReceiver> GetQueueReaders()
         {
-            var processors = _configuration.MessageProcessorProvider.ListAllProcessors();
+            var processors = _configuration.DependencyInjection.GetOpenGenericRegistrations(typeof(IProcessMessage<>));
 
             foreach (var processor in processors)
             {
@@ -42,7 +41,7 @@ namespace KnightBus.Host
 
         private IEnumerable<IChannelReceiver> GetQueueSubscriptionReaders()
         {
-            var processors = _configuration.MessageProcessorProvider.ListAllProcessors();
+            var processors = _configuration.DependencyInjection.GetOpenGenericRegistrations(typeof(IProcessMessage<>));
             foreach (var processor in processors)
             {
                 var processorInterfaces = ReflectionHelper.GetAllInterfacesImplementingOpenGenericInterface(processor, typeof(IProcessEvent<,,>));

@@ -8,11 +8,11 @@ namespace KnightBus.SimpleInjector
     public static class SimpleInjectorExtensions
     {
         /// <summary>
-        /// Enables SimpleInjector by using <see cref="SimpleInjectorMessageProcessorProvider"/> and adding the <see cref="SimpleInjectorScopedLifeStyleMiddleware"/> enabling scoped per message
+        /// Enables SimpleInjector by using <see cref="SimpleInjectorDependencyInjection"/> and adding the <see cref="SimpleInjectorScopedLifeStyleMiddleware"/> enabling scoped per message
         /// </summary>
         public static IHostConfiguration UseSimpleInjector(this IHostConfiguration configuration, Container container)
         {
-            configuration.MessageProcessorProvider = new SimpleInjectorMessageProcessorProvider(container);
+            configuration.DependencyInjection = new SimpleInjectorDependencyInjection(container);
             configuration.Middlewares.Add(new SimpleInjectorScopedLifeStyleMiddleware(container));
             return configuration;
         }

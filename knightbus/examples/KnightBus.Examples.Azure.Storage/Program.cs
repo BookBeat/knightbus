@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -38,7 +37,7 @@ namespace KnightBus.Examples.Azure.Storage
                     //Allow message processors to run in Singleton state using Azure Blob Locks
                     .UseBlobStorageLockManager(storageConnection)
                     //Register our message processors without IoC using the standard provider
-                    .UseMessageProcessorProvider(new StandardMessageProcessorProvider()
+                    .UseDependencyInjection(new StandardDependecyInjection()
                         .RegisterProcessor(new SampleStorageBusMessageProcessor())
                         .RegisterProcessor(new SampleSagaMessageProcessor(client))
                     )

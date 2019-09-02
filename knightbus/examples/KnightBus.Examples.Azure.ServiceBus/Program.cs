@@ -25,7 +25,7 @@ namespace KnightBus.Examples.Azure.ServiceBus
                 .UseTransport(new ServiceBusTransport(serviceBusConnection))
                 .Configure(configuration => configuration
                     //Register our message processors without IoC using the standard provider
-                    .UseMessageProcessorProvider(new StandardMessageProcessorProvider()
+                    .UseDependencyInjection(new StandardDependecyInjection()
                         .RegisterProcessor(new SampleServiceBusMessageProcessor())
                         .RegisterProcessor(new SampleServiceBusEventProcessor()))
                 );
