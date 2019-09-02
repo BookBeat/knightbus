@@ -20,6 +20,6 @@ namespace KnightBus.Core
         T GetInstance<T>() where T : class;
         object GetInstance(Type type);
         IEnumerable<T> GetAllInstances<T>() where T : class;
-        IEnumerable<object> GetAllInstances(Type type);
+        IEnumerable<T> GetAllInstances<T>(Type type);
     }
 }

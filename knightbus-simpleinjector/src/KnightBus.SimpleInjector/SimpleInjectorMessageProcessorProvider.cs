@@ -60,9 +60,9 @@ namespace KnightBus.SimpleInjector
             return _container.GetAllInstances<T>();
         }
 
-        public IEnumerable<object> GetAllInstances(Type type)
+        public IEnumerable<T> GetAllInstances<T>(Type type)
         {
-            return _container.GetAllInstances(type);
+            return _container.GetAllInstances(type).Select(x=> (T)x);
         }
     }
 }

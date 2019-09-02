@@ -59,9 +59,9 @@ namespace KnightBus.Microsoft.DependencyInjection
             return _provider.GetServices<T>();
         }
 
-        public IEnumerable<object> GetAllInstances(Type type)
+        public IEnumerable<T> GetAllInstances<T>(Type type)
         {
-            return _provider.GetServices(type);
+            return _provider.GetServices(type).Select(x=> (T)x);
         }
     }
 }
