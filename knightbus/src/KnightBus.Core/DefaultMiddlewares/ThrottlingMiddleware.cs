@@ -16,7 +16,12 @@ namespace KnightBus.Core.DefaultMiddlewares
         }
         public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, IPipelineInformation pipelineInformation, IMessageProcessor next, CancellationToken cancellationToken) where T : class, IMessage
         {
-            await _semaphoreQueue.WaitAsync(cancellationToken);
+            var queueName = AutoMessageMapper.GetQueueName<T>();
+
+            var log = pipelineInformation.HostConfiguration.Log;
+            log.Debug("{ThreadCount} remaining threads that can process messages in {QueueName} in {Name}", _semaphoreQueue.CurrentCount, queueName, nameof(ThrottlingMiddleware));
+
+            await _semaphoreQueue.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
                 await next.ProcessAsync(messageStateHandler, cancellationToken).ConfigureAwait(false);

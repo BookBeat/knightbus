@@ -41,18 +41,28 @@ namespace KnightBus.Azure.Storage
             var messagesFound = false;
             try
             {
+                var queueName = AutoMessageMapper.GetQueueName<T>();
+
                 var prefetchCount = _settings.PrefetchCount > 0 ? _settings.PrefetchCount : 1;
                 var messages = await _storageQueueClient.GetMessagesAsync<T>(prefetchCount, _settings.MessageLockTimeout).ConfigureAwait(false);
                 messagesFound = messages.Any();
+
+                _log.Debug("Prefetched {MessageCount} messages from {QueueName} in {Name}", messages.Count, queueName, nameof(StorageQueueMessagePump));
+
                 foreach (var message in messages)
                 {
                     var cts = new CancellationTokenSource(_settings.MessageLockTimeout);
                     try
                     {
+                        _log.Debug("Processing {@Message} in {Name}", message, nameof(StorageQueueMessagePump));
+                        _log.Debug("{ThreadCount} remaining threads that can process messages in {QueueName} in {Name}", _maxConcurrent.CurrentCount, queueName, nameof(StorageQueueMessagePump));
+
                         await _maxConcurrent.WaitAsync(cts.Token).ConfigureAwait(false);
                     }
-                    catch (OperationCanceledException)
+                    catch (OperationCanceledException operationCanceledException)
                     {
+                        _log.Debug(operationCanceledException, "Operation canceled for {@Message} in {QueueName} in {Name}", message, queueName, nameof(StorageQueueMessagePump));
+
                         //If we are still waiting when the message has not been scheduled for execution timeouts
                         continue;
                     }
