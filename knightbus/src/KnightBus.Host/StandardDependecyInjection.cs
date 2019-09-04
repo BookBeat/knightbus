@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using KnightBus.Core;
 
 namespace KnightBus.Host
@@ -51,6 +52,11 @@ namespace KnightBus.Host
         public IEnumerable<Type> GetOpenGenericRegistrations(Type openGeneric)
         {
             return _processors.Values.Select(x => x.GetType()).Distinct();
+        }
+
+        public void RegisterOpenGeneric(Type openGeneric, Assembly assembly)
+        {
+            
         }
     }
 

@@ -7,7 +7,7 @@ using Quartz;
 
 namespace KnightBus.Schedule
 {
-    internal class JobExecutor<T> : IJob where T : class, ITriggerSettings, new()
+    internal class JobExecutor<T> : IJob where T : class, ISchedule, new()
     {
 
         private readonly ILog _logger;
@@ -41,7 +41,7 @@ namespace KnightBus.Schedule
                 {
                     try
                     {
-                        var processor = _dependencyInjection.GetInstance<IProcessTrigger<T>>();
+                        var processor = _dependencyInjection.GetInstance<IProcessSchedule<T>>();
                         await processor.ProcessAsync(context.CancellationToken).ConfigureAwait(false);
                     }
                     catch (Exception e)

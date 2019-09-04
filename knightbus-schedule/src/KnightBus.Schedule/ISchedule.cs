@@ -1,6 +1,6 @@
 ﻿namespace KnightBus.Schedule
 {
-    public interface ITriggerSettings
+    public interface ISchedule
     {
         string CronExpression { get; }
     }

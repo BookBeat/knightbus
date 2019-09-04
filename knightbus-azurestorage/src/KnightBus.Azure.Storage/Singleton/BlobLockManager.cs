@@ -7,7 +7,7 @@ using Microsoft.WindowsAzure.Storage.Blob;
 
 namespace KnightBus.Azure.Storage.Singleton
 {
-    public class BlobLockManager : ISingletonLockManager
+    internal class BlobLockManager : ISingletonLockManager
     {
         private readonly string _connectionString;
         private CloudBlobClient _client;

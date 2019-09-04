@@ -31,7 +31,7 @@ namespace KnightBus.Examples.Azure.ServiceBus
                 );
 
             //Start the KnightBus Host, it will now connect to the ServiceBus and listen to the SampleServiceBusMessageMapping.QueueName
-            await knightBusHost.StartAsync();
+            await knightBusHost.StartAsync(new CancellationToken());
 
             //Initiate the client
             var client = new KnightBus.Azure.ServiceBus.ServiceBus(new ServiceBusConfiguration(serviceBusConnection));

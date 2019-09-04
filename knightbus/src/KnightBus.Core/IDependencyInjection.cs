@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection;
 
 namespace KnightBus.Core
 {
@@ -9,5 +10,6 @@ namespace KnightBus.Core
         T GetInstance<T>() where T : class;
         T GetInstance<T>(Type type);
         IEnumerable<Type> GetOpenGenericRegistrations(Type openGeneric);
+        void RegisterOpenGeneric(Type openGeneric, Assembly assembly);
     }
 }

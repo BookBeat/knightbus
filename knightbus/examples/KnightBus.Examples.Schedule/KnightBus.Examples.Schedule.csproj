@@ -9,6 +9,7 @@
     <ProjectReference Include="..\..\..\knightbus-azurestorage\src\KnightBus.Azure.Storage\KnightBus.Azure.Storage.csproj" />
     <ProjectReference Include="..\..\..\knightbus-schedule\src\KnightBus.Schedule\KnightBus.Schedule.csproj" />
     <ProjectReference Include="..\..\..\knightbus-simpleinjector\src\KnightBus.SimpleInjector\KnightBus.SimpleInjector.csproj" />
+    <ProjectReference Include="..\..\src\KnightBus.Host\KnightBus.Host.csproj" />
   </ItemGroup>
 
 </Project>

@@ -46,7 +46,7 @@ namespace KnightBus.Examples.Azure.Storage
                 );
 
             //Start the KnightBus Host, it will now connect to the StorageBus and listen to the SampleStorageBusMessageMapping.QueueName
-            await knightBusHost.StartAsync();
+            await knightBusHost.StartAsync(CancellationToken.None);
 
             
             //Send some Messages and watch them print in the console

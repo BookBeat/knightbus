@@ -3,32 +3,31 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
-using KnightBus.Core.Singleton;
 using Quartz;
 using Quartz.Impl;
 
 
 namespace KnightBus.Schedule
 {
-    public class KnightWatchHost
+    public class SchedulingPlugin : IPlugin
     {
-        private readonly ISingletonLockManager _lockManager;
-        private readonly IDependencyInjection _dependencyInjection;
-        private readonly ILog _log;
+        private readonly IHostConfiguration _configuration;
         private IScheduler _scheduler;
 
-        public KnightWatchHost(ISingletonLockManager lockManager, IDependencyInjection dependencyInjection, ILog log)
+        public SchedulingPlugin(IHostConfiguration configuration)
         {
-            _lockManager = lockManager;
-            _dependencyInjection = dependencyInjection;
-            _log = log;
+            _configuration = configuration;
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            await _lockManager.InitializeAsync().ConfigureAwait(false);
-            var assemblies = AppDomain.CurrentDomain.GetAssemblies();
-            var triggerProcessors = ReflectionHelper.GetAllTypesImplementingOpenGenericInterface(typeof(IProcessTrigger<>), assemblies).ToList();
+            ConsoleWriter.WriteLine($"Starting {nameof(SchedulingPlugin)}");
+            var lockManager = _configuration.SingletonLockManager;
+            var dependencyInjection = _configuration.DependencyInjection;
+            var log = _configuration.Log;
+
+            await lockManager.InitializeAsync().ConfigureAwait(false);
+            var triggerProcessors = dependencyInjection.GetOpenGenericRegistrations(typeof(IProcessSchedule<>)).ToList();
             var schedulerFactory = new StdSchedulerFactory();
             _scheduler = await schedulerFactory.GetScheduler(cancellationToken).ConfigureAwait(false);
             var jobFactory = new CustomJobFactory();
@@ -37,12 +36,13 @@ namespace KnightBus.Schedule
 
             foreach (var processor in triggerProcessors)
             {
-                Console.WriteLine($"Found trigger processor {processor.Name}");
-                var processorInterfaces = ReflectionHelper.GetAllInterfacesImplementingOpenGenericInterface(processor, typeof(IProcessTrigger<>));
+                var processorInterfaces = ReflectionHelper.GetAllInterfacesImplementingOpenGenericInterface(processor, typeof(IProcessSchedule<>));
                 foreach (var processorInterface in processorInterfaces)
                 {
                     var settingsType = processorInterface.GenericTypeArguments[0];
-                    var settings = (ITriggerSettings)Activator.CreateInstance(settingsType);
+                    ConsoleWriter.WriteLine($"Found {processor.Name}<{settingsType.Name}>");
+                    var settings = (ISchedule)Activator.CreateInstance(settingsType);
+                    
 
                     CronExpression.ValidateExpression(settings.CronExpression);
 
@@ -57,10 +57,9 @@ namespace KnightBus.Schedule
                         .WithIdentity(Guid.NewGuid().ToString())
                         .StartNow()
                         .Build();
-
-
-                    jobFactory.AddJob(settingsType, _dependencyInjection, _log, _lockManager);
-                    await _scheduler.ScheduleJob(job, trigger, cancellationToken).ConfigureAwait(false);    
+                    
+                    jobFactory.AddJob(settingsType, dependencyInjection, log, lockManager);
+                    await _scheduler.ScheduleJob(job, trigger, cancellationToken).ConfigureAwait(false);
                 }
             }
         }

@@ -51,7 +51,7 @@ namespace KnightBus.Examples.Redis
                 );
 
             //Start the KnightBus Host, it will now connect to the Redis and listen
-            await knightBusHost.StartAsync();
+            await knightBusHost.StartAsync(CancellationToken.None);
 
             //Start the saga
             await client.SendAsync(new SampleRedisSagaStarterCommand());

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using KnightBus.Core;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -36,6 +37,12 @@ namespace KnightBus.Microsoft.DependencyInjection
             var allTypes = _serviceCollection.Select(x => x.ImplementationType).Where(t => t != null).Distinct();
 
             return ReflectionHelper.GetAllTypesImplementingOpenGenericInterface(openGeneric, allTypes).Distinct();
+        }
+
+        public void RegisterOpenGeneric(Type openGeneric, Assembly assembly)
+        {
+            foreach (var command in ReflectionHelper.GetAllTypesImplementingOpenGenericInterface(typeof(IProcessCommand<,>), assembly))
+                _serviceCollection.AddScoped(openGeneric, command);
         }
     }
 }

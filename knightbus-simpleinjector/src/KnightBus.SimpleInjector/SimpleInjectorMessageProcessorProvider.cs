@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using KnightBus.Core;
 using SimpleInjector;
 using SimpleInjector.Lifestyles;
@@ -37,6 +38,11 @@ namespace KnightBus.SimpleInjector
                 .Select(x => x.Registration.ImplementationType)
                 .Distinct();
             return ReflectionHelper.GetAllTypesImplementingOpenGenericInterface(openGeneric, allTypes).Distinct();
+        }
+
+        public void RegisterOpenGeneric(Type openGeneric, Assembly assembly)
+        {
+            _container.Register(openGeneric, new List<Assembly> { assembly }, Lifestyle.Scoped);
         }
     }
 }

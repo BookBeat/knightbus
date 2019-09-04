@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
@@ -33,27 +34,45 @@ namespace KnightBus.Host
         /// Starts the bus and wires all listeners
         /// </summary>
         /// <returns></returns>
-        public async Task StartAsync()
+        public async Task StartAsync(CancellationToken cancellationToken)
         {
-            if (!_transports.Any()) throw new TransportMissingException("No transports configured");
             ConsoleWriter.WriteLine("KnightBus starting");
-            _locator = new MessageProcessorLocator(_configuration, _transports.SelectMany(transport => transport.TransportChannelFactories).ToArray());
-            var channelReceivers = _locator.Locate().ToList();
-            ConsoleWriter.Write("Starting receivers [");
-            foreach (var queueReader in channelReceivers)
+            if (_transports.Any())
             {
-                await queueReader.StartAsync().ConfigureAwait(false);
-                Console.Write(".");
+                _locator = new MessageProcessorLocator(_configuration, _transports.SelectMany(transport => transport.TransportChannelFactories).ToArray());
+                var channelReceivers = _locator.Locate().ToList();
+                ConsoleWriter.Write("Starting receivers [");
+                foreach (var queueReader in channelReceivers)
+                {
+                    await queueReader.StartAsync().ConfigureAwait(false);
+                    Console.Write(".");
+                }
+                Console.WriteLine("]");
             }
-            Console.WriteLine("]");
+            else
+            {
+                ConsoleWriter.WriteLine("No transports found");
+            }
+            
+            if (_configuration.Plugins.Any())
+            {
+                foreach (var plugin in _configuration.Plugins)
+                {
+                    await plugin.StartAsync(cancellationToken).ConfigureAwait(false);
+                }
+            }
+            else
+            {
+                ConsoleWriter.Write("No plugins found");
+            }
+
             ConsoleWriter.WriteLine("KnightBus started");
         }
 
-        public async Task StartAndBlockAsync()
+        public async Task StartAndBlockAsync(CancellationToken cancellationToken)
         {
-            await StartAsync().ConfigureAwait(false);
-            var token = new CancellationToken();
-            token.WaitHandle.WaitOne();
+            await StartAsync(cancellationToken).ConfigureAwait(false);
+            cancellationToken.WaitHandle.WaitOne();
         }
     }
 }

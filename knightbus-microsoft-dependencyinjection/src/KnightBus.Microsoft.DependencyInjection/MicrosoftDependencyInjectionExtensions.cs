@@ -8,7 +8,7 @@ namespace KnightBus.Microsoft.DependencyInjection
     public static class MicrosoftDependencyInjectionExtensions
     {
         /// <summary>
-        /// Enables SimpleInjector by using <see cref="MicrosoftDependencyInjectionProcessorProvider"/> and adding the <see cref="MicrosoftDependencyInjectionScopedLifeStyleMiddleware"/> enabling scoped per message
+        /// Enables SimpleInjector by using <see cref="MicrosoftDependencyInjectionExtensions"/> and adding the <see cref="MicrosoftDependencyInjectionScopedLifeStyleMiddleware"/> enabling scoped per message
         /// </summary>
         public static IHostConfiguration UseMicrosoftDependencyInjection(this IHostConfiguration configuration, IServiceProvider serviceProvider, IServiceCollection serviceCollection)
         {
