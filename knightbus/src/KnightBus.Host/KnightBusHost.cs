@@ -63,7 +63,7 @@ namespace KnightBus.Host
             }
             else
             {
-                ConsoleWriter.Write("No plugins found");
+                ConsoleWriter.WriteLine("No plugins found");
             }
 
             ConsoleWriter.WriteLine("KnightBus started");
