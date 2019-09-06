@@ -1,12 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Azure.Storage;
-using KnightBus.Azure.Storage.Singleton;
-using KnightBus.Core;
-using KnightBus.Core.Singleton;
 using KnightBus.Host;
 using KnightBus.Schedule;
 using KnightBus.SimpleInjector;
@@ -42,12 +38,12 @@ namespace KnightBus.Examples.Schedule
     {
         public string CronExpression => "0 * * ? * *";
     }
-    public class EveryMinute2 : ISchedule
+    public class EveryMinuteToo : ISchedule
     {
         public string CronExpression => "0 * * ? * *";
     }
 
-    public class MySchedule : IProcessSchedule<EveryMinute>, IProcessSchedule<EveryMinute2>
+    public class MySchedule : IProcessSchedule<EveryMinute>, IProcessSchedule<EveryMinuteToo>
     {
         public Task ProcessAsync(CancellationToken cancellationToken)
         {

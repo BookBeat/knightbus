@@ -9,41 +9,37 @@ namespace KnightBus.Schedule
 {
     internal class JobExecutor<T> : IJob where T : class, ISchedule, new()
     {
+        private readonly IDependencyInjection _dependencyInjection;
+        private readonly ISingletonLockManager _lockManager;
 
         private readonly ILog _logger;
-        private readonly ISingletonLockManager _lockManager;
-        private readonly IDependencyInjection _dependencyInjection;
 
         public JobExecutor(ILog logger, ISingletonLockManager lockManager, IDependencyInjection dependencyInjection)
         {
-
             _logger = logger;
             _lockManager = lockManager;
             _dependencyInjection = dependencyInjection;
         }
 
-        async Task IJob.Execute(IJobExecutionContext context)
+        public async Task Execute(IJobExecutionContext context)
         {
             try
             {
                 var schedule = typeof(T).FullName;
-                var lockHandle = await _lockManager.TryLockAsync(schedule, TimeSpan.FromSeconds(60), CancellationToken.None).ConfigureAwait(false);
+                var lockHandle = await _lockManager
+                    .TryLockAsync(schedule, TimeSpan.FromSeconds(60), CancellationToken.None).ConfigureAwait(false);
 
                 if (lockHandle == null)
-                {
                     //someone else has locked this instance, do nothing
                     return;
-                }
 
                 _logger.Information("Executing schedule {Schedule} {LockHandle}", schedule, lockHandle);
 
                 using (new SingletonTimerScope(_logger, lockHandle, false))
+                using (_dependencyInjection.GetScope())
                 {
-                    using (_dependencyInjection.GetScope())
-                    {
-                        var processor = _dependencyInjection.GetInstance<IProcessSchedule<T>>();
-                        await processor.ProcessAsync(context.CancellationToken).ConfigureAwait(false);
-                    }
+                    var processor = _dependencyInjection.GetInstance<IProcessSchedule<T>>();
+                    await processor.ProcessAsync(context.CancellationToken).ConfigureAwait(false);
                 }
             }
             catch (Exception e)

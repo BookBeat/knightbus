@@ -27,26 +27,26 @@ namespace KnightBus.Schedule
             var log = _configuration.Log;
 
             await lockManager.InitializeAsync().ConfigureAwait(false);
-            var triggerProcessors = dependencyInjection.GetOpenGenericRegistrations(typeof(IProcessSchedule<>)).ToList();
+            var scheduleProcessors = dependencyInjection.GetOpenGenericRegistrations(typeof(IProcessSchedule<>)).ToList();
             var schedulerFactory = new StdSchedulerFactory();
             _scheduler = await schedulerFactory.GetScheduler(cancellationToken).ConfigureAwait(false);
             var jobFactory = new CustomJobFactory();
             _scheduler.JobFactory = jobFactory;
             await _scheduler.Start(cancellationToken).ConfigureAwait(false);
 
-            foreach (var processor in triggerProcessors)
+            foreach (var processor in scheduleProcessors)
             {
                 var processorInterfaces = ReflectionHelper.GetAllInterfacesImplementingOpenGenericInterface(processor, typeof(IProcessSchedule<>));
                 foreach (var processorInterface in processorInterfaces)
                 {
-                    var settingsType = processorInterface.GenericTypeArguments[0];
-                    ConsoleWriter.WriteLine($"Found {processor.Name}<{settingsType.Name}>");
-                    var settings = (ISchedule)Activator.CreateInstance(settingsType);
+                    var scheduleType = processorInterface.GenericTypeArguments[0];
+                    ConsoleWriter.WriteLine($"Found {processor.Name}<{scheduleType.Name}>");
+                    var settings = (ISchedule)Activator.CreateInstance(scheduleType);
                     
 
                     CronExpression.ValidateExpression(settings.CronExpression);
 
-                    var jobType = typeof(JobExecutor<>).MakeGenericType(settingsType);
+                    var jobType = typeof(JobExecutor<>).MakeGenericType(scheduleType);
                     var job = JobBuilder.Create(jobType)
                         .WithIdentity(Guid.NewGuid().ToString())
                         .Build();
@@ -58,7 +58,7 @@ namespace KnightBus.Schedule
                         .StartNow()
                         .Build();
                     
-                    jobFactory.AddJob(settingsType, dependencyInjection, log, lockManager);
+                    jobFactory.AddJob(scheduleType, dependencyInjection, log, lockManager);
                     await _scheduler.ScheduleJob(job, trigger, cancellationToken).ConfigureAwait(false);
                 }
             }

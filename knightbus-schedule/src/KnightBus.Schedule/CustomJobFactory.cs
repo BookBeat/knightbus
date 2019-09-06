@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using KnightBus.Core;
 using KnightBus.Core.Singleton;
 using Quartz;
 using Quartz.Simpl;
 using Quartz.Spi;
 
+[assembly: InternalsVisibleTo("KnightBus.Schedule.Tests.Unit")]
 namespace KnightBus.Schedule
 {
     public class CustomJobFactory : SimpleJobFactory

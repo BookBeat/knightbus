@@ -54,7 +54,7 @@ namespace KnightBus.Core.Tests.Unit
         }
 
         [Test]
-        public async Task Should_Cancel()
+        public void Should_cancel()
         {
             //arrange
             var tokenSource = new CancellationTokenSource();
