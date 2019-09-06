@@ -36,7 +36,7 @@ namespace KnightBus.Redis
             _maxConcurrent = new SemaphoreQueue(settings.MaxConcurrentCalls);
         }
 
-        public virtual async Task StartAsync()
+        public virtual async Task StartAsync(CancellationToken cancellationToken)
         {
             _db = ConnectionMultiplexer.GetDatabase(_redisConfiguration.DatabaseId);
             var sub = ConnectionMultiplexer.GetSubscriber();

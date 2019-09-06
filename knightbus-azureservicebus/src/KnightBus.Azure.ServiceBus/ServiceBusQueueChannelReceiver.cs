@@ -32,7 +32,7 @@ namespace KnightBus.Azure.ServiceBus
             _managementClient = new ManagementClient(configuration.ConnectionString);
         }
 
-        public async Task StartAsync()
+        public async Task StartAsync(CancellationToken cancellationToken)
         {
             _client = await _clientFactory.GetQueueClient<T>().ConfigureAwait(false);
             if (!await _managementClient.QueueExistsAsync(_client.QueueName).ConfigureAwait(false))

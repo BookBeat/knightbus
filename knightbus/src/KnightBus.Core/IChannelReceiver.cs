@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Threading;
+using System.Threading.Tasks;
 
 namespace KnightBus.Core
 {
@@ -7,7 +8,7 @@ namespace KnightBus.Core
     /// </summary>
     public interface IChannelReceiver
     {
-        Task StartAsync();
+        Task StartAsync(CancellationToken cancellationToken);
         IProcessingSettings Settings { get; set; }
     }
 }

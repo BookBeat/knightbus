@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
@@ -44,7 +43,7 @@ namespace KnightBus.Host
                 ConsoleWriter.Write("Starting receivers [");
                 foreach (var queueReader in channelReceivers)
                 {
-                    await queueReader.StartAsync().ConfigureAwait(false);
+                    await queueReader.StartAsync(cancellationToken).ConfigureAwait(false);
                     Console.Write(".");
                 }
                 Console.WriteLine("]");

@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Threading;
+using System.Threading.Tasks;
 using KnightBus.Core;
 using KnightBus.Messages;
 using KnightBus.Redis.Messages;
@@ -19,12 +20,12 @@ namespace KnightBus.Redis
             _redisConfiguration = configuration;
         }
 
-        public override async Task StartAsync()
+        public override async Task StartAsync(CancellationToken cancellationToken)
         {
             var db = ConnectionMultiplexer.GetDatabase(_redisConfiguration.DatabaseId);
             await db.SetAddAsync(RedisQueueConventions.GetSubscriptionKey(AutoMessageMapper.GetQueueName<T>()), _subscription.Name).ConfigureAwait(false);
 
-            await base.StartAsync().ConfigureAwait(false);
+            await base.StartAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 }
