@@ -34,7 +34,7 @@ namespace KnightBus.Azure.Storage
         public async Task StartAsync(CancellationToken cancellationToken)
         {
             await Initialize().ConfigureAwait(false);
-            await _messagePump.StartAsync<T>(Handle).ConfigureAwait(false);
+            await _messagePump.StartAsync<T>(Handle, cancellationToken).ConfigureAwait(false);
         }
 
         private async Task Initialize()

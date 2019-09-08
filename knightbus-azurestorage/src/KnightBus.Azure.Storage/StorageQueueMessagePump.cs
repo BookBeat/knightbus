@@ -24,15 +24,15 @@ namespace KnightBus.Azure.Storage
             _maxConcurrent = new SemaphoreSlim(_settings.MaxConcurrentCalls);
         }
 
-        public Task StartAsync<T>(Func<StorageQueueMessage, CancellationToken, Task> action) where T : IStorageQueueCommand
+        public Task StartAsync<T>(Func<StorageQueueMessage, CancellationToken, Task> action, CancellationToken cancellationToken) where T : IStorageQueueCommand
         {
             _runningTask = Task.Run(async () =>
             {
-                while (true)
+                while (!cancellationToken.IsCancellationRequested)
                 {
                     await PumpAsync<T>(action).ConfigureAwait(false);
                 }
-            });
+            }, cancellationToken);
             return Task.CompletedTask;
         }
 
