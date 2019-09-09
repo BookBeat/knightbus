@@ -20,16 +20,16 @@ namespace KnightBus.Host.Tests.Unit
             var lockManager = new Mock<ISingletonLockManager>();
             lockManager.SetupSequence(x => x.TryLockAsync(It.IsAny<string>(), TimeSpan.FromSeconds(60), CancellationToken.None))
                 .ReturnsAsync(Mock.Of<ISingletonLockHandle>())
-                .ReturnsAsync(null);
+                .ReturnsAsync((ISingletonLockHandle) null);
             var underlyingReader = new Mock<IChannelReceiver>();
             underlyingReader.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);
-            var singletonStarter = new SingletonChannelReceiver(underlyingReader.Object, lockManager.Object, Mock.Of<ILog>()) { TimerIntervalMs = 1000 };
+            var singletonChannelReceiver = new SingletonChannelReceiver(underlyingReader.Object, lockManager.Object, Mock.Of<ILog>()) { TimerIntervalMs = 1000 };
             //act
-            await singletonStarter.StartAsync();
-            await singletonStarter.StartAsync();
+            await singletonChannelReceiver.StartAsync(CancellationToken.None);
+            await singletonChannelReceiver.StartAsync(CancellationToken.None);
             await Task.Delay(1001);
             //assert
-            underlyingReader.Verify(x => x.StartAsync(), Times.Once);
+            underlyingReader.Verify(x => x.StartAsync(CancellationToken.None), Times.Once);
         }
 
         [Test]
@@ -39,17 +39,17 @@ namespace KnightBus.Host.Tests.Unit
             var lockManager = new Mock<ISingletonLockManager>();
             lockManager.SetupSequence(x => x.TryLockAsync(It.IsAny<string>(), TimeSpan.FromSeconds(60), CancellationToken.None))
                 .ReturnsAsync(Mock.Of<ISingletonLockHandle>())
-                .ReturnsAsync(null)
+                .ReturnsAsync((ISingletonLockHandle) null)
                 .ReturnsAsync(Mock.Of<ISingletonLockHandle>());
             var underlyingReader = new Mock<IChannelReceiver>();
             underlyingReader.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);
-            var singletonStarter = new SingletonChannelReceiver(underlyingReader.Object, lockManager.Object, Mock.Of<ILog>()) { TimerIntervalMs = 1000 };
+            var singletonChannelReceiver = new SingletonChannelReceiver(underlyingReader.Object, lockManager.Object, Mock.Of<ILog>()) { TimerIntervalMs = 1000 };
             //act
-            await singletonStarter.StartAsync();
-            await singletonStarter.StartAsync();
+            await singletonChannelReceiver.StartAsync(CancellationToken.None);
+            await singletonChannelReceiver.StartAsync(CancellationToken.None);
             await Task.Delay(1500);
             //assert
-            underlyingReader.Verify(x => x.StartAsync(), Times.Exactly(2));
+            underlyingReader.Verify(x => x.StartAsync(CancellationToken.None), Times.Exactly(2));
         }
 
         [Test]
@@ -60,12 +60,12 @@ namespace KnightBus.Host.Tests.Unit
             var underlyingReader = new Mock<IChannelReceiver>();
             underlyingReader.Setup(x => x.Settings).Returns(new SingletonHorrificSettings());
             //act
-            var singletonStarter = new SingletonChannelReceiver(underlyingReader.Object, lockManager.Object, Mock.Of<ILog>()) { TimerIntervalMs = 1000 };
+            var starter = new SingletonChannelReceiver(underlyingReader.Object, lockManager.Object, Mock.Of<ILog>()) { TimerIntervalMs = 1000 };
             //assert
-            singletonStarter.Settings.PrefetchCount.Should().Be(0);
-            singletonStarter.Settings.MaxConcurrentCalls.Should().Be(1);
-            singletonStarter.Settings.MessageLockTimeout.Should().Be(TimeSpan.MaxValue);
-            singletonStarter.Settings.DeadLetterDeliveryLimit.Should().Be(1);
+            starter.Settings.PrefetchCount.Should().Be(0);
+            starter.Settings.MaxConcurrentCalls.Should().Be(1);
+            starter.Settings.MessageLockTimeout.Should().Be(TimeSpan.MaxValue);
+            starter.Settings.DeadLetterDeliveryLimit.Should().Be(1);
         }
 
         public class SingletonHorrificSettings : IProcessingSettings

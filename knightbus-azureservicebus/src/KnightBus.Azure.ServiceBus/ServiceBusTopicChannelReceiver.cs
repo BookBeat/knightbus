@@ -33,7 +33,7 @@ namespace KnightBus.Azure.ServiceBus
             _clientFactory = new ClientFactory(configuration.ConnectionString);
         }
 
-        public async Task StartAsync()
+        public async Task StartAsync(CancellationToken cancellationToken)
         {
             _client = await _clientFactory.GetSubscriptionClient<TTopic, IEventSubscription<TTopic>>(_subscription).ConfigureAwait(false);
 

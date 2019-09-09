@@ -2,7 +2,6 @@
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
@@ -40,7 +39,7 @@ namespace KnightBus.Examples.Redis
                     //Enable the saga store
                     .UseRedisSagaStore(multiplexer, new RedisConfiguration(redisConnection))
                     //Register our message processors without IoC using the standard provider
-                    .UseMessageProcessorProvider(new StandardMessageProcessorProvider()
+                    .UseDependencyInjection(new StandardDependecyInjection()
                         .RegisterProcessor(new SampleRedisMessageProcessor())
                         .RegisterProcessor(new SampleRedisAttachmentProcessor())
                         .RegisterProcessor(new RedisEventProcessor())
@@ -52,7 +51,7 @@ namespace KnightBus.Examples.Redis
                 );
 
             //Start the KnightBus Host, it will now connect to the Redis and listen
-            await knightBusHost.StartAsync();
+            await knightBusHost.StartAsync(CancellationToken.None);
 
             //Start the saga
             await client.SendAsync(new SampleRedisSagaStarterCommand());

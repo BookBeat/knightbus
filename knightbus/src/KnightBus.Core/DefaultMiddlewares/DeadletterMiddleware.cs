@@ -11,7 +11,7 @@ namespace KnightBus.Core.DefaultMiddlewares
         {
             if (messageStateHandler.DeliveryCount > messageStateHandler.DeadLetterDeliveryLimit)
             {
-                var processor = pipelineInformation.HostConfiguration.MessageProcessorProvider.GetProcessor<T>(pipelineInformation.ProcessorInterfaceType);
+                var processor = pipelineInformation.HostConfiguration.DependencyInjection.GetInstance<IProcessMessage<T>>(pipelineInformation.ProcessorInterfaceType);
                 if (processor is IProcessBeforeDeadLetter<T> deadletterProcessor)
                 {
                     var message = await messageStateHandler.GetMessageAsync().ConfigureAwait(false);

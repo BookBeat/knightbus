@@ -28,7 +28,7 @@ namespace KnightBus.Core.Tests.Unit
         }
 
         [Test]
-        public async Task Should_release_throttle_when_cancellation_token_cancelled()
+        public void Should_release_throttle_when_cancellation_token_cancelled()
         {
             //arrange
             var nextProcessor = new Mock<IMessageProcessor>();

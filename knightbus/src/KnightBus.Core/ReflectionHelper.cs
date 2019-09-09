@@ -14,13 +14,7 @@ namespace KnightBus.Core
         }
         public static IEnumerable<Type> GetAllTypesImplementingOpenGenericInterface(Type openGenericType, Assembly[] assemblies)
         {
-            foreach (var assembly in assemblies)
-            {
-                foreach (var type in GetAllTypesImplementingOpenGenericInterface(openGenericType, assembly))
-                {
-                    yield return type;
-                }
-            }
+            return assemblies.SelectMany(assembly => GetAllTypesImplementingOpenGenericInterface(openGenericType, assembly));
         }
 
         public static IEnumerable<Type> GetAllTypesImplementingOpenGenericInterface(Type openGenericType, Assembly assembly)
@@ -46,6 +40,34 @@ namespace KnightBus.Core
                         type.IsClass && !type.IsAbstract)
                    select type;
 
+        }
+
+        public static IEnumerable<Type> GetAllTypesImplementingInterface(Type targetInterface, Assembly[] assemblies)
+        {
+            return assemblies.SelectMany(assembly => GetAllTypesImplementingInterface(targetInterface, assembly));
+        }
+
+        public static IEnumerable<Type> GetAllTypesImplementingInterface(Type targetInterface, Assembly assembly)
+        {
+            try
+            {
+                return GetAllTypesImplementingInterface(targetInterface, assembly.GetTypes());
+            }
+            catch (ReflectionTypeLoadException)
+            {
+                //It's expected to not being able to load all assemblies
+                return new List<Type>();
+            }
+        }
+        public static IEnumerable<Type> GetAllTypesImplementingInterface(Type targetInterface, IEnumerable<Type> types)
+        {
+
+            return from type in types
+                from interfaceType in type.GetInterfaces()
+                where
+                    (targetInterface.IsAssignableFrom(interfaceType) &&
+                     type.IsClass && !type.IsAbstract)
+                select type;
         }
     }
 }

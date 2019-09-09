@@ -15,14 +15,20 @@ namespace KnightBus.Core
             return configuration;
         }
 
+        public static IHostConfiguration AddPlugin(this IHostConfiguration configuration, IPlugin plugin)
+        {
+            configuration.Plugins.Add(plugin);
+            return configuration;
+        }
+
         public static IHostConfiguration UseSingletonLocks(this IHostConfiguration configuration, ISingletonLockManager lockManager)
         {
             configuration.SingletonLockManager = lockManager;
             return configuration;
         }
-        public static IHostConfiguration UseMessageProcessorProvider(this IHostConfiguration configuration, IMessageProcessorProvider provider)
+        public static IHostConfiguration UseDependencyInjection(this IHostConfiguration configuration, IDependencyInjection provider)
         {
-            configuration.MessageProcessorProvider = provider;
+            configuration.DependencyInjection = provider;
             return configuration;
         }
     }

@@ -1,8 +1,8 @@
 using System;
 
-namespace KnightBus.Host
+namespace KnightBus.Core
 {
-    internal class ConsoleWriter
+    public static class ConsoleWriter
     {
         public static void WriteLine(string s)
         {

@@ -19,7 +19,7 @@ namespace KnightBus.Core.Sagas
         {
             //Is this a saga
 
-            var processor = pipelineInformation.HostConfiguration.MessageProcessorProvider.GetProcessor<T>(pipelineInformation.ProcessorInterfaceType);
+            var processor = pipelineInformation.HostConfiguration.DependencyInjection.GetInstance<IProcessMessage<T>>(pipelineInformation.ProcessorInterfaceType);
 
             if (processor is ISaga saga)
             {

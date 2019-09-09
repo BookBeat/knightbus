@@ -65,7 +65,7 @@ namespace KnightBus.Redis
                     .ConfigureAwait(false);
                 return true;
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 return false;
             }

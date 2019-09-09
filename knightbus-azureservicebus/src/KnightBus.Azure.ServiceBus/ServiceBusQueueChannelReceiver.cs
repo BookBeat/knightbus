@@ -32,16 +32,16 @@ namespace KnightBus.Azure.ServiceBus
             _managementClient = new ManagementClient(configuration.ConnectionString);
         }
 
-        public async Task StartAsync()
+        public async Task StartAsync(CancellationToken cancellationToken)
         {
             _client = await _clientFactory.GetQueueClient<T>().ConfigureAwait(false);
-            if (!await _managementClient.QueueExistsAsync(_client.QueueName).ConfigureAwait(false))
+            if (!await _managementClient.QueueExistsAsync(_client.QueueName, cancellationToken).ConfigureAwait(false))
             {
                 await _managementClient.CreateQueueAsync(new QueueDescription(_client.Path)
                 {
                     EnableBatchedOperations = _configuration.CreationOptions.EnableBatchedOperations,
                     EnablePartitioning = _configuration.CreationOptions.EnablePartitioning,
-                }).ConfigureAwait(false);
+                }, cancellationToken).ConfigureAwait(false);
             }
             _deadLetterLimit = Settings.DeadLetterDeliveryLimit;
             _client.PrefetchCount = Settings.PrefetchCount;

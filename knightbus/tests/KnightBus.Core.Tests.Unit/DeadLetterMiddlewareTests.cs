@@ -16,7 +16,7 @@ namespace KnightBus.Core.Tests.Unit
             //arrange
             var pipeline = new Mock<IPipelineInformation>();
             var hostConfiguration = new Mock<IHostConfiguration>();
-            hostConfiguration.Setup(x => x.MessageProcessorProvider).Returns(Mock.Of<IMessageProcessorProvider>());
+            hostConfiguration.Setup(x => x.DependencyInjection).Returns(Mock.Of<IDependencyInjection>());
             pipeline.Setup(x => x.HostConfiguration).Returns(hostConfiguration.Object);
             var nextProcessor = new Mock<IMessageProcessor>();
             var messageStateHandler = new Mock<IMessageStateHandler<TestCommand>>();
@@ -35,7 +35,7 @@ namespace KnightBus.Core.Tests.Unit
             //arrange
             var pipeline = new Mock<IPipelineInformation>();
             var hostConfiguration = new Mock<IHostConfiguration>();
-            hostConfiguration.Setup(x => x.MessageProcessorProvider).Returns(Mock.Of<IMessageProcessorProvider>());
+            hostConfiguration.Setup(x => x.DependencyInjection).Returns(Mock.Of<IDependencyInjection>());
             pipeline.Setup(x => x.HostConfiguration).Returns(hostConfiguration.Object);
             var nextProcessor = new Mock<IMessageProcessor>();
             var messageStateHandler = new Mock<IMessageStateHandler<TestCommand>>();
@@ -70,12 +70,12 @@ namespace KnightBus.Core.Tests.Unit
             var countable = new Mock<ICountable>();
             var processor = new DeadLetterTestProcessor(countable.Object);
 
-            var messageProcessorProvider = new Mock<IMessageProcessorProvider>();
-            messageProcessorProvider.Setup(x => x.GetProcessor<TestCommand>(It.IsAny<Type>())).Returns(processor);
+            var di = new Mock<IDependencyInjection>();
+            di.Setup(x => x.GetInstance<IProcessMessage<TestCommand>>(It.IsAny<Type>())).Returns(processor);
 
             var hostConfiguration = new Mock<IHostConfiguration>();
             hostConfiguration.Setup(x => x.Log).Returns(Mock.Of<ILog>());
-            hostConfiguration.Setup(x => x.MessageProcessorProvider).Returns(messageProcessorProvider.Object);
+            hostConfiguration.Setup(x => x.DependencyInjection).Returns(di.Object);
 
             var pipeline = new Mock<IPipelineInformation>();
             pipeline.Setup(x => x.HostConfiguration).Returns(hostConfiguration.Object);
