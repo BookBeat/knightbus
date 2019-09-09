@@ -28,6 +28,7 @@
 | [KnightBus.Microsoft.DependencyInjection](https://www.nuget.org/packages/KnightBus.Microsoft.DependencyInjection/) | [![KnightBus.Microsoft.DependencyInjection](https://img.shields.io/nuget/v/KnightBus.Microsoft.DependencyInjection.svg)](https://www.nuget.org/packages/KnightBus.Microsoft.DependencyInjection/) |
 | [KnightBus.ApplicationInsights](https://www.nuget.org/packages/KnightBus.ApplicationInsights/) | [![KnightBus.ApplicationInsights](https://img.shields.io/nuget/v/KnightBus.ApplicationInsights.svg)](https://www.nuget.org/packages/KnightBus.ApplicationInsights/) |
 | [KnightBus.SqlServer](https://www.nuget.org/packages/KnightBus.SqlServer/) | [![KnightBus.SqlServer](https://img.shields.io/nuget/v/KnightBus.SqlServer.svg)](https://www.nuget.org/packages/KnightBus.SqlServer/) |
+| [KnightBus.Schedule](https://www.nuget.org/packages/KnightBus.Schedule/) | [![KnightBus.Schedule](https://img.shields.io/nuget/v/KnightBus.Schedule.svg)](https://www.nuget.org/packages/KnightBus.Schedule/) |
 
 ## Message Processing
 ```csharp
