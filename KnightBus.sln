@@ -55,6 +55,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.SqlServer.Tests.I
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Schedule", "knightbus-schedule\src\KnightBus.Schedule\KnightBus.Schedule.csproj", "{7581A813-255D-4B0F-B6FC-B759523780A5}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.ApplicationInsights", "knightbus-applicationinsights\src\KnightBus.ApplicationInsights\KnightBus.ApplicationInsights.csproj", "{2B1B4AE9-18FF-4D79-92BB-C337EC665974}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Examples.Schedule", "knightbus\examples\KnightBus.Examples.Schedule\KnightBus.Examples.Schedule.csproj", "{3BB50500-1F7C-44B0-9310-A5B1EE0A1E44}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.Schedule.Tests.Unit", "knightbus-schedule\tests\KnightBus.Schedule.Tests.Unit\KnightBus.Schedule.Tests.Unit.csproj", "{35C6CE61-34EC-4854-AD37-994A9454C6B9}"
@@ -149,6 +151,10 @@ Global
 		{7581A813-255D-4B0F-B6FC-B759523780A5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7581A813-255D-4B0F-B6FC-B759523780A5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7581A813-255D-4B0F-B6FC-B759523780A5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2B1B4AE9-18FF-4D79-92BB-C337EC665974}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2B1B4AE9-18FF-4D79-92BB-C337EC665974}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2B1B4AE9-18FF-4D79-92BB-C337EC665974}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2B1B4AE9-18FF-4D79-92BB-C337EC665974}.Release|Any CPU.Build.0 = Release|Any CPU
 		{3BB50500-1F7C-44B0-9310-A5B1EE0A1E44}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{3BB50500-1F7C-44B0-9310-A5B1EE0A1E44}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3BB50500-1F7C-44B0-9310-A5B1EE0A1E44}.Release|Any CPU.ActiveCfg = Release|Any CPU

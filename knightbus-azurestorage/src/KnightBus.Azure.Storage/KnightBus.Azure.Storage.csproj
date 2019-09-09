@@ -6,7 +6,6 @@
     <Authors>BookBeat</Authors>
     <Description>Azure Storage Transport for KnightBus</Description>
     <Copyright>Copyright © BookBeat 2018</Copyright>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://knightbus.readthedocs.io</PackageProjectUrl>
     <PackageIconUrl>https://raw.githubusercontent.com/BookBeat/knightbus-documentation/master/media/images/knighbus-64.png</PackageIconUrl>
     <RepositoryUrl>https://github.com/BookBeat/knightbus</RepositoryUrl>
