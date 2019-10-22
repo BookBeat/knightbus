@@ -43,6 +43,7 @@ namespace KnightBus.Azure.Storage.Tests.Unit
             Task Function(StorageQueueMessage a, CancellationToken b) => Task.FromResult(invocations++);
             //act
             await pump.PumpAsync<LongRunningTestCommand>(Function);
+            await Task.Delay(100);
             //assert
             invocations.Should().Be(10);
         }
@@ -73,6 +74,7 @@ namespace KnightBus.Azure.Storage.Tests.Unit
             };
             //act
             await pump.PumpAsync<LongRunningTestCommand>(function);
+            await Task.Delay(100);
             //assert
             invokations.Should().Be(10);
         }
@@ -91,13 +93,13 @@ namespace KnightBus.Azure.Storage.Tests.Unit
             };
 
 
-            _clientMock.Setup(x => x.GetMessagesAsync<LongRunningTestCommand>(1, It.IsAny<TimeSpan?>()))
-                .ReturnsAsync(messages);
+            _clientMock.Setup(x => x.GetMessagesAsync<LongRunningTestCommand>(1, It.IsAny<TimeSpan?>())).ReturnsAsync(messages);
             var pump = new StorageQueueMessagePump(_clientMock.Object, settings, Mock.Of<ILog>());
             var invokations = 0;
             Func<StorageQueueMessage, CancellationToken, Task> function = (a,b) => Task.FromResult(invokations++);
             //act
             await pump.PumpAsync<LongRunningTestCommand>(function);
+            await Task.Delay(100);
             //assert
             invokations.Should().Be(1);
         }
