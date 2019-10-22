@@ -64,11 +64,11 @@ namespace KnightBus.Azure.Storage
                         _log.Debug(operationCanceledException, "Operation canceled for {@Message} in {QueueName} in {Name}", message, queueName, nameof(StorageQueueMessagePump));
 
                         //If we are still waiting when the message has not been scheduled for execution timeouts
-                        _maxConcurrent.Release();
+                        
                         continue;
                     }
 #pragma warning disable 4014 //No need to await the result, let's keep the pump going
-                    action.Invoke(message, cts.Token).ContinueWith(task => _maxConcurrent.Release());
+                    Task.Run(()=> action.Invoke(message, cts.Token), cts.Token).ContinueWith(task => _maxConcurrent.Release());
 #pragma warning restore 4014
                 }
             }
