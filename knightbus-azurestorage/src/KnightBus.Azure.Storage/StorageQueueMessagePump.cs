@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Azure.Storage.Messages;
@@ -13,7 +14,7 @@ namespace KnightBus.Azure.Storage
         private readonly IProcessingSettings _settings;
         private readonly ILog _log;
         private readonly TimeSpan _pollingInterval = TimeSpan.FromMilliseconds(5000);
-        private readonly SemaphoreSlim _maxConcurrent;
+        internal readonly SemaphoreSlim _maxConcurrent;
         private Task _runningTask;
 
         public StorageQueueMessagePump(IStorageQueueClient storageQueueClient, IProcessingSettings settings, ILog log)
@@ -68,7 +69,7 @@ namespace KnightBus.Azure.Storage
                         continue;
                     }
 #pragma warning disable 4014 //No need to await the result, let's keep the pump going
-                    Task.Run(()=> action.Invoke(message, cts.Token), cts.Token).ContinueWith(task => _maxConcurrent.Release()).ConfigureAwait(false);
+                    Task.Run(async () => await action.Invoke(message, cts.Token).ConfigureAwait(false), cts.Token).ContinueWith(task => _maxConcurrent.Release()).ConfigureAwait(false);
 #pragma warning restore 4014
                 }
             }
