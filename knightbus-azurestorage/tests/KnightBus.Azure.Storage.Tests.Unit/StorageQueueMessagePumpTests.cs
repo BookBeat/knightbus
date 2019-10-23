@@ -172,7 +172,7 @@ namespace KnightBus.Azure.Storage.Tests.Unit
         }
 
         [Test]
-        public async Task Should_release_semaphore_when_message_lock_timeout_expired()
+        public async Task Should_release_semaphore_when_message_lock_timeout_expires()
         {
             //arrange
             var settings = new TestMessageSettings
