@@ -120,7 +120,6 @@ namespace KnightBus.Azure.Storage.Tests.Unit
                 messages.Add(new StorageQueueMessage(new LongRunningTestCommand { Message = i.ToString() }));
             }
 
-
             _clientMock.Setup(x => x.GetMessagesAsync<LongRunningTestCommand>(20, It.IsAny<TimeSpan?>()))
                 .ReturnsAsync(messages);
             var pump = new StorageQueueMessagePump(_clientMock.Object, settings, Mock.Of<ILog>());
@@ -170,6 +169,48 @@ namespace KnightBus.Azure.Storage.Tests.Unit
             await Task.Delay(100);
             //assert
             pump._maxConcurrent.CurrentCount.Should().Be(0);
+        }
+
+        [Test]
+        public async Task Should_release_semaphore_when_when_message_lock_timeout_expired()
+        {
+            //arrange
+            var settings = new TestMessageSettings
+            {
+                DeadLetterDeliveryLimit = 1,
+                PrefetchCount = 1,
+                MaxConcurrentCalls = 1,
+                MessageLockTimeout = TimeSpan.FromMilliseconds(50)
+            };
+            var messageCount = 1;
+            var messages = new List<StorageQueueMessage>();
+            for (var i = 0; i < messageCount; i++)
+            {
+                messages.Add(new StorageQueueMessage(new LongRunningTestCommand { Message = i.ToString() }));
+            }
+
+            _clientMock.Setup(x => x.GetMessagesAsync<LongRunningTestCommand>(messageCount, It.IsAny<TimeSpan?>()))
+                .ReturnsAsync(messages);
+            var countable = new Mock<ICountable>();
+            var pump = new StorageQueueMessagePump(_clientMock.Object, settings, Mock.Of<ILog>());
+            async Task Function(StorageQueueMessage a, CancellationToken b)
+            {
+                await Task.Delay(100, b);
+                countable.Object.Count();
+            }
+            //act
+#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
+            pump.PumpAsync<LongRunningTestCommand>(Function);
+#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
+            await Task.Delay(150);
+            //assert
+            pump._maxConcurrent.CurrentCount.Should().Be(1);
+            countable.Verify(x => x.Count(), Times.Never);
+        }
+
+        public interface ICountable
+        {
+            void Count();
         }
     }
 }
