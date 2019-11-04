@@ -45,7 +45,18 @@ namespace KnightBus.Azure.Storage
                 var queueName = AutoMessageMapper.GetQueueName<T>();
 
                 var prefetchCount = _settings.PrefetchCount > 0 ? _settings.PrefetchCount : 1;
-                var messages = await _storageQueueClient.GetMessagesAsync<T>(prefetchCount, _settings.MessageLockTimeout).ConfigureAwait(false);
+
+                TimeSpan visibilityTimeout;
+                if (_settings is IExtendMessageLockTimeout extendMessageLockTimeout)
+                {
+                    visibilityTimeout = extendMessageLockTimeout.ExtensionDuration;
+                }
+                else
+                {
+                    visibilityTimeout = _settings.MessageLockTimeout;
+                }
+
+                var messages = await _storageQueueClient.GetMessagesAsync<T>(prefetchCount, visibilityTimeout).ConfigureAwait(false);
                 messagesFound = messages.Any();
 
                 _log.Debug("Prefetched {MessageCount} messages from {QueueName} in {Name}", messages.Count, queueName, nameof(StorageQueueMessagePump));

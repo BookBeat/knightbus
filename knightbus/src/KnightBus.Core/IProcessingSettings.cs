@@ -24,4 +24,17 @@ namespace KnightBus.Core
         int DeadLetterDeliveryLimit { get; }
 
     }
+
+    public interface IExtendMessageLockTimeout
+    {
+        /// <summary>
+        /// How long should the message be extended for
+        /// </summary>
+        TimeSpan ExtensionDuration { get; }
+
+        /// <summary>
+        /// How often should we renew the lock
+        /// </summary>
+        TimeSpan ExtensionInterval { get; }
+    }
 }
