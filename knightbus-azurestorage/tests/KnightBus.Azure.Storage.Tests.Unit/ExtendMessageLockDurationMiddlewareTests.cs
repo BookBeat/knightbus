@@ -13,6 +13,33 @@ namespace KnightBus.Azure.Storage.Tests.Unit
     public class ExtendMessageLockDurationMiddlewareTests
     {
         [Test]
+        public async Task Should_allow_regular_processing_settings_to_bypass_the_renewal()
+        {
+            //arrange
+            var pipeline = new MyPipeline
+            {
+                ProcessingSettings = new Mock<IProcessingSettings>().Object,
+                HostConfiguration = new Mock<IHostConfiguration>().Object
+            };
+
+            var middleware = new ExtendMessageLockDurationMiddleware();
+            var storageQueueClient = new Mock<IStorageQueueClient>();
+            var message = new StorageQueueMessage();
+            var storageQueueMessageStateHandler = new StorageQueueMessageStateHandler<MyMessage>(storageQueueClient.Object, message, 0);
+
+            var next = new Mock<IMessageProcessor>();
+            next.Setup(x => x.ProcessAsync(It.IsAny<IMessageStateHandler<MyMessage>>(), It.IsAny<CancellationToken>()))
+                .Returns(() => Task.Delay(2000));
+            
+            //act
+            await middleware.ProcessAsync(storageQueueMessageStateHandler, pipeline, next.Object, CancellationToken.None);
+
+            //assert
+            storageQueueClient.Verify(x => x.ExtendVisibilityTimeout(It.IsAny<StorageQueueMessage>(), TimeSpan.FromMilliseconds(1000), It.IsAny<CancellationToken>()), Times.Never);
+            next.Verify(x=> x.ProcessAsync(storageQueueMessageStateHandler, It.IsAny<CancellationToken>()));
+        }
+
+        [Test]
         public async Task Should_renew_lock()
         {
             //arrange
@@ -31,8 +58,7 @@ namespace KnightBus.Azure.Storage.Tests.Unit
 
             var next = new Mock<IMessageProcessor>();
             next.Setup(x => x.ProcessAsync(It.IsAny<IMessageStateHandler<MyMessage>>(), It.IsAny<CancellationToken>()))
-                .Returns(
-                    () => Task.Delay(2000));
+                .Returns(() => Task.Delay(2000));
             //act
 
             await middleware.ProcessAsync(storageQueueMessageStateHandler, pipeline, next.Object, CancellationToken.None);
@@ -61,8 +87,7 @@ namespace KnightBus.Azure.Storage.Tests.Unit
 
             var next = new Mock<IMessageProcessor>();
             next.Setup(x => x.ProcessAsync(It.IsAny<IMessageStateHandler<MyMessage>>(), It.IsAny<CancellationToken>()))
-                .Returns(
-                    () => Task.Delay(2000));
+                .Returns(() => Task.Delay(2000));
             //act
 
             await middleware.ProcessAsync(storageQueueMessageStateHandler, pipeline, next.Object, new CancellationTokenSource(settings.MessageLockTimeout).Token);
