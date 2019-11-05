@@ -91,6 +91,7 @@ namespace KnightBus.Azure.Storage
             var cloudQueueMessage = new CloudQueueMessage(message.QueueMessageId, message.PopReceipt);
             cloudQueueMessage.SetMessageContent(_serializer.Serialize(message.Properties));
             await _queue.UpdateMessageAsync(cloudQueueMessage, visibilityTimeout.Value, MessageUpdateFields.Content | MessageUpdateFields.Visibility).ConfigureAwait(false);
+            message.PopReceipt = cloudQueueMessage.PopReceipt;
         }
 
         public async Task SendAsync<T>(T message, TimeSpan? delay) where T : IStorageQueueCommand
@@ -191,6 +192,7 @@ namespace KnightBus.Azure.Storage
         {
             var cloudQueueMessage = new CloudQueueMessage(message.QueueMessageId, message.PopReceipt);
             await _queue.UpdateMessageAsync(cloudQueueMessage, timeToExtend, MessageUpdateFields.Visibility, null, null, cancellationToken).ConfigureAwait(false);
+            message.PopReceipt = cloudQueueMessage.PopReceipt;
         }
 
         
