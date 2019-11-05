@@ -22,6 +22,7 @@ Optional Included Middlewares
 
 * ThrottlingMiddleware - Allows throttling number of concurrent messages.
 * AttachmentMiddleware - Enables the use of message attachments.
+* ExtendMessageLockDurationMiddleware - Enables automatic message lock extension. Useful for very long running messages where you don't want to take an extremly long lock directly on the transport. Currently only works with Azure Storage Queues. Enable by having your ProcessingSetting implement `IExtendMessageLockTimeout`.
 
 
 Pipeline
