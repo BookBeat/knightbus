@@ -41,6 +41,10 @@ namespace KnightBus.Core.DefaultMiddlewares
                     if (cancellationToken.IsCancellationRequested) return;
                     await lockHandler.SetLockDuration(duration, cancellationToken).ConfigureAwait(false);
                 }
+                catch (TaskCanceledException)
+                {
+                    // this is anticipated when the timeout ends, if we are done with the message
+                }
                 catch (Exception e)
                 {
                     log.Error(e, $"Failed to renew lock for {typeof(T).FullName}");
