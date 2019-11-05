@@ -30,3 +30,12 @@ _ReSharper*/
 .vs/
 #Nuget packages folder
 packages/
+
+# Ignore IDE folders
+.vscode/
+
+# Ignore documentation build output generated VSCode
+_build/
+
+# Ignore documentation built locally
+build/
