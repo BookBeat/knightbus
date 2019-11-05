@@ -1,7 +1,7 @@
 # KnightBus
 
-[![Build status](https://ci.appveyor.com/api/projects/status/6kut5wktspt8nhf5/branch/master?svg=true)](https://ci.appveyor.com/project/NiklasArbin/knightbus/branch/master) 
-[![NuGet](https://img.shields.io/nuget/v/KnightBus.Core.svg)](https://www.nuget.org/packages/KnightBus.Core/) 
+[![Build status](https://ci.appveyor.com/api/projects/status/6kut5wktspt8nhf5/branch/master?svg=true)](https://ci.appveyor.com/project/NiklasArbin/knightbus/branch/master)
+[![NuGet](https://img.shields.io/nuget/v/KnightBus.Core.svg)](https://www.nuget.org/packages/KnightBus.Core/)
 [![Documentation Status](https://readthedocs.org/projects/knightbus/badge/?version=latest)](https://knightbus.readthedocs.io/en/latest/?badge=latest)
 
 ## KnightBus is a fast, lightweight and extensible messaging framework that supports multiple active message transports
@@ -12,7 +12,7 @@
 <img src="https://raw.githubusercontent.com/BookBeat/knightbus-documentation/master/media/images/knightbus-logo.png" alt="KnightBus Logo" width="300"/>
 
 
-| Package | NuGet        | 
+| Package | NuGet        |
 | ------- | ------------ |
 | [KnightBus.Host](https://www.nuget.org/packages/KnightBus.Host/) | [![KnightBus.Host](https://img.shields.io/nuget/v/KnightBus.Host.svg)](https://www.nuget.org/packages/KnightBus.Host/) |
 | [KnightBus.Core](https://www.nuget.org/packages/KnightBus.Core/) | [![KnightBus.Core](https://img.shields.io/nuget/v/KnightBus.Core.svg)](https://www.nuget.org/packages/KnightBus.Core/) |
@@ -74,7 +74,7 @@ class Program
 
 ## Bring your own Middleware
 
-KnightBus supports inserting your own middleware into the execution pipeline. 
+KnightBus supports inserting your own middleware into the execution pipeline.
 
 ```csharp
 public class CustomThrottlingMiddleware : IMessageProcessorMiddleware
@@ -101,4 +101,19 @@ public class CustomThrottlingMiddleware : IMessageProcessorMiddleware
     }
 ```
 
+## Documentation
 
+To get documentation up and running locally, do the following.
+
+1. Install `sphinx`: https://www.sphinx-doc.org
+
+    **NOTE:** On Linux only `apt install python-sphinx` works with the theme, not `python3-sphinx`
+2. Install `sphinx_rtd_theme`: https://github.com/readthedocs/sphinx_rtd_theme
+
+    ```console
+    $ apt install python-pip
+    $ pip install sphinx-rtd-theme
+    ```
+
+3. Run `make html source build` in the documentation folder
+4. Open `documentation/build/html/index.html` in a browser to preview your changes

@@ -14,7 +14,7 @@ Setup KnightBus for Sagas by registering it in the host:
     var knightBusHost = new KnightBusHost()
     //Enable the StorageBus Transport
     .UseTransport(new StorageTransport(storageConnection)
-    .Configure(configuration => configuration        
+    .Configure(configuration => configuration
         //Register our message processors without IoC using the standard provider
         .UseMessageProcessorProvider(new StandardMessageProcessorProvider()
             .RegisterProcessor(new SampleSagaMessageProcessor(client))
@@ -22,7 +22,7 @@ Setup KnightBus for Sagas by registering it in the host:
         //Enable Saga support using the table storage Saga store
         .EnableSagas(new StorageTableSagaStore(storageConnection))
     );
-    
+
     await knightBusHost.StartAsync();
 
 Sample Implementation
@@ -31,7 +31,7 @@ Sample Implementation
 .. code-block:: c#
 
     class SampleSagaMessageProcessor: Saga<MySagaData>,
-            IProcessCommand<SampleSagaMessage, SomeProcessingSetting>, 
+            IProcessCommand<SampleSagaMessage, SomeProcessingSetting>,
             IProcessCommand<SampleSagaStartMessage, SomeProcessingSetting>
         {
             private readonly IStorageBus _storageBus;
@@ -52,7 +52,7 @@ Sample Implementation
 
             public async Task ProcessAsync(SampleSagaMessage message, CancellationToken cancellationToken)
             {
-                Console.WriteLine($"Counter is {Data.Counter}");
+                Console.WriteLine("Counter is {0}", Data.Counter);
                 if (Data.Counter == 5)
                 {
                     Console.WriteLine("Finishing Saga");
@@ -66,6 +66,7 @@ Sample Implementation
             }
         }
 
+        // This is exposed as `Data` property to classes that implements Saga<MySagaData>
         class MySagaData
         {
             public int Counter { get; set; }
