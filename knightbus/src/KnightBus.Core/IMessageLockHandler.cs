@@ -10,6 +10,6 @@ namespace KnightBus.Core
     /// </summary>
     public interface IMessageLockHandler<T> where T : class, IMessage
     {
-        Task SetLockDuration(TimeSpan timeToExtend, CancellationToken cancellationToken);
+        Task SetLockDuration(TimeSpan timeout, CancellationToken cancellationToken);
     }
 }

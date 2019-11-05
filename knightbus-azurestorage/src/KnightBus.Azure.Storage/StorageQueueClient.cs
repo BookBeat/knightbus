@@ -26,7 +26,7 @@ namespace KnightBus.Azure.Storage
         Task<List<StorageQueueMessage>> GetMessagesAsync<T>(int count, TimeSpan? lockDuration) where T : IStorageQueueCommand;
         Task CreateIfNotExistsAsync();
         Task DeleteIfExistsAsync();
-        Task ExtendVisibilityTimeout(StorageQueueMessage message, TimeSpan timeToExtend, CancellationToken cancellationToken);
+        Task SetVisibilityTimeout(StorageQueueMessage message, TimeSpan timeToExtend, CancellationToken cancellationToken);
     }
 
     public class StorageQueueClient : IStorageQueueClient
@@ -187,7 +187,7 @@ namespace KnightBus.Azure.Storage
             ).ConfigureAwait(false);
         }
 
-        public async Task ExtendVisibilityTimeout(StorageQueueMessage message, TimeSpan timeToExtend, CancellationToken cancellationToken)
+        public async Task SetVisibilityTimeout(StorageQueueMessage message, TimeSpan timeToExtend, CancellationToken cancellationToken)
         {
             var cloudQueueMessage = new CloudQueueMessage(message.QueueMessageId, message.PopReceipt);
             await _queue.UpdateMessageAsync(cloudQueueMessage, timeToExtend, MessageUpdateFields.Visibility, null, null, cancellationToken).ConfigureAwait(false);

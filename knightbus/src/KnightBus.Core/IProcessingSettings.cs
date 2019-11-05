@@ -28,7 +28,7 @@ namespace KnightBus.Core
     public interface IExtendMessageLockTimeout
     {
         /// <summary>
-        /// How long should the message be extended for
+        /// How long should the message lock be extended for
         /// </summary>
         TimeSpan ExtensionDuration { get; }
 

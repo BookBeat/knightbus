@@ -52,9 +52,9 @@ namespace KnightBus.Azure.Storage
             return Task.FromResult((T)_message.Message);
         }
 
-        public Task SetLockDuration(TimeSpan timeToExtend, CancellationToken cancellationToken)
+        public Task SetLockDuration(TimeSpan timeout, CancellationToken cancellationToken)
         {
-            return _queueClient.ExtendVisibilityTimeout(_message, timeToExtend, cancellationToken);
+            return _queueClient.SetVisibilityTimeout(_message, timeout, cancellationToken);
         }
     }
 }
