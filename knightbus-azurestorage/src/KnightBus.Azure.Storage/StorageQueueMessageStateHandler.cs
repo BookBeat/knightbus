@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
 using KnightBus.Messages;
 
 namespace KnightBus.Azure.Storage
 {
-    internal class StorageQueueMessageStateHandler<T> : IMessageStateHandler<T> where T : class, IMessage
+    internal class StorageQueueMessageStateHandler<T> : IMessageStateHandler<T>, IMessageLockHandler<T> where T : class, IMessage
     {
         private readonly IStorageQueueClient _queueClient;
         private readonly StorageQueueMessage _message;
@@ -49,6 +50,11 @@ namespace KnightBus.Azure.Storage
         public Task<T> GetMessageAsync()
         {
             return Task.FromResult((T)_message.Message);
+        }
+
+        public Task SetLockDuration(TimeSpan timeout, CancellationToken cancellationToken)
+        {
+            return _queueClient.SetVisibilityTimeout(_message, timeout, cancellationToken);
         }
     }
 }

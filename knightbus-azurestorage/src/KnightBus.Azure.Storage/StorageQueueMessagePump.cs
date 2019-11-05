@@ -45,7 +45,21 @@ namespace KnightBus.Azure.Storage
                 var queueName = AutoMessageMapper.GetQueueName<T>();
 
                 var prefetchCount = _settings.PrefetchCount > 0 ? _settings.PrefetchCount : 1;
-                var messages = await _storageQueueClient.GetMessagesAsync<T>(prefetchCount, _settings.MessageLockTimeout).ConfigureAwait(false);
+
+                TimeSpan visibilityTimeout;
+                if (_settings is IExtendMessageLockTimeout extendMessageLockTimeout)
+                {
+                    visibilityTimeout = extendMessageLockTimeout.ExtensionDuration;
+                }
+                else
+                {
+                    visibilityTimeout = _settings.MessageLockTimeout;
+                }
+
+                //Make sure the lock still exist when the process is cancelled by token, otherwise the message cannot be abandoned
+                visibilityTimeout += TimeSpan.FromMinutes(2);
+
+                var messages = await _storageQueueClient.GetMessagesAsync<T>(prefetchCount, visibilityTimeout).ConfigureAwait(false);
                 messagesFound = messages.Any();
 
                 _log.Debug("Prefetched {MessageCount} messages from {QueueName} in {Name}", messages.Count, queueName, nameof(StorageQueueMessagePump));
@@ -65,7 +79,7 @@ namespace KnightBus.Azure.Storage
                         _log.Debug(operationCanceledException, "Operation canceled for {@Message} in {QueueName} in {Name}", message, queueName, nameof(StorageQueueMessagePump));
 
                         //If we are still waiting when the message has not been scheduled for execution timeouts
-                        
+
                         continue;
                     }
 #pragma warning disable 4014 //No need to await the result, let's keep the pump going
@@ -84,7 +98,7 @@ namespace KnightBus.Azure.Storage
                     //Only delay pump if no messages were found
                     await Task.Delay(_pollingInterval).ConfigureAwait(false);
                 }
-                
+
             }
         }
     }
