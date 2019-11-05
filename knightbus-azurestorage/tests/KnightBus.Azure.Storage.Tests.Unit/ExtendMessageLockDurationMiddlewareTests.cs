@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Azure.Storage.Messages;
 using KnightBus.Core;
+using KnightBus.Core.DefaultMiddlewares;
 using KnightBus.Messages;
 using Moq;
 using NUnit.Framework;

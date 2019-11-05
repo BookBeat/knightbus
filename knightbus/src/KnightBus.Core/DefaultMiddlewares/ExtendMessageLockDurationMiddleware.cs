@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
-using KnightBus.Core;
 using KnightBus.Messages;
 
-namespace KnightBus.Azure.Storage
+namespace KnightBus.Core.DefaultMiddlewares
 {
     public class ExtendMessageLockDurationMiddleware : IMessageProcessorMiddleware
     {
