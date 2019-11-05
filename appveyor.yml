@@ -12,6 +12,8 @@ test_script:
 
     dotnet test knightbus-azurestorage/tests/KnightBus.Azure.Storage.Tests.Unit/KnightBus.Azure.Storage.Tests.Unit.csproj --logger:Appveyor
 
+    dotnet test knightbus-azureservicebus/tests/KnightBus.Azure.ServiceBus.Unit/KnightBus.Azure.ServiceBus.Unit.csproj --logger:Appveyor
+
     dotnet test knightbus-sqlserver/tests/KnightBus.SqlServer.Tests.Integration/KnightBus.SqlServer.Tests.Integration.csproj --logger:Appveyor
     
     dotnet test knightbus-schedule/tests/KnightBus.Schedule.Tests.Unit/KnightBus.Schedule.Tests.Unit.csproj --logger:Appveyor
