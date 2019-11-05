@@ -56,6 +56,9 @@ namespace KnightBus.Azure.Storage
                     visibilityTimeout = _settings.MessageLockTimeout;
                 }
 
+                //Make sure the lock still exist when the process is cancelled by token, otherwise the message cannot be abandoned
+                visibilityTimeout += TimeSpan.FromMinutes(2);
+
                 var messages = await _storageQueueClient.GetMessagesAsync<T>(prefetchCount, visibilityTimeout).ConfigureAwait(false);
                 messagesFound = messages.Any();
 
@@ -76,7 +79,7 @@ namespace KnightBus.Azure.Storage
                         _log.Debug(operationCanceledException, "Operation canceled for {@Message} in {QueueName} in {Name}", message, queueName, nameof(StorageQueueMessagePump));
 
                         //If we are still waiting when the message has not been scheduled for execution timeouts
-                        
+
                         continue;
                     }
 #pragma warning disable 4014 //No need to await the result, let's keep the pump going
@@ -95,7 +98,7 @@ namespace KnightBus.Azure.Storage
                     //Only delay pump if no messages were found
                     await Task.Delay(_pollingInterval).ConfigureAwait(false);
                 }
-                
+
             }
         }
     }
