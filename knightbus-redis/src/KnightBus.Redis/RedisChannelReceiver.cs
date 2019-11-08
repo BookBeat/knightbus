@@ -45,11 +45,11 @@ namespace KnightBus.Redis
             _messagePumpTask = Task.Factory.StartNew(async () =>
             {
                 while (true)
-                    if (!await PumpAsync().ConfigureAwait(false))
+                    if (!await PumpAsync(cancellationToken).ConfigureAwait(false))
                         await Delay(_pumpDelayCancellationTokenSource.Token).ConfigureAwait(false);
-            }, TaskCreationOptions.LongRunning);
+            }, cancellationToken);
             _lostMessageService = new LostMessageBackgroundService<T>(ConnectionMultiplexer, _redisConfiguration.DatabaseId, _redisConfiguration.MessageSerializer, _hostConfiguration.Log, _settings.MessageLockTimeout, _queueName);
-            _lostMessageTask = _lostMessageService.Start(CancellationToken.None);
+            _lostMessageTask = _lostMessageService.Start(cancellationToken);
 
         }
 
@@ -75,7 +75,7 @@ namespace KnightBus.Redis
             _pumpDelayCancellationTokenSource.Cancel();
         }
 
-        private async Task<bool> PumpAsync()
+        private async Task<bool> PumpAsync(CancellationToken cancellationToken)
         {
             try
             {
@@ -83,10 +83,10 @@ namespace KnightBus.Redis
                 foreach (var redisMessage in await GetMessagesAsync(prefetchCount).ConfigureAwait(false))
                     if (redisMessage != null)
                     {
-                        await _maxConcurrent.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+                        await _maxConcurrent.WaitAsync(cancellationToken).ConfigureAwait(false);
                         var cts = new CancellationTokenSource(_settings.MessageLockTimeout);
 #pragma warning disable 4014
-                        ProcessMessageAsync(redisMessage, cts.Token).ContinueWith(task2 => _maxConcurrent.Release());
+                        Task.Run(async ()=> await ProcessMessageAsync(redisMessage, cts.Token).ContinueWith(task2 => _maxConcurrent.Release()), cts.Token);
 #pragma warning restore 4014
                     }
                     else
