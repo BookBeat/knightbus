@@ -54,9 +54,10 @@ namespace KnightBus.Redis
         private Task SendAsync<T>(IList<T> messages, string queueName) where T : IRedisMessage
         {
             var db = _multiplexer.GetDatabase(_configuration.DatabaseId);
-            var serialized = messages.Select(m => (RedisValue)_configuration.MessageSerializer.Serialize(m)).ToArray();
+            var listItems = messages.Select(m => new RedisListItem<T>(Guid.NewGuid().ToString("N"), m));
+            var serialized = listItems.Select(m => (RedisValue)_configuration.MessageSerializer.Serialize(m)).ToArray();
             return Task.WhenAll(
-                UploadAttachments(messages, queueName, db),
+                UploadAttachments(listItems, queueName, db),
                 db.ListLeftPushAsync(queueName, serialized),
                 db.PublishAsync(queueName, 0, CommandFlags.FireAndForget)
             );
@@ -65,9 +66,10 @@ namespace KnightBus.Redis
         private Task SendAsync<T>(T message, string queueName) where T : IRedisMessage
         {
             var db = _multiplexer.GetDatabase(_configuration.DatabaseId);
+            var redisListItem = new RedisListItem<T>(Guid.NewGuid().ToString("N"), message);
             return Task.WhenAll(
-                UploadAttachment(message, queueName, db),
-                db.ListLeftPushAsync(queueName, _configuration.MessageSerializer.Serialize(message)),
+                UploadAttachment(redisListItem, queueName, db),
+                db.ListLeftPushAsync(queueName, _configuration.MessageSerializer.Serialize(redisListItem)),
                 db.PublishAsync(queueName, 0, CommandFlags.FireAndForget)
             );
         }
@@ -92,7 +94,7 @@ namespace KnightBus.Redis
         }
         
 
-        private async Task UploadAttachment<T>(T message, string queueName, IDatabase db) where T : IRedisMessage
+        private async Task UploadAttachment<T>(RedisListItem<T> message, string queueName, IDatabase db) where T : IRedisMessage
         {
             if (typeof(ICommandWithAttachment).IsAssignableFrom(typeof(T)))
             {
@@ -107,7 +109,7 @@ namespace KnightBus.Redis
             }
         }
 
-        private Task UploadAttachments<T>(IEnumerable<T> messages, string queueName, IDatabase db) where T : IRedisMessage
+        private Task UploadAttachments<T>(IEnumerable<RedisListItem<T>> messages, string queueName, IDatabase db) where T : IRedisMessage
         {
             if (typeof(ICommandWithAttachment).IsAssignableFrom(typeof(T)))
             {

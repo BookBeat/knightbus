@@ -128,7 +128,7 @@ namespace KnightBus.Redis
             {
                 var listItem = await _db.ListRightPopLeftPushAsync(_queueName, RedisQueueConventions.GetProcessingQueueName(_queueName)).ConfigureAwait(false);
                 if (listItem.IsNullOrEmpty) return null;
-                var message = _redisConfiguration.MessageSerializer.Deserialize<T>(listItem);
+                var message = _redisConfiguration.MessageSerializer.Deserialize<RedisListItem<T>>(listItem);
                 var hashKey = RedisQueueConventions.GetMessageHashKey(_queueName, message.Id);
 
                 var tasks = new Task[]
@@ -139,7 +139,7 @@ namespace KnightBus.Redis
                 await Task.WhenAll(tasks).ConfigureAwait(false);
                 var hash = await _db.HashGetAllAsync(hashKey).ConfigureAwait(false);
 
-                return new RedisMessage<T>(listItem, message, hash, _queueName);
+                return new RedisMessage<T>(listItem, message.Id, message.Body, hash, _queueName);
             }
             catch (RedisTimeoutException e)
             {
