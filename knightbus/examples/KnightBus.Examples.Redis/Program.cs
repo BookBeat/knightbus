@@ -94,31 +94,26 @@ namespace KnightBus.Examples.Redis
         class SampleRedisCommand : IRedisCommand
         {
             public string Message { get; set; }
-            public string Id { get; set; } = Guid.NewGuid().ToString("N");
         }
 
         class SampleRedisAttachmentCommand : IRedisCommand, ICommandWithAttachment
         {
             public string Message { get; set; }
-            public string Id { get; set; } = Guid.NewGuid().ToString("N");
             public IMessageAttachment Attachment { get; set; }
         }
 
         class SampleRedisEvent : IRedisEvent
         {
             public string Message { get; set; }
-            public string Id { get; set; } = Guid.NewGuid().ToString("N");
         }
 
         class SampleRedisSagaStarterCommand : IRedisCommand
         {
-            public string Id { get; set; } = Guid.NewGuid().ToString("N");
             public string SagaId => "9a9f5f4d8abe4c88ad1ba4510f31b605";
         }
 
         class SampleRedisSagaCommand : IRedisCommand
         {
-            public string Id { get; set; } = Guid.NewGuid().ToString("N");
             public string SagaId => "9a9f5f4d8abe4c88ad1ba4510f31b605";
         }
 
