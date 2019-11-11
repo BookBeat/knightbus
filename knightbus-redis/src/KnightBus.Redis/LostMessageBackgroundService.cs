@@ -83,9 +83,9 @@ namespace KnightBus.Redis
             }
         }
 
-        private async Task<(bool lost, T message, RedisValue listItem)> HandlePotentiallyLostMessage(string queueName, RedisValue listItem)
+        private async Task<(bool lost, RedisListItem<T> message, RedisValue listItem)> HandlePotentiallyLostMessage(string queueName, RedisValue listItem)
         {
-            var message = _serializer.Deserialize<T>(listItem);
+            var message = _serializer.Deserialize<RedisListItem<T>>(listItem);
             var lastProcessedKey = RedisQueueConventions.GetMessageExpirationKey(queueName, message.Id);
             var hash = await _db.StringGetAsync(lastProcessedKey).ConfigureAwait(false);
 

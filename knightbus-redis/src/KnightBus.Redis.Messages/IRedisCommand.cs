@@ -2,10 +2,11 @@
 
 namespace KnightBus.Redis.Messages
 {
-    public interface IRedisMessage:IMessage
+    public interface IRedisMessage : IMessage
     {
-        string Id { get; }
+
     }
+
     public interface IRedisCommand : ICommand, IRedisMessage
     {
         

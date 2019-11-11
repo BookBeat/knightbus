@@ -6,17 +6,17 @@ namespace KnightBus.Redis
 {
     internal class RedisMessage<T> where T : class, IRedisMessage
     {
-        private readonly string _queueName;
-        public string HashKey => RedisQueueConventions.GetMessageHashKey(_queueName, Message.Id);
-        public string ExpirationKey => RedisQueueConventions.GetMessageExpirationKey(_queueName, Message.Id);
         public T Message { get; }
+        public string HashKey { get; }
+        public string ExpirationKey { get; }
         public RedisValue RedisValue { get; }
         public IDictionary<string, string> HashEntries { get; }
 
-        public RedisMessage(RedisValue redisValue, T message, HashEntry[] hashEntries, string queueName)
+        public RedisMessage(RedisValue redisValue, string id, T message, HashEntry[] hashEntries, string queueName)
         {
-            _queueName = queueName;
             RedisValue = redisValue;
+            HashKey = RedisQueueConventions.GetMessageHashKey(queueName, id);
+            ExpirationKey = RedisQueueConventions.GetMessageExpirationKey(queueName, id);
             Message = message;
             HashEntries = hashEntries.ToStringDictionary();
         }
