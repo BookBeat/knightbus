@@ -18,7 +18,6 @@ namespace KnightBus.Host.Singleton
         private readonly string _lockId;
         private CancellationToken _cancellationToken;
         public IProcessingSettings Settings { get; set; }
-        public ITransportConfiguration Configuration { get; }
         internal double TimerIntervalMs { get; set; } = TimeSpan.FromMinutes(1).TotalMilliseconds;
 
         public SingletonChannelReceiver(IChannelReceiver channelReceiver, ISingletonLockManager lockManager, ILog log)
@@ -61,9 +60,11 @@ namespace KnightBus.Host.Singleton
 
             if (lockHandle != null)
             {
-                _singletonScope = new SingletonTimerScope(_log, lockHandle, true);
+                var linkedTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                _singletonScope = new SingletonTimerScope(_log, lockHandle, true, linkedTokenSource);
                 _log.Information("Starting Singleton Processor with name {ProcessorName}", _lockId);
-                await _channelReceiver.StartAsync(_cancellationToken).ConfigureAwait(false);
+                await _channelReceiver.StartAsync(linkedTokenSource.Token).ConfigureAwait(false);
+                //TODO: Restart
             }
             else
             {
