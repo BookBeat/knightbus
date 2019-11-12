@@ -34,6 +34,7 @@ namespace KnightBus.Core.Singleton
                 catch (Exception)
                 {
                     //Stop execution
+                    _cts.Cancel();
                     break;
                 }
             }

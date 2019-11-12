@@ -56,7 +56,7 @@ namespace KnightBus.Host.Singleton
                 _timer.Elapsed += TimerElapsed;
             }
             //Try and get the lock
-            var lockHandle = await _lockManager.TryLockAsync(_lockId, TimeSpan.FromSeconds(60), CancellationToken.None).ConfigureAwait(false);
+            var lockHandle = await _lockManager.TryLockAsync(_lockId, TimeSpan.FromSeconds(60), cancellationToken).ConfigureAwait(false);
 
             if (lockHandle != null)
             {
@@ -64,7 +64,17 @@ namespace KnightBus.Host.Singleton
                 _singletonScope = new SingletonTimerScope(_log, lockHandle, true, linkedTokenSource);
                 _log.Information("Starting Singleton Processor with name {ProcessorName}", _lockId);
                 await _channelReceiver.StartAsync(linkedTokenSource.Token).ConfigureAwait(false);
-                //TODO: Restart
+
+#pragma warning disable 4014
+                Task.Run(() =>
+                {
+                    linkedTokenSource.Token.WaitHandle.WaitOne();
+                    //Stop signal received, restart the polling
+                    if(!cancellationToken.IsCancellationRequested)
+                        _timer.Enabled = true;
+                    
+                }, cancellationToken);
+#pragma warning restore 4014
             }
             else
             {
