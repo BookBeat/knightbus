@@ -69,7 +69,7 @@ namespace KnightBus.Host.Singleton
                     if (!cancellationToken.IsCancellationRequested)
                     {
                         _enabled = true;
-                        _log.Information("Restarting Singleton Processor with name {ProcessorName}", _lockId);
+                        _log.Information("Singleton Processor with name {ProcessorName} lost its lock", _lockId);
                     }
                     
                 }, cancellationToken);
