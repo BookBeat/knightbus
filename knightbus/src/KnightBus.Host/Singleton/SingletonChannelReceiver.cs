@@ -1,24 +1,22 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Timers;
 using KnightBus.Core;
 using KnightBus.Core.Singleton;
-using Timer = System.Timers.Timer;
 
 namespace KnightBus.Host.Singleton
 {
     internal class SingletonChannelReceiver : IChannelReceiver
     {
-        private Timer _timer;
         private readonly IChannelReceiver _channelReceiver;
         private readonly ISingletonLockManager _lockManager;
-        private ILog _log;
+        private readonly ILog _log;
         private SingletonTimerScope _singletonScope;
         private readonly string _lockId;
-        private CancellationToken _cancellationToken;
         public IProcessingSettings Settings { get; set; }
-        internal double TimerIntervalMs { get; set; } = TimeSpan.FromMinutes(1).TotalMilliseconds;
+        internal TimeSpan TimerInterval { get; set; } = TimeSpan.FromMinutes(1);
+        private bool _enabled = false;
+        private Task _pollingLoop;
 
         public SingletonChannelReceiver(IChannelReceiver channelReceiver, ISingletonLockManager lockManager, ILog log)
         {
@@ -34,27 +32,24 @@ namespace KnightBus.Host.Singleton
                 DeadLetterDeliveryLimit = _channelReceiver.Settings.DeadLetterDeliveryLimit
             };
             _channelReceiver.Settings = Settings;
+
         }
 
-        private void TimerElapsed(object sender, ElapsedEventArgs e)
+        private async Task TimerLoop(CancellationToken cancellationToken)
         {
-            _timer.Enabled = false;
-            StartAsync(_cancellationToken).GetAwaiter().GetResult();
-        }
-
-        public async Task StartAsync(CancellationToken cancellationToken)
-        {
-            _cancellationToken = cancellationToken;
-            await _lockManager.InitializeAsync().ConfigureAwait(false);
-            if (_timer == null)
+            while (!cancellationToken.IsCancellationRequested)
             {
-                _timer = new Timer
+                if (_enabled)
                 {
-                    AutoReset = true,
-                    Interval = TimerIntervalMs
-                };
-                _timer.Elapsed += TimerElapsed;
+                    await AcquireLock(cancellationToken).ConfigureAwait(false);
+                }
+
+                await Task.Delay(TimerInterval, cancellationToken).ConfigureAwait(false);
             }
+        }
+
+        private async Task AcquireLock(CancellationToken cancellationToken)
+        {
             //Try and get the lock
             var lockHandle = await _lockManager.TryLockAsync(_lockId, TimeSpan.FromSeconds(60), cancellationToken).ConfigureAwait(false);
 
@@ -64,14 +59,18 @@ namespace KnightBus.Host.Singleton
                 _singletonScope = new SingletonTimerScope(_log, lockHandle, true, linkedTokenSource);
                 _log.Information("Starting Singleton Processor with name {ProcessorName}", _lockId);
                 await _channelReceiver.StartAsync(linkedTokenSource.Token).ConfigureAwait(false);
+                _enabled = false;
 
 #pragma warning disable 4014
                 Task.Run(() =>
                 {
                     linkedTokenSource.Token.WaitHandle.WaitOne();
                     //Stop signal received, restart the polling
-                    if(!cancellationToken.IsCancellationRequested)
-                        _timer.Enabled = true;
+                    if (!cancellationToken.IsCancellationRequested)
+                    {
+                        _enabled = true;
+                        _log.Information("Restarting Singleton Processor with name {ProcessorName}", _lockId);
+                    }
                     
                 }, cancellationToken);
 #pragma warning restore 4014
@@ -79,8 +78,18 @@ namespace KnightBus.Host.Singleton
             else
             {
                 //someone else has locked this instance, start timer to make sure the owner hasn't died
-                _timer.Enabled = true;
+                _enabled = true;
             }
+        }
+
+        public async Task StartAsync(CancellationToken cancellationToken)
+        {
+            await _lockManager.InitializeAsync().ConfigureAwait(false);
+            await AcquireLock(cancellationToken).ConfigureAwait(false);
+
+#pragma warning disable 4014
+            _pollingLoop = Task.Run(async () => await TimerLoop(cancellationToken), cancellationToken);
+#pragma warning restore 4014
         }
     }
 }
