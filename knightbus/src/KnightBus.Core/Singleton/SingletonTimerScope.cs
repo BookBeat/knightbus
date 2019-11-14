@@ -59,7 +59,16 @@ namespace KnightBus.Core.Singleton
 
         public void Dispose()
         {
-            _cts.Cancel();
+            try
+            {
+                if (!_cts.IsCancellationRequested)
+                    _cts.Cancel();
+            }
+            catch (Exception)
+            {
+                //Swallow
+            }
+            ;
             if (_lockHandle != null && _autoRelease)
             {
                 _log.Information("Releasing lock {LockHandle}", _lockHandle);
