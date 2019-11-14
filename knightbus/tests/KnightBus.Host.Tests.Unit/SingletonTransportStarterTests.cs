@@ -53,6 +53,30 @@ namespace KnightBus.Host.Tests.Unit
         }
 
         [Test]
+        public async Task Should_restart_queue_reader_when_lock_is_lost()
+        {
+            //arrange
+            var handle = new Mock<ISingletonLockHandle>();
+            var lockManager = new Mock<ISingletonLockManager>();
+            lockManager.Setup(x => x.TryLockAsync(It.IsAny<string>(), TimeSpan.FromSeconds(60), CancellationToken.None))
+                .ReturnsAsync(handle.Object);
+
+            handle.SetupSequence(x => x.RenewAsync(It.IsAny<ILog>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true)
+                .Throws(new Exception())
+                .ReturnsAsync(true);
+
+            var underlyingReader = new Mock<IChannelReceiver>();
+            underlyingReader.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);
+            var singletonChannelReceiver = new SingletonChannelReceiver(underlyingReader.Object, lockManager.Object, Mock.Of<ILog>()) { TimerInterval = TimeSpan.FromSeconds(1) };
+            //act
+            await singletonChannelReceiver.StartAsync(CancellationToken.None);
+            await Task.Delay(20000);
+            //assert
+            underlyingReader.Verify(x => x.StartAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
+        }
+
+        [Test]
         public void Should_override_singleton_impacted_settings()
         {
             //arrange
