@@ -11,7 +11,7 @@ using NUnit.Framework;
 namespace KnightBus.Host.Tests.Unit
 {
     [TestFixture]
-    public class SingletonTransportStarterTests
+    public class SingletonChannelReceiverTests
     {
         [Test]
         public async Task Should_only_start_one_queue_reader()
@@ -21,15 +21,15 @@ namespace KnightBus.Host.Tests.Unit
             lockManager.SetupSequence(x => x.TryLockAsync(It.IsAny<string>(), TimeSpan.FromSeconds(60), CancellationToken.None))
                 .ReturnsAsync(Mock.Of<ISingletonLockHandle>())
                 .ReturnsAsync((ISingletonLockHandle) null);
-            var underlyingReader = new Mock<IChannelReceiver>();
-            underlyingReader.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);
-            var singletonChannelReceiver = new SingletonChannelReceiver(underlyingReader.Object, lockManager.Object, Mock.Of<ILog>()) { TimerInterval = TimeSpan.FromSeconds(1) };
+            var underlyingReceiver = new Mock<IChannelReceiver>();
+            underlyingReceiver.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);
+            var singletonChannelReceiver = new SingletonChannelReceiver(underlyingReceiver.Object, lockManager.Object, Mock.Of<ILog>()) { TimerInterval = TimeSpan.FromSeconds(1) };
             //act
             await singletonChannelReceiver.StartAsync(CancellationToken.None);
             await singletonChannelReceiver.StartAsync(CancellationToken.None);
             await Task.Delay(1001);
             //assert
-            underlyingReader.Verify(x => x.StartAsync(It.IsAny<CancellationToken>()), Times.Once);
+            underlyingReceiver.Verify(x => x.StartAsync(It.IsAny<CancellationToken>()), Times.Once);
         }
 
         [Test]
@@ -41,15 +41,15 @@ namespace KnightBus.Host.Tests.Unit
                 .ReturnsAsync(Mock.Of<ISingletonLockHandle>())
                 .ReturnsAsync((ISingletonLockHandle) null)
                 .ReturnsAsync(Mock.Of<ISingletonLockHandle>());
-            var underlyingReader = new Mock<IChannelReceiver>();
-            underlyingReader.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);
-            var singletonChannelReceiver = new SingletonChannelReceiver(underlyingReader.Object, lockManager.Object, Mock.Of<ILog>()) { TimerInterval = TimeSpan.FromSeconds(1) };
+            var underlyingReceiver = new Mock<IChannelReceiver>();
+            underlyingReceiver.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);
+            var singletonChannelReceiver = new SingletonChannelReceiver(underlyingReceiver.Object, lockManager.Object, Mock.Of<ILog>()) { TimerInterval = TimeSpan.FromSeconds(1) };
             //act
             await singletonChannelReceiver.StartAsync(CancellationToken.None);
             await singletonChannelReceiver.StartAsync(CancellationToken.None);
             await Task.Delay(1500);
             //assert
-            underlyingReader.Verify(x => x.StartAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
+            underlyingReceiver.Verify(x => x.StartAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
         }
 
         [Test]
@@ -66,14 +66,14 @@ namespace KnightBus.Host.Tests.Unit
                 .Throws(new Exception())
                 .ReturnsAsync(true);
 
-            var underlyingReader = new Mock<IChannelReceiver>();
-            underlyingReader.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);
-            var singletonChannelReceiver = new SingletonChannelReceiver(underlyingReader.Object, lockManager.Object, Mock.Of<ILog>()) { TimerInterval = TimeSpan.FromSeconds(1) };
+            var underlyingReceiver = new Mock<IChannelReceiver>();
+            underlyingReceiver.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);
+            var singletonChannelReceiver = new SingletonChannelReceiver(underlyingReceiver.Object, lockManager.Object, Mock.Of<ILog>()) { TimerInterval = TimeSpan.FromSeconds(1) };
             //act
             await singletonChannelReceiver.StartAsync(CancellationToken.None);
-            await Task.Delay(20000);
+            await Task.Delay(25000); //The lock refreshes every 19 seconds
             //assert
-            underlyingReader.Verify(x => x.StartAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
+            underlyingReceiver.Verify(x => x.StartAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
         }
 
         [Test]
@@ -81,10 +81,10 @@ namespace KnightBus.Host.Tests.Unit
         {
             //arrange
             var lockManager = new Mock<ISingletonLockManager>();
-            var underlyingReader = new Mock<IChannelReceiver>();
-            underlyingReader.Setup(x => x.Settings).Returns(new SingletonHorrificSettings());
+            var underlyingReceiver = new Mock<IChannelReceiver>();
+            underlyingReceiver.Setup(x => x.Settings).Returns(new SingletonHorrificSettings());
             //act
-            var starter = new SingletonChannelReceiver(underlyingReader.Object, lockManager.Object, Mock.Of<ILog>()) { TimerInterval = TimeSpan.FromSeconds(1) };
+            var starter = new SingletonChannelReceiver(underlyingReceiver.Object, lockManager.Object, Mock.Of<ILog>()) { TimerInterval = TimeSpan.FromSeconds(1) };
             //assert
             starter.Settings.PrefetchCount.Should().Be(0);
             starter.Settings.MaxConcurrentCalls.Should().Be(1);
