@@ -9,14 +9,16 @@ namespace KnightBus.Core.Singleton
         private readonly ILog _log;
         private readonly ISingletonLockHandle _lockHandle;
         private readonly bool _autoRelease; //clock drift makes triggers unstable for singleton use if the function is fast
+        private readonly TimeSpan _renewalInterval;
         private readonly CancellationTokenSource _cts;
         private Task _runningTask;
 
-        public SingletonTimerScope(ILog log, ISingletonLockHandle lockHandle, bool autoRelease, CancellationTokenSource  cancellationTokenSource)
+        public SingletonTimerScope(ILog log, ISingletonLockHandle lockHandle, bool autoRelease, TimeSpan renewalInterval, CancellationTokenSource  cancellationTokenSource)
         {
             _log = log;
             _lockHandle = lockHandle;
             _autoRelease = autoRelease;
+            _renewalInterval = renewalInterval;
             _cts = cancellationTokenSource;
 
             _runningTask = Task.Run(async () => await TimerLoop(_cts.Token), _cts.Token);
@@ -29,7 +31,7 @@ namespace KnightBus.Core.Singleton
                 try
                 {
                     await RenewLock(cancellationToken).ConfigureAwait(false);
-                    await Task.Delay(TimeSpan.FromSeconds(19), cancellationToken);
+                    await Task.Delay(_renewalInterval, cancellationToken);
                 }
                 catch (Exception)
                 {

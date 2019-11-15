@@ -68,10 +68,14 @@ namespace KnightBus.Host.Tests.Unit
 
             var underlyingReceiver = new Mock<IChannelReceiver>();
             underlyingReceiver.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);
-            var singletonChannelReceiver = new SingletonChannelReceiver(underlyingReceiver.Object, lockManager.Object, Mock.Of<ILog>()) { TimerInterval = TimeSpan.FromSeconds(1) };
+            var singletonChannelReceiver = new SingletonChannelReceiver(underlyingReceiver.Object, lockManager.Object, Mock.Of<ILog>())
+            {
+                TimerInterval = TimeSpan.FromSeconds(1),
+                LockRefreshInterval = TimeSpan.FromSeconds(1)
+            };
             //act
             await singletonChannelReceiver.StartAsync(CancellationToken.None);
-            await Task.Delay(25000); //The lock refreshes every 19 seconds
+            await Task.Delay(2000); 
             //assert
             underlyingReceiver.Verify(x => x.StartAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
         }

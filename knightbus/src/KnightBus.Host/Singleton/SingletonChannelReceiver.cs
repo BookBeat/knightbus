@@ -15,7 +15,9 @@ namespace KnightBus.Host.Singleton
         private readonly string _lockId;
         public IProcessingSettings Settings { get; set; }
         internal TimeSpan TimerInterval { get; set; } = TimeSpan.FromMinutes(1);
-        private bool _enabled = false;
+        internal TimeSpan LockDuration { get; set; } = TimeSpan.FromMinutes(1);
+        internal TimeSpan LockRefreshInterval { get; set; } = TimeSpan.FromSeconds(19);
+        private bool _lockPollingEnabled = false;
         private Task _pollingLoop;
 
         public SingletonChannelReceiver(IChannelReceiver channelReceiver, ISingletonLockManager lockManager, ILog log)
@@ -39,7 +41,7 @@ namespace KnightBus.Host.Singleton
         {
             while (!cancellationToken.IsCancellationRequested)
             {
-                if (_enabled)
+                if (_lockPollingEnabled)
                 {
                     await AcquireLock(cancellationToken).ConfigureAwait(false);
                 }
@@ -51,15 +53,16 @@ namespace KnightBus.Host.Singleton
         private async Task AcquireLock(CancellationToken cancellationToken)
         {
             //Try and get the lock
-            var lockHandle = await _lockManager.TryLockAsync(_lockId, TimeSpan.FromSeconds(60), cancellationToken).ConfigureAwait(false);
+            var lockHandle = await _lockManager.TryLockAsync(_lockId, LockDuration, cancellationToken).ConfigureAwait(false);
 
             if (lockHandle != null)
             {
+                
                 var linkedTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                _singletonScope = new SingletonTimerScope(_log, lockHandle, true, linkedTokenSource);
+                _singletonScope = new SingletonTimerScope(_log, lockHandle, true, LockRefreshInterval, linkedTokenSource);
                 _log.Information("Starting Singleton Processor with name {ProcessorName}", _lockId);
                 await _channelReceiver.StartAsync(linkedTokenSource.Token).ConfigureAwait(false);
-                _enabled = false;
+                _lockPollingEnabled = false;
 
 #pragma warning disable 4014
                 Task.Run(() =>
@@ -68,7 +71,7 @@ namespace KnightBus.Host.Singleton
                     //Stop signal received, restart the polling
                     if (!cancellationToken.IsCancellationRequested)
                     {
-                        _enabled = true;
+                        _lockPollingEnabled = true;
                         _log.Information("Singleton Processor with name {ProcessorName} lost its lock", _lockId);
                     }
                     
@@ -78,7 +81,7 @@ namespace KnightBus.Host.Singleton
             else
             {
                 //someone else has locked this instance, start timer to make sure the owner hasn't died
-                _enabled = true;
+                _lockPollingEnabled = true;
             }
         }
 
