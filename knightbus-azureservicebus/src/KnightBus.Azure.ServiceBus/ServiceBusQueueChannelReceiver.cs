@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
@@ -53,6 +54,24 @@ namespace KnightBus.Azure.ServiceBus
                 MaxConcurrentCalls = Settings.MaxConcurrentCalls
             };
             _client.RegisterMessageHandler(Handler, options);
+
+#pragma warning disable 4014
+            // ReSharper disable once MethodSupportsCancellation
+            Task.Run(async () =>
+            {
+                cancellationToken.WaitHandle.WaitOne();
+                //Cancellation requested
+                try
+                {
+                    _log.Information($"Closing ServiceBus channel receiver for {typeof(T).Name}");
+                    await _client.CloseAsync().ConfigureAwait(false);
+                }
+                catch (Exception)
+                {
+                    //Swallow
+                }
+            });
+#pragma warning restore 4014
         }
 
         private Task OnExceptionReceivedAsync(ExceptionReceivedEventArgs exceptionReceivedEventArgs)
