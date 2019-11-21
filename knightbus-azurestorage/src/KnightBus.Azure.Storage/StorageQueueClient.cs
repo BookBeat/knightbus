@@ -79,9 +79,8 @@ namespace KnightBus.Azure.Storage
 
         public async Task CompleteAsync(StorageQueueMessage message)
         {
-            await Task.WhenAll(
-                    _queue.DeleteMessageAsync(message.QueueMessageId, message.PopReceipt),
-                    TryDeleteBlob(message.BlobMessageId))
+            await _queue.DeleteMessageAsync(message.QueueMessageId, message.PopReceipt)
+                .ContinueWith(task=> TryDeleteBlob(message.BlobMessageId), TaskContinuationOptions.OnlyOnRanToCompletion)
                 .ConfigureAwait(false);
         }
 
