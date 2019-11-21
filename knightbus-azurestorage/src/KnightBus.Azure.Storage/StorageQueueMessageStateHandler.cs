@@ -44,6 +44,7 @@ namespace KnightBus.Azure.Storage
 
         public Task DeadLetterAsync(int deadLetterLimit)
         {
+            _message.Properties["MaxDeliveryCountExceeded"] = $"DeliveryCount exceeded limit of {DeadLetterDeliveryLimit}";
             return _queueClient.DeadLetterAsync(_message);
         }
 

@@ -46,6 +46,7 @@ namespace KnightBus.Redis
         public Task DeadLetterAsync(int deadLetterLimit)
         {
             return Task.WhenAll(
+                _db.HashSetAsync(_redisMessage.HashKey, "MaxDeliveryCountExceeded", $"DeliveryCount exceeded limit of {DeadLetterDeliveryLimit}"),
                 _db.ListLeftPushAsync(RedisQueueConventions.GetDeadLetterQueueName(_queueName), _redisMessage.RedisValue),
                 _db.ListRemoveAsync(RedisQueueConventions.GetProcessingQueueName(_queueName), _redisMessage.RedisValue, -1));
         }
