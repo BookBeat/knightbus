@@ -20,6 +20,7 @@ namespace KnightBus.Azure.Storage
         Task<int> GetDeadLetterCountAsync();
         Task<List<StorageQueueMessage>> PeekDeadLettersAsync<T>(int count) where T : IStorageQueueCommand;
         Task<StorageQueueMessage> ReceiveDeadLetterAsync<T>() where T : IStorageQueueCommand;
+        Task RequeueDeadLettersAsync<T>(int count, Func<T, bool> shouldRequeue) where T : IStorageQueueCommand;
         Task CompleteAsync(StorageQueueMessage message);
         Task AbandonByErrorAsync(StorageQueueMessage message, TimeSpan? visibilityTimeout);
         Task SendAsync<T>(T message, TimeSpan? delay) where T : IStorageQueueCommand;
@@ -146,6 +147,29 @@ namespace KnightBus.Azure.Storage
             return GetMessagesAsync<T>(count, null, _dlQueue);
         }
 
+        public async Task RequeueDeadLettersAsync<T>(int count, Func<T, bool> shouldRequeue) where T : IStorageQueueCommand
+        {
+            for (var i = 0; i < count; i++)
+            {
+                var messages = await GetMessagesAsync<T>(1, TimeSpan.FromMinutes(2), _dlQueue)
+                    .ConfigureAwait(false);
+                
+                if(!messages.Any())
+                    continue;
+                var deadletter = messages.Single();
+                
+                // Delete the old message
+                await _dlQueue.DeleteMessageAsync(deadletter.QueueMessageId, deadletter.PopReceipt).ConfigureAwait(false);
+                
+                // The dead letter will be deleted even though shouldRequeue is false
+                if(shouldRequeue != null && !shouldRequeue((T)deadletter.Message))
+                    continue;
+                
+                // enqueue the new message again
+                var cloudMessage = new CloudQueueMessage(_serializer.Serialize(deadletter.Properties));
+                await _queue.AddMessageAsync(cloudMessage, TimeSpan.MaxValue, TimeSpan.Zero, null, null).ConfigureAwait(false);
+            }
+        }
 
         public async Task<StorageQueueMessage> ReceiveDeadLetterAsync<T>() where T : IStorageQueueCommand
         {
