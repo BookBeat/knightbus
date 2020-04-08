@@ -8,6 +8,7 @@ namespace KnightBus.Redis
     public interface IRedisManagementClient
     {
         Task<int> GetQueueMessageCount(string queueName);
+        Task<int> GetQueueMessageCount<T>() where T : IRedisMessage;
         Task RequeueDeadLettersAsync<T>(int count) where T : IRedisMessage;
     }
 
@@ -27,6 +28,12 @@ namespace KnightBus.Redis
             var db = _multiplexer.GetDatabase(_configuration.DatabaseId);
             var messages = await db.ListRangeAsync(queueName);
             return messages.Length;
+        }
+
+        public async Task<int> GetQueueMessageCount<T>() where T : IRedisMessage
+        {
+            var queueName = AutoMessageMapper.GetQueueName<T>();
+            return await GetQueueMessageCount(queueName);
         }
 
         public async Task RequeueDeadLettersAsync<T>(int count) where T : IRedisMessage
