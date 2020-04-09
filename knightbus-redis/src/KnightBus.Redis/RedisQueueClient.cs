@@ -90,7 +90,17 @@ namespace KnightBus.Redis
 
         internal async Task<int> GetMessageCount()
         {
-            var messages = await _db.ListRangeAsync(_queueName);
+            return await GetMessageCount(_queueName);
+        }
+
+        internal async Task<int> GetDeadletterMessageCount()
+        {
+            return await GetMessageCount(RedisQueueConventions.GetDeadLetterQueueName(_queueName));
+        }
+
+        private async Task<int> GetMessageCount(string queueName)
+        {
+            var messages = await _db.ListRangeAsync(queueName);
             return messages.Length;
         }
 

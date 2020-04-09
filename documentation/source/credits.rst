@@ -17,3 +17,4 @@ Unordered list of persons contributing their time and intellect to KnightBus
 * Magnus Baneryd
 * Olov Siktröm
 * Simon Aunér
+* André Virdarson
