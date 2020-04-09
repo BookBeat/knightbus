@@ -1,5 +1,4 @@
 ﻿using System.Threading.Tasks;
-using KnightBus.Core;
 using KnightBus.Redis.Messages;
 using StackExchange.Redis;
 
@@ -13,30 +12,26 @@ namespace KnightBus.Redis
 
     public class RedisManagementClient : IRedisManagementClient
     {
-        private readonly IConnectionMultiplexer _multiplexer;
-        private readonly RedisConfiguration _configuration;
+        private readonly IDatabase _db;
 
         public RedisManagementClient(RedisConfiguration configuration)
         {
-            _multiplexer = ConnectionMultiplexer.Connect(configuration.ConnectionString);
-            _configuration = configuration;
+            _db = ConnectionMultiplexer.Connect(configuration.ConnectionString).GetDatabase(configuration.DatabaseId);
         }
 
         public async Task<int> GetQueueMessageCount<T>() where T : class, IRedisMessage
         {
-            var db = _multiplexer.GetDatabase(_configuration.DatabaseId);
-            var queueClient = new RedisQueueClient<T>(db, _configuration.MessageSerializer, new NoLogging());
-            return await queueClient.GetQueueMessageCount();
+            var queueClient = new RedisQueueClient<T>(_db);
+            return await queueClient.GetMessageCount();
         }
 
         public async Task RequeueDeadLettersAsync<T>(int count) where T : class, IRedisMessage
         {
-            var db = _multiplexer.GetDatabase(_configuration.DatabaseId);
-            var queueClient = new RedisQueueClient<T>(db, _configuration.MessageSerializer, new NoLogging());
+            var queueClient = new RedisQueueClient<T>(_db);
 
             for (var i = 0; i < count; i++)
             {
-                await queueClient.RequeueDeadletterMessageAsync();
+                await queueClient.RequeueDeadletterAsync();
             }
         }
     }

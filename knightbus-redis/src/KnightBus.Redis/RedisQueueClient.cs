@@ -16,11 +16,11 @@ namespace KnightBus.Redis
         private readonly IMessageSerializer _serializer;
         private readonly ILog _log;
 
-        internal RedisQueueClient(IDatabase db, IMessageSerializer serializer, ILog log)
+        internal RedisQueueClient(IDatabase db, IMessageSerializer serializer = null, ILog log = null)
         {
             _db = db;
-            _serializer = serializer;
-            _log = log;
+            _serializer = serializer ?? new JsonMessageSerializer();
+            _log = log ?? new NoLogging();
         }
 
         internal async Task<RedisMessage<T>[]> GetMessagesAsync(int count)
@@ -72,7 +72,7 @@ namespace KnightBus.Redis
             }
         }
 
-        internal async Task RequeueDeadletterMessageAsync()
+        internal async Task RequeueDeadletterAsync()
         {
             var deadLetterQueueName = RedisQueueConventions.GetDeadLetterQueueName(_queueName);
             var deadLetterProcessingQueueName = RedisQueueConventions.GetProcessingQueueName(deadLetterQueueName);
@@ -88,7 +88,7 @@ namespace KnightBus.Redis
             await _db.PublishAsync(_queueName, 0, CommandFlags.FireAndForget).ConfigureAwait(false);
         }
 
-        internal async Task<int> GetQueueMessageCount()
+        internal async Task<int> GetMessageCount()
         {
             var messages = await _db.ListRangeAsync(_queueName);
             return messages.Length;
