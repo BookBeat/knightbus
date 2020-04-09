@@ -7,9 +7,8 @@ namespace KnightBus.Redis
 {
     public interface IRedisManagementClient
     {
-        Task<int> GetQueueMessageCount(string queueName);
-        Task<int> GetQueueMessageCount<T>() where T : IRedisMessage;
-        Task RequeueDeadLettersAsync<T>(int count) where T : IRedisMessage;
+        Task<int> GetQueueMessageCount<T>() where T : class, IRedisMessage;
+        Task RequeueDeadLettersAsync<T>(int count) where T : class, IRedisMessage;
     }
 
     public class RedisManagementClient : IRedisManagementClient
@@ -23,38 +22,22 @@ namespace KnightBus.Redis
             _configuration = configuration;
         }
 
-        public async Task<int> GetQueueMessageCount(string queueName)
+        public async Task<int> GetQueueMessageCount<T>() where T : class, IRedisMessage
         {
             var db = _multiplexer.GetDatabase(_configuration.DatabaseId);
-            var messages = await db.ListRangeAsync(queueName);
-            return messages.Length;
+            var queueClient = new RedisQueueClient<T>(db, _configuration.MessageSerializer, new NoLogging());
+            return await queueClient.GetQueueMessageCount();
         }
 
-        public async Task<int> GetQueueMessageCount<T>() where T : IRedisMessage
-        {
-            var queueName = AutoMessageMapper.GetQueueName<T>();
-            return await GetQueueMessageCount(queueName);
-        }
-
-        public async Task RequeueDeadLettersAsync<T>(int count) where T : IRedisMessage
+        public async Task RequeueDeadLettersAsync<T>(int count) where T : class, IRedisMessage
         {
             var db = _multiplexer.GetDatabase(_configuration.DatabaseId);
-            var queueName = AutoMessageMapper.GetQueueName<T>();
-            var deadLetterQueueName = RedisQueueConventions.GetDeadLetterQueueName(queueName);
-            var deadLetterProcessingQueueName = RedisQueueConventions.GetProcessingQueueName(deadLetterQueueName);
+            var queueClient = new RedisQueueClient<T>(db, _configuration.MessageSerializer, new NoLogging());
 
             for (var i = 0; i < count; i++)
             {
-                var listItem = await db.ListRightPopLeftPushAsync(deadLetterQueueName, deadLetterProcessingQueueName).ConfigureAwait(false);
-                if (listItem.IsNullOrEmpty) return;
-                var message = _configuration.MessageSerializer.Deserialize<RedisListItem<T>>(listItem);
-                var hashKey = RedisQueueConventions.GetMessageHashKey(queueName, message.Id);
-
-                await db.KeyDeleteAsync(hashKey).ConfigureAwait(false);
-                await db.ListRightPopLeftPushAsync(deadLetterProcessingQueueName, queueName).ConfigureAwait(false);
+                await queueClient.RequeueDeadletterMessageAsync();
             }
-
-            await db.PublishAsync(queueName, 0, CommandFlags.FireAndForget).ConfigureAwait(false);
         }
     }
 }
