@@ -93,5 +93,28 @@ namespace KnightBus.Redis
             var messages = await _db.ListRangeAsync(_queueName);
             return messages.Length;
         }
+
+        internal Task CompleteMessageAsync(RedisMessage<T> message)
+        {
+            return Task.WhenAll(
+                _db.KeyDeleteAsync(new RedisKey[] { message.HashKey, message.ExpirationKey }),
+                _db.ListRemoveAsync(RedisQueueConventions.GetProcessingQueueName(_queueName), message.RedisValue, -1));
+        }
+
+        internal Task AbandonMessageByErrorAsync(RedisMessage<T> message, Exception e)
+        {
+            return Task.WhenAll(
+                _db.HashSetAsync(message.HashKey, RedisHashKeys.Errors, $"{e.Message}\n{e.StackTrace}"),
+                _db.ListLeftPushAsync(_queueName, message.RedisValue),
+                _db.ListRemoveAsync(RedisQueueConventions.GetProcessingQueueName(_queueName), message.RedisValue, -1));
+        }
+
+        internal Task DeadLetterMessageAsync(RedisMessage<T> message, int deadLetterLimit)
+        {
+            return Task.WhenAll(
+                _db.HashSetAsync(message.HashKey, "MaxDeliveryCountExceeded", $"DeliveryCount exceeded limit of {deadLetterLimit}"),
+                _db.ListLeftPushAsync(RedisQueueConventions.GetDeadLetterQueueName(_queueName), message.RedisValue),
+                _db.ListRemoveAsync(RedisQueueConventions.GetProcessingQueueName(_queueName), message.RedisValue, -1));
+        }
     }
 }
