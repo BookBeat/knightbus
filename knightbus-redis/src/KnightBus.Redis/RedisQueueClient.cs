@@ -29,9 +29,9 @@ namespace KnightBus.Redis
             if (queueMessageCount < count)
                 count = (int)queueMessageCount;
 
-            var messages = new RedisMessage<T>[count];
             var cts = new CancellationTokenSource();
-            await Task.WhenAll(messages.Select(m => GetMessageAsync(cts))).ConfigureAwait(false);
+            var messages = await Task.WhenAll(Enumerable.Range(0, count).Select(i => GetMessageAsync(cts)))
+                .ConfigureAwait(false);
             return messages;
         }
 
