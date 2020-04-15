@@ -20,16 +20,16 @@ namespace KnightBus.Redis
             _db = ConnectionMultiplexer.Connect(configuration.ConnectionString).GetDatabase(configuration.DatabaseId);
         }
 
-        public async Task<long> GetMessageCount<T>() where T : class, IRedisMessage
+        public Task<long> GetMessageCount<T>() where T : class, IRedisMessage
         {
             var queueClient = new RedisQueueClient<T>(_db);
-            return await queueClient.GetMessageCount();
+            return queueClient.GetMessageCount();
         }
 
-        public async Task<long> GetDeadletterMessageCount<T>() where T : class, IRedisMessage
+        public Task<long> GetDeadletterMessageCount<T>() where T : class, IRedisMessage
         {
             var queueClient = new RedisQueueClient<T>(_db);
-            return await queueClient.GetDeadletterMessageCount();
+            return queueClient.GetDeadletterMessageCount();
         }
 
         public async Task RequeueDeadLettersAsync<T>(long count) where T : class, IRedisMessage

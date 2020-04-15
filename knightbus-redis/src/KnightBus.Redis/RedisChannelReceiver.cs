@@ -81,12 +81,19 @@ namespace KnightBus.Redis
 
                 foreach (var redisMessage in messages)
                 {
-                    await _maxConcurrent.WaitAsync(cancellationToken).ConfigureAwait(false);
-                    var cts = new CancellationTokenSource(_settings.MessageLockTimeout);
+                    if (redisMessage != null)
+                    {
+                        await _maxConcurrent.WaitAsync(cancellationToken).ConfigureAwait(false);
+                        var cts = new CancellationTokenSource(_settings.MessageLockTimeout);
 #pragma warning disable 4014
-                    Task.Run(async () => await ProcessMessageAsync(redisMessage, cts.Token)
-                        .ContinueWith(task2 => _maxConcurrent.Release(), cts.Token), cts.Token);
+                        Task.Run(async () => await ProcessMessageAsync(redisMessage, cts.Token)
+                            .ContinueWith(task2 => _maxConcurrent.Release(), cts.Token), cts.Token);
 #pragma warning restore 4014
+                    }
+                    else
+                    {
+                        return false;
+                    }
                 }
 
                 return true;

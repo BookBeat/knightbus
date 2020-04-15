@@ -24,7 +24,7 @@ namespace KnightBus.Redis
 
         internal async Task<RedisMessage<T>[]> GetMessagesAsync(int count)
         {
-            var queueMessageCount = await GetMessageCount(_queueName);
+            var queueMessageCount = await GetMessageCount(_queueName).ConfigureAwait(false);
 
             if (queueMessageCount < count)
                 count = (int)queueMessageCount;
@@ -32,7 +32,7 @@ namespace KnightBus.Redis
             var messages = new RedisMessage<T>[count];
             var cts = new CancellationTokenSource();
             await Task.WhenAll(messages.Select(m => GetMessageAsync(cts))).ConfigureAwait(false);
-            return messages.Where(m => m != null).ToArray();
+            return messages;
         }
 
         private async Task<RedisMessage<T>> GetMessageAsync(CancellationTokenSource cancellationsSource)
@@ -89,19 +89,19 @@ namespace KnightBus.Redis
             await _db.PublishAsync(_queueName, 0, CommandFlags.FireAndForget).ConfigureAwait(false);
         }
 
-        internal async Task<long> GetMessageCount()
+        internal Task<long> GetMessageCount()
         {
-            return await GetMessageCount(_queueName);
+            return GetMessageCount(_queueName);
         }
 
-        internal async Task<long> GetDeadletterMessageCount()
+        internal Task<long> GetDeadletterMessageCount()
         {
-            return await GetMessageCount(RedisQueueConventions.GetDeadLetterQueueName(_queueName));
+            return GetMessageCount(RedisQueueConventions.GetDeadLetterQueueName(_queueName));
         }
 
-        private async Task<long> GetMessageCount(string queueName)
+        private Task<long> GetMessageCount(string queueName)
         {
-            return await _db.ListLengthAsync(queueName);
+            return _db.ListLengthAsync(queueName);
         }
 
         internal Task CompleteMessageAsync(RedisMessage<T> message)
