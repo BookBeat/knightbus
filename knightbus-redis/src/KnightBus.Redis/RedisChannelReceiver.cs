@@ -76,20 +76,18 @@ namespace KnightBus.Redis
             try
             {
                 var prefetchCount = _settings.PrefetchCount > 0 ? _settings.PrefetchCount : 1;
-                foreach (var redisMessage in await _queueClient.GetMessagesAsync(prefetchCount).ConfigureAwait(false))
-                    if (redisMessage != null)
-                    {
-                        await _maxConcurrent.WaitAsync(cancellationToken).ConfigureAwait(false);
-                        var cts = new CancellationTokenSource(_settings.MessageLockTimeout);
+                var messages = await _queueClient.GetMessagesAsync(prefetchCount).ConfigureAwait(false);
+                if (messages.Length == 0) return false;
+
+                foreach (var redisMessage in messages)
+                {
+                    await _maxConcurrent.WaitAsync(cancellationToken).ConfigureAwait(false);
+                    var cts = new CancellationTokenSource(_settings.MessageLockTimeout);
 #pragma warning disable 4014
-                        Task.Run(async () => await ProcessMessageAsync(redisMessage, cts.Token)
-                            .ContinueWith(task2 => _maxConcurrent.Release(), cts.Token), cts.Token);
+                    Task.Run(async () => await ProcessMessageAsync(redisMessage, cts.Token)
+                        .ContinueWith(task2 => _maxConcurrent.Release(), cts.Token), cts.Token);
 #pragma warning restore 4014
-                    }
-                    else
-                    {
-                        return false;
-                    }
+                }
 
                 return true;
             }

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -25,28 +24,30 @@ namespace KnightBus.Redis
 
         internal async Task<RedisMessage<T>[]> GetMessagesAsync(int count)
         {
-            var array = new RedisMessage<T>[count];
+            var queueMessageCount = await GetMessageCount(_queueName);
+
+            if (queueMessageCount < count)
+                count = (int)queueMessageCount;
+
+            var messages = new RedisMessage<T>[count];
             var cts = new CancellationTokenSource();
-            await Task.WhenAll(Enumerable.Range(0, count).Select(i => Insert(i, array, cts))).ConfigureAwait(false);
-            return array;
+            await Task.WhenAll(messages.Select(m => GetMessageAsync(cts))).ConfigureAwait(false);
+            return messages.Where(m => m != null).ToArray();
         }
 
-        private async Task Insert(int index, IList<RedisMessage<T>> array, CancellationTokenSource cancellationsSource)
+        private async Task<RedisMessage<T>> GetMessageAsync(CancellationTokenSource cancellationsSource)
         {
-            if (cancellationsSource.IsCancellationRequested) return;
-            var message = await GetMessageAsync().ConfigureAwait(false);
-            if (message != null)
-                array[index] = message;
-            else
-                cancellationsSource.Cancel();
-        }
+            if (cancellationsSource.IsCancellationRequested) return null;
 
-        private async Task<RedisMessage<T>> GetMessageAsync()
-        {
             try
             {
                 var listItem = await _db.ListRightPopLeftPushAsync(_queueName, RedisQueueConventions.GetProcessingQueueName(_queueName)).ConfigureAwait(false);
-                if (listItem.IsNullOrEmpty) return null;
+                if (listItem.IsNullOrEmpty)
+                {
+                    cancellationsSource.Cancel();
+                    return null;
+                }
+
                 var message = _serializer.Deserialize<RedisListItem<T>>(listItem);
                 var hashKey = RedisQueueConventions.GetMessageHashKey(_queueName, message.Id);
 
@@ -88,20 +89,19 @@ namespace KnightBus.Redis
             await _db.PublishAsync(_queueName, 0, CommandFlags.FireAndForget).ConfigureAwait(false);
         }
 
-        internal async Task<int> GetMessageCount()
+        internal async Task<long> GetMessageCount()
         {
             return await GetMessageCount(_queueName);
         }
 
-        internal async Task<int> GetDeadletterMessageCount()
+        internal async Task<long> GetDeadletterMessageCount()
         {
             return await GetMessageCount(RedisQueueConventions.GetDeadLetterQueueName(_queueName));
         }
 
-        private async Task<int> GetMessageCount(string queueName)
+        private async Task<long> GetMessageCount(string queueName)
         {
-            var messages = await _db.ListRangeAsync(queueName);
-            return messages.Length;
+            return await _db.ListLengthAsync(queueName);
         }
 
         internal Task CompleteMessageAsync(RedisMessage<T> message)
