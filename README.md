@@ -9,7 +9,7 @@
 
 [Find the official KnightBus documentation here](https://knightbus.readthedocs.io/)
 
-<img src="https://raw.githubusercontent.com/BookBeat/knightbus-documentation/master/media/images/knightbus-logo.png" alt="KnightBus Logo" width="300"/>
+<img src="documentation/media/images/knightbus-logo.png" alt="KnightBus Logo" width="300"/>
 
 
 | Package | NuGet        |
