@@ -11,7 +11,7 @@ namespace KnightBus.Redis.Tests.Integration
 
         private IConnectionMultiplexer _multiplexer;
 
-        [SetUp]
+        [OneTimeSetUp]
         public void BaseSetup()
         {
             Configuration = new RedisConfiguration("localhost:6379");
@@ -19,7 +19,7 @@ namespace KnightBus.Redis.Tests.Integration
             Database = _multiplexer.GetDatabase(Configuration.DatabaseId);
         }
 
-        [TearDown]
+        [TearDown] //This should be done after each test thus not OneTime
         public void BaseTeardown()
         {
             var server = _multiplexer.GetServer(Configuration.ConnectionString);
