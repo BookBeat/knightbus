@@ -63,6 +63,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Schedule.Tests.Un
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Azure.ServiceBus.Unit", "knightbus-azureservicebus\tests\KnightBus.Azure.ServiceBus.Unit\KnightBus.Azure.ServiceBus.Unit.csproj", "{22005970-5CAD-46B6-9CB8-4C6607D36944}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Redis.Tests.Integration", "knightbus-redis\tests\KnightBus.Redis.Tests.Integration\KnightBus.Redis.Tests.Integration.csproj", "{BD6A7EC2-E5A7-48C9-ADA4-0E3A824D8717}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.Redis.Tests.Unit", "knightbus-redis\tests\KnightBus.Redis.Tests.Unit\KnightBus.Redis.Tests.Unit.csproj", "{495A52A9-3268-4744-BCD4-BEEECDD525F7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -169,6 +173,14 @@ Global
 		{22005970-5CAD-46B6-9CB8-4C6607D36944}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{22005970-5CAD-46B6-9CB8-4C6607D36944}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{22005970-5CAD-46B6-9CB8-4C6607D36944}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BD6A7EC2-E5A7-48C9-ADA4-0E3A824D8717}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BD6A7EC2-E5A7-48C9-ADA4-0E3A824D8717}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BD6A7EC2-E5A7-48C9-ADA4-0E3A824D8717}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BD6A7EC2-E5A7-48C9-ADA4-0E3A824D8717}.Release|Any CPU.Build.0 = Release|Any CPU
+		{495A52A9-3268-4744-BCD4-BEEECDD525F7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{495A52A9-3268-4744-BCD4-BEEECDD525F7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{495A52A9-3268-4744-BCD4-BEEECDD525F7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{495A52A9-3268-4744-BCD4-BEEECDD525F7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -189,6 +201,8 @@ Global
 		{04087FF9-1A26-4230-807F-135E452453C3} = {1A7A20B2-65E7-4712-B93B-4AA3F73017A8}
 		{3BB50500-1F7C-44B0-9310-A5B1EE0A1E44} = {1A7A20B2-65E7-4712-B93B-4AA3F73017A8}
 		{22005970-5CAD-46B6-9CB8-4C6607D36944} = {BFEEC811-DB77-4EF0-B43E-238FAF440E3A}
+		{BD6A7EC2-E5A7-48C9-ADA4-0E3A824D8717} = {09D121DD-771E-478D-8E10-080D65929948}
+		{495A52A9-3268-4744-BCD4-BEEECDD525F7} = {09D121DD-771E-478D-8E10-080D65929948}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {14950A56-4265-429E-AF71-2D98B3B8AC48}

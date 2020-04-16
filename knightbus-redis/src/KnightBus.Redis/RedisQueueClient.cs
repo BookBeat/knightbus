@@ -1,11 +1,14 @@
 ﻿using System;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
 using KnightBus.Redis.Messages;
 using StackExchange.Redis;
 
+[assembly: InternalsVisibleTo("KnightBus.Redis.Tests.Integration")]
+[assembly: InternalsVisibleTo("KnightBus.Redis.Tests.Unit")]
 namespace KnightBus.Redis
 {
     internal class RedisQueueClient<T> where T : class, IRedisMessage
