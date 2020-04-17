@@ -76,7 +76,11 @@ namespace KnightBus.Redis
             try
             {
                 var prefetchCount = _settings.PrefetchCount > 0 ? _settings.PrefetchCount : 1;
-                foreach (var redisMessage in await _queueClient.GetMessagesAsync(prefetchCount).ConfigureAwait(false))
+                var messages = await _queueClient.GetMessagesAsync(prefetchCount).ConfigureAwait(false);
+                if (messages.Length == 0) return false;
+
+                foreach (var redisMessage in messages)
+                {
                     if (redisMessage != null)
                     {
                         await _maxConcurrent.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -90,6 +94,7 @@ namespace KnightBus.Redis
                     {
                         return false;
                     }
+                }
 
                 return true;
             }
