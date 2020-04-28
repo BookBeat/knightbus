@@ -15,14 +15,14 @@ namespace KnightBus.DependencyInjection.Tests.Unit
         public void Setup()
         {
             var container = new ServiceCollection();
-            var serviceProvider = new DefaultServiceProviderFactory().CreateServiceProvider(container);
             container.AddScoped<ITestService, TestService>();
+            var serviceProvider = new DefaultServiceProviderFactory().CreateServiceProvider(container);
 
             DependencyInjection = new MicrosoftDependencyInjection(serviceProvider, container);
         }
 
         [Test]
-        public async Task Scoped_Instance_Is_Different_From_Default()
+        public void DependencyInjection_resolves_services_in_correct_scope()
         {
             // arrange
             ITestService outerScopeService;
@@ -31,20 +31,20 @@ namespace KnightBus.DependencyInjection.Tests.Unit
             ITestService secondOuterScopeService;
 
             // act
-            using (DependencyInjection.GetScope())
+            using (var outerScope = DependencyInjection.GetScope())
             {
-                outerScopeService = DependencyInjection.GetInstance<ITestService>();
+                outerScopeService = outerScope.GetInstance<ITestService>();
 
-                using (DependencyInjection.GetScope())
+                using (var innerScope = outerScope.GetScope())
                 {
-                    innerScopeService = DependencyInjection.GetInstance<ITestService>();
-                    secondInnerScopeService = DependencyInjection.GetInstance<ITestService>();
+                    innerScopeService = innerScope.GetInstance<ITestService>();
+                    secondInnerScopeService = innerScope.GetInstance<ITestService>();
                 }
-                secondOuterScopeService = DependencyInjection.GetInstance<ITestService>();
+                secondOuterScopeService = outerScope.GetInstance<ITestService>();
             }
-
             // assert
             outerScopeService.GetScopeIdentifier().Should().NotBe(innerScopeService.GetScopeIdentifier());
+            secondOuterScopeService.GetScopeIdentifier().Should().NotBe(secondInnerScopeService.GetScopeIdentifier());
             outerScopeService.GetScopeIdentifier().Should().Be(secondOuterScopeService.GetScopeIdentifier());
             innerScopeService.GetScopeIdentifier().Should().Be(secondInnerScopeService.GetScopeIdentifier());
         }

@@ -16,39 +16,42 @@ namespace KnightBus.DependencyInjection.Tests.Unit
         [SetUp]
         public void Setup()
         {
-            var container = new Container { Options = { DefaultScopedLifestyle = new AsyncScopedLifestyle() } };
+            var container = new Container { Options = { DefaultScopedLifestyle = ScopedLifestyle.Flowing } };
             container.Register<ITestService, TestService>(Lifestyle.Scoped);
 
             DependencyInjection = new SimpleInjectorDependencyInjection(container);
             container.Verify();
         }
 
-        [Test]
-        public async Task Scoped_Instance_Is_Different_From_Default()
+        [Test] // needs to be run async since SimpleInjectorDependencyInjection creates async scopes
+        public async Task DependencyInjection_resolves_services_in_correct_scope()
         {
-            // arrange
-            ITestService outerScopeService;
-            ITestService innerScopeService;
-            ITestService secondInnerScopeService;
-            ITestService secondOuterScopeService;
-
-            // act
-            using (DependencyInjection.GetScope())
+            await Task.Run(() => // removes annoying warning about async not using awaiter
             {
-                outerScopeService = DependencyInjection.GetInstance<ITestService>();
-
-                using (DependencyInjection.GetScope())
+                // arrange
+                ITestService outerScopeService;
+                ITestService innerScopeService;
+                ITestService secondInnerScopeService;
+                ITestService secondOuterScopeService;
+                // act
+                using (var outerScope = DependencyInjection.GetScope())
                 {
-                    innerScopeService = DependencyInjection.GetInstance<ITestService>();
-                    secondInnerScopeService = DependencyInjection.GetInstance<ITestService>();
-                }
-                secondOuterScopeService = DependencyInjection.GetInstance<ITestService>();
+                    outerScopeService = outerScope.GetInstance<ITestService>();
 
-            }
-            // assert
-            outerScopeService.GetScopeIdentifier().Should().NotBe(innerScopeService.GetScopeIdentifier());
-            outerScopeService.GetScopeIdentifier().Should().Be(secondOuterScopeService.GetScopeIdentifier());
-            innerScopeService.GetScopeIdentifier().Should().Be(secondInnerScopeService.GetScopeIdentifier());
+                    using (var innerScope = outerScope.GetScope())
+                    {
+                        innerScopeService = innerScope.GetInstance<ITestService>();
+                        secondInnerScopeService = innerScope.GetInstance<ITestService>();
+                    }
+
+                    secondOuterScopeService = outerScope.GetInstance<ITestService>();
+                }
+                // assert
+                outerScopeService.GetScopeIdentifier().Should().NotBe(innerScopeService.GetScopeIdentifier());
+                secondOuterScopeService.GetScopeIdentifier().Should().NotBe(secondInnerScopeService.GetScopeIdentifier());
+                outerScopeService.GetScopeIdentifier().Should().Be(secondOuterScopeService.GetScopeIdentifier());
+                innerScopeService.GetScopeIdentifier().Should().Be(secondInnerScopeService.GetScopeIdentifier());
+            });
         }
     }
 }
