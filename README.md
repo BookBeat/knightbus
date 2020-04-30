@@ -117,7 +117,7 @@ For Linux:
 ```console
 # In documentation folder:
 
-$ sudo apt install python3 python3-pip
+$ sudo apt install python3 python3-sphinx python3-pip
 $ python3 -m pip install sphinx-rtd-theme
 $ make html source build
 $ sensible-browser build/html/index.html
