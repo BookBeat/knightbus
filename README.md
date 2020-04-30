@@ -8,6 +8,7 @@
 
 
 [Find the official KnightBus documentation here](https://knightbus.readthedocs.io/)
+[![Documentation Status](https://readthedocs.org/projects/knightbus/badge/?version=latest)](https://knightbus.readthedocs.io/en/latest/?badge=latest)
 
 <img src="documentation/media/images/knightbus-logo.png" alt="KnightBus Logo" width="300"/>
 
