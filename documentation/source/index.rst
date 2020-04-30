@@ -29,5 +29,6 @@ Features:
    transports
    sagas
    versioning
+   monitoring
    license
    credits
