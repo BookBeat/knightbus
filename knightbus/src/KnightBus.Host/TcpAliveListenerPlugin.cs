@@ -48,7 +48,7 @@ namespace KnightBus.Host
                             var msg = System.Text.Encoding.ASCII.GetBytes(DateTimeOffset.UtcNow.ToString());
                             try
                             {
-                                await stream.WriteAsync(msg, 0, msg.Length, cancellationToken);
+                                await stream.WriteAsync(msg, 0, msg.Length, cancellationToken).ConfigureAwait(false);
                             }
                             catch (Exception e)
                             {
