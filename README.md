@@ -108,14 +108,17 @@ public class CustomThrottlingMiddleware : IMessageProcessorMiddleware
 To get documentation up and running locally, do the following.
 
 1. Install `sphinx`: https://www.sphinx-doc.org
-
-    **NOTE:** On Linux only `apt install python-sphinx` works with the theme, not `python3-sphinx`
 2. Install `sphinx_rtd_theme`: https://github.com/readthedocs/sphinx_rtd_theme
-
-    ```console
-    $ apt install python-pip
-    $ pip install sphinx-rtd-theme
-    ```
-
 3. Run `make html source build` in the documentation folder
 4. Open `documentation/build/html/index.html` in a browser to preview your changes
+
+For Linux:
+
+```console
+# In documentation folder:
+
+$ sudo apt install python3 python3-sphinx python3-pip
+$ python3 -m pip install sphinx-rtd-theme
+$ make html source build
+$ sensible-browser build/html/index.html
+```
