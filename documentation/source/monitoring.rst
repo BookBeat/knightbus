@@ -17,7 +17,7 @@ TcpAliveListenerPlugin offers monitoring for liveness using TCP that can be used
 
     var knightBus = new KnightBusHost()
         .Configure(configuration => configuration
-            .UseTcpAliveListener(13000));
+            .UseTcpAliveListener(port: 13000));
 
 Example using Kubernetes:
 
