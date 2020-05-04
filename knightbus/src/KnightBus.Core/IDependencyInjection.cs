@@ -13,16 +13,3 @@ namespace KnightBus.Core
         void RegisterOpenGeneric(Type openGeneric, Assembly assembly);
     }
 }
-//
-//
-//using(var scope = DependencyInjection.GetScope())
-//{
-//    var service = scope.ServiceProvider.GetInstance<ITestService>();
-//}
-//
-//
-//
-//using(DependencyInjection.GetScope())
-//{
-//    var service = DependencyInjection.GetInstance<ITestService>();
-//}
