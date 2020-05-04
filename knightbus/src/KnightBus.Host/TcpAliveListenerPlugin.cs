@@ -1,5 +1,4 @@
 ﻿using System;
-using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -49,9 +48,9 @@ namespace KnightBus.Host
                             var msg = System.Text.Encoding.ASCII.GetBytes(DateTimeOffset.UtcNow.ToString());
                             try
                             {
-                                stream.Write(msg, 0, msg.Length);
+                                await stream.WriteAsync(msg, 0, msg.Length, cancellationToken);
                             }
-                            catch (IOException e)
+                            catch (Exception e)
                             {
                                 _log.Error(e, "Failed to write to stream");
                             }
