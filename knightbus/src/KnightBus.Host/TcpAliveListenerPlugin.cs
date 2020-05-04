@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -11,7 +12,11 @@ namespace KnightBus.Host
     {
         private readonly ILog _log;
         private readonly int _port;
+
+        // ReSharper disable once NotAccessedField.Local
+#pragma warning disable IDE0052 // Remove unread private members
         private Task _listenerTask;
+#pragma warning restore IDE0052 // Remove unread private members
 
         public TcpAliveListenerPlugin(IHostConfiguration hostConfiguration, int port)
         {
@@ -23,14 +28,14 @@ namespace KnightBus.Host
         {
             if (cancellationToken.IsCancellationRequested) return;
 
-            var listener = new TcpListener(IPAddress.Any, _port);
-
-            _log.Information($"Starting tcp listener on port {_port}");
-            await Task.Run(() => listener.Start(), cancellationToken);
-            _log.Information("Tcp listener started");
-
-            _listenerTask = Task.Factory.StartNew(async () =>
+            _listenerTask = await Task.Factory.StartNew(async () =>
             {
+                var listener = new TcpListener(IPAddress.Any, _port);
+
+                _log.Information($"Starting tcp listener on port {_port}");
+                await Task.Run(() => listener.Start(), cancellationToken);
+                _log.Information("Tcp listener started");
+
                 try
                 {
                     while (!cancellationToken.IsCancellationRequested)
@@ -38,11 +43,18 @@ namespace KnightBus.Host
                         _log.Debug("Waiting for a connection...");
                         using (var client = await listener.AcceptTcpClientAsync().ConfigureAwait(false))
                         {
-                            _log.Debug("Received connection.");
+                            _log.Debug("Received connection");
 
                             var stream = client.GetStream();
                             var msg = System.Text.Encoding.ASCII.GetBytes(DateTimeOffset.UtcNow.ToString());
-                            stream.Write(msg, 0, msg.Length);
+                            try
+                            {
+                                stream.Write(msg, 0, msg.Length);
+                            }
+                            catch (IOException e)
+                            {
+                                _log.Error(e, "Failed to write to stream");
+                            }
 
                             client.Close();
                         }
