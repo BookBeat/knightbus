@@ -16,7 +16,7 @@ namespace KnightBus.DependencyInjection.Tests.Unit
         [SetUp]
         public void Setup()
         {
-            var container = new Container { Options = { DefaultScopedLifestyle = ScopedLifestyle.Flowing } };
+            var container = new Container { Options = { DefaultScopedLifestyle = new AsyncScopedLifestyle() } };
             container.Register<ITestService, TestService>(Lifestyle.Scoped);
 
             DependencyInjection = new SimpleInjectorDependencyInjection(container);

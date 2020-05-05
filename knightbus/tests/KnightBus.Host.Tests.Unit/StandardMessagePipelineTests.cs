@@ -28,6 +28,7 @@ namespace KnightBus.Host.Tests.Unit
             _logger = new Mock<ILog>();
             _stateHandler = new Mock<IMessageStateHandler<TestCommandOne>>();
             _countable = new Mock<ICountable>();
+            _messageHandlerProvider.Setup(x => x.GetScope()).Returns(_messageHandlerProvider.Object);
             _messageHandlerProvider.Setup(x => x.GetInstance<IProcessMessage<TestCommandOne>>(typeof(MultipleCommandProcessor))).Returns(
                 () => new MultipleCommandProcessor(_countable.Object)
             );
