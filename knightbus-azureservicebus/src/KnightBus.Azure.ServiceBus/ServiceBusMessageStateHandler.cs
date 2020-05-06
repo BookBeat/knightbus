@@ -16,9 +16,10 @@ namespace KnightBus.Azure.ServiceBus
         private readonly Message _sbMessage;
         private readonly T _message;
 
-        public ServiceBusMessageStateHandler(IReceiverClient client, Message sbMessage, IMessageSerializer serializer, int deadLetterDeliveryLimit)
+        public ServiceBusMessageStateHandler(IReceiverClient client, Message sbMessage, IMessageSerializer serializer, int deadLetterDeliveryLimit, IDependencyInjection messageScope)
         {
             DeadLetterDeliveryLimit = deadLetterDeliveryLimit;
+            MessageScope = messageScope;
             _client = client;
             _sbMessage = sbMessage;
             _message = serializer.Deserialize<T>(Encoding.UTF8.GetString(_sbMessage.Body));
@@ -47,5 +48,7 @@ namespace KnightBus.Azure.ServiceBus
         {
             return Task.FromResult(_message);
         }
+
+        public IDependencyInjection MessageScope { get; set; }
     }
 }

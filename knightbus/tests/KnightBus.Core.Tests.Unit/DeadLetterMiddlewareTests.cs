@@ -15,13 +15,15 @@ namespace KnightBus.Core.Tests.Unit
         {
             //arrange
             var pipeline = new Mock<IPipelineInformation>();
+            var di = new Mock<IDependencyInjection>();
             var hostConfiguration = new Mock<IHostConfiguration>();
-            hostConfiguration.Setup(x => x.DependencyInjection).Returns(Mock.Of<IDependencyInjection>());
+            hostConfiguration.Setup(x => x.DependencyInjection).Returns(di.Object);
             pipeline.Setup(x => x.HostConfiguration).Returns(hostConfiguration.Object);
             var nextProcessor = new Mock<IMessageProcessor>();
             var messageStateHandler = new Mock<IMessageStateHandler<TestCommand>>();
             messageStateHandler.Setup(x => x.DeadLetterDeliveryLimit).Returns(1);
             messageStateHandler.Setup(x => x.DeliveryCount).Returns(2);
+            messageStateHandler.Setup(x => x.MessageScope).Returns(di.Object);
             var middleware = new DeadLetterMiddleware();
             //act
             await middleware.ProcessAsync(messageStateHandler.Object, pipeline.Object, nextProcessor.Object, CancellationToken.None);
@@ -34,13 +36,15 @@ namespace KnightBus.Core.Tests.Unit
         {
             //arrange
             var pipeline = new Mock<IPipelineInformation>();
+            var di = new Mock<IDependencyInjection>();
             var hostConfiguration = new Mock<IHostConfiguration>();
-            hostConfiguration.Setup(x => x.DependencyInjection).Returns(Mock.Of<IDependencyInjection>());
+            hostConfiguration.Setup(x => x.DependencyInjection).Returns(di.Object);
             pipeline.Setup(x => x.HostConfiguration).Returns(hostConfiguration.Object);
             var nextProcessor = new Mock<IMessageProcessor>();
             var messageStateHandler = new Mock<IMessageStateHandler<TestCommand>>();
             messageStateHandler.Setup(x => x.DeadLetterDeliveryLimit).Returns(1);
             messageStateHandler.Setup(x => x.DeliveryCount).Returns(2);
+            messageStateHandler.Setup(x => x.MessageScope).Returns(di.Object);
             var middleware = new DeadLetterMiddleware();
             //act
             await middleware.ProcessAsync(messageStateHandler.Object, pipeline.Object, nextProcessor.Object, CancellationToken.None);
@@ -85,6 +89,7 @@ namespace KnightBus.Core.Tests.Unit
             messageStateHandler.Setup(x => x.DeadLetterDeliveryLimit).Returns(1);
             messageStateHandler.Setup(x => x.DeliveryCount).Returns(2);
             messageStateHandler.Setup(x => x.GetMessageAsync()).Returns(Task.FromResult(new TestCommand()));
+            messageStateHandler.Setup(x => x.MessageScope).Returns(di.Object);
             var middleware = new DeadLetterMiddleware();
             //act
             await middleware.ProcessAsync(messageStateHandler.Object, pipeline.Object, nextProcessor.Object, CancellationToken.None);

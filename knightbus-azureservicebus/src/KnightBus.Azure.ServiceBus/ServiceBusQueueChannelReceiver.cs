@@ -17,6 +17,7 @@ namespace KnightBus.Azure.ServiceBus
         public IProcessingSettings Settings { get; set; }
         private readonly ILog _log;
         private readonly IServiceBusConfiguration _configuration;
+        private readonly IHostConfiguration _hostConfiguration;
         private readonly IMessageProcessor _processor;
         private int _deadLetterLimit;
         private IQueueClient _client;
@@ -25,6 +26,7 @@ namespace KnightBus.Azure.ServiceBus
         public ServiceBusQueueChannelReceiver(IProcessingSettings settings, IServiceBusConfiguration configuration, IHostConfiguration hostConfiguration, IMessageProcessor processor)
         {
             _configuration = configuration;
+            _hostConfiguration = hostConfiguration;
             _processor = processor;
             Settings = settings;
             _log = hostConfiguration.Log;
@@ -82,7 +84,7 @@ namespace KnightBus.Azure.ServiceBus
 
         private async Task Handler(Message message, CancellationToken cancellationToken)
         {
-            var stateHandler = new ServiceBusMessageStateHandler<T>(_client, message, _configuration.MessageSerializer, _deadLetterLimit);
+            var stateHandler = new ServiceBusMessageStateHandler<T>(_client, message, _configuration.MessageSerializer, _deadLetterLimit, _hostConfiguration.DependencyInjection);
             await _processor.ProcessAsync(stateHandler, cancellationToken).ConfigureAwait(false);
         }
     }

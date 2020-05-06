@@ -27,9 +27,9 @@ namespace KnightBus.Core.Tests.Unit
 
             var hostConfiguration = new Mock<IHostConfiguration>();
             hostConfiguration.Setup(x => x.Log).Returns(Mock.Of<ILog>());
-            hostConfiguration.Setup(x => x.DependencyInjection).Returns(di.Object);
-
+            hostConfiguration.Setup(x => x.DependencyInjection).Returns(di.Object); // TODO: setup dependency injection
             var messageStateHandler = new Mock<IMessageStateHandler<SagaStartMessage>>();
+            messageStateHandler.Setup(x => x.MessageScope).Returns(di.Object);
             var pipelineInformation = new Mock<IPipelineInformation>();
             pipelineInformation.Setup(x => x.HostConfiguration).Returns(hostConfiguration.Object);
             pipelineInformation.Setup(x => x.ProcessorInterfaceType).Returns(typeof(IProcessCommand<SagaStartMessage, Settings>));
@@ -62,6 +62,7 @@ namespace KnightBus.Core.Tests.Unit
             hostConfiguration.Setup(x => x.DependencyInjection).Returns(di.Object);
 
             var messageStateHandler = new Mock<IMessageStateHandler<SagaStartMessage>>();
+            messageStateHandler.Setup(x => x.MessageScope).Returns(di.Object);
             var pipelineInformation = new Mock<IPipelineInformation>();
             pipelineInformation.Setup(x => x.HostConfiguration).Returns(hostConfiguration.Object);
             pipelineInformation.Setup(x => x.ProcessorInterfaceType).Returns(typeof(IProcessCommand<SagaStartMessage, Settings>));

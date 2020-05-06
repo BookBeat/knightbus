@@ -32,6 +32,7 @@ namespace KnightBus.Host.Tests.Unit
             _messageHandlerProvider.Setup(x => x.GetInstance<IProcessMessage<TestCommandOne>>(typeof(MultipleCommandProcessor))).Returns(
                 () => new MultipleCommandProcessor(_countable.Object)
             );
+            _stateHandler.Setup(x => x.MessageScope).Returns(_messageHandlerProvider.Object);
             _hostConfiguration = new Mock<IHostConfiguration>();
             _hostConfiguration.Setup(x => x.DependencyInjection).Returns(_messageHandlerProvider.Object);
             _pipelineInformation = new Mock<IPipelineInformation>();

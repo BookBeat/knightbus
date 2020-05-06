@@ -18,8 +18,9 @@ namespace KnightBus.Microsoft.DependencyInjection
 
         public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, IPipelineInformation pipelineInformation, IMessageProcessor next, CancellationToken cancellationToken) where T : class, IMessage
         {
-            using (_serviceProvider.CreateScope())
+            using (var scope = messageStateHandler.MessageScope.GetScope())
             {
+                messageStateHandler.MessageScope = scope;
                 await next.ProcessAsync(messageStateHandler, cancellationToken).ConfigureAwait(false);
             }
         }

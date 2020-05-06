@@ -13,11 +13,12 @@ namespace KnightBus.Redis
         private readonly RedisQueueClient<T> _queueClient;
         private readonly RedisMessage<T> _redisMessage;
 
-        public RedisMessageStateHandler(IConnectionMultiplexer connection, RedisConfiguration configuration, RedisMessage<T> redisMessage, int deadLetterDeliveryLimit)
+        public RedisMessageStateHandler(IConnectionMultiplexer connection, RedisConfiguration configuration, RedisMessage<T> redisMessage, int deadLetterDeliveryLimit, IDependencyInjection messageScope)
         {
             _redisMessage = redisMessage;
             _queueClient = new RedisQueueClient<T>(connection.GetDatabase(configuration.DatabaseId));
             DeadLetterDeliveryLimit = deadLetterDeliveryLimit;
+            MessageScope = messageScope;
         }
 
         public int DeliveryCount => int.Parse(_redisMessage.HashEntries[RedisHashKeys.DeliveryCount]);
@@ -43,5 +44,7 @@ namespace KnightBus.Redis
         {
             return Task.FromResult(_redisMessage.Message);
         }
+
+        public IDependencyInjection MessageScope { get; set; }
     }
 }

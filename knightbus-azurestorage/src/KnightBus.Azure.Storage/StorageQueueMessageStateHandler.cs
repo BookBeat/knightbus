@@ -13,9 +13,10 @@ namespace KnightBus.Azure.Storage
         private readonly StorageQueueMessage _message;
 
 
-        public StorageQueueMessageStateHandler(IStorageQueueClient queueClient, StorageQueueMessage message, int deadLetterDeliveryLimit)
+        public StorageQueueMessageStateHandler(IStorageQueueClient queueClient, StorageQueueMessage message, int deadLetterDeliveryLimit, IDependencyInjection messageScope)
         {
             DeadLetterDeliveryLimit = deadLetterDeliveryLimit;
+            MessageScope = messageScope;
             _queueClient = queueClient;
             _message = message;
         }
@@ -52,6 +53,8 @@ namespace KnightBus.Azure.Storage
         {
             return Task.FromResult((T)_message.Message);
         }
+
+        public IDependencyInjection MessageScope { get; set; }
 
         public Task SetLockDuration(TimeSpan timeout, CancellationToken cancellationToken)
         {

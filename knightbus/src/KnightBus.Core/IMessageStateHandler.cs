@@ -17,5 +17,6 @@ namespace KnightBus.Core
         Task AbandonByErrorAsync(Exception e);
         Task DeadLetterAsync(int deadLetterLimit);
         Task<T> GetMessageAsync();
+        IDependencyInjection MessageScope { get; set; }
     }
 }
