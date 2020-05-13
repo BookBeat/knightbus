@@ -9,12 +9,6 @@ namespace KnightBus.Host
 {
     internal class MessageProcessor<TMessageProcessor> : IMessageProcessor
     {
-        private readonly IDependencyInjection _processorProvider;
-
-        public MessageProcessor(IDependencyInjection processorProvider)
-        {
-            _processorProvider = processorProvider;
-        }
         public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, CancellationToken cancellationToken) where T : class, IMessage
         {
                 var typedMessage = await messageStateHandler.GetMessageAsync().ConfigureAwait(false);

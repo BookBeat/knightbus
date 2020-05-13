@@ -1,8 +1,8 @@
-using System.Threading.Tasks;
 using FluentAssertions;
 using KnightBus.Core;
 using KnightBus.Microsoft.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
+using Moq;
 using NUnit.Framework;
 
 namespace KnightBus.DependencyInjection.Tests.Unit
@@ -47,6 +47,22 @@ namespace KnightBus.DependencyInjection.Tests.Unit
             secondOuterScopeService.GetScopeIdentifier().Should().NotBe(secondInnerScopeService.GetScopeIdentifier());
             outerScopeService.GetScopeIdentifier().Should().Be(secondOuterScopeService.GetScopeIdentifier());
             innerScopeService.GetScopeIdentifier().Should().Be(secondInnerScopeService.GetScopeIdentifier());
+        }
+
+        [Test]
+        public void Dependency_injection_can_resolve_service_from_RegisterOpenGenericType()
+        {
+            var container = new ServiceCollection();
+            container.AddScoped<ITestService, TestService>();
+            container.AddSingleton<ICountable>(Mock.Of<ICountable>());
+
+            MicrosoftDependencyInjectionExtensions.RegisterOpenGenericType(container, typeof(TestCommandHandler), typeof(IProcessCommand<,>));
+
+            var serviceProvider = new DefaultServiceProviderFactory().CreateServiceProvider(container);
+            var dependencyInjection = new MicrosoftDependencyInjection(serviceProvider, container);
+
+            var testHandler = dependencyInjection.GetInstance<IProcessMessage<TestMessage>>(typeof(IProcessCommand<TestMessage, TestMessageSettings>));
+            testHandler.Should().NotBeNull();
         }
     }
 }

@@ -1,8 +1,10 @@
 using System;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using KnightBus.Core;
 using Microsoft.Extensions.DependencyInjection;
 
+[assembly: InternalsVisibleTo("KnightBus.DependencyInjection.Tests.Unit")]
 namespace KnightBus.Microsoft.DependencyInjection
 {
     public static class MicrosoftDependencyInjectionExtensions
@@ -23,12 +25,21 @@ namespace KnightBus.Microsoft.DependencyInjection
         public static IHostConfiguration RegisterProcessors(this IHostConfiguration configuration, IServiceCollection serviceCollection, Assembly assembly)
         {
             foreach (var command in ReflectionHelper.GetAllTypesImplementingOpenGenericInterface(typeof(IProcessCommand<,>), assembly))
-                serviceCollection.AddScoped(typeof(IProcessCommand<,>), command);
-            
+                RegisterOpenGenericType(serviceCollection, command, typeof(IProcessCommand<,>));
+
             foreach (var events in ReflectionHelper.GetAllTypesImplementingOpenGenericInterface(typeof(IProcessEvent<,,>), assembly))
-                serviceCollection.AddScoped(typeof(IProcessEvent<,,>), events);
+                RegisterOpenGenericType(serviceCollection, events, typeof(IProcessEvent<,,>));
 
             return configuration;
+        }
+
+        internal static void RegisterOpenGenericType(IServiceCollection serviceCollection, Type implementingType, Type openGenericType)
+        {
+            var processorInterfaces = ReflectionHelper.GetAllInterfacesImplementingOpenGenericInterface(implementingType, openGenericType);
+            foreach (var processorInterface in processorInterfaces)
+            {
+                serviceCollection.AddScoped(processorInterface, implementingType);
+            }
         }
     }
 }
