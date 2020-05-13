@@ -26,7 +26,7 @@ namespace KnightBus.DependencyInjection.Tests.Unit
         [Test] // needs to be run async since SimpleInjectorDependencyInjection creates async scopes
         public async Task DependencyInjection_resolves_services_in_correct_scope()
         {
-            await Task.Run(() => // removes annoying warning about async not using awaiter
+            await Task.Run(() => // remove warning about async not using await
             {
                 // arrange
                 ITestService outerScopeService;
