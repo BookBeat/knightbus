@@ -15,10 +15,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\knightbus-microsoft-dependencyinjection\src\KnightBus.Microsoft.DependencyInjection\KnightBus.Microsoft.DependencyInjection.csproj" />
-    <ProjectReference Include="..\knightbus-simpleinjector\src\KnightBus.SimpleInjector\KnightBus.SimpleInjector.csproj" />
-    <ProjectReference Include="..\knightbus\src\KnightBus.Core\KnightBus.Core.csproj" />
-    <ProjectReference Include="..\knightbus\src\KnightBus.Host\KnightBus.Host.csproj" />
+    <ProjectReference Include="..\..\..\knightbus-microsoft-dependencyinjection\src\KnightBus.Microsoft.DependencyInjection\KnightBus.Microsoft.DependencyInjection.csproj" />
+    <ProjectReference Include="..\..\..\knightbus-simpleinjector\src\KnightBus.SimpleInjector\KnightBus.SimpleInjector.csproj" />
   </ItemGroup>
 
 </Project>
