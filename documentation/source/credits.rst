@@ -18,3 +18,4 @@ Unordered list of persons contributing their time and intellect to KnightBus
 * Olov Siktröm
 * Simon Aunér
 * André Virdarson
+* Tobias Balzano
