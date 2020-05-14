@@ -37,9 +37,9 @@ namespace KnightBus.Schedule
 
                 var linkedTokenSource = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
                 using (new SingletonTimerScope(_logger, lockHandle, false, TimeSpan.FromSeconds(19), linkedTokenSource))
-                using (_dependencyInjection.GetScope())
+                using (var scopedDependencyInjection = _dependencyInjection.GetScope())
                 {
-                    var processor = _dependencyInjection.GetInstance<IProcessSchedule<T>>();
+                    var processor = scopedDependencyInjection.GetInstance<IProcessSchedule<T>>();
                     await processor.ProcessAsync(linkedTokenSource.Token).ConfigureAwait(false);
                 }
             }

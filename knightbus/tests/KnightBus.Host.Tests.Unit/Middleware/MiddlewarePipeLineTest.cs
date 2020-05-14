@@ -1,9 +1,13 @@
+using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using KnightBus.Core;
 using KnightBus.Messages;
+using KnightBus.Microsoft.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using NUnit.Framework;
 
@@ -35,7 +39,7 @@ namespace KnightBus.Host.Tests.Unit.Middleware
             {
                 executionOrderList[i].Should().Be(i);
             }
-            finalProcessor.Verify(x=> x.ProcessAsync(It.IsAny<IMessageStateHandler<TestCommand>>(), CancellationToken.None), Times.Once);
+            finalProcessor.Verify(x => x.ProcessAsync(It.IsAny<IMessageStateHandler<TestCommand>>(), CancellationToken.None), Times.Once);
         }
 
         [Test]
@@ -87,11 +91,102 @@ namespace KnightBus.Host.Tests.Unit.Middleware
             }
         }
 
+        [Test]
+        public async Task Should_execute_scoped_MessageProcessor_with_dependency_injection()
+        {
+            //arrange
+            var container = new ServiceCollection();
+            var countableMock = new Mock<ICountable>();
+            container.AddSingleton<ICountable>(countableMock.Object);
+
+            var hostConfiguration = new HostConfiguration();
+            hostConfiguration.RegisterProcessors(container, Assembly.GetExecutingAssembly());
+            
+            var serviceProvider = new DefaultServiceProviderFactory().CreateServiceProvider(container);
+            hostConfiguration.UseMicrosoftDependencyInjection(serviceProvider, container);
+
+            var transportChannelFactory = new Mock<ITransportChannelFactory>();
+            transportChannelFactory.Setup(x => x.Middlewares).Returns(hostConfiguration.Middlewares);
+
+            var pipelineInformation = new Mock<IPipelineInformation>();
+            pipelineInformation.Setup(x => x.HostConfiguration).Returns(hostConfiguration);
+
+            var finalProcessor = new MessageProcessor<IProcessCommand<DiTestMessage, DiTestMessageSettings>>();
+            var pipeline = new MiddlewarePipeline(new List<IMessageProcessorMiddleware>(), pipelineInformation.Object, transportChannelFactory.Object, Mock.Of<ILog>());
+
+            var messageStateHandler = new Mock<IMessageStateHandler<DiTestMessage>>();
+            messageStateHandler.Setup(x => x.MessageScope).Returns(hostConfiguration.DependencyInjection);
+
+            //act
+            var chain = pipeline.GetPipeline(finalProcessor);
+            await chain.ProcessAsync(messageStateHandler.Object, CancellationToken.None);
+
+            //assert 
+            countableMock.Verify(x => x.Count(), Times.Once);
+        }
+
         private class MessageScopeTestMiddleware : TestMiddleware, IMessageScopeProviderMiddleware
         {
             public MessageScopeTestMiddleware(List<int> list, int order) : base(list, order)
             {
             }
+        }
+
+        public class DiTestMessage : ICommand
+        {
+
+        }
+
+        public class DiTestMessageSettings : IProcessingSettings
+        {
+            public int MaxConcurrentCalls { get; set; } = 1;
+            public TimeSpan MessageLockTimeout => TimeSpan.FromMinutes(1);
+            public int DeadLetterDeliveryLimit { get; set; } = 1;
+            public int PrefetchCount { get; set; }
+        }
+
+
+        public class DiTestCommandHandler : IProcessCommand<DiTestMessage, DiTestMessageSettings>
+        {
+            private readonly ICountable _countable;
+
+            public DiTestCommandHandler(ICountable countable)
+            {
+                _countable = countable;
+            }
+            public Task ProcessAsync(DiTestMessage message, CancellationToken cancellationToken)
+            {
+                _countable.Count();
+                return Task.CompletedTask;
+            }
+        }
+
+        private class TestMessageStateHandler : IMessageStateHandler<TestCommand>
+        {
+            public int DeliveryCount { get; }
+            public int DeadLetterDeliveryLimit { get; }
+            public IDictionary<string, string> MessageProperties { get; }
+            public Task CompleteAsync()
+            {
+                throw new NotImplementedException();
+            }
+
+            public Task AbandonByErrorAsync(Exception e)
+            {
+                throw new NotImplementedException();
+            }
+
+            public Task DeadLetterAsync(int deadLetterLimit)
+            {
+                throw new NotImplementedException();
+            }
+
+            public Task<TestCommand> GetMessageAsync()
+            {
+                throw new NotImplementedException();
+            }
+
+            public IDependencyInjection MessageScope { get; set; }
         }
     }
 }

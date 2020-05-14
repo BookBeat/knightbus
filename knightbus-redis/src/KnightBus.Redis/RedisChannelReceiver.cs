@@ -107,7 +107,7 @@ namespace KnightBus.Redis
 
         private async Task ProcessMessageAsync(RedisMessage<T> redisMessage, CancellationToken cancellationToken)
         {
-            var stateHandler = new RedisMessageStateHandler<T>(ConnectionMultiplexer, _redisConfiguration, redisMessage, _settings.DeadLetterDeliveryLimit);
+            var stateHandler = new RedisMessageStateHandler<T>(ConnectionMultiplexer, _redisConfiguration, redisMessage, _settings.DeadLetterDeliveryLimit, _hostConfiguration.DependencyInjection);
             await _processor.ProcessAsync(stateHandler, cancellationToken).ConfigureAwait(false);
         }
     }

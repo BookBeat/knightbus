@@ -4,9 +4,9 @@ using System.Reflection;
 
 namespace KnightBus.Core
 {
-    public interface IDependencyInjection
+    public interface IDependencyInjection : IDisposable
     {
-        IDisposable GetScope();
+        IDependencyInjection GetScope();
         T GetInstance<T>() where T : class;
         T GetInstance<T>(Type type);
         IEnumerable<Type> GetOpenGenericRegistrations(Type openGeneric);

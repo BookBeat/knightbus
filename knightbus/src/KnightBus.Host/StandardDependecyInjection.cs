@@ -34,9 +34,9 @@ namespace KnightBus.Host
             }
         }
 
-        public IDisposable GetScope()
+        public IDependencyInjection GetScope()
         {
-            return new SingletonScope();
+            return this;
         }
 
         public T GetInstance<T>() where T : class
@@ -56,7 +56,11 @@ namespace KnightBus.Host
 
         public void RegisterOpenGeneric(Type openGeneric, Assembly assembly)
         {
-            
+
+        }
+
+        public void Dispose()
+        {
         }
     }
 

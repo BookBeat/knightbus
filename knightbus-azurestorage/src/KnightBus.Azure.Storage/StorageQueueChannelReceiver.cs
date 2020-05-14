@@ -17,7 +17,7 @@ namespace KnightBus.Azure.Storage
         private readonly IHostConfiguration _hostConfiguration;
         public IProcessingSettings Settings { get; set; }
         private StorageQueueMessagePump _messagePump;
-        
+
 
         public StorageQueueChannelReceiver(IProcessingSettings settings, IMessageProcessor processor, IHostConfiguration hostConfiguration, IStorageBusConfiguration storageOptions)
         {
@@ -47,7 +47,7 @@ namespace KnightBus.Azure.Storage
 
         private async Task Handle(StorageQueueMessage message, CancellationToken cancellationToken)
         {
-            await _processor.ProcessAsync(new StorageQueueMessageStateHandler<T>(_storageQueueClient, message, Settings.DeadLetterDeliveryLimit), cancellationToken).ConfigureAwait(false);
+            await _processor.ProcessAsync(new StorageQueueMessageStateHandler<T>(_storageQueueClient, message, Settings.DeadLetterDeliveryLimit, _hostConfiguration.DependencyInjection), cancellationToken).ConfigureAwait(false);
         }
     }
 }

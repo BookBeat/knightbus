@@ -17,6 +17,7 @@ namespace KnightBus.Azure.ServiceBus
         private readonly IEventSubscription<TTopic> _subscription;
         private readonly ILog _log;
         private readonly IServiceBusConfiguration _configuration;
+        private readonly IHostConfiguration _hostConfiguration;
         private readonly IMessageProcessor _processor;
         private int _deadLetterLimit;
         private ISubscriptionClient _client;
@@ -29,6 +30,7 @@ namespace KnightBus.Azure.ServiceBus
             _subscription = subscription;
             _log = hostConfiguration.Log;
             _configuration = configuration;
+            _hostConfiguration = hostConfiguration;
             _processor = processor;
             //new client factory per ServiceBusTopicChannelReceiver means a separate communication channel per reader instead of a shared
             _clientFactory = new ClientFactory(configuration.ConnectionString);
@@ -92,7 +94,7 @@ namespace KnightBus.Azure.ServiceBus
 
         private async Task OnMessageAsync(Message message, CancellationToken cancellationToken)
         {
-            var stateHandler = new ServiceBusMessageStateHandler<TTopic>(_client, message, _configuration.MessageSerializer, _deadLetterLimit);
+            var stateHandler = new ServiceBusMessageStateHandler<TTopic>(_client, message, _configuration.MessageSerializer, _deadLetterLimit, _hostConfiguration.DependencyInjection);
             await _processor.ProcessAsync(stateHandler, cancellationToken).ConfigureAwait(false);
         }
     }

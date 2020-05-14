@@ -11,15 +11,18 @@ namespace KnightBus.Microsoft.DependencyInjection
     {
         private readonly IServiceProvider _provider;
         private readonly IServiceCollection _serviceCollection;
+        private readonly IServiceScope _scope;
 
-        public MicrosoftDependencyInjection(IServiceProvider provider, IServiceCollection serviceCollection)
+        public MicrosoftDependencyInjection(IServiceProvider provider, IServiceCollection serviceCollection, IServiceScope scope = null)
         {
             _provider = provider;
             _serviceCollection = serviceCollection;
+            _scope = scope;
         }
-        public IDisposable GetScope()
+        public IDependencyInjection GetScope()
         {
-            return _provider.CreateScope();
+            var scope = _provider.CreateScope();
+            return new MicrosoftDependencyInjection(scope.ServiceProvider, _serviceCollection, scope);
         }
 
         public T GetInstance<T>() where T : class
@@ -29,7 +32,7 @@ namespace KnightBus.Microsoft.DependencyInjection
 
         public T GetInstance<T>(Type type)
         {
-            return (T) _provider.GetService(type);
+            return (T)_provider.GetService(type);
         }
 
         public IEnumerable<Type> GetOpenGenericRegistrations(Type openGeneric)
@@ -43,6 +46,11 @@ namespace KnightBus.Microsoft.DependencyInjection
         {
             foreach (var command in ReflectionHelper.GetAllTypesImplementingOpenGenericInterface(typeof(IProcessCommand<,>), assembly))
                 _serviceCollection.AddScoped(openGeneric, command);
+        }
+
+        public void Dispose()
+        {
+            _scope?.Dispose();
         }
     }
 }

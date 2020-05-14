@@ -18,8 +18,9 @@ namespace KnightBus.SimpleInjector
 
         public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, IPipelineInformation pipelineInformation, IMessageProcessor next, CancellationToken cancellationToken) where T : class, IMessage
         {
-            using (AsyncScopedLifestyle.BeginScope(_container))
+            using (var scope = messageStateHandler.MessageScope.GetScope())
             {
+                messageStateHandler.MessageScope = scope;
                 await next.ProcessAsync(messageStateHandler, cancellationToken).ConfigureAwait(false);
             }
         }

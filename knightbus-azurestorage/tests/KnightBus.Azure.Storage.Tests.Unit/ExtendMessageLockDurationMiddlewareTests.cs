@@ -13,6 +13,8 @@ namespace KnightBus.Azure.Storage.Tests.Unit
     [TestFixture]
     public class ExtendMessageLockDurationMiddlewareTests
     {
+        private Mock<IDependencyInjection> _dependencyInjection;
+
         [Test]
         public async Task Should_allow_regular_processing_settings_to_bypass_the_renewal()
         {
@@ -26,18 +28,18 @@ namespace KnightBus.Azure.Storage.Tests.Unit
             var middleware = new ExtendMessageLockDurationMiddleware();
             var storageQueueClient = new Mock<IStorageQueueClient>();
             var message = new StorageQueueMessage();
-            var storageQueueMessageStateHandler = new StorageQueueMessageStateHandler<MyMessage>(storageQueueClient.Object, message, 0);
+            var storageQueueMessageStateHandler = new StorageQueueMessageStateHandler<MyMessage>(storageQueueClient.Object, message, 0, _dependencyInjection.Object);
 
             var next = new Mock<IMessageProcessor>();
             next.Setup(x => x.ProcessAsync(It.IsAny<IMessageStateHandler<MyMessage>>(), It.IsAny<CancellationToken>()))
                 .Returns(() => Task.Delay(2000));
-            
+
             //act
             await middleware.ProcessAsync(storageQueueMessageStateHandler, pipeline, next.Object, CancellationToken.None);
 
             //assert
             storageQueueClient.Verify(x => x.SetVisibilityTimeout(It.IsAny<StorageQueueMessage>(), TimeSpan.FromMilliseconds(1000), It.IsAny<CancellationToken>()), Times.Never);
-            next.Verify(x=> x.ProcessAsync(storageQueueMessageStateHandler, It.IsAny<CancellationToken>()));
+            next.Verify(x => x.ProcessAsync(storageQueueMessageStateHandler, It.IsAny<CancellationToken>()));
         }
 
         [Test]
@@ -55,7 +57,7 @@ namespace KnightBus.Azure.Storage.Tests.Unit
             var middleware = new ExtendMessageLockDurationMiddleware();
             var storageQueueClient = new Mock<IStorageQueueClient>();
             var message = new StorageQueueMessage();
-            var storageQueueMessageStateHandler = new StorageQueueMessageStateHandler<MyMessage>(storageQueueClient.Object, message, 0);
+            var storageQueueMessageStateHandler = new StorageQueueMessageStateHandler<MyMessage>(storageQueueClient.Object, message, 0, _dependencyInjection.Object);
 
             var next = new Mock<IMessageProcessor>();
             next.Setup(x => x.ProcessAsync(It.IsAny<IMessageStateHandler<MyMessage>>(), It.IsAny<CancellationToken>()))
@@ -84,7 +86,7 @@ namespace KnightBus.Azure.Storage.Tests.Unit
             var middleware = new ExtendMessageLockDurationMiddleware();
             var storageQueueClient = new Mock<IStorageQueueClient>();
             var message = new StorageQueueMessage();
-            var storageQueueMessageStateHandler = new StorageQueueMessageStateHandler<MyMessage>(storageQueueClient.Object, message, 0);
+            var storageQueueMessageStateHandler = new StorageQueueMessageStateHandler<MyMessage>(storageQueueClient.Object, message, 0, _dependencyInjection.Object);
 
             var next = new Mock<IMessageProcessor>();
             next.Setup(x => x.ProcessAsync(It.IsAny<IMessageStateHandler<MyMessage>>(), It.IsAny<CancellationToken>()))
@@ -113,7 +115,7 @@ namespace KnightBus.Azure.Storage.Tests.Unit
             var middleware = new ExtendMessageLockDurationMiddleware();
             var storageQueueClient = new Mock<IStorageQueueClient>();
             var message = new StorageQueueMessage();
-            var storageQueueMessageStateHandler = new StorageQueueMessageStateHandler<MyMessage>(storageQueueClient.Object, message, 0);
+            var storageQueueMessageStateHandler = new StorageQueueMessageStateHandler<MyMessage>(storageQueueClient.Object, message, 0, _dependencyInjection.Object);
             var cancellationToken = new CancellationTokenSource(settings.MessageLockTimeout).Token;
 
             var next = new Mock<IMessageProcessor>();
@@ -128,6 +130,13 @@ namespace KnightBus.Azure.Storage.Tests.Unit
             //assert
             storageQueueClient.Verify(x => x.SetVisibilityTimeout(It.IsAny<StorageQueueMessage>(), TimeSpan.FromMilliseconds(1000), It.IsAny<CancellationToken>()), Times.Never);
             next.Verify(x => x.ProcessAsync(storageQueueMessageStateHandler, cancellationToken), Times.Once());
+        }
+
+        [OneTimeSetUp]
+        public void Setup()
+        {
+            _dependencyInjection = new Mock<IDependencyInjection>();
+            _dependencyInjection.Setup(x => x.GetScope()).Returns(_dependencyInjection.Object);
         }
     }
 

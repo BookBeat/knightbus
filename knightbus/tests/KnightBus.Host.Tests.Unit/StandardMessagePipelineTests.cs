@@ -28,9 +28,11 @@ namespace KnightBus.Host.Tests.Unit
             _logger = new Mock<ILog>();
             _stateHandler = new Mock<IMessageStateHandler<TestCommandOne>>();
             _countable = new Mock<ICountable>();
+            _messageHandlerProvider.Setup(x => x.GetScope()).Returns(_messageHandlerProvider.Object);
             _messageHandlerProvider.Setup(x => x.GetInstance<IProcessMessage<TestCommandOne>>(typeof(MultipleCommandProcessor))).Returns(
                 () => new MultipleCommandProcessor(_countable.Object)
             );
+            _stateHandler.Setup(x => x.MessageScope).Returns(_messageHandlerProvider.Object);
             _hostConfiguration = new Mock<IHostConfiguration>();
             _hostConfiguration.Setup(x => x.DependencyInjection).Returns(_messageHandlerProvider.Object);
             _pipelineInformation = new Mock<IPipelineInformation>();
@@ -43,7 +45,7 @@ namespace KnightBus.Host.Tests.Unit
             var transportConfiguration = new Mock<ITransportChannelFactory>();
             transportConfiguration.Setup(x => x.Middlewares).Returns(new List<IMessageProcessorMiddleware>());
             var pipeline = new MiddlewarePipeline(middlewares, _pipelineInformation.Object, transportConfiguration.Object, _logger.Object);
-            _messageProcessor = pipeline.GetPipeline(new MessageProcessor<MultipleCommandProcessor>(_messageHandlerProvider.Object));
+            _messageProcessor = pipeline.GetPipeline(new MessageProcessor<MultipleCommandProcessor>());
         }
 
         [Test]
