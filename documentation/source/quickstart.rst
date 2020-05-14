@@ -48,8 +48,11 @@ Processing Messages
         public int PrefetchCount => 50; //Increase perfomance by fetching more messages at once
     }
 
-Starting the KnightBus Host
----------------------------
+
+Starting as a Hosted Service (Recommended)
+------------------------------------------
+
+Using a hosted service will allow graceful(ish) shutdown of running instance and message processors.
 
 .. code-block:: c#
 
@@ -57,10 +60,38 @@ Starting the KnightBus Host
     {
         static void Main(string[] args)
         {
-            MainAsync().GetAwaiter().GetResult();
-        }
+                var host = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder(args)
+                    .UseKnightBus(new KnightBusHost()
+                        //Multiple active transports
+                        .UseTransport(new ServiceBusTransport("sb-connection"))
+                        .UseTransport(new StorageBusTransport("storage-connection"))
+                            .Configure(configuration => configuration
+                                //Register our message processors without IoC using the standard provider
+                                //Register our message processors without IoC using the standard provider
+                                .UseDependencyInjection(new StandardDependecyInjection()
+                                    .RegisterProcessor(new SampleServiceBusMessageProcessor())
+                                    .RegisterProcessor(new SampleServiceBusEventProcessor()))
+                    )).Build();
 
-        static async Task MainAsync()
+                try
+                {
+                    host.Run();
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                }
+        }
+    }
+
+Starting the KnightBus Host Standalone
+--------------------------------------
+
+.. code-block:: c#
+
+    class Program
+    {
+        static async Task Main(string[] args)
         {
             var serviceBusConnection = "your-connection-string";
 
@@ -69,11 +100,13 @@ Starting the KnightBus Host
                 .UseTransport(new ServiceBusTransport(serviceBusConnection))
                 .Configure(configuration => configuration
                     //Register our message processors without IoC using the standard provider
-                    .UseMessageProcessorProvider(new StandardMessageProcessorProvider()
-                        .RegisterProcessor(new CommandProcessor()))
+                    //Register our message processors without IoC using the standard provider
+                    .UseDependencyInjection(new StandardDependecyInjection()
+                        .RegisterProcessor(new SampleServiceBusMessageProcessor())
+                        .RegisterProcessor(new SampleServiceBusEventProcessor()))
                 );
 
-            await knightBusHost.StartAndBlockAsync();
+            await knightBusHost.StartAndBlockAsync(CancellationToken.None);
         }
     }
 

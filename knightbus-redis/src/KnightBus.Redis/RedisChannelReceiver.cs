@@ -42,10 +42,10 @@ namespace KnightBus.Redis
 
             _messagePumpTask = Task.Factory.StartNew(async () =>
             {
-                while (true)
+                while (!cancellationToken.IsCancellationRequested)
                     if (!await PumpAsync(cancellationToken).ConfigureAwait(false))
                         await Delay(_pumpDelayCancellationTokenSource.Token).ConfigureAwait(false);
-            }, cancellationToken);
+            });
             _lostMessageService = new LostMessageBackgroundService<T>(ConnectionMultiplexer, _redisConfiguration.DatabaseId, _redisConfiguration.MessageSerializer, _hostConfiguration.Log, _settings.MessageLockTimeout, _queueName);
             _lostMessageTask = _lostMessageService.Start(cancellationToken);
         }
@@ -84,10 +84,11 @@ namespace KnightBus.Redis
                     if (redisMessage != null)
                     {
                         await _maxConcurrent.WaitAsync(cancellationToken).ConfigureAwait(false);
-                        var cts = new CancellationTokenSource(_settings.MessageLockTimeout);
+                        var timeoutToken = new CancellationTokenSource(_settings.MessageLockTimeout);
+                        var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutToken.Token);
 #pragma warning disable 4014
-                        Task.Run(async () => await ProcessMessageAsync(redisMessage, cts.Token)
-                            .ContinueWith(task2 => _maxConcurrent.Release(), cts.Token), cts.Token);
+                        Task.Run(async () => await ProcessMessageAsync(redisMessage, linkedToken.Token).ConfigureAwait(false), timeoutToken.Token)
+                            .ContinueWith(task2 => _maxConcurrent.Release()).ConfigureAwait(false);
 #pragma warning restore 4014
                     }
                     else

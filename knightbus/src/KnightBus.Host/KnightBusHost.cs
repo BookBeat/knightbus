@@ -4,14 +4,16 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
+using Microsoft.Extensions.Hosting;
 
 namespace KnightBus.Host
 {
-    public class KnightBusHost
+    public class KnightBusHost : IHostedService
     {
         private IHostConfiguration _configuration;
         private MessageProcessorLocator _locator;
         private readonly List<ITransport> _transports = new List<ITransport>();
+        public TimeSpan ShutdownGracePeriod { get; set; }= TimeSpan.FromMinutes(1);
 
         public KnightBusHost()
         {
@@ -66,6 +68,13 @@ namespace KnightBus.Host
             }
 
             ConsoleWriter.WriteLine("KnightBus started");
+        }
+
+        public async Task StopAsync(CancellationToken cancellationToken)
+        {
+            _configuration.Log.Information("KnightBus received stop signal, initiating shutdown... ");
+            await Task.Delay(ShutdownGracePeriod, cancellationToken);
+            _configuration.Log.Information("KnightBus received stopped");
         }
 
         public async Task StartAndBlockAsync(CancellationToken cancellationToken)

@@ -78,7 +78,10 @@ namespace KnightBus.Azure.ServiceBus
 
         private Task OnExceptionReceivedAsync(ExceptionReceivedEventArgs exceptionReceivedEventArgs)
         {
-            _log.Information(exceptionReceivedEventArgs.Exception, "MessageHandler received exception");
+            if (!(exceptionReceivedEventArgs.Exception is OperationCanceledException))
+            {
+                _log.Error(exceptionReceivedEventArgs.Exception, $"{typeof(ServiceBusQueueChannelReceiver<T>).Name}");
+            }
             return Task.CompletedTask;
         }
 

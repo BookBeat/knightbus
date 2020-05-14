@@ -55,21 +55,27 @@ class Program
 {
     static void Main(string[] args)
     {
-        MainAsync().GetAwaiter().GetResult();
-    }
-
-    static async Task MainAsync()
-    {
-        var knightBusHost = new KnightBusHost()
+            var host = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder(args)
+            .UseKnightBus(new KnightBusHost()
             //Multiple active transports
             .UseTransport(new ServiceBusTransport("sb-connection"))
             .UseTransport(new StorageBusTransport("storage-connection"))
-            .Configure(configuration => configuration
-                .UseMessageProcessorProvider(new StandardMessageProcessorProvider()
-                    .RegisterProcessor(new CommandProcessor()))
-            );
+                .Configure(configuration => configuration
+                    //Register our message processors without IoC using the standard provider
+                    //Register our message processors without IoC using the standard provider
+                    .UseDependencyInjection(new StandardDependecyInjection()
+                        .RegisterProcessor(new SampleServiceBusMessageProcessor())
+                        .RegisterProcessor(new SampleServiceBusEventProcessor()))
+                )).Build();
 
-        await knightBusHost.StartAndBlockAsync();
+            try
+            {
+            host.Run();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
     }
 }
 ```
