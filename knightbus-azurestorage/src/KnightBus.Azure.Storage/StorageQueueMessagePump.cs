@@ -31,13 +31,13 @@ namespace KnightBus.Azure.Storage
             {
                 while (!cancellationToken.IsCancellationRequested)
                 {
-                    await PumpAsync<T>(action).ConfigureAwait(false);
+                    await PumpAsync<T>(action, cancellationToken).ConfigureAwait(false);
                 }
-            }, cancellationToken);
+            });
             return Task.CompletedTask;
         }
 
-        internal async Task PumpAsync<T>(Func<StorageQueueMessage, CancellationToken, Task> action) where T : IStorageQueueCommand
+        internal async Task PumpAsync<T>(Func<StorageQueueMessage, CancellationToken, Task> action, CancellationToken cancellationToken) where T : IStorageQueueCommand
         {
             var messagesFound = false;
             try
@@ -66,13 +66,14 @@ namespace KnightBus.Azure.Storage
 
                 foreach (var message in messages)
                 {
-                    var cts = new CancellationTokenSource(_settings.MessageLockTimeout);
+                    var timeoutToken = new CancellationTokenSource(_settings.MessageLockTimeout);
+                    var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutToken.Token);
                     try
                     {
                         _log.Debug("Processing {@Message} in {Name}", message, nameof(StorageQueueMessagePump));
                         _log.Debug("{ThreadCount} remaining threads that can process messages in {QueueName} in {Name}", _maxConcurrent.CurrentCount, queueName, nameof(StorageQueueMessagePump));
 
-                        await _maxConcurrent.WaitAsync(cts.Token).ConfigureAwait(false);
+                        await _maxConcurrent.WaitAsync(timeoutToken.Token).ConfigureAwait(false);
                     }
                     catch (OperationCanceledException operationCanceledException)
                     {
@@ -83,7 +84,8 @@ namespace KnightBus.Azure.Storage
                         continue;
                     }
 #pragma warning disable 4014 //No need to await the result, let's keep the pump going
-                    Task.Run(async () => await action.Invoke(message, cts.Token).ConfigureAwait(false), cts.Token).ContinueWith(task => _maxConcurrent.Release()).ConfigureAwait(false);
+                    Task.Run(async () => await action.Invoke(message, linkedToken.Token).ConfigureAwait(false), timeoutToken.Token)
+                        .ContinueWith(task => _maxConcurrent.Release()).ConfigureAwait(false);
 #pragma warning restore 4014
                 }
             }

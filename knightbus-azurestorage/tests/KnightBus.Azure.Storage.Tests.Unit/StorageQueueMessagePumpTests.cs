@@ -42,7 +42,7 @@ namespace KnightBus.Azure.Storage.Tests.Unit
 
             Task Function(StorageQueueMessage a, CancellationToken b) => Task.FromResult(invocations++);
             //act
-            await pump.PumpAsync<LongRunningTestCommand>(Function);
+            await pump.PumpAsync<LongRunningTestCommand>(Function, CancellationToken.None);
             await Task.Delay(100);
             //assert
             invocations.Should().Be(10);
@@ -72,7 +72,7 @@ namespace KnightBus.Azure.Storage.Tests.Unit
                 return Task.FromException<Exception>(new Exception());
             };
             //act
-            await pump.PumpAsync<LongRunningTestCommand>(function);
+            await pump.PumpAsync<LongRunningTestCommand>(function, CancellationToken.None);
             await Task.Delay(100);
             //assert
             pump._maxConcurrent.CurrentCount.Should().Be(1);
@@ -98,7 +98,7 @@ namespace KnightBus.Azure.Storage.Tests.Unit
             var invokations = 0;
             Func<StorageQueueMessage, CancellationToken, Task> function = (a, b) => Task.FromResult(invokations++);
             //act
-            await pump.PumpAsync<LongRunningTestCommand>(function);
+            await pump.PumpAsync<LongRunningTestCommand>(function, CancellationToken.None);
             await Task.Delay(100);
             //assert
             invokations.Should().Be(1);
@@ -131,7 +131,7 @@ namespace KnightBus.Azure.Storage.Tests.Unit
             }
             //act
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
-            pump.PumpAsync<LongRunningTestCommand>(Function);
+            pump.PumpAsync<LongRunningTestCommand>(Function, CancellationToken.None);
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
             await Task.Delay(100);
             //assert
@@ -164,7 +164,7 @@ namespace KnightBus.Azure.Storage.Tests.Unit
             }
             //act
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
-            pump.PumpAsync<LongRunningTestCommand>(Function);
+            pump.PumpAsync<LongRunningTestCommand>(Function, CancellationToken.None);
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
             await Task.Delay(100);
             //assert
@@ -200,7 +200,7 @@ namespace KnightBus.Azure.Storage.Tests.Unit
             }
             //act
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
-            pump.PumpAsync<LongRunningTestCommand>(Function);
+            pump.PumpAsync<LongRunningTestCommand>(Function, CancellationToken.None);
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
             await Task.Delay(150);
             //assert
