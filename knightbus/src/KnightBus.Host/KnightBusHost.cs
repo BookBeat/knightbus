@@ -14,6 +14,7 @@ namespace KnightBus.Host
         private MessageProcessorLocator _locator;
         private readonly List<ITransport> _transports = new List<ITransport>();
         public TimeSpan ShutdownGracePeriod { get; set; }= TimeSpan.FromMinutes(1);
+        private CancellationTokenSource _shutdownToken = new CancellationTokenSource();
 
         public KnightBusHost()
         {
@@ -37,6 +38,7 @@ namespace KnightBus.Host
         /// <returns></returns>
         public async Task StartAsync(CancellationToken cancellationToken)
         {
+            var combinedToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _shutdownToken.Token);
             ConsoleWriter.WriteLine("KnightBus starting");
             if (_transports.Any())
             {
@@ -45,7 +47,7 @@ namespace KnightBus.Host
                 ConsoleWriter.Write("Starting receivers [");
                 foreach (var queueReader in channelReceivers)
                 {
-                    await queueReader.StartAsync(cancellationToken).ConfigureAwait(false);
+                    await queueReader.StartAsync(combinedToken.Token).ConfigureAwait(false);
                     Console.Write(".");
                 }
                 Console.WriteLine("]");
@@ -59,7 +61,7 @@ namespace KnightBus.Host
             {
                 foreach (var plugin in _configuration.Plugins)
                 {
-                    await plugin.StartAsync(cancellationToken).ConfigureAwait(false);
+                    await plugin.StartAsync(combinedToken.Token).ConfigureAwait(false);
                 }
             }
             else
@@ -73,6 +75,7 @@ namespace KnightBus.Host
         public async Task StopAsync(CancellationToken cancellationToken)
         {
             _configuration.Log.Information("KnightBus received stop signal, initiating shutdown... ");
+            _shutdownToken.Cancel();
             await Task.Delay(ShutdownGracePeriod, cancellationToken);
             _configuration.Log.Information("KnightBus received stopped");
         }
