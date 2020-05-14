@@ -88,4 +88,4 @@ To enable Singleton MessageProcessors simple supply the host with an ISingletonL
 Hosting
 -------
 
-The KnightBus Host can be hosted anywhere where you can run Console Applications. Currently all of our KnightBus Hosts are deployed using Azure WebJobs and TopShelf Windows Services.
+The KnightBus Host can be hosted anywhere where you can run Console Applications. Currently all of our KnightBus Hosts are deployed using Kubernetes Pods, Azure WebJobs and TopShelf Windows Services.
