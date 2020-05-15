@@ -8,7 +8,6 @@
 
 
 [Find the official KnightBus documentation here](https://knightbus.readthedocs.io/)
-[![Documentation Status](https://readthedocs.org/projects/knightbus/badge/?version=latest)](https://knightbus.readthedocs.io/en/latest/?badge=latest)
 
 <img src="documentation/media/images/knightbus-logo.png" alt="KnightBus Logo" width="300"/>
 
@@ -61,7 +60,6 @@ class Program
             .UseTransport(new ServiceBusTransport("sb-connection"))
             .UseTransport(new StorageBusTransport("storage-connection"))
                 .Configure(configuration => configuration
-                    //Register our message processors without IoC using the standard provider
                     //Register our message processors without IoC using the standard provider
                     .UseDependencyInjection(new StandardDependecyInjection()
                         .RegisterProcessor(new SampleServiceBusMessageProcessor())
