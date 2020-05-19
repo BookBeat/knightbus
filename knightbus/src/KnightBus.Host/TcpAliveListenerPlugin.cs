@@ -50,7 +50,7 @@ namespace KnightBus.Host
                             {
                                 await stream.WriteAsync(msg, 0, msg.Length, cancellationToken).ConfigureAwait(false);
                             }
-                            catch (Exception e)
+                            catch (Exception e) when (!(e is OperationCanceledException))
                             {
                                 _log.Error(e, "Failed to write to stream");
                             }
