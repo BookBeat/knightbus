@@ -44,7 +44,7 @@ namespace KnightBus.Microsoft.DependencyInjection
 
         public void RegisterOpenGeneric(Type openGeneric, Assembly assembly)
         {
-            foreach (var command in ReflectionHelper.GetAllTypesImplementingOpenGenericInterface(typeof(IProcessCommand<,>), assembly))
+            foreach (var command in ReflectionHelper.GetAllTypesImplementingOpenGenericInterface(openGeneric, assembly))
                 _serviceCollection.AddScoped(openGeneric, command);
         }
 
