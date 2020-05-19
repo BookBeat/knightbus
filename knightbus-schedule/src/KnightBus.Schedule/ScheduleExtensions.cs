@@ -17,5 +17,11 @@ namespace KnightBus.Schedule
             configuration.DependencyInjection.RegisterOpenGeneric(typeof(IProcessSchedule<>), assembly);
             return configuration;
         }
+
+        public static IDependencyInjection RegisterSchedules(this IDependencyInjection dependencyInjection, Assembly assembly)
+        {
+            dependencyInjection.RegisterOpenGeneric(typeof(IProcessSchedule<>), assembly);
+            return dependencyInjection;
+        }
     }
 }
