@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
+using KnightBus.Core.Exceptions;
 using Microsoft.Extensions.Hosting;
 
 namespace KnightBus.Host
@@ -40,6 +41,12 @@ namespace KnightBus.Host
         {
             var combinedToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _shutdownToken.Token);
             ConsoleWriter.WriteLine("KnightBus starting");
+            if(_configuration.DependencyInjection == null)
+                throw new DependencyInjectionMissingException();
+
+            if(_configuration.DependencyInjection is IIsolatedDependencyInjection isolated)
+                isolated.Build();
+                
             if (_transports.Any())
             {
                 _locator = new MessageProcessorLocator(_configuration, _transports.SelectMany(transport => transport.TransportChannelFactories).ToArray());

@@ -12,4 +12,9 @@ namespace KnightBus.Core
         IEnumerable<Type> GetOpenGenericRegistrations(Type openGeneric);
         void RegisterOpenGeneric(Type openGeneric, Assembly assembly);
     }
+
+    public interface IIsolatedDependencyInjection : IDependencyInjection
+    {
+        void Build();
+    }
 }

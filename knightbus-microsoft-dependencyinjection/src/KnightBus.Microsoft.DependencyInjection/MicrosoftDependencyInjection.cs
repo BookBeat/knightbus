@@ -3,35 +3,46 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using KnightBus.Core;
+using KnightBus.Core.Exceptions;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace KnightBus.Microsoft.DependencyInjection
 {
-    public class MicrosoftDependencyInjection : IDependencyInjection
+    public class MicrosoftDependencyInjection : IIsolatedDependencyInjection
     {
-        private readonly IServiceProvider _provider;
+        private IServiceProvider _provider;
         private readonly IServiceCollection _serviceCollection;
         private readonly IServiceScope _scope;
 
-        public MicrosoftDependencyInjection(IServiceProvider provider, IServiceCollection serviceCollection, IServiceScope scope = null)
+        public MicrosoftDependencyInjection(IServiceCollection serviceCollection, IServiceScope scope = null)
+        {
+            _serviceCollection = serviceCollection;
+            _scope = scope;
+        }
+
+        private MicrosoftDependencyInjection(IServiceProvider provider, IServiceCollection serviceCollection, IServiceScope scope = null)
         {
             _provider = provider;
             _serviceCollection = serviceCollection;
             _scope = scope;
         }
+
         public IDependencyInjection GetScope()
         {
+            if(_provider == null) throw new DependencyInjectionNotBuiltException();
             var scope = _provider.CreateScope();
             return new MicrosoftDependencyInjection(scope.ServiceProvider, _serviceCollection, scope);
         }
 
         public T GetInstance<T>() where T : class
         {
+            if(_provider == null) throw new DependencyInjectionNotBuiltException();
             return _provider.GetService<T>();
         }
 
         public T GetInstance<T>(Type type)
         {
+            if(_provider == null) throw new DependencyInjectionNotBuiltException();
             return (T)_provider.GetService(type);
         }
 
@@ -44,8 +55,15 @@ namespace KnightBus.Microsoft.DependencyInjection
 
         public void RegisterOpenGeneric(Type openGeneric, Assembly assembly)
         {
-            foreach (var command in ReflectionHelper.GetAllTypesImplementingOpenGenericInterface(openGeneric, assembly))
-                _serviceCollection.AddScoped(openGeneric, command);
+            foreach (var openImpl in ReflectionHelper.GetAllTypesImplementingOpenGenericInterface(openGeneric, assembly))
+                foreach (var openInterface in ReflectionHelper.GetAllInterfacesImplementingOpenGenericInterface(openImpl, openGeneric))
+                    _serviceCollection.AddScoped(openInterface, openImpl);
+        }
+
+        public void Build()
+        {
+            if (_provider == null)
+                _provider = _serviceCollection.BuildServiceProvider(new ServiceProviderOptions {ValidateScopes = true});
         }
 
         public void Dispose()

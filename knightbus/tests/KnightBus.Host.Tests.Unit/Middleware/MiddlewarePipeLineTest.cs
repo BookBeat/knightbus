@@ -102,8 +102,9 @@ namespace KnightBus.Host.Tests.Unit.Middleware
             var hostConfiguration = new HostConfiguration();
             hostConfiguration.RegisterProcessors(container, Assembly.GetExecutingAssembly());
             
-            var serviceProvider = new DefaultServiceProviderFactory().CreateServiceProvider(container);
-            hostConfiguration.UseMicrosoftDependencyInjection(serviceProvider, container);
+            hostConfiguration.UseMicrosoftDependencyInjection(container);
+
+            ((IIsolatedDependencyInjection)hostConfiguration.DependencyInjection).Build();
 
             var transportChannelFactory = new Mock<ITransportChannelFactory>();
             transportChannelFactory.Setup(x => x.Middlewares).Returns(hostConfiguration.Middlewares);
@@ -115,7 +116,7 @@ namespace KnightBus.Host.Tests.Unit.Middleware
             var pipeline = new MiddlewarePipeline(new List<IMessageProcessorMiddleware>(), pipelineInformation.Object, transportChannelFactory.Object, Mock.Of<ILog>());
 
             var messageStateHandler = new Mock<IMessageStateHandler<DiTestMessage>>();
-            messageStateHandler.Setup(x => x.MessageScope).Returns(hostConfiguration.DependencyInjection);
+            messageStateHandler.Setup(x => x.MessageScope).Returns(hostConfiguration.DependencyInjection.GetScope);
 
             //act
             var chain = pipeline.GetPipeline(finalProcessor);
