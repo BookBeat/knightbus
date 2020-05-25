@@ -21,6 +21,7 @@ namespace KnightBus.Azure.ServiceBus
         private readonly IMessageProcessor _processor;
         private int _deadLetterLimit;
         private ISubscriptionClient _client;
+        private StoppableMessageReceiver _messageReceiver;
         
 
         public ServiceBusTopicChannelReceiver(IProcessingSettings settings, IEventSubscription<TTopic> subscription, IServiceBusConfiguration configuration, IHostConfiguration hostConfiguration, IMessageProcessor processor)
@@ -59,13 +60,16 @@ namespace KnightBus.Azure.ServiceBus
 
             _deadLetterLimit = Settings.DeadLetterDeliveryLimit;
             _client.PrefetchCount = Settings.PrefetchCount;
+
+            _messageReceiver = new StoppableMessageReceiver(_client.ServiceBusConnection, EntityNameHelper.FormatSubscriptionPath(_client.TopicPath, _client.SubscriptionName), ReceiveMode.PeekLock, RetryPolicy.Default, Settings.PrefetchCount);
+
             var options = new MessageHandlerOptions(OnExceptionReceivedAsync)
             {
                 AutoComplete = false,
                 MaxAutoRenewDuration = Settings.MessageLockTimeout,
                 MaxConcurrentCalls = Settings.MaxConcurrentCalls
             };
-            _client.RegisterMessageHandler(OnMessageAsync, options);
+            _messageReceiver.RegisterMessageHandler(OnMessageAsync, options);
 
 #pragma warning disable 4014
             // ReSharper disable once MethodSupportsCancellation
@@ -76,7 +80,7 @@ namespace KnightBus.Azure.ServiceBus
                 try
                 {
                     _log.Information($"Closing ServiceBus channel receiver for {typeof(TTopic).Name}");
-                     await _client.CloseAsync().ConfigureAwait(false);
+                     await _messageReceiver.StopPumpAsync().ConfigureAwait(false);
                 }
                 catch (Exception)
                 {

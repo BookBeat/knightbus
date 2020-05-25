@@ -22,6 +22,7 @@ namespace KnightBus.Azure.ServiceBus
         private int _deadLetterLimit;
         private IQueueClient _client;
         private readonly ManagementClient _managementClient;
+        private StoppableMessageReceiver _messageReceiver;
 
         public ServiceBusQueueChannelReceiver(IProcessingSettings settings, IServiceBusConfiguration configuration, IHostConfiguration hostConfiguration, IMessageProcessor processor)
         {
@@ -49,13 +50,16 @@ namespace KnightBus.Azure.ServiceBus
             _deadLetterLimit = Settings.DeadLetterDeliveryLimit;
             _client.PrefetchCount = Settings.PrefetchCount;
 
+            _messageReceiver = new StoppableMessageReceiver(_client.ServiceBusConnection, _client.QueueName, ReceiveMode.PeekLock, RetryPolicy.Default, Settings.PrefetchCount);
+            
+
             var options = new MessageHandlerOptions(OnExceptionReceivedAsync)
             {
                 AutoComplete = false,
                 MaxAutoRenewDuration = Settings.MessageLockTimeout,
                 MaxConcurrentCalls = Settings.MaxConcurrentCalls
             };
-            _client.RegisterMessageHandler(Handler, options);
+            _messageReceiver.RegisterMessageHandler(Handler, options);
 
 #pragma warning disable 4014
             // ReSharper disable once MethodSupportsCancellation
@@ -66,7 +70,7 @@ namespace KnightBus.Azure.ServiceBus
                 try
                 {
                     _log.Information($"Closing ServiceBus channel receiver for {typeof(T).Name}");
-                    await _client.CloseAsync().ConfigureAwait(false);
+                    await _messageReceiver.StopPumpAsync().ConfigureAwait(false);
                 }
                 catch (Exception)
                 {
