@@ -1,4 +1,5 @@
-﻿using System.Data;
+﻿using System;
+using System.Data;
 using System.Data.SqlClient;
 using System.Threading.Tasks;
 using KnightBus.Core;
@@ -11,7 +12,7 @@ namespace KnightBus.SqlServer
     {
         private readonly string _connectionString;
         private readonly IMessageSerializer _serializer;
-        private const string _tableName = "Sagas";
+        private const string _tableName = "Sagastore";
         private const string _schema = "dbo";
 
         public SqlServerSagaStore(string connectionString, IMessageSerializer serializer)
@@ -34,6 +35,7 @@ namespace KnightBus.SqlServer
             var command = new SqlCommand(sql, connection);
             command.Parameters.AddWithValue("@PartitionKey", partitionKey);
             command.Parameters.AddWithValue("@Id", id);
+            command.Parameters.AddWithValue("@UtcNow", DateTime.UtcNow);
             return command;
         }
 
@@ -47,6 +49,7 @@ namespace KnightBus.SqlServer
                                 PartitionKey NVARCHAR(50),
                                 Id NVARCHAR(50),
                                 Json NVARCHAR(4000),
+                                Expiration DATETIME,
                                 PRIMARY KEY (PartitionKey, Id)
                             )
                          END";
@@ -58,7 +61,7 @@ namespace KnightBus.SqlServer
         {
             using (var connection = await GetConnection().ConfigureAwait(false))
             {
-                var sql = $@"SELECT Json FROM {_schema}.{_tableName} WHERE PartitionKey = @PartitionKey AND Id = @Id";
+                var sql = $@"SELECT Json FROM {_schema}.{_tableName} WHERE PartitionKey = @PartitionKey AND Id = @Id AND Expiration > @UtcNow";
                 var command = GetCommandWithParameters(sql, connection, partitionKey, id);
                 try
                 {
@@ -78,14 +81,26 @@ namespace KnightBus.SqlServer
             }
         }
 
-        public async Task<T> Create<T>(string partitionKey, string id, T sagaData)
+        public async Task<T> Create<T>(string partitionKey, string id, T sagaData, TimeSpan ttl)
         {
             var json = _serializer.Serialize(sagaData);
             using (var connection = await GetConnection().ConfigureAwait(false))
             {
-                var sql = $@"INSERT INTO {_schema}.{_tableName} (PartitionKey, Id, Json) VALUES (@PartitionKey, @Id, @Json)";
+                var sql = $@"
+DECLARE @ExistingExpiration DATETIME
+IF EXISTS(SELECT @ExistingExpiration = Expiration FROM {_schema}.{_tableName} WHERE PartitionKey = @PartitionKey AND Id = @Id)
+BEGIN
+    IF @ExistingExpiration <= @UtcNow
+    BEGIN
+        DELETE FROM {_schema}.{_tableName} WHERE PartitionKey = @PartitionKey AND Id = @Id
+    END
+END
+
+INSERT INTO {_schema}.{_tableName} (PartitionKey, Id, Json, Expiration) VALUES (@PartitionKey, @Id, @Json, @Expiration)";
+
                 var command = GetCommandWithParameters(sql, connection, partitionKey, id);
                 command.Parameters.AddWithValue("@Json", json);
+                command.Parameters.AddWithValue("@Expiration", DateTime.UtcNow.Add(ttl));
                 try
                 {
                     await command.ExecuteNonQueryAsync();
@@ -93,7 +108,7 @@ namespace KnightBus.SqlServer
                 catch (SqlException e) when (e.Number == 208)
                 {
                     await CreateSagaTable(connection);
-                    return await Create(partitionKey, id, sagaData).ConfigureAwait(false);
+                    return await Create(partitionKey, id, sagaData, ttl).ConfigureAwait(false);
                 }
                 catch (SqlException e) when (e.Number == 2627)
                 {
@@ -109,7 +124,7 @@ namespace KnightBus.SqlServer
             var json = _serializer.Serialize(sagaData);
             using (var connection = await GetConnection().ConfigureAwait(false))
             {
-                var sql = $@"UPDATE {_schema}.{_tableName} SET Json = @Json WHERE PartitionKey = @PartitionKey AND Id = @Id";
+                var sql = $@"UPDATE {_schema}.{_tableName} SET Json = @Json WHERE PartitionKey = @PartitionKey AND Id = @Id AND Expiration > @UtcNow";
                 var command = GetCommandWithParameters(sql, connection, partitionKey, id);
                 command.Parameters.AddWithValue("@Json", json);
                 try
@@ -129,7 +144,7 @@ namespace KnightBus.SqlServer
         {
             using (var connection = await GetConnection().ConfigureAwait(false))
             {
-                var sql = $@"DELETE FROM {_schema}.{_tableName} WHERE PartitionKey = @PartitionKey AND Id = @Id";
+                var sql = $@"DELETE FROM {_schema}.{_tableName} WHERE PartitionKey = @PartitionKey AND Id = @Id AND Expiration > @UtcNow";
                 var command = GetCommandWithParameters(sql, connection, partitionKey, id);
 
                 try

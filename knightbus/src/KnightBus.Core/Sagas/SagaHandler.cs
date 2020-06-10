@@ -28,7 +28,7 @@ namespace KnightBus.Core.Sagas
             _saga.Id = _saga.MessageMapper.GetMapping<TMessage>().Invoke(_message);
             if (_saga.MessageMapper.IsStartMessage(typeof(TMessage)))
             {
-                sagaData = await _sagaStore.Create(_saga.PartitionKey, _saga.Id, new TSagaData());
+                sagaData = await _sagaStore.Create(_saga.PartitionKey, _saga.Id, new TSagaData(), _saga.TimeToLive);
             }
             else
             {
