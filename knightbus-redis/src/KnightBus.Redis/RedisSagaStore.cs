@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using KnightBus.Core;
 using KnightBus.Core.Sagas;
 using KnightBus.Core.Sagas.Exceptions;
@@ -25,10 +26,10 @@ namespace KnightBus.Redis
             return _serializer.Deserialize<T>(saga);
         }
 
-        public async Task<T> Create<T>(string partitionKey, string id, T sagaData)
+        public async Task<T> Create<T>(string partitionKey, string id, T sagaData, TimeSpan ttl)
         {
             var saga = _serializer.Serialize(sagaData);
-            var sagaSaved = await _db.StringSetAsync(GetKey(partitionKey, id), saga, null, When.NotExists).ConfigureAwait(false);
+            var sagaSaved = await _db.StringSetAsync(GetKey(partitionKey, id), saga, ttl, When.NotExists).ConfigureAwait(false);
             if (!sagaSaved) throw new SagaAlreadyStartedException(partitionKey, id);
             return sagaData;
         }

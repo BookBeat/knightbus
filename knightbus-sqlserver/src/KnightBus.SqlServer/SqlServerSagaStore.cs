@@ -124,7 +124,7 @@ INSERT INTO {_schema}.{_tableName} (PartitionKey, Id, Json, Expiration) VALUES (
             var json = _serializer.Serialize(sagaData);
             using (var connection = await GetConnection().ConfigureAwait(false))
             {
-                var sql = $@"UPDATE {_schema}.{_tableName} SET Json = @Json WHERE PartitionKey = @PartitionKey AND Id = @Id AND Expiration > @UtcNow";
+                var sql = $@"UPDATE {_schema}.{_tableName} SET Json = @Json WHERE PartitionKey = @PartitionKey AND Id = @Id";
                 var command = GetCommandWithParameters(sql, connection, partitionKey, id);
                 command.Parameters.AddWithValue("@Json", json);
                 try
@@ -144,7 +144,7 @@ INSERT INTO {_schema}.{_tableName} (PartitionKey, Id, Json, Expiration) VALUES (
         {
             using (var connection = await GetConnection().ConfigureAwait(false))
             {
-                var sql = $@"DELETE FROM {_schema}.{_tableName} WHERE PartitionKey = @PartitionKey AND Id = @Id AND Expiration > @UtcNow";
+                var sql = $@"DELETE FROM {_schema}.{_tableName} WHERE PartitionKey = @PartitionKey AND Id = @Id";
                 var command = GetCommandWithParameters(sql, connection, partitionKey, id);
 
                 try

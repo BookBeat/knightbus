@@ -18,7 +18,7 @@ namespace KnightBus.SqlServer.Tests.Integration
             //arrange
             var sagaStore = new SqlServerSagaStore(DatabaseInitializer.ConnectionString, new JsonMessageSerializer());
             //act
-            await sagaStore.Create(partitionKey, id, new SagaData { Message = "yo" });
+            await sagaStore.Create(partitionKey, id, new SagaData { Message = "yo" }, TimeSpan.FromMinutes(1));
             //assert
             var saga = await sagaStore.GetSaga<SagaData>(partitionKey, id);
             saga.Message.Should().Be("yo");
@@ -31,9 +31,9 @@ namespace KnightBus.SqlServer.Tests.Integration
             var id = Guid.NewGuid().ToString("N");
             //arrange
             var sagaStore = new SqlServerSagaStore(DatabaseInitializer.ConnectionString, new JsonMessageSerializer());
-            await sagaStore.Create(partitionKey, id, new SagaData { Message = "yo" });
+            await sagaStore.Create(partitionKey, id, new SagaData { Message = "yo" }, TimeSpan.FromMinutes(1));
             //act & assert
-            sagaStore.Awaiting(x => x.Create(partitionKey, id, new SagaData { Message = "yo" })).Should().Throw<SagaAlreadyStartedException>();
+            sagaStore.Awaiting(x => x.Create(partitionKey, id, new SagaData { Message = "yo" }, TimeSpan.FromMinutes(1))).Should().Throw<SagaAlreadyStartedException>();
         }
 
         [Test]
@@ -53,7 +53,7 @@ namespace KnightBus.SqlServer.Tests.Integration
             var id = Guid.NewGuid().ToString("N");
             //arrange
             var sagaStore = new SqlServerSagaStore(DatabaseInitializer.ConnectionString, new JsonMessageSerializer());
-            await sagaStore.Create(partitionKey, id, new SagaData { Message = "yo" });
+            await sagaStore.Create(partitionKey, id, new SagaData { Message = "yo" }, TimeSpan.FromMinutes(1));
             //act
             await sagaStore.Complete(partitionKey, id);
             //assert
@@ -78,7 +78,7 @@ namespace KnightBus.SqlServer.Tests.Integration
             var id = Guid.NewGuid().ToString("N");
             //arrange
             var sagaStore = new SqlServerSagaStore(DatabaseInitializer.ConnectionString, new JsonMessageSerializer());
-            await sagaStore.Create(partitionKey, id, new SagaData { Message = "yo" });
+            await sagaStore.Create(partitionKey, id, new SagaData { Message = "yo" }, TimeSpan.FromMinutes(1));
             //act
             await sagaStore.Update(partitionKey, id, new SagaData { Message = "updated" });
             //assert
