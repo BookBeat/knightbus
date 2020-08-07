@@ -46,6 +46,19 @@ namespace KnightBus.SqlServer.Tests.Integration
             //act & assert
             sagaStore.Awaiting(x => x.GetSaga<SagaData>(partitionKey, id)).Should().Throw<SagaNotFoundException>();
         }
+
+        [Test]
+        public async Task Should_throw_when_get_and_saga_expired()
+        {
+            var partitionKey = Guid.NewGuid().ToString("N");
+            var id = Guid.NewGuid().ToString("N");
+            //arrange
+            var sagaStore = new SqlServerSagaStore(DatabaseInitializer.ConnectionString, new JsonMessageSerializer());
+            await sagaStore.Create(partitionKey, id, new SagaData { Message = "yo" }, TimeSpan.FromMinutes(-1));
+            //act & assert
+            sagaStore.Awaiting(x => x.GetSaga<SagaData>(partitionKey, id)).Should().Throw<SagaNotFoundException>();
+        }
+
         [Test]
         public async Task Complete_should_delete_the_saga()
         {
