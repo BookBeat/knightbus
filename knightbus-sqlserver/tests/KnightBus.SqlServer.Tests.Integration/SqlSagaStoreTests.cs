@@ -37,6 +37,18 @@ namespace KnightBus.SqlServer.Tests.Integration
         }
 
         [Test]
+        public async Task Should_not_throw_when_create_and_saga_expired()
+        {
+            var partitionKey = Guid.NewGuid().ToString("N");
+            var id = Guid.NewGuid().ToString("N");
+            //arrange
+            var sagaStore = new SqlServerSagaStore(DatabaseInitializer.ConnectionString, new JsonMessageSerializer());
+            await sagaStore.Create(partitionKey, id, new SagaData { Message = "yo" }, TimeSpan.FromMinutes(-1));
+            //act & assert
+            sagaStore.Awaiting(x => x.Create(partitionKey, id, new SagaData { Message = "yo" }, TimeSpan.FromMinutes(1))).Should().NotThrow<SagaAlreadyStartedException>();
+        }
+
+        [Test]
         public void Should_throw_when_get_and_saga_does_not_exist()
         {
             var partitionKey = Guid.NewGuid().ToString("N");

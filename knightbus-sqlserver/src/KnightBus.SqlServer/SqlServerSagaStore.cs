@@ -88,8 +88,9 @@ namespace KnightBus.SqlServer
             {
                 var sql = $@"
 DECLARE @ExistingExpiration DATETIME
-IF EXISTS(SELECT @ExistingExpiration = Expiration FROM {_schema}.{_tableName} WHERE PartitionKey = @PartitionKey AND Id = @Id)
+IF EXISTS(SELECT Id FROM {_schema}.{_tableName} WHERE PartitionKey = @PartitionKey AND Id = @Id)
 BEGIN
+    SELECT @ExistingExpiration = Expiration FROM {_schema}.{_tableName} WHERE PartitionKey = @PartitionKey AND Id = @Id
     IF @ExistingExpiration <= @UtcNow
     BEGIN
         DELETE FROM {_schema}.{_tableName} WHERE PartitionKey = @PartitionKey AND Id = @Id
