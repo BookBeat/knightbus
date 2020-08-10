@@ -1,134 +1,17 @@
-﻿using System;
-using System.Threading.Tasks;
-using FluentAssertions;
-using KnightBus.Core;
-using KnightBus.Core.Sagas;
-using KnightBus.Core.Sagas.Exceptions;
+﻿using KnightBus.Core;
+using KnightBus.Shared.Tests.Integration;
 using NUnit.Framework;
+using StackExchange.Redis;
 
 namespace KnightBus.Redis.Tests.Integration
 {
     [TestFixture]
-    public class RedisSagaStoreTests : RedisTestBase
+    public class RedisSagaStoreTests : SagaStoreTests
     {
-        private ISagaStore _sagaStore;
-        private class SagaData
+        public override void Setup()
         {
-            public string Message { get; set; }
+            SagaStore = new RedisSagaStore(RedisTestBase.Database.Multiplexer, RedisTestBase.Database.Database, new JsonMessageSerializer());
         }
 
-        [SetUp]
-        public void Setup()
-        {
-            _sagaStore = new RedisSagaStore(Database.Multiplexer, Database.Database, new JsonMessageSerializer());
-        }
-
-        [Test]
-        public async Task Complete_should_delete_the_saga()
-        {
-            //arrange
-            var partitionKey = Guid.NewGuid().ToString("N");
-            var id = Guid.NewGuid().ToString("N");
-            await _sagaStore.Create(partitionKey, id, new SagaData { Message = "yo" }, TimeSpan.FromMinutes(1));
-            //act
-            await _sagaStore.Complete(partitionKey, id);
-            //assert
-            _sagaStore.Awaiting(x => x.GetSaga<SagaData>(partitionKey, id)).Should().Throw<SagaNotFoundException>();
-        }
-
-        [Test]
-        public void Complete_should_throw_when_saga_not_found()
-        {
-            //arrange
-            var partitionKey = Guid.NewGuid().ToString("N");
-            var id = Guid.NewGuid().ToString("N");
-            //act & assert
-            _sagaStore.Awaiting(x => x.Complete(partitionKey, id)).Should().Throw<SagaNotFoundException>();
-        }
-
-        [Test]
-        public async Task Should_create_and_read_saga()
-        {
-            //arrange
-            var partitionKey = Guid.NewGuid().ToString("N");
-            var id = Guid.NewGuid().ToString("N");
-
-            //act
-            await _sagaStore.Create(partitionKey, id, new SagaData { Message = "yo" }, TimeSpan.FromMinutes(1));
-            //assert
-            var saga = await _sagaStore.GetSaga<SagaData>(partitionKey, id);
-            saga.Message.Should().Be("yo");
-        }
-
-        [Test]
-        public async Task Should_not_throw_when_create_and_saga_expired()
-        {
-            //arrange
-            var partitionKey = Guid.NewGuid().ToString("N");
-            var id = Guid.NewGuid().ToString("N");
-            await _sagaStore.Create(partitionKey, id, new SagaData { Message = "yo" }, TimeSpan.FromMilliseconds(1));
-            await Task.Delay(2);
-            //act & assert
-            _sagaStore.Awaiting(x => x.Create(partitionKey, id, new SagaData { Message = "yo" }, TimeSpan.FromMinutes(1)))
-                .Should().NotThrow<SagaAlreadyStartedException>();
-        }
-
-        [Test]
-        public async Task Should_throw_when_create_and_saga_exists()
-        {
-            //arrange
-            var partitionKey = Guid.NewGuid().ToString("N");
-            var id = Guid.NewGuid().ToString("N");
-            await _sagaStore.Create(partitionKey, id, new SagaData { Message = "yo" }, TimeSpan.FromMinutes(1));
-            //act & assert
-            _sagaStore.Awaiting(x => x.Create(partitionKey, id, new SagaData { Message = "yo" }, TimeSpan.FromMinutes(1)))
-                .Should().Throw<SagaAlreadyStartedException>();
-        }
-
-        [Test]
-        public void Should_throw_when_get_and_saga_does_not_exist()
-        {
-            //arrange
-            var partitionKey = Guid.NewGuid().ToString("N");
-            var id = Guid.NewGuid().ToString("N");
-            //act & assert
-            _sagaStore.Awaiting(x => x.GetSaga<SagaData>(partitionKey, id)).Should().Throw<SagaNotFoundException>();
-        }
-
-        [Test]
-        public async Task Should_throw_when_get_and_saga_expired()
-        {
-            //arrange
-            var partitionKey = Guid.NewGuid().ToString("N");
-            var id = Guid.NewGuid().ToString("N");
-            await _sagaStore.Create(partitionKey, id, new SagaData { Message = "yo" }, TimeSpan.FromMilliseconds(1));
-            await Task.Delay(2);
-            //act & assert
-            _sagaStore.Awaiting(x => x.GetSaga<SagaData>(partitionKey, id)).Should().Throw<SagaNotFoundException>();
-        }
-
-        [Test]
-        public void Update_should_throw_when_saga_not_found()
-        {
-            //arrange
-            var partitionKey = Guid.NewGuid().ToString("N");
-            var id = Guid.NewGuid().ToString("N");
-            //act & assert
-            _sagaStore.Awaiting(x => x.Update(partitionKey, id, new SagaData())).Should().Throw<SagaNotFoundException>();
-        }
-
-        [Test]
-        public async Task Update_should_update_the_saga()
-        {
-            //arrange
-            var partitionKey = Guid.NewGuid().ToString("N");
-            var id = Guid.NewGuid().ToString("N");
-            await _sagaStore.Create(partitionKey, id, new SagaData { Message = "yo" }, TimeSpan.FromMinutes(1));
-            //act
-            await _sagaStore.Update(partitionKey, id, new SagaData { Message = "updated" });
-            //assert
-            var data = await _sagaStore.GetSaga<SagaData>(partitionKey, id);
-            data.Message.Should().Be("updated");
-        }
     }
 }

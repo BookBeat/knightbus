@@ -3,11 +3,11 @@ using StackExchange.Redis;
 
 namespace KnightBus.Redis.Tests.Integration
 {
-    [TestFixture]
-    public class RedisTestBase
+    [SetUpFixture, TestFixture]
+    public sealed class RedisTestBase
     {
-        protected RedisConfiguration Configuration;
-        protected IDatabase Database;
+        public static RedisConfiguration Configuration;
+        public static IDatabase Database;
 
         private IConnectionMultiplexer _multiplexer;
 

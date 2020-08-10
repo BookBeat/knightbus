@@ -1,13 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
-
-    <IsPackable>false</IsPackable>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <Authors>BookBeat</Authors>
+    <Copyright>Copyright © BookBeat 2020</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
-
   <ItemGroup>
-    <PackageReference Include="Appveyor.TestLogger" Version="2.0.0" />
     <PackageReference Include="FluentAssertions" Version="5.10.3" />
     <PackageReference Include="nunit" Version="3.12.0" />
     <PackageReference Include="NUnit3TestAdapter" Version="3.16.1">
@@ -16,10 +15,7 @@
     </PackageReference>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.5.0" />
   </ItemGroup>
-
   <ItemGroup>
-    <ProjectReference Include="..\..\..\knightbus\tests\KnightBus.Shared.Tests.Integration\KnightBus.Shared.Tests.Integration.csproj" />
-    <ProjectReference Include="..\..\src\KnightBus.Redis\KnightBus.Redis.csproj" />
+    <ProjectReference Include="..\..\src\KnightBus.Host\KnightBus.Host.csproj" />
   </ItemGroup>
-
 </Project>
