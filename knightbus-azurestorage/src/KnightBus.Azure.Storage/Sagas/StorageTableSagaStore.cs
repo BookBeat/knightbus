@@ -38,8 +38,9 @@ namespace KnightBus.Azure.Storage.Sagas
         public async Task<T> GetSaga<T>(string partitionKey, string id)
         {
             var result = await GetSagaTableRow(partitionKey, id).ConfigureAwait(false);
-            var saga = (SagaTableData) result.Result;
-            if(saga.Expiration < DateTime.UtcNow) throw new SagaNotFoundException(partitionKey, id);
+            var saga = (SagaTableData)result.Result;
+            if (saga == null) throw new SagaNotFoundException(partitionKey, id);
+            if (saga.Expiration < DateTime.UtcNow) throw new SagaNotFoundException(partitionKey, id);
             return JsonConvert.DeserializeObject<T>(saga.Json);
         }
 
@@ -65,7 +66,7 @@ namespace KnightBus.Azure.Storage.Sagas
                 {
                     //Determine if Saga has expired
                     var existingRow = await GetSagaTableRow(partitionKey, id).ConfigureAwait(false);
-                    var existingSaga = (SagaTableData) existingRow.Result;
+                    var existingSaga = (SagaTableData)existingRow.Result;
                     if (existingSaga.Expiration < DateTime.UtcNow)
                     {
                         var deleteOperation = TableOperation.Delete(new SagaTableData { PartitionKey = partitionKey, RowKey = id, ETag = existingRow.Etag });
