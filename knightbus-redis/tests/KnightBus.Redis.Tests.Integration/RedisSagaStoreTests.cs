@@ -66,7 +66,7 @@ namespace KnightBus.Redis.Tests.Integration
             //arrange
             var partitionKey = Guid.NewGuid().ToString("N");
             var id = Guid.NewGuid().ToString("N");
-            await _sagaStore.Create(partitionKey, id, new SagaData { Message = "yo" }, TimeSpan.FromMinutes(-1));
+            await _sagaStore.Create(partitionKey, id, new SagaData { Message = "yo" }, TimeSpan.Zero);
             //act & assert
             _sagaStore.Awaiting(x => x.Create(partitionKey, id, new SagaData { Message = "yo" }, TimeSpan.FromMinutes(1)))
                 .Should().NotThrow<SagaAlreadyStartedException>();
@@ -100,7 +100,7 @@ namespace KnightBus.Redis.Tests.Integration
             //arrange
             var partitionKey = Guid.NewGuid().ToString("N");
             var id = Guid.NewGuid().ToString("N");
-            await _sagaStore.Create(partitionKey, id, new SagaData { Message = "yo" }, TimeSpan.FromMinutes(-1));
+            await _sagaStore.Create(partitionKey, id, new SagaData { Message = "yo" }, TimeSpan.Zero);
             //act & assert
             _sagaStore.Awaiting(x => x.GetSaga<SagaData>(partitionKey, id)).Should().Throw<SagaNotFoundException>();
         }
