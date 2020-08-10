@@ -19,6 +19,12 @@ namespace KnightBus.Redis.Tests.Integration
             _bus = new RedisBus(RedisTestBase.Configuration);
             _target = new RedisQueueClient<TestCommand>(RedisTestBase.Database);
         }
+        [TearDown] //This should be done after each test thus not OneTime
+        public void BaseTeardown()
+        {
+            var server = RedisTestBase.Database.Multiplexer.GetServer(RedisTestBase.Configuration.ConnectionString);
+            server.FlushDatabase();
+        }
 
         private async Task<RedisMessage<TestCommand>> SendAndGetMessage()
         {

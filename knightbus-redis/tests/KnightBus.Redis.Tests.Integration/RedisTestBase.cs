@@ -18,12 +18,5 @@ namespace KnightBus.Redis.Tests.Integration
             _multiplexer = ConnectionMultiplexer.Connect($"{Configuration.ConnectionString},allowAdmin=true");
             Database = _multiplexer.GetDatabase(Configuration.DatabaseId);
         }
-
-        [TearDown] //This should be done after each test thus not OneTime
-        public void BaseTeardown()
-        {
-            var server = _multiplexer.GetServer(Configuration.ConnectionString);
-            server.FlushDatabase();
-        }
     }
 }
