@@ -43,6 +43,8 @@ namespace KnightBus.Redis
 
         public async Task Complete(string partitionKey, string id)
         {
+            var saga = await _db.StringGetAsync(GetKey(partitionKey, id)).ConfigureAwait(false);
+            if (saga.IsNullOrEmpty) throw new SagaNotFoundException(partitionKey, id);
             await _db.KeyDeleteAsync(GetKey(partitionKey, id)).ConfigureAwait(false);
         }
     }
