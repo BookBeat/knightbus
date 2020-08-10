@@ -11,13 +11,14 @@ namespace KnightBus.Redis.Tests.Integration
     [TestFixture]
     public class RedisSagaStoreTests : RedisTestBase
     {
-        private readonly ISagaStore _sagaStore;
+        private ISagaStore _sagaStore;
         private class SagaData
         {
             public string Message { get; set; }
         }
 
-        public RedisSagaStoreTests()
+        [SetUp]
+        public void Setup()
         {
             _sagaStore = new RedisSagaStore(Database.Multiplexer, Database.Database, new JsonMessageSerializer());
         }
