@@ -110,7 +110,14 @@ namespace KnightBus.Azure.Storage.Sagas
         public async Task Complete(string partitionKey, string id)
         {
             var operation = TableOperation.Delete(new SagaTableData { PartitionKey = partitionKey, RowKey = id, ETag = "*" });
-            await _table.ExecuteAsync(operation).ConfigureAwait(false);
+            try
+            {
+                await _table.ExecuteAsync(operation).ConfigureAwait(false);
+            }
+            catch (StorageException e) when (e.RequestInformation.HttpStatusCode == 404)
+            {
+                throw new SagaNotFoundException(partitionKey, id);
+            }
         }
 
         private async Task<TableResult> OptimisticExecuteAsync(Func<Task<TableResult>> func)
