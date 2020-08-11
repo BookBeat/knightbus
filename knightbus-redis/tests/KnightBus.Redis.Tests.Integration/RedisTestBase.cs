@@ -3,7 +3,7 @@ using StackExchange.Redis;
 
 namespace KnightBus.Redis.Tests.Integration
 {
-    [SetUpFixture, TestFixture]
+    [SetUpFixture]
     public sealed class RedisTestBase
     {
         public static RedisConfiguration Configuration;
