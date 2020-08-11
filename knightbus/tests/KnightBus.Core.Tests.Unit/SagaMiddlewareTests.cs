@@ -80,6 +80,7 @@ namespace KnightBus.Core.Tests.Unit
 
         public class Saga : Saga<SagaData>, IProcessCommand<SagaStartMessage, Settings>
         {
+            public override TimeSpan TimeToLive => TimeSpan.FromHours(1);
             public override string PartitionKey => "a";
 
             public Saga()

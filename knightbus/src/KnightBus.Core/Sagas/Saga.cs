@@ -42,7 +42,8 @@ namespace KnightBus.Core.Sagas
         public T Data { get; set; }
         public ISagaMessageMapper MessageMapper { get; } = new SagaMessageMapper();
         public ISagaStore SagaStore { get; set; }
-        public TimeSpan TimeToLive { get; protected set;}
+
+        public abstract TimeSpan TimeToLive { get; }
 
         public virtual Task CompleteAsync()
         {

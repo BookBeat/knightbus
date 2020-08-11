@@ -61,6 +61,7 @@ namespace KnightBus.Core.Tests.Unit
         }
         internal class TestSaga : Saga<TestSagaData>
         {
+            public override TimeSpan TimeToLive => TimeSpan.FromHours(1);
             public TestSaga()
             {
                 MessageMapper.MapStartMessage<TestSagaStartMessage>(m => m.MessageId);

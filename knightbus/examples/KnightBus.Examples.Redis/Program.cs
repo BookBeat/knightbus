@@ -195,6 +195,7 @@ namespace KnightBus.Examples.Redis
         {
             private readonly IRedisBus _bus;
             public override string PartitionKey => "redis-saga-processor";
+            public override TimeSpan TimeToLive => TimeSpan.FromHours(1);
 
             public RedisSagaProcessor(IRedisBus bus)
             {
