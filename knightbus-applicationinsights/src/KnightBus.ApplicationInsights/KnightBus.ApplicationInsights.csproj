@@ -11,7 +11,7 @@
     <PackageIconUrl>https://raw.githubusercontent.com/BookBeat/knightbus/master/documentation/media/images/knighbus-64.png</PackageIconUrl>
     <PackageIcon>knighbus-64.png</PackageIcon>
     <RepositoryUrl>https://github.com/BookBeat/knightbus</RepositoryUrl>
-    <Version>5.0.0</Version>
+    <Version>5.1.0</Version>
     <PackageTags>knightbus;applicationinsights;azure;</PackageTags>
   </PropertyGroup>
 
@@ -19,8 +19,8 @@
     <None Include="knighbus-64.png" Pack="true" Visible="false" PackagePath="" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.ApplicationInsights.DependencyCollector" Version="2.11.2" />
-    <PackageReference Include="Microsoft.ApplicationInsights.PerfCounterCollector" Version="2.11.2" />
+    <PackageReference Include="Microsoft.ApplicationInsights.DependencyCollector" Version="2.14.0" />
+    <PackageReference Include="Microsoft.ApplicationInsights.PerfCounterCollector" Version="2.14.0" />
   </ItemGroup>
 
   <ItemGroup>
