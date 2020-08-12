@@ -303,9 +303,9 @@ namespace KnightBus.Azure.ServiceBus
                 {
                     await func().ConfigureAwait(false);
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-
+                    //Ignore
                 }
             }
 
@@ -400,9 +400,9 @@ namespace KnightBus.Azure.ServiceBus
                 {
                     await ExceptionReceivedHandler(eventArgs).ConfigureAwait(false);
                 }
-                catch (Exception exception)
+                catch (Exception)
                 {
-
+                    //Ignore
                 }
             }
         }
