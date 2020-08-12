@@ -23,7 +23,7 @@ namespace KnightBus.Core.Tests.Unit
             //act
             await handler.Initialize();
             //assert
-            store.Verify(x => x.Create(saga.PartitionKey, id, It.IsAny<TestSagaData>(), TimeSpan.Zero), Times.Once);
+            store.Verify(x => x.Create(saga.PartitionKey, id, It.IsAny<TestSagaData>(), TimeSpan.FromHours(1)), Times.Once);
         }
 
         [Test]
