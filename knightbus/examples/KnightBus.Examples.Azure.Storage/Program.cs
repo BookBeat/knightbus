@@ -121,6 +121,8 @@ namespace KnightBus.Examples.Azure.Storage
                 MessageMapper.MapMessage<SampleSagaMessage>(m=> m.Id);
             }
             public override string PartitionKey => "sample-saga";
+            public override TimeSpan TimeToLive => TimeSpan.FromHours(1);
+
             public async Task ProcessAsync(SampleSagaStartMessage message, CancellationToken cancellationToken)
             {
                 Console.WriteLine(message.Message);

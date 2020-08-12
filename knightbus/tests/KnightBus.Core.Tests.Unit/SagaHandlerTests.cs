@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using FluentAssertions;
 using KnightBus.Core.Sagas;
@@ -22,7 +23,7 @@ namespace KnightBus.Core.Tests.Unit
             //act
             await handler.Initialize();
             //assert
-            store.Verify(x => x.Create(saga.PartitionKey, id, It.IsAny<TestSagaData>()), Times.Once);
+            store.Verify(x => x.Create(saga.PartitionKey, id, It.IsAny<TestSagaData>(), TimeSpan.FromHours(1)), Times.Once);
         }
 
         [Test]
@@ -60,6 +61,7 @@ namespace KnightBus.Core.Tests.Unit
         }
         internal class TestSaga : Saga<TestSagaData>
         {
+            public override TimeSpan TimeToLive => TimeSpan.FromHours(1);
             public TestSaga()
             {
                 MessageMapper.MapStartMessage<TestSagaStartMessage>(m => m.MessageId);

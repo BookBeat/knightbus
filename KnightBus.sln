@@ -67,9 +67,18 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Redis.Tests.Integ
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Redis.Tests.Unit", "knightbus-redis\tests\KnightBus.Redis.Tests.Unit\KnightBus.Redis.Tests.Unit.csproj", "{495A52A9-3268-4744-BCD4-BEEECDD525F7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.DependencyInjection.Tests.Unit", "knightbus\tests\KnightBus.DependencyInjection.Tests.Unit\KnightBus.DependencyInjection.Tests.Unit.csproj", "{A99FCB87-B55A-42D7-9ED8-229A03321E2D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.DependencyInjection.Tests.Unit", "knightbus\tests\KnightBus.DependencyInjection.Tests.Unit\KnightBus.DependencyInjection.Tests.Unit.csproj", "{A99FCB87-B55A-42D7-9ED8-229A03321E2D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.NewRelic", "knightbus-newrelic\src\KnightBus.NewRelic\KnightBus.NewRelic.csproj", "{30C220D7-0F23-4742-9856-3D6466A1857A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.NewRelic", "knightbus-newrelic\src\KnightBus.NewRelic\KnightBus.NewRelic.csproj", "{30C220D7-0F23-4742-9856-3D6466A1857A}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Azure.Storage.Tests.Integration", "knightbus-azurestorage\tests\KnightBus.Azure.Storage.Tests.Integration\KnightBus.Azure.Storage.Tests.Integration.csproj", "{35D22A20-2E1E-4CA7-8EE4-A33C5A08AD11}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{F5818956-2DE2-41CE-A529-93B3E5E35619}"
+	ProjectSection(SolutionItems) = preProject
+		appveyor.yml = appveyor.yml
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.Shared.Tests.Integration", "knightbus\tests\KnightBus.Shared.Tests.Integration\KnightBus.Shared.Tests.Integration.csproj", "{7E533C8D-75F9-46A9-B1F0-186E6EBE6A84}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -193,6 +202,14 @@ Global
 		{30C220D7-0F23-4742-9856-3D6466A1857A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{30C220D7-0F23-4742-9856-3D6466A1857A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{30C220D7-0F23-4742-9856-3D6466A1857A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{35D22A20-2E1E-4CA7-8EE4-A33C5A08AD11}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{35D22A20-2E1E-4CA7-8EE4-A33C5A08AD11}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{35D22A20-2E1E-4CA7-8EE4-A33C5A08AD11}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{35D22A20-2E1E-4CA7-8EE4-A33C5A08AD11}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7E533C8D-75F9-46A9-B1F0-186E6EBE6A84}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7E533C8D-75F9-46A9-B1F0-186E6EBE6A84}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7E533C8D-75F9-46A9-B1F0-186E6EBE6A84}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7E533C8D-75F9-46A9-B1F0-186E6EBE6A84}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

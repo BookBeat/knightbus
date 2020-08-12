@@ -7,7 +7,7 @@ using NUnit.Framework;
 
 namespace KnightBus.Redis.Tests.Integration
 {
-    public class RedisQueueClientTests : RedisTestBase
+    public class RedisQueueClientTests
     {
         private IRedisBus _bus;
         private RedisQueueClient<TestCommand> _target;
@@ -16,8 +16,14 @@ namespace KnightBus.Redis.Tests.Integration
         [SetUp]
         public void Setup()
         {
-            _bus = new RedisBus(Configuration);
-            _target = new RedisQueueClient<TestCommand>(Database);
+            _bus = new RedisBus(RedisTestBase.Configuration);
+            _target = new RedisQueueClient<TestCommand>(RedisTestBase.Database);
+        }
+        [TearDown] //This should be done after each test thus not OneTime
+        public void BaseTeardown()
+        {
+            var server = RedisTestBase.Database.Multiplexer.GetServer(RedisTestBase.Configuration.ConnectionString);
+            server.FlushDatabase();
         }
 
         private async Task<RedisMessage<TestCommand>> SendAndGetMessage()
@@ -36,7 +42,7 @@ namespace KnightBus.Redis.Tests.Integration
             await _bus.SendAsync(command);
 
             //Verify processing queue empty
-            var processingQueueLength = await Database.ListLengthAsync(RedisQueueConventions.GetProcessingQueueName(_queueName));
+            var processingQueueLength = await RedisTestBase.Database.ListLengthAsync(RedisQueueConventions.GetProcessingQueueName(_queueName));
             processingQueueLength.Should().Be(0);
 
             //Act
@@ -50,7 +56,7 @@ namespace KnightBus.Redis.Tests.Integration
             message.HashEntries.Should().ContainKey(RedisHashKeys.DeliveryCount);
             var deliveryCount = message.HashEntries.First(e => e.Key.Equals(RedisHashKeys.DeliveryCount));
             deliveryCount.Value.Should().Be("1");
-            processingQueueLength = await Database.ListLengthAsync(RedisQueueConventions.GetProcessingQueueName(_queueName));
+            processingQueueLength = await RedisTestBase.Database.ListLengthAsync(RedisQueueConventions.GetProcessingQueueName(_queueName));
             processingQueueLength.Should().Be(1);
         }
 
@@ -64,13 +70,13 @@ namespace KnightBus.Redis.Tests.Integration
             await _target.CompleteMessageAsync(message);
 
             //Assert
-            var hash = await Database.HashGetAllAsync(message.HashKey);
+            var hash = await RedisTestBase.Database.HashGetAllAsync(message.HashKey);
             hash.Should().BeEmpty();
-            var expirationKey = await Database.StringGetAsync(message.ExpirationKey);
+            var expirationKey = await RedisTestBase.Database.StringGetAsync(message.ExpirationKey);
             expirationKey.HasValue.Should().BeFalse();
             var messages = await _target.GetMessagesAsync(1);
             messages.Length.Should().Be(0);
-            var processingQueueLength = await Database.ListLengthAsync(RedisQueueConventions.GetProcessingQueueName(_queueName));
+            var processingQueueLength = await RedisTestBase.Database.ListLengthAsync(RedisQueueConventions.GetProcessingQueueName(_queueName));
             processingQueueLength.Should().Be(0);
         }
 
@@ -85,7 +91,7 @@ namespace KnightBus.Redis.Tests.Integration
             await _target.AbandonMessageByErrorAsync(message, exception);
 
             //Assert
-            var hash = await Database.HashGetAllAsync(message.HashKey);
+            var hash = await RedisTestBase.Database.HashGetAllAsync(message.HashKey);
             var errors = hash.First(k => k.Name.Equals(RedisHashKeys.Errors));
             var errorMessage = errors.Value.ToString().TrimEnd('\n');
             errorMessage.Should().Be(exception.Message);
@@ -107,9 +113,9 @@ namespace KnightBus.Redis.Tests.Integration
             await _target.DeadLetterMessageAsync(message, 1);
 
             //Assert
-            var processingQueueLength = await Database.ListLengthAsync(RedisQueueConventions.GetProcessingQueueName(_queueName));
+            var processingQueueLength = await RedisTestBase.Database.ListLengthAsync(RedisQueueConventions.GetProcessingQueueName(_queueName));
             processingQueueLength.Should().Be(0);
-            var deadLetterQueueLength = await Database.ListLengthAsync(RedisQueueConventions.GetDeadLetterQueueName(_queueName));
+            var deadLetterQueueLength = await RedisTestBase.Database.ListLengthAsync(RedisQueueConventions.GetDeadLetterQueueName(_queueName));
             deadLetterQueueLength.Should().Be(1);
         }
 
@@ -124,9 +130,9 @@ namespace KnightBus.Redis.Tests.Integration
             await _target.RequeueDeadletterAsync();
 
             //Assert
-            var deadLetterQueueLength = await Database.ListLengthAsync(RedisQueueConventions.GetDeadLetterQueueName(_queueName));
+            var deadLetterQueueLength = await RedisTestBase.Database.ListLengthAsync(RedisQueueConventions.GetDeadLetterQueueName(_queueName));
             deadLetterQueueLength.Should().Be(0);
-            var queueLength = await Database.ListLengthAsync(_queueName);
+            var queueLength = await RedisTestBase.Database.ListLengthAsync(_queueName);
             queueLength.Should().Be(1);
         }
     }

@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 
 namespace KnightBus.Core.Sagas
 {
@@ -22,6 +23,8 @@ namespace KnightBus.Core.Sagas
         T Data { get; set; }
 
         ISagaStore SagaStore { set; }
+
+        TimeSpan TimeToLive { get; }
         /// <summary>
         /// Mark the Saga as completed.
         /// </summary>
@@ -39,6 +42,9 @@ namespace KnightBus.Core.Sagas
         public T Data { get; set; }
         public ISagaMessageMapper MessageMapper { get; } = new SagaMessageMapper();
         public ISagaStore SagaStore { get; set; }
+
+        public abstract TimeSpan TimeToLive { get; }
+
         public virtual Task CompleteAsync()
         {
             return SagaStore.Complete(PartitionKey, Id);
@@ -48,5 +54,7 @@ namespace KnightBus.Core.Sagas
         {
             return SagaStore.Update(PartitionKey, Id, Data);
         }
+
+
     }
 }
