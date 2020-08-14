@@ -59,7 +59,7 @@ namespace KnightBus.Host
                         }
                     }
                 }
-                catch (Exception e)
+                catch (Exception e) when (!(e is TaskCanceledException))
                 {
                     _log.Error(e, "TcpAliveListenerPlugin crashed");
                 }
