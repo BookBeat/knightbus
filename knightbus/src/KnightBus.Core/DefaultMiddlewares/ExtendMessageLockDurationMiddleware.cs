@@ -16,7 +16,7 @@ namespace KnightBus.Core.DefaultMiddlewares
                 Task.Run(async () =>
                 {
                         await RenewLock(extendLock.ExtensionInterval, extendLock.ExtensionDuration, cts.Token, lockHandler, pipelineInformation.HostConfiguration.Log).ConfigureAwait(false);
-                    }, cts.Token);
+                    }, cts.Token).ContinueWith(t=> cts.Dispose()).ConfigureAwait(false);
 #pragma warning restore 4014
             }
 

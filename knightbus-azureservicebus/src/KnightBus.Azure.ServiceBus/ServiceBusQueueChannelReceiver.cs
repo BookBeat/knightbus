@@ -94,8 +94,10 @@ namespace KnightBus.Azure.ServiceBus
         private async Task Handler(Message message, CancellationToken cancellationToken)
         {
             var stateHandler = new ServiceBusMessageStateHandler<T>(_messageReceiver, message, _configuration.MessageSerializer, _deadLetterLimit, _hostConfiguration.DependencyInjection);
-            var cts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken, cancellationToken);
-            await _processor.ProcessAsync(stateHandler, cts.Token).ConfigureAwait(false);
+            using (var cts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken, cancellationToken))
+            {
+                await _processor.ProcessAsync(stateHandler, cts.Token).ConfigureAwait(false);
+            }
         }
     }
 }

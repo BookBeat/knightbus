@@ -83,8 +83,9 @@ namespace KnightBus.Host
         {
             _configuration.Log.Information("KnightBus received stop signal, initiating shutdown... ");
             _shutdownToken.Cancel();
-            await Task.Delay(ShutdownGracePeriod, cancellationToken);
+            await Task.Delay(ShutdownGracePeriod, cancellationToken).ConfigureAwait(false);
             _configuration.Log.Information("KnightBus received stopped");
+            _shutdownToken.Dispose();
         }
 
         public async Task StartAndBlockAsync(CancellationToken cancellationToken)

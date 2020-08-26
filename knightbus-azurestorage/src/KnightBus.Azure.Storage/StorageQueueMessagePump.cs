@@ -85,7 +85,12 @@ namespace KnightBus.Azure.Storage
                     }
 #pragma warning disable 4014 //No need to await the result, let's keep the pump going
                     Task.Run(async () => await action.Invoke(message, linkedToken.Token).ConfigureAwait(false), timeoutToken.Token)
-                        .ContinueWith(task => _maxConcurrent.Release()).ConfigureAwait(false);
+                        .ContinueWith(task =>
+                        {
+                            _maxConcurrent.Release();
+                            timeoutToken.Dispose();
+                            linkedToken.Dispose();
+                        }).ConfigureAwait(false);
 #pragma warning restore 4014
                 }
             }

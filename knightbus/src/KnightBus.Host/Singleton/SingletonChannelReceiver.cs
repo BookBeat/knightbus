@@ -57,7 +57,6 @@ namespace KnightBus.Host.Singleton
 
             if (lockHandle != null)
             {
-                
                 var linkedTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                 _singletonScope = new SingletonTimerScope(_log, lockHandle, true, LockRefreshInterval, linkedTokenSource);
                 _log.Information("Starting Singleton Processor with name {ProcessorName}", _lockId);
@@ -74,8 +73,8 @@ namespace KnightBus.Host.Singleton
                         _lockPollingEnabled = true;
                         _log.Information("Singleton Processor with name {ProcessorName} lost its lock", _lockId);
                     }
-                    
-                }, cancellationToken);
+
+                }, cancellationToken).ContinueWith(t => linkedTokenSource.Dispose());
 #pragma warning restore 4014
             }
             else
