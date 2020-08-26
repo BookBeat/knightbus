@@ -9,25 +9,27 @@ namespace KnightBus.Core.DefaultMiddlewares
     {
         public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, IPipelineInformation pipelineInformation, IMessageProcessor next, CancellationToken cancellationToken) where T : class, IMessage
         {
-            var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            if (messageStateHandler is IMessageLockHandler<T> lockHandler && pipelineInformation.ProcessingSettings is IExtendMessageLockTimeout extendLock)
+            using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
             {
-#pragma warning disable 4014
-                Task.Run(async () =>
+                if (messageStateHandler is IMessageLockHandler<T> lockHandler && pipelineInformation.ProcessingSettings is IExtendMessageLockTimeout extendLock)
                 {
+#pragma warning disable 4014
+                    Task.Run(async () =>
+                    {
                         await RenewLock(extendLock.ExtensionInterval, extendLock.ExtensionDuration, cts.Token, lockHandler, pipelineInformation.HostConfiguration.Log).ConfigureAwait(false);
-                    }, cts.Token).ContinueWith(t=> cts.Dispose()).ConfigureAwait(false);
+                    }, cts.Token).ConfigureAwait(false);
 #pragma warning restore 4014
-            }
+                }
 
-            try
-            {
-                await next.ProcessAsync(messageStateHandler, cancellationToken).ConfigureAwait(false);
-            }
-            finally
-            {
-                //Stop the lock renewal
-                cts.Cancel();
+                try
+                {
+                    await next.ProcessAsync(messageStateHandler, cancellationToken).ConfigureAwait(false);
+                }
+                finally
+                {
+                    //Stop the lock renewal 
+                    cts.Cancel();
+                }
             }
         }
 
