@@ -1,7 +1,6 @@
 ﻿using KnightBus.Core;
 using KnightBus.Shared.Tests.Integration;
 using NUnit.Framework;
-using StackExchange.Redis;
 
 namespace KnightBus.Redis.Tests.Integration
 {

@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using KnightBus.Core;
 using KnightBus.Messages;
 using SimpleInjector;
-using SimpleInjector.Lifestyles;
 
 namespace KnightBus.SimpleInjector
 {
