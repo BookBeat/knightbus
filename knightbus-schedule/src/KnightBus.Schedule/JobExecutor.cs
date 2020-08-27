@@ -35,12 +35,14 @@ namespace KnightBus.Schedule
 
                 _logger.Information("Executing schedule {Schedule} {LockHandle}", schedule, lockHandle);
 
-                var linkedTokenSource = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
-                using (new SingletonTimerScope(_logger, lockHandle, false, TimeSpan.FromSeconds(19), linkedTokenSource))
-                using (var scopedDependencyInjection = _dependencyInjection.GetScope())
+                using (var linkedTokenSource = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken))
                 {
-                    var processor = scopedDependencyInjection.GetInstance<IProcessSchedule<T>>();
-                    await processor.ProcessAsync(linkedTokenSource.Token).ConfigureAwait(false);
+                    using (new SingletonTimerScope(_logger, lockHandle, false, TimeSpan.FromSeconds(19), linkedTokenSource))
+                    using (var scopedDependencyInjection = _dependencyInjection.GetScope())
+                    {
+                        var processor = scopedDependencyInjection.GetInstance<IProcessSchedule<T>>();
+                        await processor.ProcessAsync(linkedTokenSource.Token).ConfigureAwait(false);
+                    }
                 }
             }
             catch (Exception e)

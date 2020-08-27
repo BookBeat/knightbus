@@ -88,7 +88,12 @@ namespace KnightBus.Redis
                         var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutToken.Token);
 #pragma warning disable 4014
                         Task.Run(async () => await ProcessMessageAsync(redisMessage, linkedToken.Token).ConfigureAwait(false), timeoutToken.Token)
-                            .ContinueWith(task2 => _maxConcurrent.Release()).ConfigureAwait(false);
+                            .ContinueWith(task2 =>
+                            {
+                                _maxConcurrent.Release();
+                                timeoutToken.Dispose();
+                                linkedToken.Dispose();
+                            }).ConfigureAwait(false);
 #pragma warning restore 4014
                     }
                     else

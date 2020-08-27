@@ -34,7 +34,13 @@ namespace KnightBus.Redis
 
             var cts = new CancellationTokenSource();
             var messages = await Task.WhenAll(Enumerable.Range(0, count).Select(i => GetMessageAsync(cts)))
+                .ContinueWith(t =>
+                {
+                    cts.Dispose();
+                    return t.Result;
+                })
                 .ConfigureAwait(false);
+            
             return messages;
         }
 

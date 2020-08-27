@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
 using FluentAssertions;
-using KnightBus.Core;
 using KnightBus.Core.Sagas;
 using KnightBus.Core.Sagas.Exceptions;
 using NUnit.Framework;
