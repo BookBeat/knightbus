@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using Azure;
+using Azure.Storage;
 using KnightBus.Core.Sagas;
 using KnightBus.Core.Sagas.Exceptions;
 using Newtonsoft.Json;
@@ -69,8 +70,14 @@ namespace KnightBus.Azure.Storage.Sagas
                     await blob.UploadAsync(stream,
                         new BlobUploadOptions
                         {
+                            HttpHeaders = new BlobHttpHeaders
+                            {
+                                ContentType = "application/json"
+                            },
                             Metadata = new Dictionary<string, string>
-                                {{ExpirationField, DateTimeOffset.UtcNow.Add(ttl).ToString()}}
+                            {
+                                {ExpirationField, DateTimeOffset.UtcNow.Add(ttl).ToString()}
+                            }
                         }).ConfigureAwait(false);
             }
             catch (RequestFailedException e) when (e.Status == 404 &&
@@ -117,7 +124,7 @@ namespace KnightBus.Azure.Storage.Sagas
             }
         }
 
-        private static string Filename(string partitionKey, string id) => $"{partitionKey}-{id}.json";
+        private static string Filename(string partitionKey, string id) => $"{partitionKey}/{id}.json";
 
         private static Stream GetStream<T>(T data)
         {
