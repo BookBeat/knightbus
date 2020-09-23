@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.Tracing;
 using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
@@ -48,26 +49,30 @@ namespace KnightBus.Azure.Storage.Singleton
             {
                 if (exception.IsServerSideError())
                 {
-                    string msg = string.Format(CultureInfo.InvariantCulture, "Singleton lock renewal failed for blob '{0}'", LockId);
-                    log.Warning(exception, msg);
+                    log.Warning(exception, string.Format(CultureInfo.InvariantCulture, "Singleton lock renewal failed for blob '{0}'", LockId));
                     return false; // The next execution should occur more quickly (try to renew the lease before it expires).
                 }
-                else
+
+                if (cancellationToken.IsCancellationRequested)
                 {
-                    // Log the details we've been accumulating to help with debugging this scenario
-                    var leasePeriodMilliseconds = (int)_leasePeriod.TotalMilliseconds;
-                    var lastRenewalFormatted = _lastRenewal.ToString("yyyy-MM-ddTHH:mm:ss.FFFZ", CultureInfo.InvariantCulture);
-                    var millisecondsSinceLastSuccess = (int)(DateTime.UtcNow - _lastRenewal).TotalMilliseconds;
-                    var lastRenewalMilliseconds = (int)_lastRenewalLatency.TotalMilliseconds;
-
-                    var msg = string.Format(CultureInfo.InvariantCulture, "Singleton lock renewal failed for blob '{0}'. The last successful renewal completed at {1} ({2} milliseconds ago) with a duration of {3} milliseconds. The lease period was {4} milliseconds.",
-                        LockId, lastRenewalFormatted, millisecondsSinceLastSuccess, lastRenewalMilliseconds, leasePeriodMilliseconds);
-                    log.Error(exception, msg);
-
-                    // If we've lost the lease or cannot re-establish it, we want to fail any
-                    // in progress function execution
-                    throw;
+                    //The service using the scope has signaled that we should stop the scope
+                    return true;
                 }
+
+                // Log the details we've been accumulating to help with debugging this scenario
+                var leasePeriodMilliseconds = (int)_leasePeriod.TotalMilliseconds;
+                var lastRenewalFormatted = _lastRenewal.ToString("yyyy-MM-ddTHH:mm:ss.FFFZ", CultureInfo.InvariantCulture);
+                var millisecondsSinceLastSuccess = (int)(DateTime.UtcNow - _lastRenewal).TotalMilliseconds;
+                var lastRenewalMilliseconds = (int)_lastRenewalLatency.TotalMilliseconds;
+
+                var msg = string.Format(CultureInfo.InvariantCulture, "Singleton lock renewal failed for blob '{0}'. The last successful renewal completed at {1} ({2} milliseconds ago) with a duration of {3} milliseconds. The lease period was {4} milliseconds.",
+                    LockId, lastRenewalFormatted, millisecondsSinceLastSuccess, lastRenewalMilliseconds, leasePeriodMilliseconds);
+                log.Error(exception, msg);
+
+                // If we've lost the lease or cannot re-establish it, we want to fail any
+                // in progress function execution
+                throw;
+
             }
         }
         public async Task ReleaseAsync(CancellationToken cancellationToken)

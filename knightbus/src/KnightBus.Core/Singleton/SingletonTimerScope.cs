@@ -46,11 +46,11 @@ namespace KnightBus.Core.Singleton
         {
             var delay = 0;
             var retries = 3;
-            while (true)
+            while (!cancellationToken.IsCancellationRequested)
             {
                 if (retries == 0) return;
-                var success = await _lockHandle.RenewAsync(_log, cancellationToken).ConfigureAwait(false);
-                if (success) return;
+                var exit = await _lockHandle.RenewAsync(_log, cancellationToken).ConfigureAwait(false);
+                if (exit) return;
 
                 await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
                 delay += 1000;

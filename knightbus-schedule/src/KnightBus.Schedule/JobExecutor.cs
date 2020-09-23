@@ -33,7 +33,7 @@ namespace KnightBus.Schedule
                     //someone else has locked this instance, do nothing
                     return;
 
-                _logger.Information("Executing schedule {Schedule} {LockHandle}", schedule, lockHandle);
+                _logger.Information("Executing schedule {Schedule}", schedule);
 
                 using (var linkedTokenSource = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken))
                 {
