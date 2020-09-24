@@ -34,6 +34,20 @@ namespace KnightBus.Core.Sagas
                 }
                 catch (SagaAlreadyStartedException e)
                 {
+                    // If the processor ISagaDetected, let the processor process the duplicate message before completing the saga
+                    if (processor is ISagaDuplicateDetected<T> sagaDetectedHandler)
+                    {
+                        var message = await messageStateHandler.GetMessageAsync().ConfigureAwait(false);
+                        try
+                        {
+                            await sagaDetectedHandler.ProcessDuplicateAsync(message, cancellationToken).ConfigureAwait(false);
+                        }
+                        catch (Exception exception)
+                        {
+                            pipelineInformation.HostConfiguration.Log.Error(exception, "Failed to process duplicate saga processing {@" + typeof(T).Name + "}", message);
+                        }
+                    }
+
                     pipelineInformation.HostConfiguration.Log.Information(e, "Saga already started");
                     await messageStateHandler.CompleteAsync().ConfigureAwait(false);
                     return;

@@ -32,7 +32,8 @@ Sample Implementation
 
     class SampleSagaMessageProcessor: Saga<MySagaData>,
             IProcessCommand<SampleSagaMessage, SomeProcessingSetting>,
-            IProcessCommand<SampleSagaStartMessage, SomeProcessingSetting>
+            IProcessCommand<SampleSagaStartMessage, SomeProcessingSetting>,
+            ISagaDuplicateDetected<SampleSagaMessage>
         {
             private readonly IStorageBus _storageBus;
 
@@ -63,6 +64,13 @@ Sample Implementation
                 Data.Counter++;
                 await UpdateAsync();
                 await _storageBus.SendAsync(new SampleSagaMessage());
+            }
+
+            public Task ProcessDuplicateAsync(SampleSagaMessage message, CancellationToken cancellationToken)
+            {
+                // Saga duplicate found
+
+                return Task.CompletedTask;
             }
         }
 

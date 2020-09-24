@@ -33,13 +33,45 @@ namespace KnightBus.Core.Tests.Unit
             var pipelineInformation = new Mock<IPipelineInformation>();
             pipelineInformation.Setup(x => x.HostConfiguration).Returns(hostConfiguration.Object);
             pipelineInformation.Setup(x => x.ProcessorInterfaceType).Returns(typeof(IProcessCommand<SagaStartMessage, Settings>));
-            
+
 
             var middleware = new SagaMiddleware(sagaStore.Object);
 
             //act
             await middleware.ProcessAsync(messageStateHandler.Object, pipelineInformation.Object, null, CancellationToken.None);
             //assert
+            messageStateHandler.Verify(x => x.CompleteAsync(), Times.Once);
+        }
+
+        [Test]
+        public async Task If_Saga_implements_ISagaDuplicateDetected_then_ProcessDuplicateAsync_should_be_called_and_should_complete_message_if_saga_already_is_started()
+        {
+            //arrange
+            var partitionKey = "a";
+            var id = "b";
+            var sagaStore = new Mock<ISagaStore>();
+            sagaStore.Setup(x => x.Create<SagaData>(partitionKey, id, It.IsAny<SagaData>(), TimeSpan.FromHours(1))).ThrowsAsync(new SagaAlreadyStartedException(partitionKey, id));
+
+            var di = new Mock<IDependencyInjection>();
+            var countable = new Mock<ICountable>();
+            di.Setup(x => x.GetInstance<IProcessMessage<SagaStartMessage>>(typeof(IProcessCommand<SagaStartMessage, Settings>))).Returns(new SagaDuplicateWithDuplicate(countable.Object));
+
+            var hostConfiguration = new Mock<IHostConfiguration>();
+            hostConfiguration.Setup(x => x.Log).Returns(Mock.Of<ILog>());
+            hostConfiguration.Setup(x => x.DependencyInjection).Returns(di.Object); // TODO: setup dependency injection
+            var messageStateHandler = new Mock<IMessageStateHandler<SagaStartMessage>>();
+            messageStateHandler.Setup(x => x.MessageScope).Returns(di.Object);
+            var pipelineInformation = new Mock<IPipelineInformation>();
+            pipelineInformation.Setup(x => x.HostConfiguration).Returns(hostConfiguration.Object);
+            pipelineInformation.Setup(x => x.ProcessorInterfaceType).Returns(typeof(IProcessCommand<SagaStartMessage, Settings>));
+
+
+            var middleware = new SagaMiddleware(sagaStore.Object);
+
+            //act
+            await middleware.ProcessAsync(messageStateHandler.Object, pipelineInformation.Object, null, CancellationToken.None);
+            //assert
+            countable.Verify(x=> x.Count(), Times.Once);
             messageStateHandler.Verify(x => x.CompleteAsync(), Times.Once);
         }
 
@@ -91,6 +123,30 @@ namespace KnightBus.Core.Tests.Unit
             public Task ProcessAsync(SagaStartMessage message, CancellationToken cancellationToken)
             {
                 throw new NotImplementedException();
+            }
+        }
+
+        public class SagaDuplicateWithDuplicate : Saga<SagaData>, IProcessCommand<SagaStartMessage, Settings>, ISagaDuplicateDetected<SagaStartMessage>
+        {
+            private readonly ICountable _countable;
+            public override TimeSpan TimeToLive => TimeSpan.FromHours(1);
+            public override string PartitionKey => "a";
+
+            public SagaDuplicateWithDuplicate(ICountable countable)
+            {
+                _countable = countable;
+                MessageMapper.MapStartMessage<SagaStartMessage>(m => "b");
+            }
+
+            public Task ProcessAsync(SagaStartMessage message, CancellationToken cancellationToken)
+            {
+                throw new NotImplementedException();
+            }
+
+            public Task ProcessDuplicateAsync(SagaStartMessage message, CancellationToken cancellationToken)
+            {
+                _countable.Count();
+                return Task.CompletedTask;
             }
         }
 
