@@ -45,6 +45,9 @@ namespace KnightBus.Core.Sagas
                         catch (Exception exception)
                         {
                             pipelineInformation.HostConfiguration.Log.Error(exception, "Failed to process duplicate saga processing {@" + typeof(T).Name + "}", message);
+
+                            await messageStateHandler.AbandonByErrorAsync(exception);
+                            return;
                         }
                     }
 
