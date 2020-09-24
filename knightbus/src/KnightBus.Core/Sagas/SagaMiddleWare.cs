@@ -27,14 +27,24 @@ namespace KnightBus.Core.Sagas
                 var sagaDataType = sagaType.GenericTypeArguments[0];
 
                 var sagaHandlerType = typeof(SagaHandler<,>).MakeGenericType(sagaDataType, typeof(T));
-                var sagaHandler = (ISagaHandler)Activator.CreateInstance(sagaHandlerType, _sagaStore, processor, await messageStateHandler.GetMessageAsync().ConfigureAwait(false));
+                var message = await messageStateHandler.GetMessageAsync().ConfigureAwait(false);
+                var sagaHandler = (ISagaHandler)Activator.CreateInstance(sagaHandlerType, _sagaStore, processor, message);
                 try
                 {
                     await sagaHandler.Initialize().ConfigureAwait(false);
                 }
                 catch (SagaAlreadyStartedException e)
                 {
-                    pipelineInformation.HostConfiguration.Log.Information(e, "Saga already started");
+                    // If the processor is ISagaDuplicateDetected, let the processor process the duplicate message before completing the saga
+                    if (processor is ISagaDuplicateDetected<T> sagaDetectedHandler)
+                    {
+                        await sagaDetectedHandler.ProcessDuplicateAsync(message, cancellationToken).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        pipelineInformation.HostConfiguration.Log.Information(e, "Saga already started");
+                    }
+
                     await messageStateHandler.CompleteAsync().ConfigureAwait(false);
                     return;
                 }

@@ -33,7 +33,7 @@ namespace KnightBus.Core.Tests.Unit
             var pipelineInformation = new Mock<IPipelineInformation>();
             pipelineInformation.Setup(x => x.HostConfiguration).Returns(hostConfiguration.Object);
             pipelineInformation.Setup(x => x.ProcessorInterfaceType).Returns(typeof(IProcessCommand<SagaStartMessage, Settings>));
-            
+
 
             var middleware = new SagaMiddleware(sagaStore.Object);
 
@@ -41,6 +41,71 @@ namespace KnightBus.Core.Tests.Unit
             await middleware.ProcessAsync(messageStateHandler.Object, pipelineInformation.Object, null, CancellationToken.None);
             //assert
             messageStateHandler.Verify(x => x.CompleteAsync(), Times.Once);
+        }
+
+        [Test]
+        public async Task If_Saga_implements_ISagaDuplicateDetected_then_ProcessDuplicateAsync_should_be_called_and_should_complete_message_if_saga_already_is_started()
+        {
+            //arrange
+            var partitionKey = "a";
+            var id = "b";
+            var sagaStore = new Mock<ISagaStore>();
+            sagaStore.Setup(x => x.Create<SagaData>(partitionKey, id, It.IsAny<SagaData>(), TimeSpan.FromHours(1))).ThrowsAsync(new SagaAlreadyStartedException(partitionKey, id));
+
+            var di = new Mock<IDependencyInjection>();
+            var countable = new Mock<ICountable>();
+            di.Setup(x => x.GetInstance<IProcessMessage<SagaStartMessage>>(typeof(IProcessCommand<SagaStartMessage, Settings>))).Returns(new SagaDuplicateWithDuplicate(countable.Object));
+
+            var hostConfiguration = new Mock<IHostConfiguration>();
+            hostConfiguration.Setup(x => x.Log).Returns(Mock.Of<ILog>());
+            hostConfiguration.Setup(x => x.DependencyInjection).Returns(di.Object); // TODO: setup dependency injection
+            var messageStateHandler = new Mock<IMessageStateHandler<SagaStartMessage>>();
+            messageStateHandler.Setup(x => x.MessageScope).Returns(di.Object);
+            var pipelineInformation = new Mock<IPipelineInformation>();
+            pipelineInformation.Setup(x => x.HostConfiguration).Returns(hostConfiguration.Object);
+            pipelineInformation.Setup(x => x.ProcessorInterfaceType).Returns(typeof(IProcessCommand<SagaStartMessage, Settings>));
+
+
+            var middleware = new SagaMiddleware(sagaStore.Object);
+
+            //act
+            await middleware.ProcessAsync(messageStateHandler.Object, pipelineInformation.Object, null, CancellationToken.None);
+            //assert
+            countable.Verify(x=> x.Count(), Times.Once);
+            messageStateHandler.Verify(x => x.CompleteAsync(), Times.Once);
+        }
+
+        [Test]
+        public void If_Saga_implements_ISagaDuplicateDetected_then_ProcessDuplicateAsync_throws_then_Exception_should_be_thrown()
+        {
+            //arrange
+            var partitionKey = "a";
+            var id = "b";
+            var sagaStore = new Mock<ISagaStore>();
+            sagaStore.Setup(x => x.Create<SagaData>(partitionKey, id, It.IsAny<SagaData>(), TimeSpan.FromHours(1))).ThrowsAsync(new SagaAlreadyStartedException(partitionKey, id));
+
+            var di = new Mock<IDependencyInjection>();
+            var countable = new Mock<ICountable>();
+            di.Setup(x => x.GetInstance<IProcessMessage<SagaStartMessage>>(typeof(IProcessCommand<SagaStartMessage, Settings>))).Returns(new SagaDuplicateWithDuplicate(countable.Object, true));
+
+            var hostConfiguration = new Mock<IHostConfiguration>();
+            hostConfiguration.Setup(x => x.Log).Returns(Mock.Of<ILog>());
+            hostConfiguration.Setup(x => x.DependencyInjection).Returns(di.Object); // TODO: setup dependency injection
+            var messageStateHandler = new Mock<IMessageStateHandler<SagaStartMessage>>();
+            messageStateHandler.Setup(x => x.MessageScope).Returns(di.Object);
+            var pipelineInformation = new Mock<IPipelineInformation>();
+            pipelineInformation.Setup(x => x.HostConfiguration).Returns(hostConfiguration.Object);
+            pipelineInformation.Setup(x => x.ProcessorInterfaceType).Returns(typeof(IProcessCommand<SagaStartMessage, Settings>));
+
+
+            var middleware = new SagaMiddleware(sagaStore.Object);
+
+            //act
+            middleware.Awaiting(x=> x.ProcessAsync(messageStateHandler.Object, pipelineInformation.Object, null, CancellationToken.None))
+                .Should().Throw<ApplicationException>();
+            //assert
+            countable.Verify(x=> x.Count(), Times.Once);
+            messageStateHandler.Verify(x => x.CompleteAsync(), Times.Never);
         }
 
         [Test]
@@ -91,6 +156,36 @@ namespace KnightBus.Core.Tests.Unit
             public Task ProcessAsync(SagaStartMessage message, CancellationToken cancellationToken)
             {
                 throw new NotImplementedException();
+            }
+        }
+
+        public class SagaDuplicateWithDuplicate : Saga<SagaData>, IProcessCommand<SagaStartMessage, Settings>, ISagaDuplicateDetected<SagaStartMessage>
+        {
+            private readonly ICountable _countable;
+            private readonly bool _throwOnProcess;
+            public override TimeSpan TimeToLive => TimeSpan.FromHours(1);
+            public override string PartitionKey => "a";
+
+            public SagaDuplicateWithDuplicate(ICountable countable, bool throwOnProcess = false)
+            {
+                _countable = countable;
+                _throwOnProcess = throwOnProcess;
+                MessageMapper.MapStartMessage<SagaStartMessage>(m => "b");
+            }
+
+            public Task ProcessAsync(SagaStartMessage message, CancellationToken cancellationToken)
+            {
+                throw new NotImplementedException();
+            }
+
+            public Task ProcessDuplicateAsync(SagaStartMessage message, CancellationToken cancellationToken)
+            {
+                _countable.Count();
+
+                if (_throwOnProcess)
+                    throw new ApplicationException();
+
+                return Task.CompletedTask;
             }
         }
 
