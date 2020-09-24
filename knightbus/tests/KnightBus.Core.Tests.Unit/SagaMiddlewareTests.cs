@@ -76,7 +76,7 @@ namespace KnightBus.Core.Tests.Unit
         }
 
         [Test]
-        public async Task If_Saga_implements_ISagaDuplicateDetected_then_ProcessDuplicateAsync_throws_then_the_message_should_be_abandon_if_saga_already_is_started()
+        public void If_Saga_implements_ISagaDuplicateDetected_then_ProcessDuplicateAsync_throws_then_Exception_should_be_thrown()
         {
             //arrange
             var partitionKey = "a";
@@ -101,10 +101,11 @@ namespace KnightBus.Core.Tests.Unit
             var middleware = new SagaMiddleware(sagaStore.Object);
 
             //act
-            await middleware.ProcessAsync(messageStateHandler.Object, pipelineInformation.Object, null, CancellationToken.None);
+            middleware.Awaiting(x=> x.ProcessAsync(messageStateHandler.Object, pipelineInformation.Object, null, CancellationToken.None))
+                .Should().Throw<ApplicationException>();
             //assert
             countable.Verify(x=> x.Count(), Times.Once);
-            messageStateHandler.Verify(x => x.AbandonByErrorAsync(It.IsAny<ApplicationException>()), Times.Once);
+            messageStateHandler.Verify(x => x.CompleteAsync(), Times.Never);
         }
 
         [Test]
