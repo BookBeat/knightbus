@@ -2,7 +2,9 @@
 
 namespace KnightBus.Redis
 {
-    public class RedisConfiguration : ITransportConfiguration
+    public interface IRedisBusConfiguration : ITransportConfiguration { }
+    
+    public class RedisConfiguration : IRedisBusConfiguration
     {
         public RedisConfiguration(string connectionString)
         {
