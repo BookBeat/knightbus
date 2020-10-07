@@ -37,7 +37,7 @@ namespace KnightBus.Redis
 
         public Task DeadLetterAsync(int deadLetterLimit)
         {
-            return _queueClient.DeadLetterMessageAsync(_redisMessage, DeadLetterDeliveryLimit);
+            return _queueClient.DeadletterMessageAsync(_redisMessage, DeadLetterDeliveryLimit);
         }
 
         public Task<T> GetMessageAsync()

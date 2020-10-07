@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using KnightBus.Redis.Messages;
 using StackExchange.Redis;
 
@@ -8,14 +9,15 @@ namespace KnightBus.Redis
     {
         Task<long> GetMessageCount<T>() where T : class, IRedisMessage;
         Task<long> GetDeadletterMessageCount<T>() where T : class, IRedisMessage;
-        Task RequeueDeadLettersAsync<T>(long count) where T : class, IRedisMessage;
+        Task RequeueDeadlettersAsync<T>(long count) where T : class, IRedisMessage;
+        Task DeleteDeadlettersAsync<T>(int count) where T : class, IRedisMessage;
     }
 
     public class RedisManagementClient : IRedisManagementClient
     {
         private readonly IDatabase _db;
 
-        public RedisManagementClient(RedisConfiguration configuration)
+        public RedisManagementClient(IRedisBusConfiguration configuration)
         {
             _db = ConnectionMultiplexer.Connect(configuration.ConnectionString).GetDatabase(configuration.DatabaseId);
         }
@@ -32,7 +34,7 @@ namespace KnightBus.Redis
             return queueClient.GetDeadletterMessageCount();
         }
 
-        public async Task RequeueDeadLettersAsync<T>(long count) where T : class, IRedisMessage
+        public async Task RequeueDeadlettersAsync<T>(long count) where T : class, IRedisMessage
         {
             var queueClient = new RedisQueueClient<T>(_db);
 
@@ -40,6 +42,19 @@ namespace KnightBus.Redis
             {
                 await queueClient.RequeueDeadletterAsync();
             }
+        }
+
+        public async Task DeleteDeadlettersAsync<T>(int count) where T : class, IRedisMessage
+        {
+            var queueClient = new RedisQueueClient<T>(_db);
+
+            var tasks = new List<Task>();
+            for (var i = 0; i < count; i++)
+            {
+                tasks.Add(queueClient.DeleteDeadletter());
+            }
+            
+            await Task.WhenAll(tasks);
         }
     }
 }

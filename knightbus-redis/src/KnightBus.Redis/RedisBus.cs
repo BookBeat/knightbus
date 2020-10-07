@@ -24,12 +24,12 @@ namespace KnightBus.Redis
     public class RedisBus : IRedisBus
     {
         private readonly IConnectionMultiplexer _multiplexer;
-        private readonly RedisConfiguration _configuration;
+        private readonly IRedisBusConfiguration _configuration;
         private IMessageAttachmentProvider _attachmentProvider;
 
         public RedisBus(string connectionString) : this(new RedisConfiguration(connectionString))
         { }
-        public RedisBus(RedisConfiguration configuration)
+        public RedisBus(IRedisBusConfiguration configuration)
         {
             _multiplexer = ConnectionMultiplexer.Connect(configuration.ConnectionString);
             _configuration = configuration;

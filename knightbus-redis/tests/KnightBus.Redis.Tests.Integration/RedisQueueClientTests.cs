@@ -110,7 +110,7 @@ namespace KnightBus.Redis.Tests.Integration
             var message = await SendAndGetMessage();
 
             //Act
-            await _target.DeadLetterMessageAsync(message, 1);
+            await _target.DeadletterMessageAsync(message, 1);
 
             //Assert
             var processingQueueLength = await RedisTestBase.Database.ListLengthAsync(RedisQueueConventions.GetProcessingQueueName(_queueName));
@@ -124,7 +124,7 @@ namespace KnightBus.Redis.Tests.Integration
         {
             //Arrange
             var message = await SendAndGetMessage();
-            await _target.DeadLetterMessageAsync(message, 1);
+            await _target.DeadletterMessageAsync(message, 1);
 
             //Act
             await _target.RequeueDeadletterAsync();
@@ -134,6 +134,30 @@ namespace KnightBus.Redis.Tests.Integration
             deadLetterQueueLength.Should().Be(0);
             var queueLength = await RedisTestBase.Database.ListLengthAsync(_queueName);
             queueLength.Should().Be(1);
+        }
+
+        [Test]
+        public async Task DeleteDeadletter_should_delete_first_deadletter_in_queue()
+        {
+            //Arrange
+            var message = await SendAndGetMessage();
+            await _target.DeadletterMessageAsync(message, 1);
+            var message2 = await SendAndGetMessage();
+            await _target.DeadletterMessageAsync(message2, 1);
+
+            var deadletterCount = await _target.GetDeadletterMessageCount();
+            deadletterCount.Should().Be(2);
+            
+            //Act
+            await _target.DeleteDeadletter();
+
+            //Assert
+            deadletterCount = await _target.GetDeadletterMessageCount();
+            deadletterCount.Should().Be(1);
+            var hash = await RedisTestBase.Database.HashGetAllAsync(message.HashKey);
+            hash.Should().BeEmpty();
+            var hash2 = await RedisTestBase.Database.HashGetAllAsync(message2.HashKey);
+            hash2.Should().NotBeEmpty();
         }
     }
 }
