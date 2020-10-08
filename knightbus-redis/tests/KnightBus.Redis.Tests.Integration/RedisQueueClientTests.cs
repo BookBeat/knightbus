@@ -149,7 +149,7 @@ namespace KnightBus.Redis.Tests.Integration
             //Assert
             deadletters.Should().ContainSingle();
             var deadletter = deadletters.First();
-            deadletter.Body.Value.Should().Be(message.Message.Value);
+            deadletter.Message.Body.Value.Should().Be(message.Message.Value);
             deadletter.HashEntries.Should().NotBeEmpty();
         }
 

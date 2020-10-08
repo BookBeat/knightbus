@@ -145,8 +145,8 @@ namespace KnightBus.Redis
 
             foreach (var value in values)
             {
-                var deadletter = _serializer.Deserialize<RedisDeadletter<T>>(value);
-                var hash = RedisQueueConventions.GetMessageHashKey(_queueName, deadletter.Id);
+                var deadletter = new RedisDeadletter<T> {Message = _serializer.Deserialize<RedisListItem<T>>(value)};
+                var hash = RedisQueueConventions.GetMessageHashKey(_queueName, deadletter.Message.Id);
                 var hashes = await _db.HashGetAllAsync(hash).ConfigureAwait(false);
                 deadletter.HashEntries = hashes.ToStringDictionary();
                 yield return deadletter;
@@ -156,8 +156,8 @@ namespace KnightBus.Redis
         internal async Task DeleteDeadletterAsync(RedisDeadletter<T> deadletter)
         {
             var deadletterQueueName = RedisQueueConventions.GetDeadLetterQueueName(_queueName);
-            var hash = RedisQueueConventions.GetMessageHashKey(_queueName, deadletter.Id);
-            await Task.WhenAll(_db.KeyDeleteAsync(hash), _db.ListRemoveAsync(deadletterQueueName, _serializer.Serialize(deadletter), -1)).ConfigureAwait(false);
+            var hash = RedisQueueConventions.GetMessageHashKey(_queueName, deadletter.Message.Id);
+            await Task.WhenAll(_db.KeyDeleteAsync(hash), _db.ListRemoveAsync(deadletterQueueName, _serializer.Serialize(deadletter.Message), -1)).ConfigureAwait(false);
         }
     }
 }

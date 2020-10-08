@@ -2,7 +2,7 @@
 
 namespace KnightBus.Redis
 {
-    internal class RedisListItem<T> where T : IRedisMessage
+    public class RedisListItem<T> where T : IRedisMessage
     {
         public RedisListItem(string id, T body)
         {
