@@ -153,11 +153,11 @@ namespace KnightBus.Redis
             }
         }
 
-        internal async Task DeleteDeadletterAsync(RedisDeadletter<T> deadletter)
+        internal Task DeleteDeadletterAsync(RedisDeadletter<T> deadletter)
         {
             var deadletterQueueName = RedisQueueConventions.GetDeadLetterQueueName(_queueName);
             var hash = RedisQueueConventions.GetMessageHashKey(_queueName, deadletter.Message.Id);
-            await Task.WhenAll(_db.KeyDeleteAsync(hash), _db.ListRemoveAsync(deadletterQueueName, _serializer.Serialize(deadletter.Message), -1)).ConfigureAwait(false);
+            return Task.WhenAll(_db.KeyDeleteAsync(hash), _db.ListRemoveAsync(deadletterQueueName, _serializer.Serialize(deadletter.Message), -1));
         }
     }
 }
