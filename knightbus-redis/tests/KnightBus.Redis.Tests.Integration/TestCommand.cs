@@ -5,11 +5,11 @@ namespace KnightBus.Redis.Tests.Integration
 {
     public class TestCommand : IRedisCommand
     {
-        public string Body { get; set; }
+        public string Value { get; set; }
 
-        public TestCommand(string body)
+        public TestCommand(string value)
         {
-            Body = body;
+            Value = value;
         }
     }
 

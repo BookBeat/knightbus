@@ -9,8 +9,9 @@ namespace KnightBus.Redis
     {
         Task<long> GetMessageCount<T>() where T : class, IRedisMessage;
         Task<long> GetDeadletterMessageCount<T>() where T : class, IRedisMessage;
+        IAsyncEnumerable<RedisDeadletter<T>> PeekDeadlettersAsync<T>(int limit) where T : class, IRedisMessage;
         Task RequeueDeadlettersAsync<T>(long count) where T : class, IRedisMessage;
-        Task DeleteDeadlettersAsync<T>(int count) where T : class, IRedisMessage;
+        Task DeleteDeadletterAsync<T>(RedisDeadletter<T> deadletter) where T : class, IRedisMessage;
     }
 
     public class RedisManagementClient : IRedisManagementClient
@@ -34,6 +35,12 @@ namespace KnightBus.Redis
             return queueClient.GetDeadletterMessageCount();
         }
 
+        public IAsyncEnumerable<RedisDeadletter<T>> PeekDeadlettersAsync<T>(int limit) where T : class, IRedisMessage
+        {
+            var queueClient = new RedisQueueClient<T>(_db);
+            return queueClient.PeekDeadlettersAsync(limit);
+        }
+
         public async Task RequeueDeadlettersAsync<T>(long count) where T : class, IRedisMessage
         {
             var queueClient = new RedisQueueClient<T>(_db);
@@ -44,17 +51,10 @@ namespace KnightBus.Redis
             }
         }
 
-        public async Task DeleteDeadlettersAsync<T>(int count) where T : class, IRedisMessage
+        public Task DeleteDeadletterAsync<T>(RedisDeadletter<T> deadletter) where T : class, IRedisMessage
         {
             var queueClient = new RedisQueueClient<T>(_db);
-
-            var tasks = new List<Task>();
-            for (var i = 0; i < count; i++)
-            {
-                tasks.Add(queueClient.DeleteDeadletter());
-            }
-            
-            await Task.WhenAll(tasks);
+            return queueClient.DeleteDeadletterAsync(deadletter);
         }
     }
 }
