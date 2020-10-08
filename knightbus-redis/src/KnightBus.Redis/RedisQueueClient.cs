@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -93,7 +94,7 @@ namespace KnightBus.Redis
             var hashKey = RedisQueueConventions.GetMessageHashKey(_queueName, message.Id);
             var expirationKey = RedisQueueConventions.GetMessageExpirationKey(_queueName, message.Id);
 
-            await _db.HashDeleteAsync(hashKey, new RedisValue[] { expirationKey, RedisHashKeys.DeliveryCount });
+            await _db.HashDeleteAsync(hashKey, new RedisValue[] { expirationKey, RedisHashKeys.DeliveryCount }).ConfigureAwait(false);
             await _db.ListRightPopLeftPushAsync(deadLetterProcessingQueueName, _queueName).ConfigureAwait(false);
             await _db.PublishAsync(_queueName, 0, CommandFlags.FireAndForget).ConfigureAwait(false);
         }
@@ -128,12 +129,35 @@ namespace KnightBus.Redis
                 _db.ListRemoveAsync(RedisQueueConventions.GetProcessingQueueName(_queueName), message.RedisValue, -1));
         }
 
-        internal Task DeadLetterMessageAsync(RedisMessage<T> message, int deadLetterLimit)
+        internal Task DeadletterMessageAsync(RedisMessage<T> message, int deadLetterLimit)
         {
             return Task.WhenAll(
                 _db.HashSetAsync(message.HashKey, "MaxDeliveryCountExceeded", $"DeliveryCount exceeded limit of {deadLetterLimit}"),
                 _db.ListLeftPushAsync(RedisQueueConventions.GetDeadLetterQueueName(_queueName), message.RedisValue),
                 _db.ListRemoveAsync(RedisQueueConventions.GetProcessingQueueName(_queueName), message.RedisValue, -1));
+        }
+
+        internal async IAsyncEnumerable<RedisDeadletter<T>> PeekDeadlettersAsync(int limit)
+        {
+            if (limit >= 1) limit--; //0 is the first element of the list, thus 0 will return 1
+            
+            var values = await _db.ListRangeAsync(RedisQueueConventions.GetDeadLetterQueueName(_queueName), 0, limit).ConfigureAwait(false);
+
+            foreach (var value in values)
+            {
+                var deadletter = new RedisDeadletter<T> {Message = _serializer.Deserialize<RedisListItem<T>>(value)};
+                var hash = RedisQueueConventions.GetMessageHashKey(_queueName, deadletter.Message.Id);
+                var hashes = await _db.HashGetAllAsync(hash).ConfigureAwait(false);
+                deadletter.HashEntries = hashes.ToStringDictionary();
+                yield return deadletter;
+            }
+        }
+
+        internal async Task DeleteDeadletterAsync(RedisDeadletter<T> deadletter)
+        {
+            var deadletterQueueName = RedisQueueConventions.GetDeadLetterQueueName(_queueName);
+            var hash = RedisQueueConventions.GetMessageHashKey(_queueName, deadletter.Message.Id);
+            await Task.WhenAll(_db.KeyDeleteAsync(hash), _db.ListRemoveAsync(deadletterQueueName, _serializer.Serialize(deadletter.Message), -1)).ConfigureAwait(false);
         }
     }
 }

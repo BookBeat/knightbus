@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using KnightBus.Redis.Messages;
 using StackExchange.Redis;
 
@@ -8,14 +9,16 @@ namespace KnightBus.Redis
     {
         Task<long> GetMessageCount<T>() where T : class, IRedisMessage;
         Task<long> GetDeadletterMessageCount<T>() where T : class, IRedisMessage;
-        Task RequeueDeadLettersAsync<T>(long count) where T : class, IRedisMessage;
+        IAsyncEnumerable<RedisDeadletter<T>> PeekDeadlettersAsync<T>(int limit) where T : class, IRedisMessage;
+        Task RequeueDeadlettersAsync<T>(long count) where T : class, IRedisMessage;
+        Task DeleteDeadletterAsync<T>(RedisDeadletter<T> deadletter) where T : class, IRedisMessage;
     }
 
     public class RedisManagementClient : IRedisManagementClient
     {
         private readonly IDatabase _db;
 
-        public RedisManagementClient(RedisConfiguration configuration)
+        public RedisManagementClient(IRedisBusConfiguration configuration)
         {
             _db = ConnectionMultiplexer.Connect(configuration.ConnectionString).GetDatabase(configuration.DatabaseId);
         }
@@ -32,7 +35,13 @@ namespace KnightBus.Redis
             return queueClient.GetDeadletterMessageCount();
         }
 
-        public async Task RequeueDeadLettersAsync<T>(long count) where T : class, IRedisMessage
+        public IAsyncEnumerable<RedisDeadletter<T>> PeekDeadlettersAsync<T>(int limit) where T : class, IRedisMessage
+        {
+            var queueClient = new RedisQueueClient<T>(_db);
+            return queueClient.PeekDeadlettersAsync(limit);
+        }
+
+        public async Task RequeueDeadlettersAsync<T>(long count) where T : class, IRedisMessage
         {
             var queueClient = new RedisQueueClient<T>(_db);
 
@@ -40,6 +49,12 @@ namespace KnightBus.Redis
             {
                 await queueClient.RequeueDeadletterAsync();
             }
+        }
+
+        public Task DeleteDeadletterAsync<T>(RedisDeadletter<T> deadletter) where T : class, IRedisMessage
+        {
+            var queueClient = new RedisQueueClient<T>(_db);
+            return queueClient.DeleteDeadletterAsync(deadletter);
         }
     }
 }

@@ -110,7 +110,7 @@ namespace KnightBus.Redis.Tests.Integration
             var message = await SendAndGetMessage();
 
             //Act
-            await _target.DeadLetterMessageAsync(message, 1);
+            await _target.DeadletterMessageAsync(message, 1);
 
             //Assert
             var processingQueueLength = await RedisTestBase.Database.ListLengthAsync(RedisQueueConventions.GetProcessingQueueName(_queueName));
@@ -124,7 +124,7 @@ namespace KnightBus.Redis.Tests.Integration
         {
             //Arrange
             var message = await SendAndGetMessage();
-            await _target.DeadLetterMessageAsync(message, 1);
+            await _target.DeadletterMessageAsync(message, 1);
 
             //Act
             await _target.RequeueDeadletterAsync();
@@ -134,6 +134,40 @@ namespace KnightBus.Redis.Tests.Integration
             deadLetterQueueLength.Should().Be(0);
             var queueLength = await RedisTestBase.Database.ListLengthAsync(_queueName);
             queueLength.Should().Be(1);
+        }
+        
+        [Test]
+        public async Task GetDeadlettersAsync_should_return_deadletters()
+        {
+            //Arrange
+            var message = await SendAndGetMessage();
+            await _target.DeadletterMessageAsync(message, 1);
+            
+            //Act
+            var deadletters = await _target.PeekDeadlettersAsync(1).ToListAsync();
+
+            //Assert
+            deadletters.Should().ContainSingle();
+            var deadletter = deadletters.First();
+            deadletter.Message.Body.Value.Should().Be(message.Message.Value);
+            deadletter.HashEntries.Should().NotBeEmpty();
+        }
+
+        [Test]
+        public async Task DeleteDeadletter_should_delete_deadletter()
+        {
+            //Arrange
+            var message = await SendAndGetMessage();
+            await _target.DeadletterMessageAsync(message, 1);
+
+            var deadletter = await _target.PeekDeadlettersAsync(1).FirstAsync();
+            
+            //Act
+            await _target.DeleteDeadletterAsync(deadletter);
+
+            //Assert
+            var deadletters = await _target.PeekDeadlettersAsync(1).ToListAsync();
+            deadletters.Should().BeEmpty();
         }
     }
 }
