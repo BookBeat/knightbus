@@ -9,6 +9,7 @@ using KnightBus.Core.Sagas.Exceptions;
 using Newtonsoft.Json;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
+using Microsoft.WindowsAzure.Storage.Blob;
 
 namespace KnightBus.Azure.Storage.Sagas
 {
@@ -77,6 +78,10 @@ namespace KnightBus.Azure.Storage.Sagas
                             Metadata = new Dictionary<string, string>
                             {
                                 {ExpirationField, DateTimeOffset.UtcNow.Add(ttl).ToString()}
+                            },
+                            Conditions = new BlobRequestConditions
+                            {
+                                IfNoneMatch = ETag.All
                             }
                         }).ConfigureAwait(false);
             }
@@ -85,6 +90,11 @@ namespace KnightBus.Azure.Storage.Sagas
             {
                 await _container.CreateIfNotExistsAsync().ConfigureAwait(false);
                 await Create(partitionKey, id, sagaData, ttl);
+            }
+            catch (RequestFailedException e) when (e.Status == 412)
+            {
+                //ETag was matched indicating the blob already exists
+                throw new SagaAlreadyStartedException(partitionKey, id);
             }
 
             return sagaData;
