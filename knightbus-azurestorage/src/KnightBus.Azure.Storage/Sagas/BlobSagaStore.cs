@@ -91,6 +91,11 @@ namespace KnightBus.Azure.Storage.Sagas
                 await _container.CreateIfNotExistsAsync().ConfigureAwait(false);
                 await Create(partitionKey, id, sagaData, ttl);
             }
+            catch (RequestFailedException e) when (e.Status == 412)
+            {
+                //ETag was matched indicating the blob already exists
+                throw new SagaAlreadyStartedException(partitionKey, id);
+            }
 
             return sagaData;
         }
