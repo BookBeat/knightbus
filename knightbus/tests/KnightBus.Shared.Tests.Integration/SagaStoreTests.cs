@@ -68,9 +68,11 @@ namespace KnightBus.Shared.Tests.Integration
             var id = Guid.NewGuid().ToString("N");
             await SagaStore.Create(partitionKey, id, new SagaData { Message = "yo" }, TimeSpan.FromMilliseconds(1));
             await Task.Delay(2);
-            //act & assert
-            SagaStore.Awaiting(x => x.Create(partitionKey, id, new SagaData { Message = "yo" }, TimeSpan.FromMinutes(1)))
-                .Should().NotThrow<SagaAlreadyStartedException>();
+            //act
+            var sagaData = await SagaStore.Create(partitionKey, id, new SagaData {Message = "yo"}, TimeSpan.FromMinutes(1));
+            //assert
+            sagaData.Should().NotBe(null);
+
         }
 
         [Test]
