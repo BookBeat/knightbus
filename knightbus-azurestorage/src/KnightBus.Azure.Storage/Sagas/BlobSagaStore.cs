@@ -38,7 +38,7 @@ namespace KnightBus.Azure.Storage.Sagas
                 var downloadInfo = await blob.DownloadAsync().ConfigureAwait(false);
                 var serializer = new JsonSerializer();
                 using (var streamReader = new StreamReader(downloadInfo.Value.Content))
-                    return (T) serializer.Deserialize(streamReader, typeof(T));
+                    return (T)serializer.Deserialize(streamReader, typeof(T));
             }
             catch (RequestFailedException e) when (e.Status == 404)
             {
@@ -49,7 +49,10 @@ namespace KnightBus.Azure.Storage.Sagas
         public async Task<T> Create<T>(string partitionKey, string id, T sagaData, TimeSpan ttl)
         {
             var blob = _container.GetBlobClient(Filename(partitionKey, id));
-
+            var requestConditions = new BlobRequestConditions
+            {
+                IfNoneMatch = ETag.All
+            };
             // If the saga already exists and has not expired thrown an SagaAlreadyStartedException
             try
             {
@@ -57,6 +60,12 @@ namespace KnightBus.Azure.Storage.Sagas
                 var expiration = DateTimeOffset.Parse(properties.Value.Metadata[ExpirationField]);
                 if (expiration > DateTime.UtcNow)
                     throw new SagaAlreadyStartedException(partitionKey, id);
+
+                //Blob already exists, so we set that it is this specific blob we want to replace
+                requestConditions = new BlobRequestConditions
+                {
+                    IfMatch = properties.Value.ETag
+                };
             }
             catch (RequestFailedException e) when (e.Status != 404)
             {
@@ -79,10 +88,7 @@ namespace KnightBus.Azure.Storage.Sagas
                             {
                                 {ExpirationField, DateTimeOffset.UtcNow.Add(ttl).ToString()}
                             },
-                            Conditions = new BlobRequestConditions
-                            {
-                                IfNoneMatch = ETag.All
-                            }
+                            Conditions = requestConditions
                         }).ConfigureAwait(false);
             }
             catch (RequestFailedException e) when (e.Status == 404 &&
@@ -91,9 +97,9 @@ namespace KnightBus.Azure.Storage.Sagas
                 await _container.CreateIfNotExistsAsync().ConfigureAwait(false);
                 await Create(partitionKey, id, sagaData, ttl);
             }
-            catch (RequestFailedException e) when (e.Status == 412)
+            catch (RequestFailedException e) when (e.Status == 412 || e.Status == 409)
             {
-                //ETag was matched indicating the blob already exists
+                //Request conditions failed indicating either that the blob already exists or that the blob we're trying to replace has another etag
                 throw new SagaAlreadyStartedException(partitionKey, id);
             }
 
@@ -115,7 +121,7 @@ namespace KnightBus.Azure.Storage.Sagas
                     }).ConfigureAwait(false);
                 }
             }
-            catch (RequestFailedException e) when (e.Status  == 404)
+            catch (RequestFailedException e) when (e.Status == 404)
             {
                 throw new SagaNotFoundException(partitionKey, id);
             }
