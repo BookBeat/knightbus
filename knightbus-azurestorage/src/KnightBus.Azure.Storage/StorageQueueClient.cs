@@ -119,19 +119,18 @@ namespace KnightBus.Azure.Storage
 
             //Create hidden queue message
             var cloudMessage = new CloudQueueMessage(_serializer.Serialize(storageMessage.Properties));
-            await _queue.AddMessageAsync(cloudMessage, TimeSpan.MaxValue, TimeSpan.FromDays(1), null, null).ConfigureAwait(false);
             try
             {
                 var blob = _container.GetBlockBlobReference(storageMessage.BlobMessageId);
                 await blob.UploadTextAsync(_serializer.Serialize(message)).ConfigureAwait(false);
-                //Make the queue message visible
-                await _queue.UpdateMessageAsync(cloudMessage, delay ?? TimeSpan.Zero, MessageUpdateFields.Visibility).ConfigureAwait(false);
+                await _queue.AddMessageAsync(cloudMessage, TimeSpan.MaxValue, delay ?? TimeSpan.Zero, null, null).ConfigureAwait(false);
             }
             catch (Exception)
             {
-                //If we cannot upload the blob the delete the hidden message and throw
+                //If we cannot upload the blob or create the message try cleaning up and throw
                 try
                 {
+                    await TryDeleteBlob(storageMessage.BlobMessageId).ConfigureAwait(false);
                     await _queue.DeleteMessageAsync(cloudMessage).ConfigureAwait(false);
                 }
                 catch (StorageException e) when (e.RequestInformation?.HttpStatusCode == 404)
