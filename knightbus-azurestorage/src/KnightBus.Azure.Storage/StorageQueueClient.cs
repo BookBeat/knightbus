@@ -235,18 +235,14 @@ namespace KnightBus.Azure.Storage
                 }
                 catch (StorageException e) when (e.RequestInformation?.HttpStatusCode == 404)
                 {
-                    var deadLetterMessage = new StorageQueueMessage(_serializer.Deserialize<T>("{}"))
+                    var brokenMessage = new StorageQueueMessage(_serializer.Deserialize<T>("{}"))
                     {
                         QueueMessageId = queueMessage.Id,
-                        DequeueCount = queueMessage.DequeueCount,
                         PopReceipt = queueMessage.PopReceipt,
-                        Properties = TryDeserializeProperties(queueMessage.AsString)
                     };
 
-                    deadLetterMessage.Properties["Error"] = "Could not find the message blob. Something is really wrong.";
-
-                    //If we cannot find the message blob something is really wrong, dead letter the message right away
-                    await DeadLetterAsync(deadLetterMessage).ConfigureAwait(false);
+                    //If we cannot find the message blob something is really wrong, delete the message right away
+                    await CompleteAsync(brokenMessage).ConfigureAwait(false);
                 }
             }
             return messageContainers;
