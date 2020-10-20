@@ -13,11 +13,12 @@ namespace KnightBus.Core.DefaultMiddlewares
             {
                 if (messageStateHandler is IMessageLockHandler<T> lockHandler && pipelineInformation.ProcessingSettings is IExtendMessageLockTimeout extendLock)
                 {
+                    var token = cts.Token;
 #pragma warning disable 4014
                     Task.Run(async () =>
                     {
-                        await RenewLock(extendLock.ExtensionInterval, extendLock.ExtensionDuration, cts.Token, lockHandler, pipelineInformation.HostConfiguration.Log).ConfigureAwait(false);
-                    }, cts.Token).ConfigureAwait(false);
+                        await RenewLock(extendLock.ExtensionInterval, extendLock.ExtensionDuration, token, lockHandler, pipelineInformation.HostConfiguration.Log).ConfigureAwait(false);
+                    }, cancellationToken).ConfigureAwait(false);
 #pragma warning restore 4014
                 }
 
@@ -43,13 +44,10 @@ namespace KnightBus.Core.DefaultMiddlewares
                     if (cancellationToken.IsCancellationRequested) return;
                     await lockHandler.SetLockDuration(duration, cancellationToken).ConfigureAwait(false);
                 }
-                catch (TaskCanceledException)
-                {
-                    // this is anticipated when the timeout ends, if we are done with the message
-                }
                 catch (Exception e)
                 {
-                    log.Error(e, $"Failed to renew lock for {typeof(T).FullName}");
+                    //This will happen often since the message can have been removed or cancellation thrown
+                    log.Debug(e, $"Failed to renew lock for {typeof(T).FullName}");
                 }
             }
         }
