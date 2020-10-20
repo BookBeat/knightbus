@@ -117,7 +117,6 @@ namespace KnightBus.Azure.Storage
                 }
             }
 
-            //Create hidden queue message
             var cloudMessage = new CloudQueueMessage(_serializer.Serialize(storageMessage.Properties));
             try
             {
@@ -128,15 +127,7 @@ namespace KnightBus.Azure.Storage
             catch (Exception)
             {
                 //If we cannot upload the blob or create the message try cleaning up and throw
-                try
-                {
-                    await TryDeleteBlob(storageMessage.BlobMessageId).ConfigureAwait(false);
-                    await _queue.DeleteMessageAsync(cloudMessage).ConfigureAwait(false);
-                }
-                catch (StorageException e) when (e.RequestInformation?.HttpStatusCode == 404)
-                {
-                    //Cannot erase what's not there
-                }
+                await TryDeleteBlob(storageMessage.BlobMessageId).ConfigureAwait(false);
                 throw;
             }
         }
