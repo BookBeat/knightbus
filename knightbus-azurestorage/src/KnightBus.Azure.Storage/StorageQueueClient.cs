@@ -235,14 +235,8 @@ namespace KnightBus.Azure.Storage
                 }
                 catch (StorageException e) when (e.RequestInformation?.HttpStatusCode == 404)
                 {
-                    var brokenMessage = new StorageQueueMessage(_serializer.Deserialize<T>("{}"))
-                    {
-                        QueueMessageId = queueMessage.Id,
-                        PopReceipt = queueMessage.PopReceipt,
-                    };
-
                     //If we cannot find the message blob something is really wrong, delete the message right away
-                    await CompleteAsync(brokenMessage).ConfigureAwait(false);
+                    await queue.DeleteMessageAsync(queueMessage.Id, queueMessage.PopReceipt);
                 }
             }
             return messageContainers;
