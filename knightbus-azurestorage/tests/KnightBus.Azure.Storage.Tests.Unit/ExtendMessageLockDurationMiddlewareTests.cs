@@ -7,6 +7,7 @@ using KnightBus.Core.DefaultMiddlewares;
 using KnightBus.Messages;
 using Moq;
 using NUnit.Framework;
+using Range = Moq.Range;
 
 namespace KnightBus.Azure.Storage.Tests.Unit
 {
