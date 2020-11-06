@@ -33,6 +33,7 @@ packages/
 
 # Ignore IDE folders
 .vscode/
+.idea
 
 # Ignore documentation build output generated VSCode
 _build/
