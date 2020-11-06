@@ -7,7 +7,7 @@ using NUnit.Framework;
 namespace KnightBus.Core.Tests.Unit
 {
     [TestFixture]
-    public class MessageMapperTests
+    public class AutoMessageMapperTests
     {
         [Test]
         public void Should_throw_for_non_registered_message()
