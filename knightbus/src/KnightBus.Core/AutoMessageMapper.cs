@@ -14,8 +14,8 @@ namespace KnightBus.Core
             var assembly = type.Assembly;
             if (AlreadyMappedAssemblies.ContainsKey(assembly.FullName)) return;
 
-            AlreadyMappedAssemblies.AddOrUpdate(assembly.FullName, false, (s, b) => b);
             MessageMapper.RegisterMappingsFromAssembly(assembly);
+            AlreadyMappedAssemblies.AddOrUpdate(assembly.FullName, false, (s, b) => b);
         }
 
         public static string GetQueueName(Type type)
