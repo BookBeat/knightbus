@@ -13,26 +13,25 @@ namespace KnightBus.Core
 
         public static void RegisterMappingsFromAssembly(Assembly assembly)
         {
-            var typesToScanFor = new[] { typeof(IMessageMapping<>), typeof(IMessageMapping<>) };
-            foreach (var type in typesToScanFor)
+            var type = typeof(IMessageMapping<>);
+            var mappings = ReflectionHelper.GetAllTypesImplementingOpenGenericInterface(type, assembly);
+            foreach (var mapping in mappings)
             {
-                var mappings = ReflectionHelper.GetAllTypesImplementingOpenGenericInterface(type, assembly);
-                foreach (var mapping in mappings)
+                var messageMappingInterface = ReflectionHelper
+                    .GetAllInterfacesImplementingOpenGenericInterface(mapping, type).Single();
+                var messageType = messageMappingInterface.GenericTypeArguments[0];
+                string value;
+                if (typeof(IMessageMapping).IsAssignableFrom(mapping))
                 {
-                    var messageMappingInterface = ReflectionHelper.GetAllInterfacesImplementingOpenGenericInterface(mapping, type).Single();
-                    var messageType = messageMappingInterface.GenericTypeArguments[0];
-                    string value;
-                    if (typeof(IMessageMapping).IsAssignableFrom(mapping))
-                    {
-                        var instance = (IMessageMapping)Activator.CreateInstance(mapping);
-                        value = instance.QueueName;
-                    }
-                    else
-                    {
-                        throw new MessageMappingMissingException($"No message mapping exists for {messageType.FullName}");
-                    }
-                    RegisterMapping(messageType, value);
+                    var instance = (IMessageMapping) Activator.CreateInstance(mapping);
+                    value = instance.QueueName;
                 }
+                else
+                {
+                    throw new MessageMappingMissingException($"No message mapping exists for {messageType.FullName}");
+                }
+
+                RegisterMapping(messageType, value);
             }
         }
         public static void RegisterMapping(Type mapping, string name)
