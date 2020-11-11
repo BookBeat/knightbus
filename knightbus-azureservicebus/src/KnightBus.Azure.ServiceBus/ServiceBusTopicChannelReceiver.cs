@@ -24,7 +24,6 @@ namespace KnightBus.Azure.ServiceBus
         private StoppableMessageReceiver _messageReceiver;
         private CancellationToken _cancellationToken;
 
-
         public ServiceBusTopicChannelReceiver(IProcessingSettings settings, IEventSubscription<TTopic> subscription, IServiceBusConfiguration configuration, IHostConfiguration hostConfiguration, IMessageProcessor processor)
         {
             Settings = settings;
@@ -43,21 +42,37 @@ namespace KnightBus.Azure.ServiceBus
             _cancellationToken = cancellationToken;
             _client = await _clientFactory.GetSubscriptionClient<TTopic, IEventSubscription<TTopic>>(_subscription).ConfigureAwait(false);
 
-            if (!await _managementClient.TopicExistsAsync(_client.TopicPath).ConfigureAwait(false))
+            if (!await _managementClient.TopicExistsAsync(_client.TopicPath, cancellationToken).ConfigureAwait(false))
             {
-                await _managementClient.CreateTopicAsync(new TopicDescription(_client.TopicPath)
+                try
                 {
-                    EnableBatchedOperations = _configuration.CreationOptions.EnableBatchedOperations,
-                    EnablePartitioning = _configuration.CreationOptions.EnablePartitioning,
-                    SupportOrdering = _configuration.CreationOptions.SupportOrdering
-                }).ConfigureAwait(false);
+                    await _managementClient.CreateTopicAsync(new TopicDescription(_client.TopicPath)
+                    {
+                        EnableBatchedOperations = _configuration.CreationOptions.EnableBatchedOperations,
+                        EnablePartitioning = _configuration.CreationOptions.EnablePartitioning,
+                        SupportOrdering = _configuration.CreationOptions.SupportOrdering
+                    }, cancellationToken).ConfigureAwait(false);
+                }
+                catch (ServiceBusException e)
+                {
+                    _log.Error(e, "Failed to create topic {TopicName}", _client.TopicPath);
+                    throw;
+                }
             }
-            if (!await _managementClient.SubscriptionExistsAsync(_client.TopicPath, _client.SubscriptionName).ConfigureAwait(false))
+            if (!await _managementClient.SubscriptionExistsAsync(_client.TopicPath, _client.SubscriptionName, cancellationToken).ConfigureAwait(false))
             {
-                await _managementClient.CreateSubscriptionAsync(new SubscriptionDescription(_client.TopicPath, _client.SubscriptionName)
+                try
                 {
-                    EnableBatchedOperations = _configuration.CreationOptions.EnableBatchedOperations
-                }).ConfigureAwait(false);
+                    await _managementClient.CreateSubscriptionAsync(new SubscriptionDescription(_client.TopicPath, _client.SubscriptionName)
+                    {
+                        EnableBatchedOperations = _configuration.CreationOptions.EnableBatchedOperations
+                    }, cancellationToken).ConfigureAwait(false);
+                }
+                catch (ServiceBusException e)
+                {
+                    _log.Error(e, "Failed to create subscription {TopicName} {SubscriptionName}", _client.TopicPath, _client.SubscriptionName);
+                    throw;
+                }
             }
 
             _deadLetterLimit = Settings.DeadLetterDeliveryLimit;

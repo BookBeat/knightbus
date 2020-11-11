@@ -43,17 +43,24 @@ namespace KnightBus.Azure.ServiceBus
             _client = await _clientFactory.GetQueueClient<T>().ConfigureAwait(false);
             if (!await _managementClient.QueueExistsAsync(_client.QueueName, _cancellationToken).ConfigureAwait(false))
             {
-                await _managementClient.CreateQueueAsync(new QueueDescription(_client.Path)
+                try
                 {
-                    EnableBatchedOperations = _configuration.CreationOptions.EnableBatchedOperations,
-                    EnablePartitioning = _configuration.CreationOptions.EnablePartitioning,
-                }, _cancellationToken).ConfigureAwait(false);
+                    await _managementClient.CreateQueueAsync(new QueueDescription(_client.Path)
+                    {
+                        EnableBatchedOperations = _configuration.CreationOptions.EnableBatchedOperations,
+                        EnablePartitioning = _configuration.CreationOptions.EnablePartitioning,
+                    }, _cancellationToken).ConfigureAwait(false);
+                }
+                catch (ServiceBusException e)
+                {
+                    _log.Error(e, "Failed to create queue {QueueName}", _client.QueueName);
+                    throw;
+                }
             }
             _deadLetterLimit = Settings.DeadLetterDeliveryLimit;
             _client.PrefetchCount = Settings.PrefetchCount;
 
             _messageReceiver = new StoppableMessageReceiver(_client.ServiceBusConnection, _client.QueueName, ReceiveMode.PeekLock, null, Settings.PrefetchCount);
-            
 
             var options = new StoppableMessageReceiver.MessageHandlerOptions(OnExceptionReceivedAsync)
             {
