@@ -55,7 +55,7 @@ namespace KnightBus.Azure.ServiceBus
                 }
                 catch (ServiceBusException e)
                 {
-                    _log.Error(e, "Failed to create queue {QueueName}", _client.TopicPath);
+                    _log.Error(e, "Failed to create topic {TopicName}", _client.TopicPath);
                     throw;
                 }
             }
@@ -70,7 +70,7 @@ namespace KnightBus.Azure.ServiceBus
                 }
                 catch (ServiceBusException e)
                 {
-                    _log.Error(e, "Failed to create queue {QueueName}", _client.TopicPath);
+                    _log.Error(e, "Failed to create subscription {TopicName} {SubscriptionName}", _client.TopicPath, _client.SubscriptionName);
                     throw;
                 }
             }
