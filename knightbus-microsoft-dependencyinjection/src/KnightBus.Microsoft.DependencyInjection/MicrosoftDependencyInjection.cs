@@ -8,7 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace KnightBus.Microsoft.DependencyInjection
 {
-    public class MicrosoftDependencyInjection : IIsolatedDependencyInjection
+    public class MicrosoftDependencyInjection : IDependencyInjection
     {
         private IServiceProvider _provider;
         private readonly IServiceCollection _serviceCollection;
@@ -58,12 +58,6 @@ namespace KnightBus.Microsoft.DependencyInjection
             foreach (var openImpl in ReflectionHelper.GetAllTypesImplementingOpenGenericInterface(openGeneric, assembly))
                 foreach (var openInterface in ReflectionHelper.GetAllInterfacesImplementingOpenGenericInterface(openImpl, openGeneric))
                     _serviceCollection.AddScoped(openInterface, openImpl);
-        }
-
-        public void Build()
-        {
-            if (_provider == null)
-                _provider = _serviceCollection.BuildServiceProvider(new ServiceProviderOptions {ValidateScopes = true});
         }
 
         public void Dispose()

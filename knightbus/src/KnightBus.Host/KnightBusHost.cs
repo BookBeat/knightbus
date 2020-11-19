@@ -44,9 +44,6 @@ namespace KnightBus.Host
             if(_configuration.DependencyInjection == null)
                 throw new DependencyInjectionMissingException();
 
-            if(_configuration.DependencyInjection is IIsolatedDependencyInjection isolated)
-                isolated.Build();
-                
             if (_transports.Any())
             {
                 _locator = new MessageProcessorLocator(_configuration, _transports.SelectMany(transport => transport.TransportChannelFactories).ToArray());
