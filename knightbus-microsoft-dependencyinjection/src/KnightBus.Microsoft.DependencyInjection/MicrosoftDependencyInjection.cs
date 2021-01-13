@@ -13,11 +13,13 @@ namespace KnightBus.Microsoft.DependencyInjection
         private IServiceProvider _provider;
         private readonly IServiceCollection _serviceCollection;
         private readonly IServiceScope _scope;
+        private readonly ServiceProviderOptions _options;
 
-        public MicrosoftDependencyInjection(IServiceCollection serviceCollection, IServiceScope scope = null)
+        public MicrosoftDependencyInjection(IServiceCollection serviceCollection, IServiceScope scope = null, ServiceProviderOptions options = null)
         {
             _serviceCollection = serviceCollection;
             _scope = scope;
+            _options = options ?? new ServiceProviderOptions {ValidateScopes = true};
         }
 
         private MicrosoftDependencyInjection(IServiceProvider provider, IServiceCollection serviceCollection, IServiceScope scope = null)
@@ -63,7 +65,7 @@ namespace KnightBus.Microsoft.DependencyInjection
         public void Build()
         {
             if (_provider == null)
-                _provider = _serviceCollection.BuildServiceProvider(new ServiceProviderOptions {ValidateScopes = true});
+                _provider = _serviceCollection.BuildServiceProvider(_options);
         }
 
         public void Dispose()
