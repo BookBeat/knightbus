@@ -10,11 +10,11 @@ namespace KnightBus.Microsoft.DependencyInjection
     public static class MicrosoftDependencyInjectionExtensions
     {
         /// <summary>
-        /// Enables SimpleInjector by using <see cref="MicrosoftDependencyInjectionExtensions"/> and adding the <see cref="MicrosoftDependencyInjectionScopedLifeStyleMiddleware"/> enabling scoped per message
+        /// Enables dependency injection by using <see cref="MicrosoftDependencyInjectionExtensions"/> and adding the <see cref="MicrosoftDependencyInjectionScopedLifeStyleMiddleware"/> enabling scoped per message
         /// </summary>
-        public static IHostConfiguration UseMicrosoftDependencyInjection(this IHostConfiguration configuration, IServiceCollection serviceCollection)
+        public static IHostConfiguration UseMicrosoftDependencyInjection(this IHostConfiguration configuration, IServiceCollection serviceCollection, ServiceProviderOptions options = null)
         {
-            configuration.DependencyInjection = new MicrosoftDependencyInjection(serviceCollection);
+            configuration.DependencyInjection = new MicrosoftDependencyInjection(serviceCollection, options: options);
             configuration.Middlewares.Add(new MicrosoftDependencyInjectionScopedLifeStyleMiddleware());
             return configuration;
         }
