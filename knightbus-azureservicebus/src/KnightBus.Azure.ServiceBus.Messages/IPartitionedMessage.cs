@@ -1,7 +1,7 @@
 ﻿namespace KnightBus.Azure.ServiceBus.Messages
 {
     /// <summary>
-    /// Indicates the queue/topic should be partitioned across multiple message brokers.
+    /// Create the queue/topic as partitioned
     /// </summary>
     public interface IPartitionedMessage { }
 }
