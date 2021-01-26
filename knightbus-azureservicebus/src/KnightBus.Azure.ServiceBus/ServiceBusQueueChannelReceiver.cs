@@ -2,6 +2,7 @@
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using KnightBus.Azure.ServiceBus.Messages;
 using KnightBus.Core;
 using KnightBus.Messages;
 using Microsoft.Azure.ServiceBus;
@@ -45,10 +46,11 @@ namespace KnightBus.Azure.ServiceBus
             {
                 try
                 {
+                    var enablePartitioning = typeof(IPartitionedMessage).IsAssignableFrom(typeof(T));
                     await _managementClient.CreateQueueAsync(new QueueDescription(_client.Path)
                     {
                         EnableBatchedOperations = _configuration.CreationOptions.EnableBatchedOperations,
-                        EnablePartitioning = _configuration.CreationOptions.EnablePartitioning,
+                        EnablePartitioning = enablePartitioning,
                     }, _cancellationToken).ConfigureAwait(false);
                 }
                 catch (ServiceBusException e)

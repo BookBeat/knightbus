@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using KnightBus.Azure.ServiceBus.Messages;
 using KnightBus.Core;
 using KnightBus.Messages;
 using Microsoft.Azure.ServiceBus;
@@ -46,10 +47,11 @@ namespace KnightBus.Azure.ServiceBus
             {
                 try
                 {
+                    var enablePartitioning = typeof(IPartitionedMessage).IsAssignableFrom(typeof(TTopic));
                     await _managementClient.CreateTopicAsync(new TopicDescription(_client.TopicPath)
                     {
                         EnableBatchedOperations = _configuration.CreationOptions.EnableBatchedOperations,
-                        EnablePartitioning = _configuration.CreationOptions.EnablePartitioning,
+                        EnablePartitioning = enablePartitioning,
                         SupportOrdering = _configuration.CreationOptions.SupportOrdering
                     }, cancellationToken).ConfigureAwait(false);
                 }
