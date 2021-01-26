@@ -66,4 +66,15 @@ You can write your own implementation by implementing the IMessageAttachmentProv
         public IMessageAttachment Attachment { get; set; } //Here you can access the attached file
     }
 
+Using Azure ServiceBus Partition For Queue/Topic
+------------------------------------------------
+
+To tell the Azure ServiceBus queue/topic to enable partitioning, add IPartitionedMessage to IServiceBusCommand/IServiceBusEvent implementation.
+
+.. code-block:: c#
+
+    public class MyMessage : IServiceBusCommand, IPartitionedMessage
+	{
+		public string Message { get; set; }
+	}
 
