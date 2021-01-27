@@ -46,11 +46,12 @@ namespace KnightBus.Azure.ServiceBus
             {
                 try
                 {
-                    var enablePartitioning = typeof(IPartitionedMessage).IsAssignableFrom(typeof(T));
+                    var serviceBusCreationOptions = GetServiceBusCreationOptions();
+
                     await _managementClient.CreateQueueAsync(new QueueDescription(_client.Path)
                     {
-                        EnableBatchedOperations = _configuration.CreationOptions.EnableBatchedOperations,
-                        EnablePartitioning = enablePartitioning,
+                        EnableBatchedOperations = serviceBusCreationOptions.EnableBatchedOperations,
+                        EnablePartitioning = serviceBusCreationOptions.EnablePartitioning,
                     }, _cancellationToken).ConfigureAwait(false);
                 }
                 catch (ServiceBusException e)
@@ -89,6 +90,14 @@ namespace KnightBus.Azure.ServiceBus
                 }
             });
 #pragma warning restore 4014
+        }
+
+        private IServiceBusCreationOptions GetServiceBusCreationOptions()
+        {
+            var queueMapping = AutoMessageMapper.GetMapping<T>();
+            var creationOptions = queueMapping as IServiceBusCreationOptions;
+
+            return creationOptions ?? _configuration.CreationOptions;
         }
 
         private Task OnExceptionReceivedAsync(ExceptionReceivedEventArgs exceptionReceivedEventArgs)

@@ -47,12 +47,13 @@ namespace KnightBus.Azure.ServiceBus
             {
                 try
                 {
-                    var enablePartitioning = typeof(IPartitionedMessage).IsAssignableFrom(typeof(TTopic));
+                    var serviceBusCreationOptions = GetServiceBusCreationOptions();
+
                     await _managementClient.CreateTopicAsync(new TopicDescription(_client.TopicPath)
                     {
-                        EnableBatchedOperations = _configuration.CreationOptions.EnableBatchedOperations,
-                        EnablePartitioning = enablePartitioning,
-                        SupportOrdering = _configuration.CreationOptions.SupportOrdering
+                        EnableBatchedOperations = serviceBusCreationOptions.EnableBatchedOperations,
+                        EnablePartitioning = serviceBusCreationOptions.EnablePartitioning,
+                        SupportOrdering = serviceBusCreationOptions.SupportOrdering
                     }, cancellationToken).ConfigureAwait(false);
                 }
                 catch (ServiceBusException e)
@@ -65,9 +66,11 @@ namespace KnightBus.Azure.ServiceBus
             {
                 try
                 {
+                    var serviceBusCreationOptions = GetServiceBusCreationOptions();
+
                     await _managementClient.CreateSubscriptionAsync(new SubscriptionDescription(_client.TopicPath, _client.SubscriptionName)
                     {
-                        EnableBatchedOperations = _configuration.CreationOptions.EnableBatchedOperations
+                        EnableBatchedOperations = serviceBusCreationOptions.EnableBatchedOperations,
                     }, cancellationToken).ConfigureAwait(false);
                 }
                 catch (ServiceBusException e)
@@ -116,6 +119,14 @@ namespace KnightBus.Azure.ServiceBus
                 _log.Error(exceptionReceivedEventArgs.Exception, $"{typeof(ServiceBusTopicChannelReceiver<TTopic>).Name}");
             }
             return Task.CompletedTask;
+        }
+
+        private IServiceBusCreationOptions GetServiceBusCreationOptions()
+        {
+            var queueMapping = AutoMessageMapper.GetMapping<TTopic>();
+            var creationOptions = queueMapping as IServiceBusCreationOptions;
+
+            return creationOptions ?? _configuration.CreationOptions;
         }
 
         private async Task OnMessageAsync(Message message, CancellationToken cancellationToken)

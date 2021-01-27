@@ -2,15 +2,23 @@
 
 ## 9.0.0
 
-- Removed `EnablePartitioning` from `ServiceBusCreationOptions` since it applied to all ServiceBus queues/topics in the assembly.
-- Added `KnightBus.Azure.ServiceBus.Messages.IPartitionedMessage` to replace partitioning functionality, but for control of each ServiceBus queue/topic.
-- For indicating if it should use partitioning, add `IPartitionedMessage` to `IServiceBusCommand`/`IServiceBusEvent` implementation instead.
+- Changed name from `ServiceBusCreationOptions` to `DefaultServiceBusCreationOptions` and implement `IServiceBusCreationOptions`.
+- To tell the Azure ServiceBus queue/topic to override default creation options, add IServiceBusCreationOptions to IMessageMapping implementation.
 
 Example:
 
 ```
-public class CalculateSomethingCommand : IServiceBusCommand, IPartitionedMessage
-{
-    // ...
-}
+    public class MyMessage : IServiceBusCommand
+    {
+        public string Message { get; set; }
+    }
+
+    public class MyMessageMapping : IMessageMapping<MyMessage>, IServiceBusCreationOptions
+    {
+        public string QueueName => "your-queue";
+		
+        public bool EnablePartitioning => true;
+        public bool SupportOrdering => false;
+        public bool EnableBatchedOperations => true;
+    }
 ```

@@ -59,9 +59,12 @@ namespace KnightBus.Examples.Azure.ServiceBus
             public string Message { get; set; }
         }
 
-        class SampleServiceBusMessageMapping : IMessageMapping<SampleServiceBusMessage>
+        class SampleServiceBusMessageMapping : IMessageMapping<SampleServiceBusMessage>, IServiceBusCreationOptions
         {
             public string QueueName => "your-queue";
+            public bool EnablePartitioning => true;
+            public bool SupportOrdering => false;
+            public bool EnableBatchedOperations => true;
         }
 
         class SampleServiceBusEventMapping : IMessageMapping<SampleServiceBusEvent>

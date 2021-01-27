@@ -10,17 +10,31 @@ namespace KnightBus.Core.Tests.Unit
     public class MessageMapperTests
     {
         [Test]
-        public void Should_find_registered_mapping()
+        public void Should_find_registered_mapping_queue_name()
         {
             // align
-            const string name = "queue";
-            MessageMapper.RegisterMapping(typeof(RegisteredMessageMapping), name);
+            IMessageMapping queue = new TestCommandMapping();
+            MessageMapper.RegisterMapping(typeof(RegisteredMessageMapping), queue);
 
             // act
             var queueName = MessageMapper.GetQueueName(typeof(RegisteredMessageMapping));
 
             // assert
-            queueName.Should().Be(name);
+            queueName.Should().Be(queue.QueueName);
+        }
+
+        [Test]
+        public void Should_find_registered_mapping()
+        {
+            // align
+            IMessageMapping testCommandMapping = new TestCommandMapping();
+            MessageMapper.RegisterMapping(typeof(RegisteredMessageMapping), testCommandMapping);
+
+            // act
+            var mapping = MessageMapper.GetMapping(typeof(RegisteredMessageMapping));
+
+            // assert
+            mapping.GetType().Should().Be(typeof(TestCommandMapping));
         }
 
         [Test]
@@ -38,9 +52,11 @@ namespace KnightBus.Core.Tests.Unit
             // act
             MessageMapper.RegisterMappingsFromAssembly(typeof(MessageMapperRegisteredCommand).Assembly);
             var name = MessageMapper.GetQueueName(typeof(MessageMapperRegisteredCommand));
+            var mapping = MessageMapper.GetMapping(typeof(TestCommand));
 
             // assert
             name.Should().Be("awesome-queue");
+            mapping.GetType().Should().Be(typeof(TestCommandMapping));
         }
         
     }

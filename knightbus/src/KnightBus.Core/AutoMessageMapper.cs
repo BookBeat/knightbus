@@ -48,9 +48,28 @@ namespace KnightBus.Core
                 return MessageMapper.GetQueueName(type);
             }
         }
+
         public static string GetQueueName<T>() where T : IMessage
         {
             return GetQueueName(typeof(T));
+        }
+
+        public static IMessageMapping GetMapping(Type type)
+        {
+            try
+            {
+                return MessageMapper.GetMapping(type);
+            }
+            catch (MessageMappingMissingException)
+            {
+                MapFromMessageAssembly(type);
+                return MessageMapper.GetMapping(type);
+            }
+        }
+
+        public static IMessageMapping GetMapping<T>() where T : IMessage
+        {
+            return GetMapping(typeof(T));
         }
     }
 }
