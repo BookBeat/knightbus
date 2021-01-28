@@ -1,6 +1,6 @@
 namespace KnightBus.Azure.ServiceBus
 {
-    public class DefaultServiceBusCreationOptions : IServiceBusCreationOptions
+    public class ServiceBusCreationOptions : IServiceBusCreationOptions
     {
         /// <summary>
         /// Create the queue/topic as partitioned

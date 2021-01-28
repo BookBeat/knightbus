@@ -126,7 +126,7 @@ namespace KnightBus.Azure.ServiceBus
             var queueMapping = AutoMessageMapper.GetMapping<TTopic>();
             var creationOptions = queueMapping as IServiceBusCreationOptions;
 
-            return creationOptions ?? _configuration.CreationOptions;
+            return creationOptions ?? _configuration.DefaultCreationOptions;
         }
 
         private async Task OnMessageAsync(Message message, CancellationToken cancellationToken)

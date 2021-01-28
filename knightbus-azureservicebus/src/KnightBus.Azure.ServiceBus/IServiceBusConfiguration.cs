@@ -4,6 +4,6 @@ namespace KnightBus.Azure.ServiceBus
 {
     public interface IServiceBusConfiguration : ITransportConfiguration
     {
-        DefaultServiceBusCreationOptions CreationOptions { get; }
+        ServiceBusCreationOptions DefaultCreationOptions { get; }
     }
 }

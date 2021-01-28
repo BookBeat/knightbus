@@ -2,7 +2,7 @@
 
 ## 9.0.0
 
-- Changed name from `ServiceBusCreationOptions` to `DefaultServiceBusCreationOptions` and implement `IServiceBusCreationOptions`.
+- `ServiceBusCreationOptions` implements `IServiceBusCreationOptions`.
 - To tell the Azure ServiceBus queue/topic to override default creation options, add IServiceBusCreationOptions to IMessageMapping implementation.
 
 Example:

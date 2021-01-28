@@ -97,7 +97,7 @@ namespace KnightBus.Azure.ServiceBus
             var queueMapping = AutoMessageMapper.GetMapping<T>();
             var creationOptions = queueMapping as IServiceBusCreationOptions;
 
-            return creationOptions ?? _configuration.CreationOptions;
+            return creationOptions ?? _configuration.DefaultCreationOptions;
         }
 
         private Task OnExceptionReceivedAsync(ExceptionReceivedEventArgs exceptionReceivedEventArgs)

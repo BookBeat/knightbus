@@ -10,6 +10,6 @@ namespace KnightBus.Azure.ServiceBus
         }
         public IMessageSerializer MessageSerializer { get; set; } = new JsonMessageSerializer();
         public string ConnectionString { get; }
-        public DefaultServiceBusCreationOptions CreationOptions  { get; } = new DefaultServiceBusCreationOptions();
+        public ServiceBusCreationOptions DefaultCreationOptions  { get; } = new ServiceBusCreationOptions();
     }
 }
