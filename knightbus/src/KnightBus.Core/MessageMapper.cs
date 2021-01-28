@@ -9,7 +9,7 @@ namespace KnightBus.Core
 {
     internal static class MessageMapper
     {
-        private static readonly ConcurrentDictionary<Type, string> Mappings = new ConcurrentDictionary<Type, string>();
+        private static readonly ConcurrentDictionary<Type, IMessageMapping> Mappings = new ConcurrentDictionary<Type, IMessageMapping>();
 
         public static void RegisterMappingsFromAssembly(Assembly assembly)
         {
@@ -20,33 +20,42 @@ namespace KnightBus.Core
                 var messageMappingInterface = ReflectionHelper
                     .GetAllInterfacesImplementingOpenGenericInterface(mapping, type).Single();
                 var messageType = messageMappingInterface.GenericTypeArguments[0];
-                string value;
+                IMessageMapping mappingInstance;
                 if (typeof(IMessageMapping).IsAssignableFrom(mapping))
                 {
-                    var instance = (IMessageMapping) Activator.CreateInstance(mapping);
-                    value = instance.QueueName;
+                    mappingInstance = (IMessageMapping) Activator.CreateInstance(mapping);
                 }
                 else
                 {
                     throw new MessageMappingMissingException($"No message mapping exists for {messageType.FullName}");
                 }
 
-                RegisterMapping(messageType, value);
+                RegisterMapping(messageType, mappingInstance);
             }
         }
-        public static void RegisterMapping(Type mapping, string name)
+        public static void RegisterMapping(Type messageType, IMessageMapping mappingType)
         {
-            Mappings.GetOrAdd(mapping, t => name);
+            Mappings.GetOrAdd(messageType, t => mappingType);
         }
 
         public static string GetQueueName(Type t)
         {
-            if (Mappings.TryGetValue(t, out var queueName))
+            if (Mappings.TryGetValue(t, out var instance))
             {
-                return queueName;
+                return instance.QueueName;
             }
 
             throw new MessageMappingMissingException($"No queue name mapping exists for {t.FullName}");
+        }
+
+        public static IMessageMapping GetMapping(Type t)
+        {
+            if (Mappings.TryGetValue(t, out var instance))
+            {
+                return instance;
+            }
+
+            throw new MessageMappingMissingException($"No mapping exists for {t.FullName}");
         }
     }
 }

@@ -66,4 +66,24 @@ You can write your own implementation by implementing the IMessageAttachmentProv
         public IMessageAttachment Attachment { get; set; } //Here you can access the attached file
     }
 
+Using Azure ServiceBus Creation Options Overrides For Queue/Topic
+--------------------------------------------------------------
+
+To tell the Azure ServiceBus queue/topic to override default creation options, add IServiceBusCreationOptions to IMessageMapping implementation.
+
+.. code-block:: c#
+
+    public class MyMessage : IServiceBusCommand
+    {
+        public string Message { get; set; }
+    }
+
+    public class MyMessageMapping : IMessageMapping<MyMessage>, IServiceBusCreationOptions
+    {
+        public string QueueName => "your-queue";
+		
+        public bool EnablePartitioning => true;
+        public bool SupportOrdering => false;
+        public bool EnableBatchedOperations => true;
+    }
 

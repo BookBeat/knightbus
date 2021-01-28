@@ -1,9 +1,9 @@
 namespace KnightBus.Azure.ServiceBus
 {
-    public class ServiceBusCreationOptions
+    public class ServiceBusCreationOptions : IServiceBusCreationOptions
     {
         /// <summary>
-        /// Indicates it should be partitioned across multiple message brokers.
+        /// Create the queue/topic as partitioned
         /// </summary>
         /// <remarks>Defaults to false.</remarks>
         public bool EnablePartitioning { get; set; } = false;
