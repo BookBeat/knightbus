@@ -23,5 +23,10 @@ namespace KnightBus.Azure.Storage
             configuration.SingletonLockManager = new BlobLockManager(connectionString);
             return configuration;
         }
+        public static IHostConfiguration UseBlobStorageLockManager(this IHostConfiguration configuration, string connectionString, IBlobLockScheme lockScheme)
+        {
+            configuration.SingletonLockManager = new BlobLockManager(connectionString, lockScheme);
+            return configuration;
+        }
     }
 }
