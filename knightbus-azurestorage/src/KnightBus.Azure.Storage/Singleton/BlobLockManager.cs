@@ -11,13 +11,17 @@ namespace KnightBus.Azure.Storage.Singleton
     {
         private readonly string _connectionString;
         private CloudBlobClient _client;
-        private readonly string _containerName = "knight-data";
-        private readonly string _lockDirectory = "locks";
-        private const string FunctionInstanceMetadataKey = "FunctionInstance";
+        private readonly IBlobLockScheme _lockScheme;
 
         public BlobLockManager(string connectionString)
         {
             _connectionString = connectionString;
+            _lockScheme = new DefaultBlobLockScheme();
+        }
+        public BlobLockManager(string connectionString, IBlobLockScheme lockScheme)
+        {
+            _connectionString = connectionString;
+            _lockScheme = lockScheme;
         }
 
         public Task InitializeAsync()
@@ -32,8 +36,8 @@ namespace KnightBus.Azure.Storage.Singleton
 
         public async Task<ISingletonLockHandle> TryLockAsync(string lockId, TimeSpan lockPeriod, CancellationToken cancellationToken)
         {
-            var container = _client.GetContainerReference(_containerName);
-            var directory = container.GetDirectoryReference(_lockDirectory);
+            var container = _client.GetContainerReference(_lockScheme.ContainerName);
+            var directory = container.GetDirectoryReference(_lockScheme.Directory);
             var blob = directory.GetBlockBlobReference(lockId);
 
             var leaseId = await TryAcquireLeaseAsync(blob, lockPeriod, cancellationToken).ConfigureAwait(false);
@@ -54,7 +58,7 @@ namespace KnightBus.Azure.Storage.Singleton
         }
         private static async Task WriteLeaseBlobMetadata(CloudBlockBlob blob, string leaseId, string functionInstanceId, CancellationToken cancellationToken)
         {
-            blob.Metadata.Add(FunctionInstanceMetadataKey, functionInstanceId);
+            blob.Metadata.Add("FunctionInstance", functionInstanceId);
 
             await blob.SetMetadataAsync(
                 accessCondition: new AccessCondition { LeaseId = leaseId },
