@@ -49,16 +49,16 @@ namespace KnightBus.Azure.Storage.Singleton
 
             if (!string.IsNullOrEmpty(lockId))
             {
-                await WriteLeaseBlobMetadata(blob, leaseId, lockId, _lockScheme.InstanceMetadataKey, cancellationToken).ConfigureAwait(false);
+                await WriteLeaseBlobMetadata(blob, leaseId, lockId, cancellationToken).ConfigureAwait(false);
             }
 
             var lockHandle = new BlobLockHandle(leaseId, lockId, blob, lockPeriod);
 
             return lockHandle;
         }
-        private static async Task WriteLeaseBlobMetadata(CloudBlockBlob blob, string leaseId, string functionInstanceId, string functionInstanceMetadataKey, CancellationToken cancellationToken)
+        private static async Task WriteLeaseBlobMetadata(CloudBlockBlob blob, string leaseId, string functionInstanceId, CancellationToken cancellationToken)
         {
-            blob.Metadata.Add(functionInstanceMetadataKey, functionInstanceId);
+            blob.Metadata.Add("FunctionInstance", functionInstanceId);
 
             await blob.SetMetadataAsync(
                 accessCondition: new AccessCondition { LeaseId = leaseId },
