@@ -135,14 +135,14 @@ namespace KnightBus.Redis.Tests.Integration
             var queueLength = await RedisTestBase.Database.ListLengthAsync(_queueName);
             queueLength.Should().Be(1);
         }
-        
+
         [Test]
         public async Task GetDeadlettersAsync_should_return_deadletters()
         {
             //Arrange
             var message = await SendAndGetMessage();
             await _target.DeadletterMessageAsync(message, 1);
-            
+
             //Act
             var deadletters = await _target.PeekDeadlettersAsync(1).ToListAsync();
 
@@ -154,20 +154,28 @@ namespace KnightBus.Redis.Tests.Integration
         }
 
         [Test]
-        public async Task DeleteDeadletter_should_delete_deadletter()
+        public async Task DeleteDeadletter_should_delete_deadletter_and_related_data()
         {
             //Arrange
             var message = await SendAndGetMessage();
             await _target.DeadletterMessageAsync(message, 1);
 
             var deadletter = await _target.PeekDeadlettersAsync(1).FirstAsync();
-            
+
             //Act
             await _target.DeleteDeadletterAsync(deadletter);
 
             //Assert
             var deadletters = await _target.PeekDeadlettersAsync(1).ToListAsync();
             deadletters.Should().BeEmpty();
+
+            var hashKey = RedisQueueConventions.GetMessageHashKey(_queueName, deadletter.Message.Id);
+            var hashes = await RedisTestBase.Database.HashGetAllAsync(hashKey).ConfigureAwait(false);
+            hashes.Should().BeEmpty();
+
+            var expirationKey = RedisQueueConventions.GetMessageExpirationKey(_queueName, deadletter.Message.Id);
+            var expiration = await RedisTestBase.Database.StringGetAsync(expirationKey);
+            expiration.IsNull.Should().BeTrue();
         }
     }
 }
