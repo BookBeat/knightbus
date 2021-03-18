@@ -41,7 +41,7 @@ namespace KnightBus.Redis
                     return t.Result;
                 })
                 .ConfigureAwait(false);
-            
+
             return messages;
         }
 
@@ -140,7 +140,7 @@ namespace KnightBus.Redis
         internal async IAsyncEnumerable<RedisDeadletter<T>> PeekDeadlettersAsync(int limit)
         {
             if (limit >= 1) limit--; //0 is the first element of the list, thus 0 will return 1
-            
+
             var values = await _db.ListRangeAsync(RedisQueueConventions.GetDeadLetterQueueName(_queueName), 0, limit).ConfigureAwait(false);
 
             foreach (var value in values)
@@ -157,7 +157,9 @@ namespace KnightBus.Redis
         {
             var deadletterQueueName = RedisQueueConventions.GetDeadLetterQueueName(_queueName);
             var hash = RedisQueueConventions.GetMessageHashKey(_queueName, deadletter.Message.Id);
-            return Task.WhenAll(_db.KeyDeleteAsync(hash), _db.ListRemoveAsync(deadletterQueueName, _serializer.Serialize(deadletter.Message), -1));
+            var expirationKey = RedisQueueConventions.GetMessageExpirationKey(_queueName, deadletter.Message.Id);
+            return Task.WhenAll(_db.KeyDeleteAsync(new RedisKey[] { hash, expirationKey }),
+                _db.ListRemoveAsync(deadletterQueueName, _serializer.Serialize(deadletter.Message), -1));
         }
     }
 }
