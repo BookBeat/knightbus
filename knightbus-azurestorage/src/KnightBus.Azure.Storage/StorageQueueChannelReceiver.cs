@@ -6,6 +6,7 @@ using KnightBus.Azure.Storage.Messages;
 using KnightBus.Core;
 
 [assembly: InternalsVisibleTo("KnightBus.Azure.Storage.Tests.Unit")]
+[assembly: InternalsVisibleTo("KnightBus.Azure.Storage.Tests.Integration")]
 namespace KnightBus.Azure.Storage
 {
     internal class StorageQueueChannelReceiver<T> : IChannelReceiver
