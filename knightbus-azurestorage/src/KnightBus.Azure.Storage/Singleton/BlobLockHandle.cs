@@ -1,12 +1,12 @@
 ﻿using System;
-using System.Diagnostics.Tracing;
 using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
+using Azure;
+using Azure.Storage.Blobs.Models;
+using Azure.Storage.Blobs.Specialized;
 using KnightBus.Core;
 using KnightBus.Core.Singleton;
-using Microsoft.WindowsAzure.Storage;
-using Microsoft.WindowsAzure.Storage.Blob;
 
 namespace KnightBus.Azure.Storage.Singleton
 {
@@ -17,7 +17,7 @@ namespace KnightBus.Azure.Storage.Singleton
         private DateTimeOffset _lastRenewal;
         private TimeSpan _lastRenewalLatency;
 
-        public BlobLockHandle(string leaseId, string lockId, CloudBlockBlob blob, TimeSpan leasePeriod)
+        public BlobLockHandle(string leaseId, string lockId, BlobLeaseClient blob, TimeSpan leasePeriod)
         {
             LeaseId = leaseId;
             LockId = lockId;
@@ -27,25 +27,25 @@ namespace KnightBus.Azure.Storage.Singleton
 
         public string LeaseId { get; }
         public string LockId { get; }
-        private CloudBlockBlob Blob { get; }
+        private BlobLeaseClient Blob { get; }
 
         public async Task<bool> RenewAsync(ILog log, CancellationToken cancellationToken)
         {
             try
             {
-                AccessCondition condition = new AccessCondition
+                var condition = new BlobRequestConditions
                 {
                     LeaseId = LeaseId
                 };
-                DateTimeOffset requestStart = DateTimeOffset.UtcNow;
-                await Blob.RenewLeaseAsync(condition, null, null, cancellationToken).ConfigureAwait(false);
+                var requestStart = DateTimeOffset.UtcNow;
+                await Blob.RenewAsync(condition, cancellationToken).ConfigureAwait(false);
                 _lastRenewal = DateTime.UtcNow;
                 _lastRenewalLatency = _lastRenewal - requestStart;
 
                 // The next execution should occur after a normal delay.
                 return true;
             }
-            catch (StorageException exception)
+            catch (RequestFailedException exception)
             {
                 if (exception.IsServerSideError())
                 {
@@ -81,27 +81,18 @@ namespace KnightBus.Azure.Storage.Singleton
             {
                 // Note that this call returns without throwing if the lease is expired. See the table at:
                 // http://msdn.microsoft.com/en-us/library/azure/ee691972.aspx
-                await Blob.ReleaseLeaseAsync(
-                    new AccessCondition { LeaseId = LeaseId },
-                    null,
-                    null,
+                await Blob.ReleaseAsync(
+                    new BlobRequestConditions { LeaseId = LeaseId },
                     cancellationToken).ConfigureAwait(false);
             }
-            catch (StorageException exception)
+            catch (RequestFailedException exception)
             {
-                if (exception.RequestInformation != null)
+                if (exception.Status == 404 ||
+                    exception.Status == 409)
                 {
-                    if (exception.RequestInformation.HttpStatusCode == 404 ||
-                        exception.RequestInformation.HttpStatusCode == 409)
-                    {
-                        // if the blob no longer exists, or there is another lease
-                        // now active, there is nothing for us to release so we can
-                        // ignore
-                    }
-                    else
-                    {
-                        throw;
-                    }
+                    // if the blob no longer exists, or there is another lease
+                    // now active, there is nothing for us to release so we can
+                    // ignore
                 }
                 else
                 {

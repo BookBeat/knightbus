@@ -1,16 +1,21 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Azure;
+using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
+using Azure.Storage.Blobs.Specialized;
 using KnightBus.Core.Singleton;
-using Microsoft.WindowsAzure.Storage;
-using Microsoft.WindowsAzure.Storage.Blob;
 
 namespace KnightBus.Azure.Storage.Singleton
 {
     internal class BlobLockManager : ISingletonLockManager
     {
         private readonly string _connectionString;
-        private CloudBlobClient _client;
+        private BlobContainerClient _client;
         private readonly IBlobLockScheme _lockScheme;
 
         public BlobLockManager(string connectionString)
@@ -28,73 +33,63 @@ namespace KnightBus.Azure.Storage.Singleton
         {
             if (_client == null)
             {
-                var storage = CloudStorageAccount.Parse(_connectionString);
-                _client = storage.CreateCloudBlobClient();
+                _client = new BlobContainerClient(_connectionString, _lockScheme.ContainerName);
             }
             return Task.CompletedTask;
         }
 
         public async Task<ISingletonLockHandle> TryLockAsync(string lockId, TimeSpan lockPeriod, CancellationToken cancellationToken)
         {
-            var container = _client.GetContainerReference(_lockScheme.ContainerName);
-            var directory = container.GetDirectoryReference(_lockScheme.Directory);
-            var blob = directory.GetBlockBlobReference(lockId);
 
-            var leaseId = await TryAcquireLeaseAsync(blob, lockPeriod, cancellationToken).ConfigureAwait(false);
+            var blob = _client.GetBlobClient(Path.Combine(_lockScheme.Directory, lockId));
 
-            if (string.IsNullOrEmpty(leaseId))
+            var lease = await TryAcquireLeaseAsync(blob, lockId, lockPeriod, cancellationToken).ConfigureAwait(false);
+            
+            if (lease.Value == null)
             {
                 return null;
             }
 
-            if (!string.IsNullOrEmpty(lockId))
+            if (!string.IsNullOrEmpty(lease.Value.LeaseId))
             {
-                await WriteLeaseBlobMetadata(blob, leaseId, lockId, cancellationToken).ConfigureAwait(false);
+                await WriteLeaseBlobMetadata(blob, lease.Value.LeaseId, lockId, cancellationToken).ConfigureAwait(false);
             }
 
-            var lockHandle = new BlobLockHandle(leaseId, lockId, blob, lockPeriod);
+            var lockHandle = new BlobLockHandle(lease.Value.LeaseId, lockId, blob.GetBlobLeaseClient(lockId), lockPeriod);
 
             return lockHandle;
         }
-        private static async Task WriteLeaseBlobMetadata(CloudBlockBlob blob, string leaseId, string functionInstanceId, CancellationToken cancellationToken)
+        private static async Task WriteLeaseBlobMetadata(BlobBaseClient blob, string leaseId, string functionInstanceId, CancellationToken cancellationToken)
         {
-            blob.Metadata.Add("FunctionInstance", functionInstanceId);
-
-            await blob.SetMetadataAsync(
-                accessCondition: new AccessCondition { LeaseId = leaseId },
-                options: null,
-                operationContext: null,
-                cancellationToken: cancellationToken).ConfigureAwait(false);
+            await blob.SetMetadataAsync(new Dictionary<string, string> { { "FunctionInstance", functionInstanceId } }, new BlobRequestConditions
+            {
+                LeaseId = leaseId
+            }, cancellationToken);
         }
 
-        private static async Task<string> TryAcquireLeaseAsync(
-            CloudBlockBlob blob,
+        private static async Task<Response<BlobLease>> TryAcquireLeaseAsync(
+            BlobClient blob,
+            string lockId,
             TimeSpan leasePeriod,
             CancellationToken cancellationToken)
         {
+            var leaseClient = blob.GetBlobLeaseClient(lockId);
             try
             {
                 // Optimistically try to acquire the lease. The blob may not yet
                 // exist. If it doesn't we handle the 404, create it, and retry below
-                return await blob.AcquireLeaseAsync(leasePeriod).ConfigureAwait(false);
+                return await leaseClient.AcquireAsync(leasePeriod, cancellationToken: cancellationToken).ConfigureAwait(false);
             }
-            catch (StorageException exception)
+            catch (RequestFailedException exception)
             {
-                if (exception.RequestInformation != null)
+                switch (exception.Status)
                 {
-                    switch (exception.RequestInformation.HttpStatusCode)
-                    {
-                        case 409:
-                            return null;
-                        case 404:
-                            break;
-                        default:
-                            throw;
-                    }
-                }
-                else
-                {
-                    throw;
+                    case 409:
+                        return null;
+                    case 404:
+                        break;
+                    default:
+                        throw;
                 }
             }
 
@@ -103,12 +98,11 @@ namespace KnightBus.Azure.Storage.Singleton
 
             try
             {
-                return await blob.AcquireLeaseAsync(leasePeriod).ConfigureAwait(false);
+                return await leaseClient.AcquireAsync(leasePeriod, cancellationToken: cancellationToken).ConfigureAwait(false);
             }
-            catch (StorageException exception)
+            catch (RequestFailedException exception)
             {
-                if (exception.RequestInformation != null &&
-                    exception.RequestInformation.HttpStatusCode == 409)
+                if (exception.Status == 409)
                 {
                     return null;
                 }
@@ -117,57 +111,58 @@ namespace KnightBus.Azure.Storage.Singleton
             }
         }
 
-        private static async Task<bool> TryCreateAsync(CloudBlockBlob blob, CancellationToken cancellationToken)
+        private static async Task<bool> TryCreateAsync(BlobClient blob, CancellationToken cancellationToken)
         {
             try
             {
-                await blob.UploadTextAsync(string.Empty).ConfigureAwait(false);
+                var bytes = Encoding.UTF8.GetBytes(string.Empty);
+                using (var stream = new MemoryStream(bytes))
+                {
+                    stream.Position = 0;
+                    await blob.UploadAsync(stream, cancellationToken).ConfigureAwait(false);
+                }
+
                 return true;
             }
-            catch (StorageException exception)
+            catch (RequestFailedException exception)
             {
-                if (exception.RequestInformation != null)
+                switch (exception.Status)
                 {
-                    if (exception.RequestInformation.HttpStatusCode == 404)
-                    {
-                    }
-                    else if (exception.RequestInformation.HttpStatusCode == 409 ||
-                             exception.RequestInformation.HttpStatusCode == 412)
-                    {
+                    case 404:
+                        break;
+                    case 409:
+                    case 412:
                         // The blob already exists, or is leased by someone else
                         return false;
-                    }
-                    else
-                    {
+                    default:
                         throw;
-                    }
                 }
-                else
+            }
+
+            var container = blob.GetParentBlobContainerClient();
+            try
+            {
+                await container.CreateIfNotExistsAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+            }
+            catch (RequestFailedException exc)
+            when (exc.Status == 409 && exc.ErrorCode == BlobErrorCode.ContainerBeingDeleted)
+            {
+                throw;
+            }
+
+            try
+            {
+                var bytes = Encoding.UTF8.GetBytes(string.Empty);
+                using (var stream = new MemoryStream(bytes))
                 {
-                    throw;
+                    stream.Position = 0;
+                    await blob.UploadAsync(stream, cancellationToken).ConfigureAwait(false);
                 }
-            }
-
-            var container = blob.Container;
-            try
-            {
-                await container.CreateIfNotExistsAsync().ConfigureAwait(false);
-            }
-            catch (StorageException exc)
-            when (exc.RequestInformation.HttpStatusCode == 409 && string.Compare("ContainerBeingDeleted", exc.RequestInformation.ExtendedErrorInformation?.ErrorCode) == 0)
-            {
-                throw new StorageException("The host container is pending deletion and currently inaccessible.");
-            }
-
-            try
-            {
-                await blob.UploadTextAsync(string.Empty).ConfigureAwait(false);
                 return true;
             }
-            catch (StorageException exception)
+            catch (RequestFailedException exception)
             {
-                if (exception.RequestInformation != null &&
-                    (exception.RequestInformation.HttpStatusCode == 409 || exception.RequestInformation.HttpStatusCode == 412))
+                if (exception.Status == 409 || exception.Status == 412)
                 {
                     // The blob already exists, or is leased by someone else
                     return false;

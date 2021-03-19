@@ -1,15 +1,17 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Azure;
+using Azure.Storage.Blobs;
+using Azure.Storage.Queues;
 using KnightBus.Azure.Storage.Messages;
 using KnightBus.Core;
 using KnightBus.Core.Exceptions;
 using KnightBus.Messages;
-using Microsoft.WindowsAzure.Storage;
-using Microsoft.WindowsAzure.Storage.Blob;
-using Microsoft.WindowsAzure.Storage.Queue;
 
 namespace KnightBus.Azure.Storage
 {
@@ -35,22 +37,20 @@ namespace KnightBus.Azure.Storage
         private readonly string _queueName;
         private readonly IMessageSerializer _serializer;
         private readonly IMessageAttachmentProvider _attachmentProvider;
-        private readonly CloudQueue _queue;
-        private readonly CloudQueue _dlQueue;
-        private readonly CloudBlobContainer _container;
+        private readonly QueueClient _queue;
+        private readonly QueueClient _dlQueue;
+        private readonly BlobContainerClient _container;
 
         public StorageQueueClient(IStorageBusConfiguration configuration, IMessageAttachmentProvider attachmentProvider, string queueName)
         {
             _attachmentProvider = attachmentProvider;
             _queueName = queueName;
             _serializer = configuration.MessageSerializer;
-            var storage = CloudStorageAccount.Parse(configuration.ConnectionString);
-            var queueClient = storage.CreateCloudQueueClient();
-            var blobClient = storage.CreateCloudBlobClient();
 
-            _queue = queueClient.GetQueueReference(queueName);
-            _dlQueue = queueClient.GetQueueReference(GetDeadLetterName(queueName));
-            _container = blobClient.GetContainerReference(queueName);
+            //QueueMessageEncoding.Base64 required for backwards compability with v11 storage clients
+            _queue = new QueueClient(configuration.ConnectionString, queueName, new QueueClientOptions {MessageEncoding = QueueMessageEncoding.Base64});
+            _dlQueue = new QueueClient(configuration.ConnectionString, GetDeadLetterName(queueName), new QueueClientOptions {MessageEncoding = QueueMessageEncoding.Base64});
+            _container = new BlobContainerClient(configuration.ConnectionString, queueName);
         }
 
         public static string GetDeadLetterName(string queueName)
@@ -60,22 +60,21 @@ namespace KnightBus.Azure.Storage
 
         public async Task<int> GetQueueCountAsync()
         {
-            await _queue.FetchAttributesAsync().ConfigureAwait(false);
-            return _queue.ApproximateMessageCount ?? 0;
+            var props = await _queue.GetPropertiesAsync().ConfigureAwait(false);
+            return props.Value.ApproximateMessagesCount;
         }
 
         public async Task DeadLetterAsync(StorageQueueMessage message)
         {
-            var deadLetterMessage = new CloudQueueMessage(_serializer.Serialize(message.Properties));
-            await _dlQueue.AddMessageAsync(deadLetterMessage, TimeSpan.MaxValue, null, null, null)
+            await _dlQueue.SendMessageAsync(_serializer.Serialize(message.Properties), timeToLive:TimeSpan.FromSeconds(-1))
                 .ContinueWith(task => _queue.DeleteMessageAsync(message.QueueMessageId, message.PopReceipt), TaskContinuationOptions.OnlyOnRanToCompletion)
                 .ConfigureAwait(false);
         }
 
         public async Task<int> GetDeadLetterCountAsync()
         {
-            await _dlQueue.FetchAttributesAsync().ConfigureAwait(false);
-            return _dlQueue.ApproximateMessageCount ?? 0;
+            var props = await _dlQueue.GetPropertiesAsync().ConfigureAwait(false);
+            return props.Value.ApproximateMessagesCount;
         }
 
         public async Task CompleteAsync(StorageQueueMessage message)
@@ -88,10 +87,8 @@ namespace KnightBus.Azure.Storage
         public async Task AbandonByErrorAsync(StorageQueueMessage message, TimeSpan? visibilityTimeout)
         {
             visibilityTimeout = visibilityTimeout ?? TimeSpan.Zero;
-            var cloudQueueMessage = new CloudQueueMessage(message.QueueMessageId, message.PopReceipt);
-            cloudQueueMessage.SetMessageContent(_serializer.Serialize(message.Properties));
-            await _queue.UpdateMessageAsync(cloudQueueMessage, visibilityTimeout.Value, MessageUpdateFields.Content | MessageUpdateFields.Visibility).ConfigureAwait(false);
-            message.PopReceipt = cloudQueueMessage.PopReceipt;
+            var result = await _queue.UpdateMessageAsync(message.QueueMessageId, message.PopReceipt, _serializer.Serialize(message.Properties), visibilityTimeout.Value).ConfigureAwait(false);
+            message.PopReceipt = result.Value.PopReceipt;
         }
 
         public async Task SendAsync<T>(T message, TimeSpan? delay) where T : IStorageQueueCommand
@@ -117,12 +114,14 @@ namespace KnightBus.Azure.Storage
                 }
             }
 
-            var cloudMessage = new CloudQueueMessage(_serializer.Serialize(storageMessage.Properties));
             try
             {
-                var blob = _container.GetBlockBlobReference(storageMessage.BlobMessageId);
-                await blob.UploadTextAsync(_serializer.Serialize(message)).ConfigureAwait(false);
-                await _queue.AddMessageAsync(cloudMessage, TimeSpan.MaxValue, delay ?? TimeSpan.Zero, null, null).ConfigureAwait(false);
+                var blob = _container.GetBlobClient(storageMessage.BlobMessageId);
+                using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(_serializer.Serialize(message))))
+                {
+                    await blob.UploadAsync(stream).ConfigureAwait(false);
+                }
+                await _queue.SendMessageAsync(_serializer.Serialize(storageMessage.Properties), delay ?? TimeSpan.Zero, TimeSpan.FromSeconds(-1)).ConfigureAwait(false);
             }
             catch (Exception)
             {
@@ -156,8 +155,7 @@ namespace KnightBus.Azure.Storage
                     continue;
                 
                 // enqueue the new message again
-                var cloudMessage = new CloudQueueMessage(_serializer.Serialize(deadletter.Properties));
-                await _queue.AddMessageAsync(cloudMessage, TimeSpan.MaxValue, TimeSpan.Zero, null, null).ConfigureAwait(false);
+                await _queue.SendMessageAsync(_serializer.Serialize(deadletter.Properties), TimeSpan.Zero, TimeSpan.FromSeconds(-1)).ConfigureAwait(false);
             }
         }
 
@@ -176,7 +174,7 @@ namespace KnightBus.Azure.Storage
         {
             try
             {
-                await _container.GetBlockBlobReference(id).DeleteAsync().ConfigureAwait(false);
+                await _container.GetBlobClient(id).DeleteAsync().ConfigureAwait(false);
             }
             catch
             {
@@ -203,9 +201,8 @@ namespace KnightBus.Azure.Storage
 
         public async Task SetVisibilityTimeout(StorageQueueMessage message, TimeSpan timeToExtend, CancellationToken cancellationToken)
         {
-            var cloudQueueMessage = new CloudQueueMessage(message.QueueMessageId, message.PopReceipt);
-            await _queue.UpdateMessageAsync(cloudQueueMessage, timeToExtend, MessageUpdateFields.Visibility, null, null, cancellationToken).ConfigureAwait(false);
-            message.PopReceipt = cloudQueueMessage.PopReceipt;
+            var result = await _queue.UpdateMessageAsync(message.QueueMessageId, message.PopReceipt, visibilityTimeout:timeToExtend, cancellationToken:cancellationToken).ConfigureAwait(false);
+            message.PopReceipt = result.Value.PopReceipt;
         }
 
         
@@ -213,30 +210,37 @@ namespace KnightBus.Azure.Storage
         {
             return GetMessagesAsync<T>(count, lockDuration, _queue);
         }
-        private async Task<List<StorageQueueMessage>> GetMessagesAsync<T>(int count, TimeSpan? lockDuration, CloudQueue queue) where T : IStorageQueueCommand
+        private async Task<List<StorageQueueMessage>> GetMessagesAsync<T>(int count, TimeSpan? lockDuration, QueueClient queue) where T : IStorageQueueCommand
         {
-            var messages = (await queue.GetMessagesAsync(count, lockDuration, null, null).ConfigureAwait(false)).ToList();
+            var messages = (await queue.ReceiveMessagesAsync(count, lockDuration).ConfigureAwait(false)).Value;
             if (!messages.Any()) return new List<StorageQueueMessage>();
-            var messageContainers = new List<StorageQueueMessage>(messages.Count);
+            var messageContainers = new List<StorageQueueMessage>(messages.Length);
             foreach (var queueMessage in messages)
             {
                 try
                 {
                     var message = new StorageQueueMessage
                     {
-                        QueueMessageId = queueMessage.Id,
-                        DequeueCount = queueMessage.DequeueCount,
+                        QueueMessageId = queueMessage.MessageId,
+                        DequeueCount = (int) queueMessage.DequeueCount,
                         PopReceipt = queueMessage.PopReceipt,
-                        Properties = TryDeserializeProperties(queueMessage.AsString)
+                        Properties = TryDeserializeProperties(queueMessage.MessageText)
                     };
-                    var content = await _container.GetBlockBlobReference(message.BlobMessageId).DownloadTextAsync().ConfigureAwait(false);
-                    message.Message = _serializer.Deserialize<T>(content);
-                    messageContainers.Add(message);
+                    using (var steam = new MemoryStream())
+                    {
+                        await _container.GetBlobClient(message.BlobMessageId).DownloadToAsync(steam).ConfigureAwait(false);
+                        steam.Position = 0;
+                        using (var streamReader = new StreamReader(steam, Encoding.UTF8))
+                        {
+                            message.Message = _serializer.Deserialize<T>(await streamReader.ReadToEndAsync().ConfigureAwait(false));
+                            messageContainers.Add(message);
+                        }
+                    }
                 }
-                catch (StorageException e) when (e.RequestInformation?.HttpStatusCode == 404)
+                catch (RequestFailedException e) when (e.Status == 404)
                 {
                     //If we cannot find the message blob something is really wrong, delete the message right away
-                    await queue.DeleteMessageAsync(queueMessage.Id, queueMessage.PopReceipt);
+                    await queue.DeleteMessageAsync(queueMessage.MessageId, queueMessage.PopReceipt);
                 }
             }
             return messageContainers;

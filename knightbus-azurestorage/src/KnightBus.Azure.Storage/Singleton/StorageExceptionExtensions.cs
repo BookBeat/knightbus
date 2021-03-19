@@ -1,14 +1,12 @@
-using Microsoft.WindowsAzure.Storage;
+using Azure;
 
 namespace KnightBus.Azure.Storage.Singleton
 {
     internal static class StorageExceptionExtensions
     {
-        public static bool IsServerSideError(this StorageException exception)
+        public static bool IsServerSideError(this RequestFailedException exception)
         {
-            var statusCode = exception.RequestInformation?.HttpStatusCode;
-            if (!statusCode.HasValue) return false;
-            return statusCode >= 500 && statusCode < 600;
+            return exception.Status >= 500 && exception.Status < 600;
         }
     }
 }

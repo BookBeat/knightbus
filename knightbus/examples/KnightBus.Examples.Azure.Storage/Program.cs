@@ -42,7 +42,7 @@ namespace KnightBus.Examples.Azure.Storage
                         .RegisterProcessor(new SampleSagaMessageProcessor(client))
                     )
                     //Enable Saga support using the table storage Saga store
-                    .EnableSagas(new StorageTableSagaStore(storageConnection))
+                    .EnableSagas(new BlobSagaStore(storageConnection))
                 );
 
             //Start the KnightBus Host, it will now connect to the StorageBus and listen to the SampleStorageBusMessageMapping.QueueName
