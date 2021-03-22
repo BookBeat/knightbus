@@ -79,11 +79,7 @@ namespace KnightBus.Azure.Storage.Singleton
         {
             try
             {
-                // Note that this call returns without throwing if the lease is expired. See the table at:
-                // http://msdn.microsoft.com/en-us/library/azure/ee691972.aspx
-                await Blob.ReleaseAsync(
-                    new BlobRequestConditions { LeaseId = LeaseId },
-                    cancellationToken).ConfigureAwait(false);
+                await Blob.ReleaseAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
             }
             catch (RequestFailedException exception)
             {

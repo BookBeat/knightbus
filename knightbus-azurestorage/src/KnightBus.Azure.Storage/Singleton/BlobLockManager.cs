@@ -43,19 +43,19 @@ namespace KnightBus.Azure.Storage.Singleton
 
             var blob = _client.GetBlobClient(Path.Combine(_lockScheme.Directory, lockId));
 
-            var lease = await TryAcquireLeaseAsync(blob, lockId, lockPeriod, cancellationToken).ConfigureAwait(false);
+            var lease = await TryAcquireLeaseAsync(blob, lockPeriod, cancellationToken).ConfigureAwait(false);
             
-            if (lease.Value == null)
+            if (lease == null)
             {
                 return null;
             }
 
-            if (!string.IsNullOrEmpty(lease.Value.LeaseId))
+            if (!string.IsNullOrEmpty(lease.LeaseId))
             {
-                await WriteLeaseBlobMetadata(blob, lease.Value.LeaseId, lockId, cancellationToken).ConfigureAwait(false);
+                await WriteLeaseBlobMetadata(blob, lease.LeaseId, lockId, cancellationToken).ConfigureAwait(false);
             }
 
-            var lockHandle = new BlobLockHandle(lease.Value.LeaseId, lockId, blob.GetBlobLeaseClient(lockId), lockPeriod);
+            var lockHandle = new BlobLockHandle(lease.LeaseId, lockId, blob.GetBlobLeaseClient(lease.LeaseId), lockPeriod);
 
             return lockHandle;
         }
@@ -67,13 +67,12 @@ namespace KnightBus.Azure.Storage.Singleton
             }, cancellationToken);
         }
 
-        private static async Task<Response<BlobLease>> TryAcquireLeaseAsync(
+        private static async Task<BlobLease> TryAcquireLeaseAsync(
             BlobClient blob,
-            string lockId,
             TimeSpan leasePeriod,
             CancellationToken cancellationToken)
         {
-            var leaseClient = blob.GetBlobLeaseClient(lockId);
+            var leaseClient = blob.GetBlobLeaseClient();
             try
             {
                 // Optimistically try to acquire the lease. The blob may not yet
