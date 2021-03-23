@@ -1,11 +1,10 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Azure.Messaging.ServiceBus;
 using KnightBus.Azure.ServiceBus.Messages;
 using KnightBus.Core;
 using KnightBus.Messages;
-using Microsoft.Azure.ServiceBus;
-using Microsoft.Azure.ServiceBus.Management;
 
 namespace KnightBus.Azure.ServiceBus
 {
@@ -21,7 +20,7 @@ namespace KnightBus.Azure.ServiceBus
         private readonly IHostConfiguration _hostConfiguration;
         private readonly IMessageProcessor _processor;
         private int _deadLetterLimit;
-        private ISubscriptionClient _client;
+        private ServiceBusReceiver _client;
         private StoppableMessageReceiver _messageReceiver;
         private CancellationToken _cancellationToken;
 
@@ -41,7 +40,7 @@ namespace KnightBus.Azure.ServiceBus
         public async Task StartAsync(CancellationToken cancellationToken)
         {
             _cancellationToken = cancellationToken;
-            _client = await _clientFactory.GetSubscriptionClient<TTopic, IEventSubscription<TTopic>>(_subscription).ConfigureAwait(false);
+            _client = await _clientFactory.GetReceiverClient<TTopic, IEventSubscription<TTopic>>(_subscription).ConfigureAwait(false);
 
             if (!await _managementClient.TopicExistsAsync(_client.TopicPath, cancellationToken).ConfigureAwait(false))
             {
@@ -82,6 +81,8 @@ namespace KnightBus.Azure.ServiceBus
 
             _deadLetterLimit = Settings.DeadLetterDeliveryLimit;
             _client.PrefetchCount = Settings.PrefetchCount;
+            
+            
 
             _messageReceiver = new StoppableMessageReceiver(_client.ServiceBusConnection, EntityNameHelper.FormatSubscriptionPath(_client.TopicPath, _client.SubscriptionName), ReceiveMode.PeekLock, RetryPolicy.Default, Settings.PrefetchCount);
 
@@ -129,7 +130,7 @@ namespace KnightBus.Azure.ServiceBus
             return creationOptions ?? _configuration.DefaultCreationOptions;
         }
 
-        private async Task OnMessageAsync(Message message, CancellationToken cancellationToken)
+        private async Task OnMessageAsync(ServiceBusReceivedMessage message, CancellationToken cancellationToken)
         {
             var stateHandler = new ServiceBusMessageStateHandler<TTopic>(_messageReceiver, message, _configuration.MessageSerializer, _deadLetterLimit, _hostConfiguration.DependencyInjection);
             using (var cts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken, cancellationToken))

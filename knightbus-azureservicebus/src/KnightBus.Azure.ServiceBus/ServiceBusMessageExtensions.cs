@@ -1,21 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Microsoft.Azure.ServiceBus;
-using Microsoft.Azure.ServiceBus.Core;
+using Azure.Messaging.ServiceBus;
 
 namespace KnightBus.Azure.ServiceBus
 {
     internal static class ServiceBusMessageExtensions
     {
-        public static Task DeadLetterByDeliveryLimitAsync(this Message message, IReceiverClient client, int deliveryLimit)
+        public static Task DeadLetterByDeliveryLimitAsync(this ServiceBusReceivedMessage message, ProcessMessageEventArgs client, int deliveryLimit)
         {
-            return client.DeadLetterAsync(message.SystemProperties.LockToken, "MaxDeliveryCountExceeded", $"DeliveryCount exceeded limit of {deliveryLimit}");
+            return client.DeadLetterMessageAsync(message, "MaxDeliveryCountExceeded", $"DeliveryCount exceeded limit of {deliveryLimit}");
         }
 
-        public static Task AbandonByErrorAsync(this Message message, IReceiverClient client, Exception e)
+        public static Task AbandonByErrorAsync(this ServiceBusReceivedMessage message, ProcessMessageEventArgs client, Exception e)
         {
-            return client.AbandonAsync(message.SystemProperties.LockToken, new Dictionary<string, object>
+            return client.AbandonMessageAsync(message, new Dictionary<string, object>
             {
                 {"ErrorMessage", e.Message},
                 {"Exception", e.ToString()}

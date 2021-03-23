@@ -3,36 +3,35 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Azure.Messaging.ServiceBus;
 using KnightBus.Core;
 using KnightBus.Messages;
-using Microsoft.Azure.ServiceBus;
-using Microsoft.Azure.ServiceBus.Core;
 
 namespace KnightBus.Azure.ServiceBus
 {
     internal class ServiceBusMessageStateHandler<T> : IMessageStateHandler<T> where T : class, IMessage
     {
-        private readonly IReceiverClient _client;
-        private readonly Message _sbMessage;
+        private readonly ProcessMessageEventArgs _client;
+        private readonly ServiceBusReceivedMessage _sbMessage;
         private readonly T _message;
 
-        public ServiceBusMessageStateHandler(IReceiverClient client, Message sbMessage, IMessageSerializer serializer, int deadLetterDeliveryLimit, IDependencyInjection messageScope)
+        public ServiceBusMessageStateHandler(ProcessMessageEventArgs client, ServiceBusReceivedMessage sbMessage, IMessageSerializer serializer, int deadLetterDeliveryLimit, IDependencyInjection messageScope)
         {
             DeadLetterDeliveryLimit = deadLetterDeliveryLimit;
             MessageScope = messageScope;
             _client = client;
             _sbMessage = sbMessage;
-            _message = serializer.Deserialize<T>(Encoding.UTF8.GetString(_sbMessage.Body));
+            _message = serializer.Deserialize<T>(_sbMessage.Body.ToString());
         }
 
-        public int DeliveryCount => _sbMessage.SystemProperties.DeliveryCount;
+        public int DeliveryCount => _sbMessage.DeliveryCount;
         public int DeadLetterDeliveryLimit { get; }
-        public IDictionary<string, string> MessageProperties => _sbMessage.UserProperties?.Where(kvp => kvp.Value is string).ToDictionary(k => k.Key, k => k.Value.ToString()) ?? new Dictionary<string, string>();
+        public IDictionary<string, string> MessageProperties => _sbMessage.ApplicationProperties?.Where(kvp => kvp.Value is string).ToDictionary(k => k.Key, k => k.Value.ToString()) ?? new Dictionary<string, string>();
 
 
         public async Task CompleteAsync()
         {
-            await _client.CompleteAsync(_sbMessage.SystemProperties.LockToken).ConfigureAwait(false);
+            await _client.CompleteMessageAsync(_sbMessage).ConfigureAwait(false);
         }
 
         public async Task AbandonByErrorAsync(Exception e)
