@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Azure.Messaging.ServiceBus;
+using Azure.Messaging.ServiceBus.Administration;
 using KnightBus.Azure.ServiceBus.Messages;
 using KnightBus.Core;
 using KnightBus.Messages;
@@ -21,7 +22,7 @@ namespace KnightBus.Azure.ServiceBus
         private readonly IMessageProcessor _processor;
         private int _deadLetterLimit;
         private ServiceBusProcessor _client;
-        private readonly ManagementClient _managementClient;
+        private readonly ServiceBusAdministrationClient _managementClient;
         private CancellationToken _cancellationToken;
 
         public ServiceBusQueueChannelReceiver(IProcessingSettings settings, IServiceBusConfiguration configuration, IHostConfiguration hostConfiguration, IMessageProcessor processor)
@@ -33,7 +34,7 @@ namespace KnightBus.Azure.ServiceBus
             _log = hostConfiguration.Log;
             //new client factory per ServiceBusQueueChannelReceiver means a separate communication channel per reader instead of a shared
             _clientFactory = new ClientFactory(configuration.ConnectionString);
-            _managementClient = new ManagementClient(configuration.ConnectionString);
+            _managementClient = new ServiceBusAdministrationClient(configuration.ConnectionString);
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
