@@ -117,7 +117,6 @@ namespace KnightBus.Azure.Storage.Singleton
                 var bytes = Encoding.UTF8.GetBytes(string.Empty);
                 using (var stream = new MemoryStream(bytes))
                 {
-                    stream.Position = 0;
                     await blob.UploadAsync(stream, cancellationToken).ConfigureAwait(false);
                 }
 
