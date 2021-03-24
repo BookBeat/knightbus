@@ -49,22 +49,26 @@ namespace KnightBus.Azure.ServiceBus
                 ReceiveMode = ServiceBusReceiveMode.PeekLock
                 
             }).ConfigureAwait(false);
+
+            var queueName = AutoMessageMapper.GetQueueName<T>();
             
-            if (!await _managementClient.QueueExistsAsync(_client.EntityPath, _cancellationToken).ConfigureAwait(false))
+            if (!await _managementClient.QueueExistsAsync(queueName, _cancellationToken).ConfigureAwait(false))
             {
                 try
                 {
                     var serviceBusCreationOptions = GetServiceBusCreationOptions();
 
-                    await _managementClient.CreateQueueAsync(new QueueDescription(_client.Path)
+                    await _managementClient.CreateQueueAsync(new CreateQueueOptions(queueName)
                     {
-                        EnableBatchedOperations = serviceBusCreationOptions.EnableBatchedOperations,
                         EnablePartitioning = serviceBusCreationOptions.EnablePartitioning,
-                    }, _cancellationToken).ConfigureAwait(false);
+                        EnableBatchedOperations = serviceBusCreationOptions.EnableBatchedOperations,
+                        RequiresSession = serviceBusCreationOptions.SupportOrdering
+                        
+                    }, cancellationToken).ConfigureAwait(false);
                 }
                 catch (ServiceBusException e)
                 {
-                    _log.Error(e, "Failed to create queue {QueueName}", _client.QueueName);
+                    _log.Error(e, "Failed to create queue {QueueName}", queueName);
                     throw;
                 }
             }
@@ -72,24 +76,19 @@ namespace KnightBus.Azure.ServiceBus
             
             _client.ProcessMessageAsync += ClientOnProcessMessageAsync;
             _client.ProcessErrorAsync += ClientOnProcessErrorAsync;
-            
-            var options = new StoppableMessageReceiver.MessageHandlerOptions(OnExceptionReceivedAsync)
-            {
-                AutoComplete = false,
-                MaxAutoRenewDuration = Settings.MessageLockTimeout,
-                MaxConcurrentCalls = Settings.MaxConcurrentCalls
-            };
+
+            await _client.StartProcessingAsync(cancellationToken);
             
 #pragma warning disable 4014
             // ReSharper disable once MethodSupportsCancellation
-            Task.Run(() =>
+            Task.Run(async () =>
             {
                 _cancellationToken.WaitHandle.WaitOne();
                 //Cancellation requested
                 try
                 {
                     _log.Information($"Closing ServiceBus channel receiver for {typeof(T).Name}");
-                    _client.CloseAsync(CancellationToken.None);
+                    await _client.CloseAsync(CancellationToken.None);
                 }
                 catch (Exception)
                 {
@@ -110,7 +109,7 @@ namespace KnightBus.Azure.ServiceBus
 
         private async Task ClientOnProcessMessageAsync(ProcessMessageEventArgs arg)
         {
-            var stateHandler = new ServiceBusMessageStateHandler<T>(arg, arg.Message, _configuration.MessageSerializer, _deadLetterLimit, _hostConfiguration.DependencyInjection);
+            var stateHandler = new ServiceBusMessageStateHandler<T>(arg, _configuration.MessageSerializer, _deadLetterLimit, _hostConfiguration.DependencyInjection);
             using (var cts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken, arg.CancellationToken))
             {
                 await _processor.ProcessAsync(stateHandler, cts.Token).ConfigureAwait(false);

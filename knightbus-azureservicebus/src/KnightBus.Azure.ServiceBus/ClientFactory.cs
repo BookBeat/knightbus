@@ -8,7 +8,6 @@ using KnightBus.Core;
 using KnightBus.Messages;
 
 [assembly:InternalsVisibleTo("KnightBus.Azure.ServiceBus.Unit")]
-[assembly:InternalsVisibleTo("KnightBus.Azure.ServiceBus.Unit")]
 namespace KnightBus.Azure.ServiceBus
 {
     internal interface IClientFactory
