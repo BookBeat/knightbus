@@ -25,7 +25,7 @@ namespace KnightBus.Azure.Storage
         Task RequeueDeadLettersAsync<T>(int count, Func<T, bool> shouldRequeue) where T : IStorageQueueCommand;
         Task CompleteAsync(StorageQueueMessage message);
         Task AbandonByErrorAsync(StorageQueueMessage message, TimeSpan? visibilityTimeout);
-        Task SendAsync<T>(T message, TimeSpan? delay) where T : IStorageQueueCommand;
+        Task SendAsync<T>(T message, TimeSpan? delay, CancellationToken cancellationToken) where T : IStorageQueueCommand;
         Task<List<StorageQueueMessage>> GetMessagesAsync<T>(int count, TimeSpan? lockDuration) where T : IStorageQueueCommand;
         Task CreateIfNotExistsAsync();
         Task DeleteIfExistsAsync();
@@ -91,7 +91,7 @@ namespace KnightBus.Azure.Storage
             message.PopReceipt = result.Value.PopReceipt;
         }
 
-        public async Task SendAsync<T>(T message, TimeSpan? delay) where T : IStorageQueueCommand
+        public async Task SendAsync<T>(T message, TimeSpan? delay, CancellationToken cancellationToken = default) where T : IStorageQueueCommand
         {
 
             var storageMessage = new StorageQueueMessage(message)
@@ -108,7 +108,7 @@ namespace KnightBus.Azure.Storage
                 {
                     var attachmentIds = new List<string>();
                     var attachmentId = Guid.NewGuid().ToString("N");
-                    await _attachmentProvider.UploadAttachmentAsync(_queueName, attachmentId, attachmentMessage.Attachment).ConfigureAwait(false);
+                    await _attachmentProvider.UploadAttachmentAsync(_queueName, attachmentId, attachmentMessage.Attachment, cancellationToken).ConfigureAwait(false);
                     attachmentIds.Add(attachmentId);
                     storageMessage.Properties[AttachmentUtility.AttachmentKey] = string.Join(",", attachmentIds);
                 }
@@ -119,9 +119,9 @@ namespace KnightBus.Azure.Storage
                 var blob = _container.GetBlobClient(storageMessage.BlobMessageId);
                 using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(_serializer.Serialize(message))))
                 {
-                    await blob.UploadAsync(stream).ConfigureAwait(false);
+                    await blob.UploadAsync(stream, cancellationToken).ConfigureAwait(false);
                 }
-                await _queue.SendMessageAsync(_serializer.Serialize(storageMessage.Properties), delay ?? TimeSpan.Zero, TimeSpan.FromSeconds(-1)).ConfigureAwait(false);
+                await _queue.SendMessageAsync(_serializer.Serialize(storageMessage.Properties), delay ?? TimeSpan.Zero, TimeSpan.FromSeconds(-1), cancellationToken).ConfigureAwait(false);
             }
             catch (Exception)
             {
