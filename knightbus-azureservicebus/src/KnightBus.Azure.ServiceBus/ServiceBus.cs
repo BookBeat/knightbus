@@ -39,7 +39,6 @@ namespace KnightBus.Azure.ServiceBus
     {
         private readonly IServiceBusConfiguration _configuration;
         private IMessageAttachmentProvider _attachmentProvider;
-        private const int DefaultRetryCount = 3;
 
         internal IClientFactory ClientFactory { get; set; }
 
@@ -59,7 +58,7 @@ namespace KnightBus.Azure.ServiceBus
             var client = await ClientFactory.GetSenderClient<T>().ConfigureAwait(false);
             var sbMessage = await CreateMessageAsync(message).ConfigureAwait(false);
 
-            await SendAsync(client, sbMessage, DefaultRetryCount, cancellationToken).ConfigureAwait(false);
+            await SendAsync(client, sbMessage, cancellationToken).ConfigureAwait(false);
         }
 
         public async Task SendAsync<T>(IList<T> messages, CancellationToken cancellationToken = default) where T : IServiceBusCommand
@@ -72,7 +71,7 @@ namespace KnightBus.Azure.ServiceBus
                 sbMessages.Add(await CreateMessageAsync(message).ConfigureAwait(false));
             }
 
-            await SendAsync(client, sbMessages, DefaultRetryCount, cancellationToken).ConfigureAwait(false);
+            await SendAsync(client, sbMessages, cancellationToken).ConfigureAwait(false);
         }
 
         public async Task ScheduleAsync<T>(T message, TimeSpan span, CancellationToken cancellationToken = default) where T : IServiceBusCommand
@@ -81,7 +80,7 @@ namespace KnightBus.Azure.ServiceBus
             var sbMessage = await CreateMessageAsync(message).ConfigureAwait(false);
             sbMessage.ScheduledEnqueueTime = DateTime.UtcNow.Add(span);
 
-            await ScheduleAsync(client, sbMessage, DefaultRetryCount).ConfigureAwait(false);
+            await SendAsync(client, sbMessage, cancellationToken).ConfigureAwait(false);
         }
 
         public async Task PublishEventAsync<T>(T message, CancellationToken cancellationToken = default) where T : IServiceBusEvent
@@ -89,59 +88,17 @@ namespace KnightBus.Azure.ServiceBus
             var client = await ClientFactory.GetSenderClient<T>().ConfigureAwait(false);
             var brokeredMessage = await CreateMessageAsync(message).ConfigureAwait(false);
 
-            await PublishEventAsync(client, brokeredMessage, DefaultRetryCount).ConfigureAwait(false);
+            await SendAsync(client, brokeredMessage, cancellationToken).ConfigureAwait(false);
         }
 
-        private async Task SendAsync(ServiceBusSender client, ServiceBusMessage message, int retryCount, CancellationToken cancellationToken)
+        private async Task SendAsync(ServiceBusSender client, ServiceBusMessage message, CancellationToken cancellationToken)
         {
-            try
-            {
-                await client.SendMessageAsync(message, cancellationToken).ConfigureAwait(false);
-            }
-            catch (ServiceBusException e) when (retryCount > 0 && e.IsTransient)
-            {
-                await Task.Delay(GetRetryDelay(retryCount), cancellationToken).ConfigureAwait(false);
-                await SendAsync(client, message, retryCount - 1, cancellationToken).ConfigureAwait(false);
-            }
+            await client.SendMessageAsync(message, cancellationToken).ConfigureAwait(false);
         }
 
-        private async Task SendAsync(ServiceBusSender client, IList<ServiceBusMessage> messages, int retryCount, CancellationToken cancellationToken)
+        private async Task SendAsync(ServiceBusSender client, IList<ServiceBusMessage> messages, CancellationToken cancellationToken)
         {
-            try
-            {
-                await client.SendMessagesAsync(messages, cancellationToken).ConfigureAwait(false);
-            }
-            catch (ServiceBusException e) when (retryCount > 0 && e.IsTransient)
-            {
-                await Task.Delay(GetRetryDelay(retryCount), cancellationToken).ConfigureAwait(false);
-                await SendAsync(client, messages, retryCount - 1, cancellationToken).ConfigureAwait(false);
-            }
-        }
-
-        private async Task ScheduleAsync(ServiceBusSender client, ServiceBusMessage message, int retryCount)
-        {
-            try
-            {
-                await client.SendMessageAsync(message).ConfigureAwait(false);
-            }
-            catch (ServiceBusException e) when (retryCount > 0 && e.IsTransient)
-            {
-                await Task.Delay(GetRetryDelay(retryCount)).ConfigureAwait(false);
-                await ScheduleAsync(client, message, retryCount - 1).ConfigureAwait(false);
-            }
-        }
-
-        private async Task PublishEventAsync(ServiceBusSender client, ServiceBusMessage message, int retryCount) 
-        {
-            try
-            {
-                await client.SendMessageAsync(message).ConfigureAwait(false);
-            }
-            catch (ServiceBusException e) when (retryCount > 0 && e.IsTransient)
-            {
-                await Task.Delay(GetRetryDelay(retryCount)).ConfigureAwait(false);
-                await PublishEventAsync(client, message, retryCount - 1).ConfigureAwait(false);
-            }
+            await client.SendMessagesAsync(messages, cancellationToken).ConfigureAwait(false);
         }
 
         private async Task<ServiceBusMessage> CreateMessageAsync<T>(T body) where T : IMessage
@@ -169,12 +126,6 @@ namespace KnightBus.Azure.ServiceBus
             }
 
             return message;
-        }
-
-        private TimeSpan GetRetryDelay(int count)
-        {
-            const int defaultRetryDelayInMilliseconds = 300;
-            return TimeSpan.FromMilliseconds(defaultRetryDelayInMilliseconds * count);
         }
     }
 }
