@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Azure.Messaging.ServiceBus;
 using KnightBus.Azure.ServiceBus.Messages;
@@ -16,22 +17,22 @@ namespace KnightBus.Azure.ServiceBus
         /// <summary>
         /// Schedules a queue message for delivery a certain time into the future
         /// </summary>
-        Task ScheduleAsync<T>(T message, TimeSpan span) where T : IServiceBusCommand;
+        Task ScheduleAsync<T>(T message, TimeSpan span, CancellationToken cancellationToken = default) where T : IServiceBusCommand;
 
         /// <summary>
         /// Sends a queue message immediately 
         /// </summary>
-        Task SendAsync<T>(T message) where T : IServiceBusCommand;
+        Task SendAsync<T>(T message, CancellationToken cancellationToken = default) where T : IServiceBusCommand;
 
         /// <summary>
         /// Sends a batch of messages using the batch send method
         /// </summary>
-        Task SendAsync<T>(IList<T> messages) where T : IServiceBusCommand;
+        Task SendAsync<T>(IList<T> messages, CancellationToken cancellationToken = default) where T : IServiceBusCommand;
 
         /// <summary>
         /// Sends a topic message immediately
         /// </summary>
-        Task PublishEventAsync<T>(T message) where T : IServiceBusEvent;
+        Task PublishEventAsync<T>(T message, CancellationToken cancellationToken = default) where T : IServiceBusEvent;
     }
 
     public class ServiceBus : IServiceBus
@@ -53,15 +54,15 @@ namespace KnightBus.Azure.ServiceBus
             _configuration = config;
         }
 
-        public async Task SendAsync<T>(T message) where T : IServiceBusCommand
+        public async Task SendAsync<T>(T message, CancellationToken cancellationToken = default) where T : IServiceBusCommand
         {
             var client = await ClientFactory.GetSenderClient<T>().ConfigureAwait(false);
             var sbMessage = await CreateMessageAsync(message).ConfigureAwait(false);
 
-            await SendAsync(client, sbMessage, DefaultRetryCount).ConfigureAwait(false);
+            await SendAsync(client, sbMessage, DefaultRetryCount, cancellationToken).ConfigureAwait(false);
         }
 
-        public async Task SendAsync<T>(IList<T> messages) where T : IServiceBusCommand
+        public async Task SendAsync<T>(IList<T> messages, CancellationToken cancellationToken = default) where T : IServiceBusCommand
         {
             var client = await ClientFactory.GetSenderClient<T>().ConfigureAwait(false);
             if (!messages.Any()) return;
@@ -71,10 +72,10 @@ namespace KnightBus.Azure.ServiceBus
                 sbMessages.Add(await CreateMessageAsync(message).ConfigureAwait(false));
             }
 
-            await SendAsync(client, sbMessages, DefaultRetryCount).ConfigureAwait(false);
+            await SendAsync(client, sbMessages, DefaultRetryCount, cancellationToken).ConfigureAwait(false);
         }
 
-        public async Task ScheduleAsync<T>(T message, TimeSpan span) where T : IServiceBusCommand
+        public async Task ScheduleAsync<T>(T message, TimeSpan span, CancellationToken cancellationToken = default) where T : IServiceBusCommand
         {
             var client = await ClientFactory.GetSenderClient<T>().ConfigureAwait(false);
             var sbMessage = await CreateMessageAsync(message).ConfigureAwait(false);
@@ -83,7 +84,7 @@ namespace KnightBus.Azure.ServiceBus
             await ScheduleAsync(client, sbMessage, DefaultRetryCount).ConfigureAwait(false);
         }
 
-        public async Task PublishEventAsync<T>(T message) where T : IServiceBusEvent
+        public async Task PublishEventAsync<T>(T message, CancellationToken cancellationToken = default) where T : IServiceBusEvent
         {
             var client = await ClientFactory.GetSenderClient<T>().ConfigureAwait(false);
             var brokeredMessage = await CreateMessageAsync(message).ConfigureAwait(false);
@@ -91,29 +92,29 @@ namespace KnightBus.Azure.ServiceBus
             await PublishEventAsync(client, brokeredMessage, DefaultRetryCount).ConfigureAwait(false);
         }
 
-        private async Task SendAsync(ServiceBusSender client, ServiceBusMessage message, int retryCount)
+        private async Task SendAsync(ServiceBusSender client, ServiceBusMessage message, int retryCount, CancellationToken cancellationToken)
         {
             try
             {
-                await client.SendMessageAsync(message).ConfigureAwait(false);
+                await client.SendMessageAsync(message, cancellationToken).ConfigureAwait(false);
             }
             catch (ServiceBusException e) when (retryCount > 0 && e.IsTransient)
             {
-                await Task.Delay(GetRetryDelay(retryCount)).ConfigureAwait(false);
-                await SendAsync(client, message, retryCount - 1).ConfigureAwait(false);
+                await Task.Delay(GetRetryDelay(retryCount), cancellationToken).ConfigureAwait(false);
+                await SendAsync(client, message, retryCount - 1, cancellationToken).ConfigureAwait(false);
             }
         }
 
-        private async Task SendAsync(ServiceBusSender client, IList<ServiceBusMessage> messages, int retryCount)
+        private async Task SendAsync(ServiceBusSender client, IList<ServiceBusMessage> messages, int retryCount, CancellationToken cancellationToken)
         {
             try
             {
-                await client.SendMessagesAsync(messages).ConfigureAwait(false);
+                await client.SendMessagesAsync(messages, cancellationToken).ConfigureAwait(false);
             }
             catch (ServiceBusException e) when (retryCount > 0 && e.IsTransient)
             {
-                await Task.Delay(GetRetryDelay(retryCount)).ConfigureAwait(false);
-                await SendAsync(client, messages, retryCount - 1).ConfigureAwait(false);
+                await Task.Delay(GetRetryDelay(retryCount), cancellationToken).ConfigureAwait(false);
+                await SendAsync(client, messages, retryCount - 1, cancellationToken).ConfigureAwait(false);
             }
         }
 
