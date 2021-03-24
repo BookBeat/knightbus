@@ -61,8 +61,7 @@ namespace KnightBus.Azure.ServiceBus
                     await _managementClient.CreateQueueAsync(new CreateQueueOptions(queueName)
                     {
                         EnablePartitioning = serviceBusCreationOptions.EnablePartitioning,
-                        EnableBatchedOperations = serviceBusCreationOptions.EnableBatchedOperations,
-                        RequiresSession = serviceBusCreationOptions.SupportOrdering
+                        EnableBatchedOperations = serviceBusCreationOptions.EnableBatchedOperations
                         
                     }, cancellationToken).ConfigureAwait(false);
                 }
