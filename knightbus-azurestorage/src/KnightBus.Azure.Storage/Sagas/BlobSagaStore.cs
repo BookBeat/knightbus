@@ -3,13 +3,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using Azure;
-using Azure.Storage;
 using KnightBus.Core.Sagas;
 using KnightBus.Core.Sagas.Exceptions;
 using Newtonsoft.Json;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
-using Microsoft.WindowsAzure.Storage.Blob;
 
 namespace KnightBus.Azure.Storage.Sagas
 {
