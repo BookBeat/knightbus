@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## 2020-03-25
+
+### KnightBus.Azure.ServiceBus 10.0.0
+
+ * Updated to the new Azure.Messaging.ServiceBus package
+ * Removed internal retry mechanism for ServiceBus
+ * Removed custom code for handling graceful shutdown since it's now build into the SDK
+
+### KnightBus.Azure.Storage 8.0.0
+
+ * Removed support for TableStorage
+ * Updated to the new Azure.Storage.Blobs and Azure.Storage.Queues packages
+
 ## 2020-11-09
 
 ### KnightBus.Core 8.3.2
