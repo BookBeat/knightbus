@@ -61,8 +61,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Examples.Schedule
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Schedule.Tests.Unit", "knightbus-schedule\tests\KnightBus.Schedule.Tests.Unit\KnightBus.Schedule.Tests.Unit.csproj", "{35C6CE61-34EC-4854-AD37-994A9454C6B9}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Azure.ServiceBus.Unit", "knightbus-azureservicebus\tests\KnightBus.Azure.ServiceBus.Unit\KnightBus.Azure.ServiceBus.Unit.csproj", "{22005970-5CAD-46B6-9CB8-4C6607D36944}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Redis.Tests.Integration", "knightbus-redis\tests\KnightBus.Redis.Tests.Integration\KnightBus.Redis.Tests.Integration.csproj", "{BD6A7EC2-E5A7-48C9-ADA4-0E3A824D8717}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Redis.Tests.Unit", "knightbus-redis\tests\KnightBus.Redis.Tests.Unit\KnightBus.Redis.Tests.Unit.csproj", "{495A52A9-3268-4744-BCD4-BEEECDD525F7}"
@@ -76,6 +74,8 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{F5818956-2DE2-41CE-A529-93B3E5E35619}"
 	ProjectSection(SolutionItems) = preProject
 		appveyor.yml = appveyor.yml
+		CHANGELOG.md = CHANGELOG.md
+		README.md = README.md
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Shared.Tests.Integration", "knightbus\tests\KnightBus.Shared.Tests.Integration\KnightBus.Shared.Tests.Integration.csproj", "{7E533C8D-75F9-46A9-B1F0-186E6EBE6A84}"
@@ -182,10 +182,6 @@ Global
 		{35C6CE61-34EC-4854-AD37-994A9454C6B9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{35C6CE61-34EC-4854-AD37-994A9454C6B9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{35C6CE61-34EC-4854-AD37-994A9454C6B9}.Release|Any CPU.Build.0 = Release|Any CPU
-		{22005970-5CAD-46B6-9CB8-4C6607D36944}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{22005970-5CAD-46B6-9CB8-4C6607D36944}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{22005970-5CAD-46B6-9CB8-4C6607D36944}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{22005970-5CAD-46B6-9CB8-4C6607D36944}.Release|Any CPU.Build.0 = Release|Any CPU
 		{BD6A7EC2-E5A7-48C9-ADA4-0E3A824D8717}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{BD6A7EC2-E5A7-48C9-ADA4-0E3A824D8717}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BD6A7EC2-E5A7-48C9-ADA4-0E3A824D8717}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -229,7 +225,6 @@ Global
 		{09D121DD-771E-478D-8E10-080D65929948} = {60DD8989-3730-42B9-BD7B-3B38A6208FFB}
 		{04087FF9-1A26-4230-807F-135E452453C3} = {1A7A20B2-65E7-4712-B93B-4AA3F73017A8}
 		{3BB50500-1F7C-44B0-9310-A5B1EE0A1E44} = {1A7A20B2-65E7-4712-B93B-4AA3F73017A8}
-		{22005970-5CAD-46B6-9CB8-4C6607D36944} = {BFEEC811-DB77-4EF0-B43E-238FAF440E3A}
 		{BD6A7EC2-E5A7-48C9-ADA4-0E3A824D8717} = {09D121DD-771E-478D-8E10-080D65929948}
 		{495A52A9-3268-4744-BCD4-BEEECDD525F7} = {09D121DD-771E-478D-8E10-080D65929948}
 		{35D22A20-2E1E-4CA7-8EE4-A33C5A08AD11} = {46D48336-73CC-4A9B-8B5F-14725D2AFFB4}

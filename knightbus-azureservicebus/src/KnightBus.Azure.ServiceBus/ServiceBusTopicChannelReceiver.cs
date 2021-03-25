@@ -1,11 +1,11 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Azure.Messaging.ServiceBus;
+using Azure.Messaging.ServiceBus.Administration;
 using KnightBus.Azure.ServiceBus.Messages;
 using KnightBus.Core;
 using KnightBus.Messages;
-using Microsoft.Azure.ServiceBus;
-using Microsoft.Azure.ServiceBus.Management;
 
 namespace KnightBus.Azure.ServiceBus
 {
@@ -14,21 +14,20 @@ namespace KnightBus.Azure.ServiceBus
     {
         private readonly IClientFactory _clientFactory;
         public IProcessingSettings Settings { get; set; }
-        private readonly ManagementClient _managementClient;
+        private readonly ServiceBusAdministrationClient _managementClient;
         private readonly IEventSubscription<TTopic> _subscription;
         private readonly ILog _log;
         private readonly IServiceBusConfiguration _configuration;
         private readonly IHostConfiguration _hostConfiguration;
         private readonly IMessageProcessor _processor;
         private int _deadLetterLimit;
-        private ISubscriptionClient _client;
-        private StoppableMessageReceiver _messageReceiver;
+        private ServiceBusProcessor _client;
         private CancellationToken _cancellationToken;
 
         public ServiceBusTopicChannelReceiver(IProcessingSettings settings, IEventSubscription<TTopic> subscription, IServiceBusConfiguration configuration, IHostConfiguration hostConfiguration, IMessageProcessor processor)
         {
             Settings = settings;
-            _managementClient = new ManagementClient(configuration.ConnectionString);
+            _managementClient = new ServiceBusAdministrationClient(configuration.ConnectionString);
             _subscription = subscription;
             _log = hostConfiguration.Log;
             _configuration = configuration;
@@ -41,68 +40,74 @@ namespace KnightBus.Azure.ServiceBus
         public async Task StartAsync(CancellationToken cancellationToken)
         {
             _cancellationToken = cancellationToken;
-            _client = await _clientFactory.GetSubscriptionClient<TTopic, IEventSubscription<TTopic>>(_subscription).ConfigureAwait(false);
+            _client = await _clientFactory.GetReceiverClient<TTopic, IEventSubscription<TTopic>>(_subscription, new ServiceBusProcessorOptions
+            {
+                AutoCompleteMessages = false,
+                MaxAutoLockRenewalDuration = Settings.MessageLockTimeout,
+                MaxConcurrentCalls = Settings.MaxConcurrentCalls,
+                PrefetchCount = Settings.PrefetchCount,
+                ReceiveMode = ServiceBusReceiveMode.PeekLock
+                
+            }).ConfigureAwait(false);
 
-            if (!await _managementClient.TopicExistsAsync(_client.TopicPath, cancellationToken).ConfigureAwait(false))
+            
+            var topicName = AutoMessageMapper.GetQueueName<TTopic>();
+            
+            if (!await _managementClient.TopicExistsAsync(topicName, cancellationToken).ConfigureAwait(false))
             {
                 try
                 {
                     var serviceBusCreationOptions = GetServiceBusCreationOptions();
 
-                    await _managementClient.CreateTopicAsync(new TopicDescription(_client.TopicPath)
+                    await _managementClient.CreateTopicAsync(new CreateTopicOptions(topicName)
                     {
-                        EnableBatchedOperations = serviceBusCreationOptions.EnableBatchedOperations,
                         EnablePartitioning = serviceBusCreationOptions.EnablePartitioning,
+                        EnableBatchedOperations = serviceBusCreationOptions.EnableBatchedOperations,
                         SupportOrdering = serviceBusCreationOptions.SupportOrdering
+
                     }, cancellationToken).ConfigureAwait(false);
                 }
                 catch (ServiceBusException e)
                 {
-                    _log.Error(e, "Failed to create topic {TopicName}", _client.TopicPath);
+                    _log.Error(e, "Failed to create topic {TopicName}", topicName);
                     throw;
                 }
             }
-            if (!await _managementClient.SubscriptionExistsAsync(_client.TopicPath, _client.SubscriptionName, cancellationToken).ConfigureAwait(false))
+            if (!await _managementClient.SubscriptionExistsAsync(topicName, _subscription.Name, cancellationToken).ConfigureAwait(false))
             {
                 try
                 {
                     var serviceBusCreationOptions = GetServiceBusCreationOptions();
 
-                    await _managementClient.CreateSubscriptionAsync(new SubscriptionDescription(_client.TopicPath, _client.SubscriptionName)
+                    await _managementClient.CreateSubscriptionAsync(new CreateSubscriptionOptions(topicName, _subscription.Name)
                     {
-                        EnableBatchedOperations = serviceBusCreationOptions.EnableBatchedOperations,
+                        EnableBatchedOperations = serviceBusCreationOptions.EnableBatchedOperations
                     }, cancellationToken).ConfigureAwait(false);
                 }
                 catch (ServiceBusException e)
                 {
-                    _log.Error(e, "Failed to create subscription {TopicName} {SubscriptionName}", _client.TopicPath, _client.SubscriptionName);
+                    _log.Error(e, "Failed to create subscription {TopicName} {SubscriptionName}", topicName, _subscription.Name);
                     throw;
                 }
             }
 
             _deadLetterLimit = Settings.DeadLetterDeliveryLimit;
-            _client.PrefetchCount = Settings.PrefetchCount;
+            
+            _client.ProcessMessageAsync += ClientOnProcessMessageAsync;
+            _client.ProcessErrorAsync += ClientOnProcessErrorAsync;
 
-            _messageReceiver = new StoppableMessageReceiver(_client.ServiceBusConnection, EntityNameHelper.FormatSubscriptionPath(_client.TopicPath, _client.SubscriptionName), ReceiveMode.PeekLock, RetryPolicy.Default, Settings.PrefetchCount);
-
-            var options = new StoppableMessageReceiver.MessageHandlerOptions(OnExceptionReceivedAsync)
-            {
-                AutoComplete = false,
-                MaxAutoRenewDuration = Settings.MessageLockTimeout,
-                MaxConcurrentCalls = Settings.MaxConcurrentCalls
-            };
-            _messageReceiver.RegisterStoppableMessageHandler(options, OnMessageAsync);
-
+            await _client.StartProcessingAsync(cancellationToken);
+            
 #pragma warning disable 4014
             // ReSharper disable once MethodSupportsCancellation
-            Task.Run(() =>
+            Task.Run(async () =>
             {
                 _cancellationToken.WaitHandle.WaitOne();
                 //Cancellation requested
                 try
                 {
                     _log.Information($"Closing ServiceBus channel receiver for {typeof(TTopic).Name}");
-                     _messageReceiver.StopPump();
+                     await _client.CloseAsync(CancellationToken.None);
                 }
                 catch (Exception)
                 {
@@ -112,13 +117,22 @@ namespace KnightBus.Azure.ServiceBus
 #pragma warning restore 4014
         }
 
-        private Task OnExceptionReceivedAsync(ExceptionReceivedEventArgs exceptionReceivedEventArgs)
+        private Task ClientOnProcessErrorAsync(ProcessErrorEventArgs arg)
         {
-            if (!(exceptionReceivedEventArgs.Exception is OperationCanceledException))
+            if (!(arg.Exception is OperationCanceledException))
             {
-                _log.Error(exceptionReceivedEventArgs.Exception, $"{typeof(ServiceBusTopicChannelReceiver<TTopic>).Name}");
+                _log.Error(arg.Exception, $"{typeof(ServiceBusTopicChannelReceiver<TTopic>).Name}");
             }
             return Task.CompletedTask;
+        }
+
+        private async Task ClientOnProcessMessageAsync(ProcessMessageEventArgs arg)
+        {
+            var stateHandler = new ServiceBusMessageStateHandler<TTopic>(arg, _configuration.MessageSerializer, _deadLetterLimit, _hostConfiguration.DependencyInjection);
+            using (var cts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken, arg.CancellationToken))
+            {
+                await _processor.ProcessAsync(stateHandler, cts.Token).ConfigureAwait(false);
+            }
         }
 
         private IServiceBusCreationOptions GetServiceBusCreationOptions()
@@ -127,15 +141,6 @@ namespace KnightBus.Azure.ServiceBus
             var creationOptions = queueMapping as IServiceBusCreationOptions;
 
             return creationOptions ?? _configuration.DefaultCreationOptions;
-        }
-
-        private async Task OnMessageAsync(Message message, CancellationToken cancellationToken)
-        {
-            var stateHandler = new ServiceBusMessageStateHandler<TTopic>(_messageReceiver, message, _configuration.MessageSerializer, _deadLetterLimit, _hostConfiguration.DependencyInjection);
-            using (var cts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken, cancellationToken))
-            {
-                await _processor.ProcessAsync(stateHandler, cts.Token).ConfigureAwait(false);
-            }
         }
     }
 }
