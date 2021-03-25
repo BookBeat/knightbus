@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 2020-03-25
+## 2021-03-25
 
 ### KnightBus.Azure.ServiceBus 10.0.0
 
