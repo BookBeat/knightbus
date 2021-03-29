@@ -15,13 +15,15 @@ namespace KnightBus.Host
         private readonly ConcurrentDictionary<Type, object> _processors = new ConcurrentDictionary<Type, object>();
 
         /// <summary>
-        /// Adds a <see cref="IProcessCommand{T,TSettings}"/> or <see cref="IProcessEvent{TTopic,TTopicSubscription,TSettings}"/> to the provider
+        /// Adds a <see cref="IProcessCommand{T,TSettings}"/>, <see cref="IProcessRequest{T,TResponse,TSettings}"/> or <see cref="IProcessEvent{TTopic,TTopicSubscription,TSettings}"/> to the provider
         /// </summary>
-        /// <param name="processor"><see cref="IProcessCommand{T,TSettings}"/> or <see cref="IProcessEvent{TTopic,TTopicSubscription,TSettings}"/></param>
+        /// <param name="processor"><see cref="IProcessCommand{T,TSettings}"/>, <see cref="IProcessRequest{T,TResponse,TSettings}"/> or <see cref="IProcessEvent{TTopic,TTopicSubscription,TSettings}"/></param>
         public StandardDependecyInjection RegisterProcessor(object processor)
         {
-            Register(processor, typeof(IProcessCommand<,>));
-            Register(processor, typeof(IProcessEvent<,,>));
+            foreach (var processorType in ValidProcessorInterfaces.Types)
+            {
+                Register(processor, processorType);    
+            }
             return this;
         }
 

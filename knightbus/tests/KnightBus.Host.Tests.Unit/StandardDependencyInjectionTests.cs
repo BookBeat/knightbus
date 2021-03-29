@@ -83,5 +83,29 @@ namespace KnightBus.Host.Tests.Unit
             //assert
             processorFound.Should().Be(processor);
         }
+        [Test]
+        public void Should_register_request_processor()
+        {
+            //arrange
+            var provider = new StandardDependecyInjection();
+            //act
+            provider.RegisterProcessor(new RequestProcessor(Mock.Of<ICountable>()));
+            //assert
+            var r = provider.GetOpenGenericRegistrations(typeof(IProcessRequest<,>));
+            provider.GetOpenGenericRegistrations(typeof(IProcessRequest<,>)).Count().Should().Be(1);
+            provider.GetOpenGenericRegistrations(typeof(IProcessRequest<,>)).Should().Contain(x => x == typeof(RequestProcessor));
+        }
+        [Test]
+        public void Should_get_registered_request_processor()
+        {
+            //arrange
+            var provider = new StandardDependecyInjection();
+            var processor = new RequestProcessor(Mock.Of<ICountable>());
+            provider.RegisterProcessor(processor);
+            //act
+            var processorFound = provider.GetInstance<IProcessRequest<TestRequest,TestResponse>>(typeof(IProcessRequest<TestRequest, TestResponse, TestMessageSettings>));
+            //assert
+            processorFound.Should().Be(processor);
+        }
     }
 }

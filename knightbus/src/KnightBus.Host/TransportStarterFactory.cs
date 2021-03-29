@@ -19,9 +19,19 @@ namespace KnightBus.Host
             _configuration = configuration;
         }
 
-        internal IChannelReceiver CreateChannelReceiver(Type messageType, Type subscriptionType, Type processorInterface, Type settingsType, Type processor)
+        internal IChannelReceiver CreateChannelReceiver(Type messageType, Type responseType, Type subscriptionType, Type processorInterface, Type settingsType, Type processor)
         {
-            var processorInstance = new MessageProcessor(processorInterface);
+
+            IMessageProcessor processorInstance;
+            if (responseType != null)
+            {
+                var requestProcessorType = typeof(RequestProcessor<>).MakeGenericType(responseType);
+                processorInstance = (IMessageProcessor)Activator.CreateInstance(requestProcessorType, processorInterface);
+            }
+            else
+            {
+                processorInstance = new MessageProcessor(processorInterface);
+            }
             var channelFactory = _transportChannelFactories.SingleOrDefault(factory => factory.CanCreate(messageType));
             if (channelFactory == null) throw new TransportMissingException(messageType);
 
