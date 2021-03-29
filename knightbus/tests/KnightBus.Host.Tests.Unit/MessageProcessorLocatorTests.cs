@@ -43,7 +43,27 @@ namespace KnightBus.Host.Tests.Unit
                 .Returns(Mock.Of<IChannelReceiver>()).Verifiable();
             _messageHandlerProvider.RegisterProcessor(new SingleCommandProcessor(Mock.Of<ICountable>()));
             //act
-            var reader = Enumerable.ToList(locator.Locate());
+            var reader = Enumerable.ToList(locator.CreateReceivers());
+            //assert
+            reader.Count.Should().Be(1);
+            _queueStarterFactory.Verify();
+        }
+        
+        [Test]
+        public void Should_locate_single_request_processor()
+        {
+            //arrange
+            var locator = new MessageProcessorLocator(new HostConfiguration
+            {
+                DependencyInjection = _messageHandlerProvider
+                
+            }, new[]{ _queueStarterFactory.Object });
+            _queueStarterFactory.Setup(x => x.CanCreate(typeof(TestRequest))).Returns(true);
+            _queueStarterFactory.Setup(x => x.Create(typeof(TestRequest), null, It.IsAny<TestMessageSettings>(), It.IsAny<HostConfiguration>(), It.IsAny<IMessageProcessor>()))
+                .Returns(Mock.Of<IChannelReceiver>()).Verifiable();
+            _messageHandlerProvider.RegisterProcessor(new RequestProcessor(Mock.Of<ICountable>()));
+            //act
+            var reader = locator.CreateReceivers().ToList();
             //assert
             reader.Count.Should().Be(1);
             _queueStarterFactory.Verify();
@@ -65,7 +85,7 @@ namespace KnightBus.Host.Tests.Unit
                 .Returns(Mock.Of<IChannelReceiver>()).Verifiable();
             _messageHandlerProvider.RegisterProcessor(new MultipleCommandProcessor(Mock.Of<ICountable>()));
             //act
-            var reader = Enumerable.ToList(locator.Locate());
+            var reader = Enumerable.ToList(locator.CreateReceivers());
             //assert
             reader.Count.Should().Be(2);
             _queueStarterFactory.Verify();
@@ -82,7 +102,7 @@ namespace KnightBus.Host.Tests.Unit
             _queueStarterFactory.Setup(x => x.CanCreate(typeof(TestCommand))).Returns(false);
             _messageHandlerProvider.RegisterProcessor(new SingleCommandProcessor(Mock.Of<ICountable>()));
             //act and assert
-            AssertionExtensions.Invoking(locator, x => Enumerable.ToList(x.Locate())).Should().Throw<TransportMissingException>();
+            AssertionExtensions.Invoking(locator, x => Enumerable.ToList(x.CreateReceivers())).Should().Throw<TransportMissingException>();
         }
 
         [Test]
@@ -98,7 +118,7 @@ namespace KnightBus.Host.Tests.Unit
                 .Returns(Mock.Of<IChannelReceiver>()).Verifiable();
             _messageHandlerProvider.RegisterProcessor(new EventProcessor(Mock.Of<ICountable>()));
             //act
-            var reader = Enumerable.ToList(locator.Locate());
+            var reader = Enumerable.ToList(locator.CreateReceivers());
             //assert
             reader.Count.Should().Be(1);
             _queueStarterFactory.Verify();
@@ -124,7 +144,7 @@ namespace KnightBus.Host.Tests.Unit
                 .Returns(underlyingQueueStarter.Object).Verifiable();
             _messageHandlerProvider.RegisterProcessor(new SingletonCommandProcessor());
             //act
-            var reader = Enumerable.ToList(locator.Locate());
+            var reader = Enumerable.ToList(locator.CreateReceivers());
             //assert
             var valid = reader.Where(x => x is SingletonChannelReceiver).ToList();
             valid.Count.Should().Be(1);

@@ -50,7 +50,7 @@ namespace KnightBus.Host
             if (_transports.Any())
             {
                 _locator = new MessageProcessorLocator(_configuration, _transports.SelectMany(transport => transport.TransportChannelFactories).ToArray());
-                var channelReceivers = _locator.Locate().ToList();
+                var channelReceivers = _locator.CreateReceivers().ToList();
                 ConsoleWriter.Write("Starting receivers [");
                 foreach (var receiver in channelReceivers)
                 {

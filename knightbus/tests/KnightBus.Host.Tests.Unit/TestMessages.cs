@@ -4,6 +4,14 @@ using KnightBus.Messages;
 
 namespace KnightBus.Host.Tests.Unit
 {
+    public class TestRequest : IRequest
+    {
+
+    }
+    public class TestResponse
+    {
+
+    }
     public class TestCommand : ICommand
     {
         public bool Throw { get; set; }
