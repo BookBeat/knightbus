@@ -52,9 +52,9 @@ namespace KnightBus.Host
                 _locator = new MessageProcessorLocator(_configuration, _transports.SelectMany(transport => transport.TransportChannelFactories).ToArray());
                 var channelReceivers = _locator.Locate().ToList();
                 ConsoleWriter.Write("Starting receivers [");
-                foreach (var queueReader in channelReceivers)
+                foreach (var receiver in channelReceivers)
                 {
-                    await queueReader.StartAsync(combinedToken.Token).ConfigureAwait(false);
+                    await receiver.StartAsync(combinedToken.Token).ConfigureAwait(false);
                     Console.Write(".");
                 }
                 Console.WriteLine("]");

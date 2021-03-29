@@ -18,11 +18,11 @@ namespace KnightBus.Host
         }
         public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, CancellationToken cancellationToken) where T : class, IMessage
         {
-                var typedMessage = await messageStateHandler.GetMessageAsync().ConfigureAwait(false);
-                var messageHandler = messageStateHandler.MessageScope.GetInstance<IProcessMessage<T>>(_messageHandlerType);
+            var typedMessage = await messageStateHandler.GetMessageAsync().ConfigureAwait(false);
+            var messageHandler = messageStateHandler.MessageScope.GetInstance<IProcessMessage<T>>(_messageHandlerType);
 
-                await messageHandler.ProcessAsync(typedMessage, cancellationToken).ConfigureAwait(false);
-                await messageStateHandler.CompleteAsync().ConfigureAwait(false);
-            }
+            await messageHandler.ProcessAsync(typedMessage, cancellationToken).ConfigureAwait(false);
+            await messageStateHandler.CompleteAsync().ConfigureAwait(false);
+        }   
     }
 }

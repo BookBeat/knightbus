@@ -19,24 +19,24 @@ namespace KnightBus.Host
             _configuration = configuration;
         }
 
-        internal IChannelReceiver CreateQueueReader(Type messageType, Type subscriptionType, Type processorInterface, Type settingsType, Type processor)
+        internal IChannelReceiver CreateChannelReceiver(Type messageType, Type subscriptionType, Type processorInterface, Type settingsType, Type processor)
         {
             var processorInstance = new MessageProcessor(processorInterface);
-            var queueReader = _transportChannelFactories.SingleOrDefault(factory => factory.CanCreate(messageType));
-            if (queueReader == null) throw new TransportMissingException(messageType);
+            var channelFactory = _transportChannelFactories.SingleOrDefault(factory => factory.CanCreate(messageType));
+            if (channelFactory == null) throw new TransportMissingException(messageType);
 
             var processingSettings = (IProcessingSettings)Activator.CreateInstance(settingsType);
 
             var eventSubscription = subscriptionType == null? null: (IEventSubscription)Activator.CreateInstance(subscriptionType);
             var pipelineInformation = new PipelineInformation(processorInterface, eventSubscription, processingSettings, _configuration);
 
-            var pipeline = new MiddlewarePipeline(_configuration.Middlewares, pipelineInformation, queueReader, _configuration.Log);
+            var pipeline = new MiddlewarePipeline(_configuration.Middlewares, pipelineInformation, channelFactory, _configuration.Log);
             
-            var starter = queueReader.Create(messageType, eventSubscription, processingSettings, _configuration, pipeline.GetPipeline(processorInstance));
-            return GetQueueReaderStarter(starter, processor);
+            var starter = channelFactory.Create(messageType, eventSubscription, processingSettings, _configuration, pipeline.GetPipeline(processorInstance));
+            return WrapSingletonReceiver(starter, processor);
         }
 
-        private IChannelReceiver GetQueueReaderStarter(IChannelReceiver channelReceiver, Type type)
+        private IChannelReceiver WrapSingletonReceiver(IChannelReceiver channelReceiver, Type type)
         {
             if (typeof(ISingletonProcessor).IsAssignableFrom(type))
             {

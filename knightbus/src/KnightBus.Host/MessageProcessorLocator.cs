@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using KnightBus.Core;
@@ -17,13 +18,13 @@ namespace KnightBus.Host
 
         public IEnumerable<IChannelReceiver> Locate()
         {
-            return GetQueueReaders().Concat(GetQueueSubscriptionReaders());
+            var processors = _configuration.DependencyInjection.GetOpenGenericRegistrations(typeof(IProcessMessage<>));
+            return GetCommandReceivers(processors)
+                .Concat(GetEventReceivers(processors));
         }
 
-        private IEnumerable<IChannelReceiver> GetQueueReaders()
+        private IEnumerable<IChannelReceiver> GetCommandReceivers(IEnumerable<Type> processors)
         {
-            var processors = _configuration.DependencyInjection.GetOpenGenericRegistrations(typeof(IProcessMessage<>));
-
             foreach (var processor in processors)
             {
                 var processorInterfaces = ReflectionHelper.GetAllInterfacesImplementingOpenGenericInterface(processor, typeof(IProcessCommand<,>));
@@ -31,17 +32,16 @@ namespace KnightBus.Host
                 {
                     var messageType = processorInterface.GenericTypeArguments[0];
                     var settingsType = processorInterface.GenericTypeArguments[1];
-
+                    
                     ConsoleWriter.WriteLine($"Found {processor.Name}<{messageType.Name}, {settingsType.Name}>");
 
-                    yield return _transportStarterFactory.CreateQueueReader(messageType, null, processorInterface, settingsType, processor);
+                    yield return _transportStarterFactory.CreateChannelReceiver(messageType, null, processorInterface, settingsType, processor);
                 }
             }
         }
 
-        private IEnumerable<IChannelReceiver> GetQueueSubscriptionReaders()
+        private IEnumerable<IChannelReceiver> GetEventReceivers(IEnumerable<Type> processors)
         {
-            var processors = _configuration.DependencyInjection.GetOpenGenericRegistrations(typeof(IProcessMessage<>));
             foreach (var processor in processors)
             {
                 var processorInterfaces = ReflectionHelper.GetAllInterfacesImplementingOpenGenericInterface(processor, typeof(IProcessEvent<,,>));
@@ -52,7 +52,7 @@ namespace KnightBus.Host
                     var settingsType = processorInterface.GenericTypeArguments[2];
 
                     ConsoleWriter.WriteLine($"Found {processor.Name}<{messageType.Name}, {subscriptionType.Name}, {settingsType.Name}>");
-                    yield return _transportStarterFactory.CreateQueueReader(messageType, subscriptionType, processorInterface, settingsType, processor);
+                    yield return _transportStarterFactory.CreateChannelReceiver(messageType, subscriptionType, processorInterface, settingsType, processor);
                 }
             }
         }
