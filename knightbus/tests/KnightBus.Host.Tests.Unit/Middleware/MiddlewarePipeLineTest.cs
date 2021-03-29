@@ -112,7 +112,7 @@ namespace KnightBus.Host.Tests.Unit.Middleware
             var pipelineInformation = new Mock<IPipelineInformation>();
             pipelineInformation.Setup(x => x.HostConfiguration).Returns(hostConfiguration);
 
-            var finalProcessor = new MessageProcessor<IProcessCommand<DiTestMessage, DiTestMessageSettings>>();
+            var finalProcessor = new MessageProcessor(typeof(IProcessCommand<DiTestMessage, DiTestMessageSettings>));
             var pipeline = new MiddlewarePipeline(new List<IMessageProcessorMiddleware>(), pipelineInformation.Object, transportChannelFactory.Object, Mock.Of<ILog>());
 
             var messageStateHandler = new Mock<IMessageStateHandler<DiTestMessage>>();

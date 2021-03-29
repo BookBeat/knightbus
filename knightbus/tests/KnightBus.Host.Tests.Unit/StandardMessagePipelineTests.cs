@@ -45,7 +45,7 @@ namespace KnightBus.Host.Tests.Unit
             var transportConfiguration = new Mock<ITransportChannelFactory>();
             transportConfiguration.Setup(x => x.Middlewares).Returns(new List<IMessageProcessorMiddleware>());
             var pipeline = new MiddlewarePipeline(middlewares, _pipelineInformation.Object, transportConfiguration.Object, _logger.Object);
-            _messageProcessor = pipeline.GetPipeline(new MessageProcessor<MultipleCommandProcessor>());
+            _messageProcessor = pipeline.GetPipeline(new MessageProcessor(typeof(MultipleCommandProcessor)));
         }
 
         [Test]

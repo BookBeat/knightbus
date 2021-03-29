@@ -21,8 +21,7 @@ namespace KnightBus.Host
 
         internal IChannelReceiver CreateQueueReader(Type messageType, Type subscriptionType, Type processorInterface, Type settingsType, Type processor)
         {
-            var messageProcessorType = typeof(MessageProcessor<>).MakeGenericType(processorInterface);
-            var processorInstance = (IMessageProcessor)Activator.CreateInstance(messageProcessorType);
+            var processorInstance = new MessageProcessor(processorInterface);
             var queueReader = _transportChannelFactories.SingleOrDefault(factory => factory.CanCreate(messageType));
             if (queueReader == null) throw new TransportMissingException(messageType);
 
