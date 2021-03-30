@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using FluentAssertions;
 using NUnit.Framework;
@@ -11,7 +12,7 @@ namespace KnightBus.Core.Tests.Unit
         public void Should_not_serialize_attachments()
         {
             //arrange
-            var serializer = new JsonMessageSerializer();
+            var serializer = new MicrosoftJsonSerializer();
             var message = new AttachmentCommand
             {
                 Message = "Hello",

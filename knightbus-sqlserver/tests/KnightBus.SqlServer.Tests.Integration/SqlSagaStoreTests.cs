@@ -9,7 +9,7 @@ namespace KnightBus.SqlServer.Tests.Integration
     {
         public override void Setup()
         {
-            SagaStore = new SqlServerSagaStore(DatabaseInitializer.ConnectionString, new JsonMessageSerializer());
+            SagaStore = new SqlServerSagaStore(DatabaseInitializer.ConnectionString, new MicrosoftJsonSerializer());
         }
     }
 }

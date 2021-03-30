@@ -19,10 +19,10 @@ namespace KnightBus.Redis
         private readonly IMessageSerializer _serializer;
         private readonly ILog _log;
 
-        internal RedisQueueClient(IDatabase db, IMessageSerializer serializer = null, ILog log = null)
+        internal RedisQueueClient(IDatabase db, IMessageSerializer serializer, ILog log = null)
         {
             _db = db;
-            _serializer = serializer ?? new JsonMessageSerializer();
+            _serializer = serializer;
             _log = log ?? new NoLogging();
         }
 

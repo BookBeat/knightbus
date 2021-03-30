@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
 using FluentAssertions;
+using KnightBus.Core;
 using Moq;
 using NUnit.Framework;
 using StackExchange.Redis;
@@ -16,7 +17,7 @@ namespace KnightBus.Redis.Tests.Unit
         public void Setup()
         {
             _db = new Mock<IDatabase>();
-            _target = new RedisQueueClient<TestCommand>(_db.Object);
+            _target = new RedisQueueClient<TestCommand>(_db.Object, new MicrosoftJsonSerializer());
         }
 
         [Test]
