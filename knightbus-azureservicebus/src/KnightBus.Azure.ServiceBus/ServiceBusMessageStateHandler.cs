@@ -20,7 +20,7 @@ namespace KnightBus.Azure.ServiceBus
             MessageScope = messageScope;
             _processMessage = processMessage;
             _sbMessage = processMessage.Message;
-            _message = serializer.Deserialize<T>(_sbMessage.Body.ToString());
+            _message = serializer.Deserialize<T>(_sbMessage.Body.ToMemory().Span);
         }
 
         public int DeliveryCount => _sbMessage.DeliveryCount;

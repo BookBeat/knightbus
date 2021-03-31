@@ -96,10 +96,9 @@ namespace KnightBus.Redis
 
         private async Task UploadAttachment<T>(RedisListItem<T> message, string queueName, IDatabase db) where T : IRedisMessage
         {
-            if (typeof(ICommandWithAttachment).IsAssignableFrom(typeof(T)))
+            if (message.Body is ICommandWithAttachment attachmentMessage)
             {
                 if (_attachmentProvider == null) throw new AttachmentProviderMissingException();
-                var attachmentMessage = (ICommandWithAttachment)message.Body;
                 if (attachmentMessage.Attachment != null)
                 {
                     var attachmentId = Guid.NewGuid().ToString("N");

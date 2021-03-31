@@ -7,7 +7,7 @@ namespace KnightBus.SqlServer
     {
         public static IHostConfiguration UseSqlServerSagaStore(this IHostConfiguration configuration, string connectionString)
         {
-            configuration.EnableSagas(new SqlServerSagaStore(connectionString, new MicrosoftJsonSerializer()));
+            configuration.EnableSagas(new SqlServerSagaStore(connectionString));
             return configuration;
         }
     }

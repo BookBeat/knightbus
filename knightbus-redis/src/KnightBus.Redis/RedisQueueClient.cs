@@ -51,8 +51,8 @@ namespace KnightBus.Redis
 
             try
             {
-                var listItem = await _db.ListRightPopLeftPushAsync(_queueName, RedisQueueConventions.GetProcessingQueueName(_queueName)).ConfigureAwait(false);
-                if (listItem.IsNullOrEmpty)
+                byte[] listItem = await _db.ListRightPopLeftPushAsync(_queueName, RedisQueueConventions.GetProcessingQueueName(_queueName)).ConfigureAwait(false);
+                if (listItem == null)
                 {
                     cancellationsSource.Cancel();
                     return null;
@@ -88,8 +88,8 @@ namespace KnightBus.Redis
             var deadLetterQueueName = RedisQueueConventions.GetDeadLetterQueueName(_queueName);
             var deadLetterProcessingQueueName = RedisQueueConventions.GetProcessingQueueName(deadLetterQueueName);
 
-            var listItem = await _db.ListRightPopLeftPushAsync(deadLetterQueueName, deadLetterProcessingQueueName).ConfigureAwait(false);
-            if (listItem.IsNullOrEmpty) return;
+            byte[] listItem = await _db.ListRightPopLeftPushAsync(deadLetterQueueName, deadLetterProcessingQueueName).ConfigureAwait(false);
+            if (listItem == null) return;
             var message = _serializer.Deserialize<RedisListItem<T>>(listItem);
             var hashKey = RedisQueueConventions.GetMessageHashKey(_queueName, message.Id);
             var expirationKey = RedisQueueConventions.GetMessageExpirationKey(_queueName, message.Id);
@@ -143,7 +143,7 @@ namespace KnightBus.Redis
 
             var values = await _db.ListRangeAsync(RedisQueueConventions.GetDeadLetterQueueName(_queueName), 0, limit).ConfigureAwait(false);
 
-            foreach (var value in values)
+            foreach (byte[] value in values)
             {
                 var deadletter = new RedisDeadletter<T> {Message = _serializer.Deserialize<RedisListItem<T>>(value)};
                 var hash = RedisQueueConventions.GetMessageHashKey(_queueName, deadletter.Message.Id);

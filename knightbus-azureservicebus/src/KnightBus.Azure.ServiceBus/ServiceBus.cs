@@ -103,8 +103,7 @@ namespace KnightBus.Azure.ServiceBus
 
         private async Task<ServiceBusMessage> CreateMessageAsync<T>(T body) where T : IMessage
         {
-            var serialized = _configuration.MessageSerializer.Serialize(body);
-            var message = new ServiceBusMessage(Encoding.UTF8.GetBytes(serialized))
+            var message = new ServiceBusMessage(_configuration.MessageSerializer.Serialize(body))
             {
                 ContentType = _configuration.MessageSerializer.ContentType
             };
