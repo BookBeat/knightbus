@@ -54,7 +54,7 @@ namespace KnightBus.Redis
         private Task SendAsync<T>(IList<T> messages, string queueName) where T : IRedisMessage
         {
             var db = _multiplexer.GetDatabase(_configuration.DatabaseId);
-            var listItems = messages.Select(m => new RedisListItem<T>(Guid.NewGuid().ToString("N"), m));
+            var listItems = messages.Select(m => new RedisListItem<T>(Guid.NewGuid().ToString("N"), m)).ToList();
             var serialized = listItems.Select(m => (RedisValue)_configuration.MessageSerializer.Serialize(m)).ToArray();
             return Task.WhenAll(
                 UploadAttachments(listItems, queueName, db),
@@ -99,7 +99,7 @@ namespace KnightBus.Redis
             if (typeof(ICommandWithAttachment).IsAssignableFrom(typeof(T)))
             {
                 if (_attachmentProvider == null) throw new AttachmentProviderMissingException();
-                var attachmentMessage = (ICommandWithAttachment)message;
+                var attachmentMessage = (ICommandWithAttachment)message.Body;
                 if (attachmentMessage.Attachment != null)
                 {
                     var attachmentId = Guid.NewGuid().ToString("N");
