@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Threading.Tasks;
-using KnightBus.Core;
+using KnightBus.Messages;
 using ProtoBuf;
 
 namespace KnightBus.ProtoBufNet
