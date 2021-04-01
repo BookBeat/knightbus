@@ -5,7 +5,6 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
-using KnightBus.Messages;
 using KnightBus.Redis.Messages;
 using StackExchange.Redis;
 

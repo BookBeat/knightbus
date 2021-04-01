@@ -22,9 +22,19 @@ namespace KnightBus.Core
         /// Gets the maximum number of times a message can be delivered before dead lettered.
         /// This value must be lower than the queues default dead letter settings if it should have any effect. </summary>
         int DeadLetterDeliveryLimit { get; }
-
     }
 
+    /// <summary>
+    /// Implement this for <see cref="IProcessingSettings"/> to be use a specific serializer
+    /// </summary>
+    public interface ICustomMessageSerializer
+    {
+        IMessageSerializer MessageSerializer { get; }
+    }
+
+    /// <summary>
+    /// Implement this for <see cref="IProcessingSettings"/> to be able to extend locks
+    /// </summary>
     public interface IExtendMessageLockTimeout
     {
         /// <summary>
