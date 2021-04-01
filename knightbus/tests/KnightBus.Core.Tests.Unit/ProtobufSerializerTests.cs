@@ -1,36 +1,19 @@
-using System.IO;
 using FluentAssertions;
 using KnightBus.Messages;
+using KnightBus.ProtoBufNet;
 using NUnit.Framework;
+using ProtoBuf;
 
 namespace KnightBus.Core.Tests.Unit
 {
     [TestFixture]
-    public class JsonSerializerTests
+    public class ProtobufSerializerTests
     {
-        [Test]
-        public void Should_not_serialize_attachments()
-        {
-            //arrange
-            var serializer = new MicrosoftJsonSerializer();
-            var message = new AttachmentCommand
-            {
-                Message = "Hello",
-                Attachment = new MessageAttachment("filename.txt", "text/plain", new MemoryStream())
-            };
-            //act
-            var serialized = serializer.Serialize(message);
-            var deserialized = serializer.Deserialize<AttachmentCommand>(serialized);
-            //assert
-            deserialized.Attachment.Should().BeNull();
-            deserialized.Message.Should().Be("Hello");
-        }
-
         [Test]
         public void Should_serialize_deserialize_message()
         {
             //arrange
-            var serializer = new MicrosoftJsonSerializer();
+            var serializer = new ProtobufNetSerializer();
             var original = new TestSerializationCommand
             {
                 Age = 1,
@@ -46,10 +29,14 @@ namespace KnightBus.Core.Tests.Unit
             deserialized.Height.Should().Be(original.Height);
         }
 
+        [ProtoContract]
         public class TestSerializationCommand : ICommand
         {
+            [ProtoMember(1)]
             public string Name { get; set; }
+            [ProtoMember(2)]
             public int Age { get; set; }
+            [ProtoMember(3)]
             public float Height { get; set; }
         }
     }
