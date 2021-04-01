@@ -5,6 +5,6 @@
     /// </summary>
     public interface IMessageSerialization
     {
-        string ContentType { get; }
+        IMessageSerializer Serializer { get; }
     }
 }
