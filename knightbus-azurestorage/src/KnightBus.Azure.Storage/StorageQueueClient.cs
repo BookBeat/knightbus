@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Azure;
@@ -41,11 +40,11 @@ namespace KnightBus.Azure.Storage
         private readonly QueueClient _dlQueue;
         private readonly BlobContainerClient _container;
 
-        public StorageQueueClient(IStorageBusConfiguration configuration, IMessageAttachmentProvider attachmentProvider, string queueName)
+        public StorageQueueClient(IStorageBusConfiguration configuration, IMessageSerializer serializer, IMessageAttachmentProvider attachmentProvider, string queueName)
         {
             _attachmentProvider = attachmentProvider;
             _queueName = queueName;
-            _serializer = configuration.MessageSerializer;
+            _serializer = serializer;
 
             //QueueMessageEncoding.Base64 required for backwards compability with v11 storage clients
             _queue = new QueueClient(configuration.ConnectionString, queueName, new QueueClientOptions { MessageEncoding = QueueMessageEncoding.Base64 });

@@ -13,8 +13,8 @@ namespace KnightBus.Redis
         private readonly RedisConfiguration _redisConfiguration;
         private readonly IEventSubscription<T> _subscription;
 
-        public RedisEventChannelReceiver(IConnectionMultiplexer connectionMultiplexer, IProcessingSettings settings, IEventSubscription<T> subscription, RedisConfiguration configuration, IHostConfiguration hostConfiguration, IMessageProcessor processor)
-            :base(connectionMultiplexer, RedisQueueConventions.GetSubscriptionQueueName(AutoMessageMapper.GetQueueName<T>(), subscription.Name), settings, configuration, hostConfiguration, processor)
+        public RedisEventChannelReceiver(IConnectionMultiplexer connectionMultiplexer, IProcessingSettings settings, IMessageSerializer serializer, IEventSubscription<T> subscription, RedisConfiguration configuration, IHostConfiguration hostConfiguration, IMessageProcessor processor)
+            :base(connectionMultiplexer, RedisQueueConventions.GetSubscriptionQueueName(AutoMessageMapper.GetQueueName<T>(), subscription.Name), settings, serializer, configuration, hostConfiguration, processor)
         {
             _subscription = subscription;
             _redisConfiguration = configuration;

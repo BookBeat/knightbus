@@ -1,6 +1,4 @@
-﻿using KnightBus.Messages;
-
-namespace KnightBus.Core
+﻿namespace KnightBus.Core
 {
     /// <summary>
     /// Transport specific configuration

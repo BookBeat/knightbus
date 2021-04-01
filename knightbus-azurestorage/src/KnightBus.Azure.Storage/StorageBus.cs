@@ -32,7 +32,7 @@ namespace KnightBus.Azure.Storage
 
         private IStorageQueueClient GetClient<T>() where T : class, ICommand
         {
-            return _queueClients.GetOrAdd(typeof(T), type => new StorageQueueClient(_options, _attachmentProvider, AutoMessageMapper.GetQueueName<T>()));
+            return _queueClients.GetOrAdd(typeof(T), type => new StorageQueueClient(_options, _options.MessageSerializer, _attachmentProvider, AutoMessageMapper.GetQueueName<T>()));
         }
 
         private Task SendAsync<T>(T command, TimeSpan? delay, CancellationToken cancellationToken = default) where T : class, IStorageQueueCommand

@@ -41,7 +41,7 @@ namespace KnightBus.Azure.Storage.Tests.Unit
             var factory = new StorageQueueChannelFactory(new StorageBusConfiguration(""));
             var message = new Mock<IStorageQueueCommand>();
             //act
-            var result = factory.Create(message.Object.GetType(), null, new TestMessageSettings(), Mock.Of<IHostConfiguration>(), Mock.Of<IMessageProcessor>());
+            var result = factory.Create(message.Object.GetType(), null, new TestMessageSettings(), Mock.Of<IMessageSerializer>(), Mock.Of<IHostConfiguration>(), Mock.Of<IMessageProcessor>());
             //assert
             result.Should().NotBeNull();
         }
