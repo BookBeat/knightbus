@@ -47,8 +47,8 @@ namespace KnightBus.Azure.Storage
             _serializer = serializer;
 
             //QueueMessageEncoding.Base64 required for backwards compability with v11 storage clients
-            _queue = new QueueClient(configuration.ConnectionString, queueName, new QueueClientOptions { MessageEncoding = QueueMessageEncoding.Base64 });
-            _dlQueue = new QueueClient(configuration.ConnectionString, GetDeadLetterName(queueName), new QueueClientOptions { MessageEncoding = QueueMessageEncoding.Base64 });
+            _queue = new QueueClient(configuration.ConnectionString, queueName, new QueueClientOptions { MessageEncoding = configuration.MessageEncoding });
+            _dlQueue = new QueueClient(configuration.ConnectionString, GetDeadLetterName(queueName), new QueueClientOptions { MessageEncoding = configuration.MessageEncoding });
             _container = new BlobContainerClient(configuration.ConnectionString, queueName);
         }
 
