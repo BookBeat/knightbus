@@ -6,6 +6,8 @@ using KnightBus.Azure.ServiceBus.Messages;
 using KnightBus.Core;
 using KnightBus.Host;
 using KnightBus.Messages;
+using KnightBus.ProtoBufNet;
+using ProtoBuf;
 
 namespace KnightBus.Examples.Azure.ServiceBus
 {
@@ -20,9 +22,12 @@ namespace KnightBus.Examples.Azure.ServiceBus
         {
             var serviceBusConnection = "your-connection-string";
 
+            var configuration = new ServiceBusConfiguration(serviceBusConnection)
+                {MessageSerializer = new MicrosoftJsonSerializer()};
+            
             var knightBusHost = new KnightBusHost()
                 //Enable the ServiceBus Transport
-                .UseTransport(new ServiceBusTransport(serviceBusConnection))
+                .UseTransport(new ServiceBusTransport(configuration))
                 .Configure(configuration => configuration
                     //Register our message processors without IoC using the standard provider
                     .UseDependencyInjection(new StandardDependecyInjection()
@@ -34,26 +39,29 @@ namespace KnightBus.Examples.Azure.ServiceBus
             await knightBusHost.StartAsync(new CancellationToken());
 
             //Initiate the client
-            var client = new KnightBus.Azure.ServiceBus.ServiceBus(new ServiceBusConfiguration(serviceBusConnection));
+            var protoClient = new KnightBus.Azure.ServiceBus.ServiceBus(new ServiceBusConfiguration(serviceBusConnection){MessageSerializer = new ProtobufNetSerializer()});
+            var jsonClient = new KnightBus.Azure.ServiceBus.ServiceBus(new ServiceBusConfiguration(serviceBusConnection){MessageSerializer = new MicrosoftJsonSerializer()});
             //Send some Messages and watch them print in the console
             for (var i = 0; i < 10; i++)
             {
-                await client.SendAsync(new SampleServiceBusMessage { Message = $"Hello from command {i}" });
+                await protoClient.SendAsync(new SampleServiceBusMessage { Message = $"Hello from command {i}" });
             }
             for (var i = 0; i < 10; i++)
             {
-                await client.PublishEventAsync(new SampleServiceBusEvent { Message = $"Hello from event {i}" });
+                await jsonClient.PublishEventAsync(new SampleServiceBusEvent { Message = $"Hello from event {i}" });
             }
 
 
             Console.ReadKey();
         }
 
+        [ProtoContract]
         class SampleServiceBusMessage : IServiceBusCommand
         {
+            [ProtoMember(1)]
             public string Message { get; set; }
         }
-
+        
         class SampleServiceBusEvent : IServiceBusEvent
         {
             public string Message { get; set; }
@@ -73,7 +81,7 @@ namespace KnightBus.Examples.Azure.ServiceBus
         }
 
         class SampleServiceBusMessageProcessor :
-            IProcessCommand<SampleServiceBusMessage, SomeProcessingSetting>,
+            IProcessCommand<SampleServiceBusMessage, ProtoBufProcessingSetting>,
             IProcessEvent<SampleServiceBusEvent, EventSubscriptionOne, SomeProcessingSetting>
         {
             public Task ProcessAsync(SampleServiceBusMessage message, CancellationToken cancellationToken)
@@ -121,6 +129,15 @@ namespace KnightBus.Examples.Azure.ServiceBus
             public int PrefetchCount => 1;
             public TimeSpan MessageLockTimeout => TimeSpan.FromMinutes(5);
             public int DeadLetterDeliveryLimit => 2;
+        }
+        
+        class ProtoBufProcessingSetting : IProcessingSettings, ICustomMessageSerializer
+        {
+            public int MaxConcurrentCalls => 1;
+            public int PrefetchCount => 1;
+            public TimeSpan MessageLockTimeout => TimeSpan.FromMinutes(5);
+            public int DeadLetterDeliveryLimit => 2;
+            public IMessageSerializer MessageSerializer => new ProtobufNetSerializer();
         }
     }
 }
