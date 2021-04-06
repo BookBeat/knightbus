@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## 2021-04-06
+
+### KnightBus.Core 9.0.0
+
+ * Switch to Microsoft json serialization and remove Newtonsoft
+ * Change interface for serialization to support binary
+ * Add support for protobuf-net
+ * Add support for marking messages with serialization format.
+
+### KnightBus.ProtobufNet 1.0.0
+
+ * Initial release
+
 ## 2021-03-25
 
 ### KnightBus.Azure.ServiceBus 10.0.0
