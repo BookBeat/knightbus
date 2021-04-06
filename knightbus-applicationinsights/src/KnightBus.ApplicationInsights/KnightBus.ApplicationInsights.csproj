@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFramework>netstandard2.1</TargetFramework>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Authors>BookBeat</Authors>
     <Description>Application Insights for KnightBus</Description>
@@ -11,7 +11,7 @@
     <PackageIconUrl>https://raw.githubusercontent.com/BookBeat/knightbus/master/documentation/media/images/knighbus-64.png</PackageIconUrl>
     <PackageIcon>knighbus-64.png</PackageIcon>
     <RepositoryUrl>https://github.com/BookBeat/knightbus</RepositoryUrl>
-    <Version>5.3.0</Version>
+    <Version>6.0.0</Version>
     <PackageTags>knightbus;applicationinsights;azure;</PackageTags>
   </PropertyGroup>
 

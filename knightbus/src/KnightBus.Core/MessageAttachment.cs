@@ -13,7 +13,7 @@ namespace KnightBus.Core
             Stream = stream;
             try
             {
-                Length = stream.Length;
+                Length = stream?.Length ?? 0;
             }
             catch (NotSupportedException)
             {}

@@ -17,10 +17,10 @@ namespace KnightBus.Azure.Storage
 
         public IList<IMessageProcessorMiddleware> Middlewares { get; } = new List<IMessageProcessorMiddleware>();
 
-        public IChannelReceiver Create(Type messageType, IEventSubscription subscription, IProcessingSettings processingSettings, IHostConfiguration configuration, IMessageProcessor processor)
+        public IChannelReceiver Create(Type messageType, IEventSubscription subscription, IProcessingSettings processingSettings, IMessageSerializer serializer, IHostConfiguration configuration, IMessageProcessor processor)
         {
             var queueReaderType = typeof(StorageQueueChannelReceiver<>).MakeGenericType(messageType);
-            var queueReader = (IChannelReceiver)Activator.CreateInstance(queueReaderType, processingSettings, processor, configuration, Configuration);
+            var queueReader = (IChannelReceiver)Activator.CreateInstance(queueReaderType, processingSettings, serializer, processor, configuration, Configuration);
             return queueReader;
         }
 

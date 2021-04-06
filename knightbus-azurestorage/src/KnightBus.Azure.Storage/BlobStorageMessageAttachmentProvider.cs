@@ -3,7 +3,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
-using Azure.Storage.Blobs.Specialized;
 using KnightBus.Core;
 using KnightBus.Messages;
 
@@ -23,13 +22,7 @@ namespace KnightBus.Azure.Storage
             var blob = new BlobClient(_connectionString, queueName, id);
             var properties = await blob.GetPropertiesAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
             
-            return new BlobMessageAttachment
-            {
-                Stream = await blob.OpenReadAsync(cancellationToken: cancellationToken).ConfigureAwait(false),
-                Length = properties.Value.ContentLength,
-                Filename = properties.Value.Metadata["Filename"],
-                ContentType = properties.Value.ContentType
-            };
+            return new MessageAttachment(properties.Value.Metadata["Filename"], properties.Value.ContentType, await blob.OpenReadAsync(cancellationToken: cancellationToken).ConfigureAwait(false));
         }
 
         public async Task UploadAttachmentAsync(string queueName, string id, IMessageAttachment attachment, CancellationToken cancellationToken = default(CancellationToken))

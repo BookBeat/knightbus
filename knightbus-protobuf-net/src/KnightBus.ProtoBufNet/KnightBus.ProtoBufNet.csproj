@@ -4,21 +4,26 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Authors>BookBeat</Authors>
-    <Description>Redis Messages for KnightBus</Description>
-    <Copyright>Copyright © BookBeat 2019</Copyright>
+    <Description>Protobuf serialization for KnightBus</Description>
+    <Copyright>Copyright © BookBeat 2021</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://knightbus.readthedocs.io</PackageProjectUrl>
     <PackageIconUrl>https://raw.githubusercontent.com/BookBeat/knightbus/master/documentation/media/images/knighbus-64.png</PackageIconUrl>
     <PackageIcon>knighbus-64.png</PackageIcon>
     <RepositoryUrl>https://github.com/BookBeat/knightbus</RepositoryUrl>
-    <Version>2.1.0</Version>
-    <PackageTags>knightbus;redis;queues;messaging</PackageTags>
+    <Version>1.0.0</Version>
+    <PackageTags>knightbus;grpc;protobuf</PackageTags>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
   <ItemGroup>
     <None Include="knighbus-64.png" Pack="true" Visible="false" PackagePath="" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\knightbus\src\KnightBus.Messages\KnightBus.Messages.csproj" />
+    <PackageReference Include="protobuf-net" Version="3.0.101" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\knightbus\src\KnightBus.Core\KnightBus.Core.csproj" />
   </ItemGroup>
 
 </Project>

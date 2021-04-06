@@ -17,16 +17,18 @@ namespace KnightBus.Redis
         private readonly string _queueName;
         protected readonly IConnectionMultiplexer ConnectionMultiplexer;
         private readonly IProcessingSettings _settings;
+        private readonly IMessageSerializer _serializer;
         private CancellationTokenSource _pumpDelayCancellationTokenSource = new CancellationTokenSource();
         private Task _messagePumpTask;
         private Task _lostMessageTask;
         private LostMessageBackgroundService<T> _lostMessageService;
         private RedisQueueClient<T> _queueClient;
 
-        protected RedisChannelReceiver(IConnectionMultiplexer connectionMultiplexer, string queueName, IProcessingSettings settings, RedisConfiguration redisConfiguration, IHostConfiguration hostConfiguration, IMessageProcessor processor)
+        protected RedisChannelReceiver(IConnectionMultiplexer connectionMultiplexer, string queueName, IProcessingSettings settings, IMessageSerializer serializer, RedisConfiguration redisConfiguration, IHostConfiguration hostConfiguration, IMessageProcessor processor)
         {
             ConnectionMultiplexer = connectionMultiplexer;
             _settings = settings;
+            _serializer = serializer;
             _redisConfiguration = redisConfiguration;
             _hostConfiguration = hostConfiguration;
             _processor = processor;
@@ -36,7 +38,7 @@ namespace KnightBus.Redis
 
         public virtual async Task StartAsync(CancellationToken cancellationToken)
         {
-            _queueClient = new RedisQueueClient<T>(ConnectionMultiplexer.GetDatabase(_redisConfiguration.DatabaseId), _redisConfiguration.MessageSerializer, _hostConfiguration.Log);
+            _queueClient = new RedisQueueClient<T>(ConnectionMultiplexer.GetDatabase(_redisConfiguration.DatabaseId), _serializer, _hostConfiguration.Log);
             var sub = ConnectionMultiplexer.GetSubscriber();
             await sub.SubscribeAsync(_queueName, MessageSignalReceivedHandler);
 
@@ -46,7 +48,7 @@ namespace KnightBus.Redis
                     if (!await PumpAsync(cancellationToken).ConfigureAwait(false))
                         await Delay(_pumpDelayCancellationTokenSource.Token).ConfigureAwait(false);
             });
-            _lostMessageService = new LostMessageBackgroundService<T>(ConnectionMultiplexer, _redisConfiguration.DatabaseId, _redisConfiguration.MessageSerializer, _hostConfiguration.Log, _settings.MessageLockTimeout, _queueName);
+            _lostMessageService = new LostMessageBackgroundService<T>(ConnectionMultiplexer, _redisConfiguration.DatabaseId, _serializer, _hostConfiguration.Log, _settings.MessageLockTimeout, _queueName);
             _lostMessageTask = _lostMessageService.Start(cancellationToken);
         }
 

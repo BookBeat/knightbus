@@ -4,7 +4,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Azure.Messaging.ServiceBus;
 using Azure.Messaging.ServiceBus.Administration;
-using KnightBus.Azure.ServiceBus.Messages;
 using KnightBus.Core;
 using KnightBus.Messages;
 
@@ -17,6 +16,7 @@ namespace KnightBus.Azure.ServiceBus
         private readonly IClientFactory _clientFactory;
         public IProcessingSettings Settings { get; set; }
         private readonly ILog _log;
+        private readonly IMessageSerializer _serializer;
         private readonly IServiceBusConfiguration _configuration;
         private readonly IHostConfiguration _hostConfiguration;
         private readonly IMessageProcessor _processor;
@@ -25,8 +25,9 @@ namespace KnightBus.Azure.ServiceBus
         private readonly ServiceBusAdministrationClient _managementClient;
         private CancellationToken _cancellationToken;
 
-        public ServiceBusQueueChannelReceiver(IProcessingSettings settings, IServiceBusConfiguration configuration, IHostConfiguration hostConfiguration, IMessageProcessor processor)
+        public ServiceBusQueueChannelReceiver(IProcessingSettings settings, IMessageSerializer serializer, IServiceBusConfiguration configuration, IHostConfiguration hostConfiguration, IMessageProcessor processor)
         {
+            _serializer = serializer;
             _configuration = configuration;
             _hostConfiguration = hostConfiguration;
             _processor = processor;
@@ -108,7 +109,7 @@ namespace KnightBus.Azure.ServiceBus
 
         private async Task ClientOnProcessMessageAsync(ProcessMessageEventArgs arg)
         {
-            var stateHandler = new ServiceBusMessageStateHandler<T>(arg, _configuration.MessageSerializer, _deadLetterLimit, _hostConfiguration.DependencyInjection);
+            var stateHandler = new ServiceBusMessageStateHandler<T>(arg, _serializer, _deadLetterLimit, _hostConfiguration.DependencyInjection);
             using (var cts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken, arg.CancellationToken))
             {
                 await _processor.ProcessAsync(stateHandler, cts.Token).ConfigureAwait(false);

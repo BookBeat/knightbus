@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFrameworks>netstandard2.1;netstandard2.0</TargetFrameworks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Authors>BookBeat</Authors>
     <Description>Base KnightBus Message Interfaces</Description>
@@ -11,7 +11,7 @@
     <PackageIconUrl>https://raw.githubusercontent.com/BookBeat/knightbus/master/documentation/media/images/knighbus-64.png</PackageIconUrl>
     <PackageIcon>knighbus-64.png</PackageIcon>
     <RepositoryUrl>https://github.com/BookBeat/knightbus</RepositoryUrl>
-    <Version>2.1.1</Version>
+    <Version>2.1.2</Version>
     <PackageTags>knightbus;messaging;</PackageTags>
   </PropertyGroup>
   <ItemGroup>

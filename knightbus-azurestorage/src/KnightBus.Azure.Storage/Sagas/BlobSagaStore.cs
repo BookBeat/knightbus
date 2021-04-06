@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Azure;
 using KnightBus.Core.Sagas;
 using KnightBus.Core.Sagas.Exceptions;
-using Newtonsoft.Json;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 
@@ -34,9 +34,7 @@ namespace KnightBus.Azure.Storage.Sagas
                     throw new SagaNotFoundException(partitionKey, id);
 
                 var downloadInfo = await blob.DownloadAsync().ConfigureAwait(false);
-                var serializer = new JsonSerializer();
-                using (var streamReader = new StreamReader(downloadInfo.Value.Content))
-                    return (T)serializer.Deserialize(streamReader, typeof(T));
+                return await JsonSerializer.DeserializeAsync<T>(downloadInfo.Value.Content).ConfigureAwait(false);
             }
             catch (RequestFailedException e) when (e.Status == 404)
             {
@@ -142,7 +140,7 @@ namespace KnightBus.Azure.Storage.Sagas
 
         private static Stream GetStream<T>(T data)
         {
-            return new MemoryStream(System.Text.Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(data)));
+            return new MemoryStream(JsonSerializer.SerializeToUtf8Bytes(data));
         }
     }
 }

@@ -16,7 +16,7 @@ namespace KnightBus.Redis
         public RedisMessageStateHandler(IConnectionMultiplexer connection, RedisConfiguration configuration, RedisMessage<T> redisMessage, int deadLetterDeliveryLimit, IDependencyInjection messageScope)
         {
             _redisMessage = redisMessage;
-            _queueClient = new RedisQueueClient<T>(connection.GetDatabase(configuration.DatabaseId));
+            _queueClient = new RedisQueueClient<T>(connection.GetDatabase(configuration.DatabaseId), configuration.MessageSerializer);
             DeadLetterDeliveryLimit = deadLetterDeliveryLimit;
             MessageScope = messageScope;
         }

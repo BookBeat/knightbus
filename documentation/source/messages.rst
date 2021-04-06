@@ -50,6 +50,25 @@ To send a message you need to use the client for the specific message transport.
     await serviceBusClient.SendAsync(new MyServiceBusMessage());
     await storageBusClient.SendAsync(new MyStorageBusMessage());
 
+Custom Message Serialization
+----------------------------
+
+By default KnightBus uses Microsoft.Text.Json for message serialization. To override you can either change it per transport or for a specific message.
+To override for a specific Message set it on the processing settings.
+
+.. code-block:: c#
+
+public class SampleSettings : IProcessingSettings, ICustomMessageSerializer
+    {
+        //These settings can be re-used by multiple message processors
+        public int MaxConcurrentCalls => 100; //How many concurrent messages do you want to process
+        public TimeSpan MessageLockTimeout => TimeSpan.FromMinutes(1); //How long should you process before considering the message hung
+        public int DeadLetterDeliveryLimit => 1; //How many retries before dead lettering
+        public int PrefetchCount => 50; //Increase perfomance by fetching more messages at once
+
+        public IMessageSerializer MessageSerializer => new MyOtherSerializer();
+    }
+
 Message Attachments
 -------------------
 

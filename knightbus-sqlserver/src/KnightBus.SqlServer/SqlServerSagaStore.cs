@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Data;
 using System.Data.SqlClient;
+using System.Text.Json;
 using System.Threading.Tasks;
-using KnightBus.Core;
 using KnightBus.Core.Sagas;
 using KnightBus.Core.Sagas.Exceptions;
 
@@ -11,14 +11,12 @@ namespace KnightBus.SqlServer
     public class SqlServerSagaStore : ISagaStore
     {
         private readonly string _connectionString;
-        private readonly IMessageSerializer _serializer;
         private const string _tableName = "Sagastore";
         private const string _schema = "dbo";
 
-        public SqlServerSagaStore(string connectionString, IMessageSerializer serializer)
+        public SqlServerSagaStore(string connectionString)
         {
             _connectionString = connectionString;
-            _serializer = serializer;
         }
 
 
@@ -71,7 +69,7 @@ namespace KnightBus.SqlServer
 
                     await result.ReadAsync().ConfigureAwait(false);
                     var json = result.GetString(0);
-                    return _serializer.Deserialize<T>(json);
+                    return JsonSerializer.Deserialize<T>(json);
                 }
                 catch (SqlException e) when (e.Number == 208)
                 {
@@ -83,7 +81,7 @@ namespace KnightBus.SqlServer
 
         public async Task<T> Create<T>(string partitionKey, string id, T sagaData, TimeSpan ttl)
         {
-            var json = _serializer.Serialize(sagaData);
+            var json = JsonSerializer.Serialize(sagaData);
             using (var connection = await GetConnection().ConfigureAwait(false))
             {
                 var sql = $@"
@@ -122,7 +120,7 @@ INSERT INTO {_schema}.{_tableName} (PartitionKey, Id, Json, Expiration) VALUES (
 
         public async Task Update<T>(string partitionKey, string id, T sagaData)
         {
-            var json = _serializer.Serialize(sagaData);
+            var json = JsonSerializer.Serialize(sagaData);
             using (var connection = await GetConnection().ConfigureAwait(false))
             {
                 var sql = $@"UPDATE {_schema}.{_tableName} SET Json = @Json WHERE PartitionKey = @PartitionKey AND Id = @Id";

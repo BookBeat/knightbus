@@ -17,7 +17,7 @@ namespace KnightBus.Redis.Tests.Integration
         public void Setup()
         {
             _bus = new RedisBus(RedisTestBase.Configuration);
-            _target = new RedisQueueClient<TestCommand>(RedisTestBase.Database);
+            _target = new RedisQueueClient<TestCommand>(RedisTestBase.Database, new MicrosoftJsonSerializer());
         }
         [TearDown] //This should be done after each test thus not OneTime
         public void BaseTeardown()

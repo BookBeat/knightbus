@@ -8,7 +8,7 @@
         public static string GetDeadLetterQueueName(string queueName) => $"{queueName}:deadletter";
         public static string GetSubscriptionKey(string queueName) => $"{queueName}:subs";
         public static string GetSubscriptionQueueName(string queueName, string subscription) => $"{queueName}:subs:{subscription}";
-        public static string GetAttachmentMetadataKey(string queueName, string id) => $"{RedisQueueConventions.GetMessageHashKey(queueName, id)}:attachment:metadata";
-        public static string GetAttachmentBinaryKey(string queueName, string id) => $"{RedisQueueConventions.GetMessageHashKey(queueName, id)}:attachment:binary";
+        public static string GetAttachmentMetadataKey(string queueName, string id) => $"{GetMessageHashKey(queueName, id)}:attachment:metadata";
+        public static string GetAttachmentBinaryKey(string queueName, string id) => $"{GetMessageHashKey(queueName, id)}:attachment:binary";
     }
 }

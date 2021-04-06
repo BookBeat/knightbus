@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Azure;
@@ -41,15 +40,15 @@ namespace KnightBus.Azure.Storage
         private readonly QueueClient _dlQueue;
         private readonly BlobContainerClient _container;
 
-        public StorageQueueClient(IStorageBusConfiguration configuration, IMessageAttachmentProvider attachmentProvider, string queueName)
+        public StorageQueueClient(IStorageBusConfiguration configuration, IMessageSerializer serializer, IMessageAttachmentProvider attachmentProvider, string queueName)
         {
             _attachmentProvider = attachmentProvider;
             _queueName = queueName;
-            _serializer = configuration.MessageSerializer;
+            _serializer = serializer;
 
             //QueueMessageEncoding.Base64 required for backwards compability with v11 storage clients
-            _queue = new QueueClient(configuration.ConnectionString, queueName, new QueueClientOptions {MessageEncoding = QueueMessageEncoding.Base64});
-            _dlQueue = new QueueClient(configuration.ConnectionString, GetDeadLetterName(queueName), new QueueClientOptions {MessageEncoding = QueueMessageEncoding.Base64});
+            _queue = new QueueClient(configuration.ConnectionString, queueName, new QueueClientOptions { MessageEncoding = configuration.MessageEncoding });
+            _dlQueue = new QueueClient(configuration.ConnectionString, GetDeadLetterName(queueName), new QueueClientOptions { MessageEncoding = configuration.MessageEncoding });
             _container = new BlobContainerClient(configuration.ConnectionString, queueName);
         }
 
@@ -66,7 +65,7 @@ namespace KnightBus.Azure.Storage
 
         public async Task DeadLetterAsync(StorageQueueMessage message)
         {
-            await _dlQueue.SendMessageAsync(_serializer.Serialize(message.Properties), timeToLive:TimeSpan.FromSeconds(-1))
+            await _dlQueue.SendMessageAsync(new BinaryData(_serializer.Serialize(message.Properties)), timeToLive: TimeSpan.FromSeconds(-1))
                 .ContinueWith(task => _queue.DeleteMessageAsync(message.QueueMessageId, message.PopReceipt), TaskContinuationOptions.OnlyOnRanToCompletion)
                 .ConfigureAwait(false);
         }
@@ -80,14 +79,14 @@ namespace KnightBus.Azure.Storage
         public async Task CompleteAsync(StorageQueueMessage message)
         {
             await _queue.DeleteMessageAsync(message.QueueMessageId, message.PopReceipt)
-                .ContinueWith(task=> TryDeleteBlob(message.BlobMessageId), TaskContinuationOptions.OnlyOnRanToCompletion)
+                .ContinueWith(task => TryDeleteBlob(message.BlobMessageId), TaskContinuationOptions.OnlyOnRanToCompletion)
                 .ConfigureAwait(false);
         }
 
         public async Task AbandonByErrorAsync(StorageQueueMessage message, TimeSpan? visibilityTimeout)
         {
             visibilityTimeout = visibilityTimeout ?? TimeSpan.Zero;
-            var result = await _queue.UpdateMessageAsync(message.QueueMessageId, message.PopReceipt, _serializer.Serialize(message.Properties), visibilityTimeout.Value).ConfigureAwait(false);
+            var result = await _queue.UpdateMessageAsync(message.QueueMessageId, message.PopReceipt, new BinaryData(_serializer.Serialize(message.Properties)), visibilityTimeout.Value).ConfigureAwait(false);
             message.PopReceipt = result.Value.PopReceipt;
         }
 
@@ -98,10 +97,10 @@ namespace KnightBus.Azure.Storage
             {
                 BlobMessageId = Guid.NewGuid().ToString()
             };
-            
+
             if (typeof(ICommandWithAttachment).IsAssignableFrom(typeof(T)))
             {
-                if(_attachmentProvider == null) throw new AttachmentProviderMissingException();
+                if (_attachmentProvider == null) throw new AttachmentProviderMissingException();
 
                 var attachmentMessage = (ICommandWithAttachment)message;
                 if (attachmentMessage.Attachment != null)
@@ -117,11 +116,11 @@ namespace KnightBus.Azure.Storage
             try
             {
                 var blob = _container.GetBlobClient(storageMessage.BlobMessageId);
-                using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(_serializer.Serialize(message))))
+                using (var stream = new MemoryStream(_serializer.Serialize(message)))
                 {
                     await blob.UploadAsync(stream, cancellationToken).ConfigureAwait(false);
                 }
-                await _queue.SendMessageAsync(_serializer.Serialize(storageMessage.Properties), delay ?? TimeSpan.Zero, TimeSpan.FromSeconds(-1), cancellationToken).ConfigureAwait(false);
+                await _queue.SendMessageAsync(new BinaryData(_serializer.Serialize(storageMessage.Properties)), delay ?? TimeSpan.Zero, TimeSpan.FromSeconds(-1), cancellationToken).ConfigureAwait(false);
             }
             catch (Exception)
             {
@@ -142,20 +141,20 @@ namespace KnightBus.Azure.Storage
             {
                 var messages = await GetMessagesAsync<T>(1, TimeSpan.FromMinutes(2), _dlQueue)
                     .ConfigureAwait(false);
-                
-                if(!messages.Any())
+
+                if (!messages.Any())
                     continue;
                 var deadletter = messages.Single();
-                
+
                 // Delete the old message
                 await _dlQueue.DeleteMessageAsync(deadletter.QueueMessageId, deadletter.PopReceipt).ConfigureAwait(false);
-                
+
                 // The dead letter will be deleted even though shouldRequeue is false
-                if(shouldRequeue != null && !shouldRequeue((T)deadletter.Message))
+                if (shouldRequeue != null && !shouldRequeue((T)deadletter.Message))
                     continue;
-                
+
                 // enqueue the new message again
-                await _queue.SendMessageAsync(_serializer.Serialize(deadletter.Properties), TimeSpan.Zero, TimeSpan.FromSeconds(-1)).ConfigureAwait(false);
+                await _queue.SendMessageAsync(new BinaryData(_serializer.Serialize(deadletter.Properties)), TimeSpan.Zero, TimeSpan.FromSeconds(-1)).ConfigureAwait(false);
             }
         }
 
@@ -201,11 +200,11 @@ namespace KnightBus.Azure.Storage
 
         public async Task SetVisibilityTimeout(StorageQueueMessage message, TimeSpan timeToExtend, CancellationToken cancellationToken)
         {
-            var result = await _queue.UpdateMessageAsync(message.QueueMessageId, message.PopReceipt, visibilityTimeout:timeToExtend, cancellationToken:cancellationToken).ConfigureAwait(false);
+            var result = await _queue.UpdateMessageAsync(message.QueueMessageId, message.PopReceipt, visibilityTimeout: timeToExtend, cancellationToken: cancellationToken).ConfigureAwait(false);
             message.PopReceipt = result.Value.PopReceipt;
         }
 
-        
+
         public Task<List<StorageQueueMessage>> GetMessagesAsync<T>(int count, TimeSpan? lockDuration) where T : IStorageQueueCommand
         {
             return GetMessagesAsync<T>(count, lockDuration, _queue);
@@ -222,19 +221,17 @@ namespace KnightBus.Azure.Storage
                     var message = new StorageQueueMessage
                     {
                         QueueMessageId = queueMessage.MessageId,
-                        DequeueCount = (int) queueMessage.DequeueCount,
+                        DequeueCount = (int)queueMessage.DequeueCount,
                         PopReceipt = queueMessage.PopReceipt,
-                        Properties = TryDeserializeProperties(queueMessage.MessageText)
+                        Properties = TryDeserializeProperties(queueMessage.Body)
                     };
-                    using (var steam = new MemoryStream())
+                    using (var stream = new MemoryStream())
                     {
-                        await _container.GetBlobClient(message.BlobMessageId).DownloadToAsync(steam).ConfigureAwait(false);
-                        steam.Position = 0;
-                        using (var streamReader = new StreamReader(steam, Encoding.UTF8))
-                        {
-                            message.Message = _serializer.Deserialize<T>(await streamReader.ReadToEndAsync().ConfigureAwait(false));
-                            messageContainers.Add(message);
-                        }
+                        await _container.GetBlobClient(message.BlobMessageId).DownloadToAsync(stream).ConfigureAwait(false);
+                        stream.Position = 0;
+
+                        message.Message = await _serializer.Deserialize<T>(stream).ConfigureAwait(false);
+                        messageContainers.Add(message);
                     }
                 }
                 catch (RequestFailedException e) when (e.Status == 404)
@@ -246,7 +243,7 @@ namespace KnightBus.Azure.Storage
             return messageContainers;
         }
 
-        private Dictionary<string, string> TryDeserializeProperties(string serialized)
+        private Dictionary<string, string> TryDeserializeProperties(BinaryData serialized)
         {
             try
             {

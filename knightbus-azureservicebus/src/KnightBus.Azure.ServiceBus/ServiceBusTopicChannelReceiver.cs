@@ -3,7 +3,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Azure.Messaging.ServiceBus;
 using Azure.Messaging.ServiceBus.Administration;
-using KnightBus.Azure.ServiceBus.Messages;
 using KnightBus.Core;
 using KnightBus.Messages;
 
@@ -15,6 +14,7 @@ namespace KnightBus.Azure.ServiceBus
         private readonly IClientFactory _clientFactory;
         public IProcessingSettings Settings { get; set; }
         private readonly ServiceBusAdministrationClient _managementClient;
+        private readonly IMessageSerializer _serializer;
         private readonly IEventSubscription<TTopic> _subscription;
         private readonly ILog _log;
         private readonly IServiceBusConfiguration _configuration;
@@ -24,10 +24,11 @@ namespace KnightBus.Azure.ServiceBus
         private ServiceBusProcessor _client;
         private CancellationToken _cancellationToken;
 
-        public ServiceBusTopicChannelReceiver(IProcessingSettings settings, IEventSubscription<TTopic> subscription, IServiceBusConfiguration configuration, IHostConfiguration hostConfiguration, IMessageProcessor processor)
+        public ServiceBusTopicChannelReceiver(IProcessingSettings settings, IMessageSerializer serializer, IEventSubscription<TTopic> subscription, IServiceBusConfiguration configuration, IHostConfiguration hostConfiguration, IMessageProcessor processor)
         {
             Settings = settings;
             _managementClient = new ServiceBusAdministrationClient(configuration.ConnectionString);
+            _serializer = serializer;
             _subscription = subscription;
             _log = hostConfiguration.Log;
             _configuration = configuration;
@@ -128,7 +129,7 @@ namespace KnightBus.Azure.ServiceBus
 
         private async Task ClientOnProcessMessageAsync(ProcessMessageEventArgs arg)
         {
-            var stateHandler = new ServiceBusMessageStateHandler<TTopic>(arg, _configuration.MessageSerializer, _deadLetterLimit, _hostConfiguration.DependencyInjection);
+            var stateHandler = new ServiceBusMessageStateHandler<TTopic>(arg, _serializer, _deadLetterLimit, _hostConfiguration.DependencyInjection);
             using (var cts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken, arg.CancellationToken))
             {
                 await _processor.ProcessAsync(stateHandler, cts.Token).ConfigureAwait(false);

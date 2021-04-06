@@ -9,7 +9,7 @@ namespace KnightBus.Redis.Tests.Integration
     {
         public override void Setup()
         {
-            SagaStore = new RedisSagaStore(RedisTestBase.Database.Multiplexer, RedisTestBase.Database.Database, new JsonMessageSerializer());
+            SagaStore = new RedisSagaStore(RedisTestBase.Database.Multiplexer, RedisTestBase.Database.Database, new MicrosoftJsonSerializer());
         }
 
     }

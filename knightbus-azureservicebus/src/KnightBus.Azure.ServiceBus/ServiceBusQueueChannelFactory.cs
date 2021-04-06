@@ -16,10 +16,10 @@ namespace KnightBus.Azure.ServiceBus
         public ITransportConfiguration Configuration { get; set; }
         public IList<IMessageProcessorMiddleware> Middlewares { get; } = new List<IMessageProcessorMiddleware>();
 
-        public IChannelReceiver Create(Type messageType, IEventSubscription subscription, IProcessingSettings processingSettings, IHostConfiguration configuration, IMessageProcessor processor)
+        public IChannelReceiver Create(Type messageType, IEventSubscription subscription, IProcessingSettings processingSettings, IMessageSerializer serializer, IHostConfiguration configuration, IMessageProcessor processor)
         {
             var queueReaderType = typeof(ServiceBusQueueChannelReceiver<>).MakeGenericType(messageType);
-            var queueReader = (IChannelReceiver)Activator.CreateInstance(queueReaderType, processingSettings, Configuration, configuration, processor);
+            var queueReader = (IChannelReceiver)Activator.CreateInstance(queueReaderType, processingSettings, serializer, Configuration, configuration, processor);
             return queueReader;
         }
 

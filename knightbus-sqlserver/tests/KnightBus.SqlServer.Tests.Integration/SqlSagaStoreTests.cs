@@ -1,5 +1,4 @@
-﻿using KnightBus.Core;
-using KnightBus.Shared.Tests.Integration;
+﻿using KnightBus.Shared.Tests.Integration;
 using NUnit.Framework;
 
 namespace KnightBus.SqlServer.Tests.Integration
@@ -9,7 +8,7 @@ namespace KnightBus.SqlServer.Tests.Integration
     {
         public override void Setup()
         {
-            SagaStore = new SqlServerSagaStore(DatabaseInitializer.ConnectionString, new JsonMessageSerializer());
+            SagaStore = new SqlServerSagaStore(DatabaseInitializer.ConnectionString);
         }
     }
 }
