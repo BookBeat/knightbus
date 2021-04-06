@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using KnightBus.Core;
 using ProtoBuf;
 
-namespace KnightBus.ProtoBufNet
+namespace KnightBus.ProtobufNet
 {
     public class ProtobufNetSerializer : IMessageSerializer
     {

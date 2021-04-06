@@ -1,6 +1,6 @@
 using FluentAssertions;
 using KnightBus.Messages;
-using KnightBus.ProtoBufNet;
+using KnightBus.ProtobufNet;
 using NUnit.Framework;
 using ProtoBuf;
 

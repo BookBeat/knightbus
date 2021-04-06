@@ -6,7 +6,7 @@ using KnightBus.Azure.ServiceBus.Messages;
 using KnightBus.Core;
 using KnightBus.Host;
 using KnightBus.Messages;
-using KnightBus.ProtoBufNet;
+using KnightBus.ProtobufNet;
 using ProtoBuf;
 
 namespace KnightBus.Examples.Azure.ServiceBus

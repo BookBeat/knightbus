@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
-using KnightBus.ProtoBufNet;
+using KnightBus.ProtobufNet;
 using Moq;
 using NUnit.Framework;
 
