@@ -225,12 +225,12 @@ namespace KnightBus.Azure.Storage
                         PopReceipt = queueMessage.PopReceipt,
                         Properties = TryDeserializeProperties(queueMessage.Body)
                     };
-                    using (var steam = new MemoryStream())
+                    using (var stream = new MemoryStream())
                     {
-                        await _container.GetBlobClient(message.BlobMessageId).DownloadToAsync(steam).ConfigureAwait(false);
-                        steam.Position = 0;
+                        await _container.GetBlobClient(message.BlobMessageId).DownloadToAsync(stream).ConfigureAwait(false);
+                        stream.Position = 0;
 
-                        message.Message = await _serializer.Deserialize<T>(steam).ConfigureAwait(false);
+                        message.Message = await _serializer.Deserialize<T>(stream).ConfigureAwait(false);
                         messageContainers.Add(message);
                     }
                 }
