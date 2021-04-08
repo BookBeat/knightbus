@@ -26,7 +26,7 @@ namespace KnightBus.Host.Tests.Unit
     public class TestEvent : IEvent
     {
     }
-    public class TestEventMapping : IMessageMapping
+    public class TestEventMapping : IMessageMapping<TestEvent>
     {
         public string QueueName => "testevent";
     }

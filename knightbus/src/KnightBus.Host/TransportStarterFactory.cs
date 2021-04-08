@@ -31,14 +31,15 @@ namespace KnightBus.Host
             var pipelineInformation = new PipelineInformation(processorInterface, eventSubscription, processingSettings, _configuration);
 
             var pipeline = new MiddlewarePipeline(_configuration.Middlewares, pipelineInformation, channelFactory, _configuration.Log);
-            var serializer = GetSerializer(channelFactory, processingSettings);
+            var serializer = GetSerializer(channelFactory, messageType);
             var starter = channelFactory.Create(messageType, eventSubscription, processingSettings, serializer, _configuration, pipeline.GetPipeline(processorInstance));
             return WrapSingletonReceiver(starter, processor);
         }
 
-        private IMessageSerializer GetSerializer(ITransportChannelFactory channelFactory, IProcessingSettings processingSettings)
+        private IMessageSerializer GetSerializer(ITransportChannelFactory channelFactory, Type messageType)
         {
-            if (processingSettings is ICustomMessageSerializer serializer) return serializer.MessageSerializer;
+            var mapping = AutoMessageMapper.GetMapping(messageType);
+            if(mapping is ICustomMessageSerializer serializer) return serializer.MessageSerializer;
 
             return channelFactory.Configuration.MessageSerializer;
         }

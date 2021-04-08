@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -26,6 +27,7 @@ namespace KnightBus.Redis
         private readonly IConnectionMultiplexer _multiplexer;
         private readonly IRedisBusConfiguration _configuration;
         private IMessageAttachmentProvider _attachmentProvider;
+        private ConcurrentDictionary<Type, IMessageSerializer> _serializers;
 
         public RedisBus(string connectionString) : this(new RedisConfiguration(connectionString))
         { }
@@ -55,7 +57,7 @@ namespace KnightBus.Redis
         {
             var db = _multiplexer.GetDatabase(_configuration.DatabaseId);
             var listItems = messages.Select(m => new RedisListItem<T>(Guid.NewGuid().ToString("N"), m)).ToList();
-            var serialized = listItems.Select(m => (RedisValue)_configuration.MessageSerializer.Serialize(m)).ToArray();
+            var serialized = listItems.Select(m => (RedisValue)GetSerializer<T>().Serialize(m)).ToArray();
             return Task.WhenAll(
                 UploadAttachments(listItems, queueName, db),
                 db.ListLeftPushAsync(queueName, serialized),
@@ -69,7 +71,7 @@ namespace KnightBus.Redis
             var redisListItem = new RedisListItem<T>(Guid.NewGuid().ToString("N"), message);
             return Task.WhenAll(
                 UploadAttachment(redisListItem, queueName, db),
-                db.ListLeftPushAsync(queueName, _configuration.MessageSerializer.Serialize(redisListItem)),
+                db.ListLeftPushAsync(queueName, GetSerializer<T>().Serialize(redisListItem)),
                 db.PublishAsync(queueName, 0, CommandFlags.FireAndForget)
             );
         }
@@ -116,6 +118,16 @@ namespace KnightBus.Redis
             }
 
             return Task.CompletedTask;
+        }
+        
+        private IMessageSerializer GetSerializer<T>() where T : IMessage
+        {
+            return _serializers.GetOrAdd(typeof(T), type =>
+            {
+                var mapper = AutoMessageMapper.GetMapping<T>();
+                if (mapper is ICustomMessageSerializer serializer) return serializer.MessageSerializer;
+                return _configuration.MessageSerializer;
+            });
         }
     }
 }

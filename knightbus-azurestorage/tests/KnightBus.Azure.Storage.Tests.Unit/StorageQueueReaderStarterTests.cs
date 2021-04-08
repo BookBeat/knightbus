@@ -1,6 +1,7 @@
 ﻿using System;
 using FluentAssertions;
 using KnightBus.Core;
+using KnightBus.Messages;
 using Moq;
 using NUnit.Framework;
 
