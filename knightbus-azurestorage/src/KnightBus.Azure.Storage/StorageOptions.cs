@@ -1,5 +1,6 @@
 using Azure.Storage.Queues;
 using KnightBus.Core;
+using KnightBus.Messages;
 
 namespace KnightBus.Azure.Storage
 {

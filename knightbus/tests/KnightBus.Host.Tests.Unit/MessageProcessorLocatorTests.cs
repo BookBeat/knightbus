@@ -6,6 +6,7 @@ using KnightBus.Core;
 using KnightBus.Core.Singleton;
 using KnightBus.Host.Singleton;
 using KnightBus.Host.Tests.Unit.Processors;
+using KnightBus.Messages;
 using Moq;
 using NUnit.Framework;
 

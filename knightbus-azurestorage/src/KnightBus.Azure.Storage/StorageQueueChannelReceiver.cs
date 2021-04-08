@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Azure.Storage.Messages;
 using KnightBus.Core;
+using KnightBus.Messages;
 
 [assembly: InternalsVisibleTo("KnightBus.Azure.Storage.Tests.Unit")]
 [assembly: InternalsVisibleTo("KnightBus.Azure.Storage.Tests.Integration")]

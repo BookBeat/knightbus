@@ -2,7 +2,7 @@
 using System.IO;
 using System.Threading.Tasks;
 
-namespace KnightBus.Core
+namespace KnightBus.Messages
 {
     /// <summary>
     /// Determines how messages are serialized when transported

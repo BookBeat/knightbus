@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using KnightBus.Core;
 using KnightBus.Core.Sagas;
 using KnightBus.Core.Sagas.Exceptions;
+using KnightBus.Messages;
 using StackExchange.Redis;
 
 namespace KnightBus.Redis

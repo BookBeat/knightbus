@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -38,6 +40,7 @@ namespace KnightBus.Azure.ServiceBus
     {
         private readonly IServiceBusConfiguration _configuration;
         private IMessageAttachmentProvider _attachmentProvider;
+        private readonly ConcurrentDictionary<Type, IMessageSerializer> _serializers;
 
         internal IClientFactory ClientFactory { get; set; }
 
@@ -50,6 +53,7 @@ namespace KnightBus.Azure.ServiceBus
         {
             ClientFactory = new ClientFactory(config.ConnectionString);
             _configuration = config;
+            _serializers = new ConcurrentDictionary<Type, IMessageSerializer>();
         }
 
         public async Task SendAsync<T>(T message, CancellationToken cancellationToken = default) where T : IServiceBusCommand
@@ -102,9 +106,10 @@ namespace KnightBus.Azure.ServiceBus
 
         private async Task<ServiceBusMessage> CreateMessageAsync<T>(T body) where T : IMessage
         {
-            var message = new ServiceBusMessage(_configuration.MessageSerializer.Serialize(body))
+            var serializer = GetSerializer<T>();
+            var message = new ServiceBusMessage(serializer.Serialize(body))
             {
-                ContentType = _configuration.MessageSerializer.ContentType
+                ContentType = serializer.ContentType
             };
 
             if (typeof(ICommandWithAttachment).IsAssignableFrom(typeof(T)))
@@ -124,6 +129,16 @@ namespace KnightBus.Azure.ServiceBus
             }
 
             return message;
+        }
+
+        private IMessageSerializer GetSerializer<T>() where T : IMessage
+        {
+            return _serializers.GetOrAdd(typeof(T), type =>
+            {
+                var mapper = AutoMessageMapper.GetMapping<T>();
+                if (mapper is ICustomMessageSerializer serializer) return serializer.MessageSerializer;
+                return _configuration.MessageSerializer;
+            });
         }
     }
 }
