@@ -27,7 +27,7 @@ namespace KnightBus.Redis
         private readonly IConnectionMultiplexer _multiplexer;
         private readonly IRedisBusConfiguration _configuration;
         private IMessageAttachmentProvider _attachmentProvider;
-        private ConcurrentDictionary<Type, IMessageSerializer> _serializers;
+        private readonly ConcurrentDictionary<Type, IMessageSerializer> _serializers;
 
         public RedisBus(string connectionString) : this(new RedisConfiguration(connectionString))
         { }
@@ -35,6 +35,7 @@ namespace KnightBus.Redis
         {
             _multiplexer = ConnectionMultiplexer.Connect(configuration.ConnectionString);
             _configuration = configuration;
+            _serializers = new ConcurrentDictionary<Type, IMessageSerializer>();
         }
 
         public void EnableAttachments(IMessageAttachmentProvider attachmentProvider)
@@ -94,7 +95,7 @@ namespace KnightBus.Redis
             var messageList = messages.ToList();
             await Task.WhenAll(subscriptions.Select(sub => SendAsync<T>(messageList, RedisQueueConventions.GetSubscriptionQueueName(queueName, sub)))).ConfigureAwait(false);
         }
-        
+
 
         private async Task UploadAttachment<T>(RedisListItem<T> message, string queueName, IDatabase db) where T : IRedisMessage
         {
@@ -119,7 +120,7 @@ namespace KnightBus.Redis
 
             return Task.CompletedTask;
         }
-        
+
         private IMessageSerializer GetSerializer<T>() where T : IMessage
         {
             return _serializers.GetOrAdd(typeof(T), type =>
