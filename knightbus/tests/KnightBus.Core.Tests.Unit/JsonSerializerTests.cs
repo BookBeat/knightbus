@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using FluentAssertions;
 using KnightBus.Messages;
@@ -20,7 +21,7 @@ namespace KnightBus.Core.Tests.Unit
             };
             //act
             var serialized = serializer.Serialize(message);
-            var deserialized = serializer.Deserialize<AttachmentCommand>(serialized);
+            var deserialized = serializer.Deserialize<AttachmentCommand>(serialized.AsSpan());
             //assert
             deserialized.Attachment.Should().BeNull();
             deserialized.Message.Should().Be("Hello");
@@ -39,7 +40,7 @@ namespace KnightBus.Core.Tests.Unit
             };
             var serialized = serializer.Serialize(original);
             //act
-            var deserialized = serializer.Deserialize<TestSerializationCommand>(serialized);
+            var deserialized = serializer.Deserialize<TestSerializationCommand>(serialized.AsSpan());
             //assert
             deserialized.Age.Should().Be(original.Age);
             deserialized.Name.Should().Be(original.Name);

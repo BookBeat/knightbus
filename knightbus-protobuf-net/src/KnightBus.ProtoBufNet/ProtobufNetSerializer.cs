@@ -20,6 +20,11 @@ namespace KnightBus.ProtobufNet
             return Serializer.Deserialize<T>(serialized);
         }
 
+        public T Deserialize<T>(ReadOnlyMemory<byte> serialized)
+        {
+            return Serializer.Deserialize<T>(serialized);
+        }
+
         public Task<T> Deserialize<T>(Stream serialized)
         {
             return Task.FromResult(Serializer.Deserialize<T>(serialized));
