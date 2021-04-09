@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -34,6 +33,11 @@ namespace KnightBus.Azure.ServiceBus
         /// Sends a topic message immediately
         /// </summary>
         Task PublishEventAsync<T>(T message, CancellationToken cancellationToken = default) where T : IServiceBusEvent;
+
+        /// <summary>
+        /// Sends a batch of topic messages using the batch publish method
+        /// </summary>
+        Task PublishEventsAsync<T>(IList<T> messages, CancellationToken cancellationToken = default) where T : IServiceBusEvent;
     }
 
     public class ServiceBus : IServiceBus
@@ -94,12 +98,25 @@ namespace KnightBus.Azure.ServiceBus
             await SendAsync(client, brokeredMessage, cancellationToken).ConfigureAwait(false);
         }
 
+        public async Task PublishEventsAsync<T>(IList<T> messages, CancellationToken cancellationToken = default) where T : IServiceBusEvent
+        {
+            var client = await ClientFactory.GetSenderClient<T>().ConfigureAwait(false);
+            if (!messages.Any()) return;
+            var brokeredMessages = new List<ServiceBusMessage>();
+            foreach (var message in messages)
+            {
+                brokeredMessages.Add(await CreateMessageAsync(message).ConfigureAwait(false));
+            }
+
+            await SendAsync(client, brokeredMessages, cancellationToken).ConfigureAwait(false);
+        }
+
         private async Task SendAsync(ServiceBusSender client, ServiceBusMessage message, CancellationToken cancellationToken)
         {
             await client.SendMessageAsync(message, cancellationToken).ConfigureAwait(false);
         }
 
-        private async Task SendAsync(ServiceBusSender client, IList<ServiceBusMessage> messages, CancellationToken cancellationToken)
+        private async Task SendAsync(ServiceBusSender client, IEnumerable<ServiceBusMessage> messages, CancellationToken cancellationToken)
         {
             await client.SendMessagesAsync(messages, cancellationToken).ConfigureAwait(false);
         }
