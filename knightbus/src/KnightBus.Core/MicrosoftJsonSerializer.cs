@@ -40,7 +40,12 @@ namespace KnightBus.Core
         {
             return JsonSerializer.Deserialize<T>(serialized, _options);
         }
-        
+
+        public T Deserialize<T>(ReadOnlyMemory<byte> serialized)
+        {
+            return JsonSerializer.Deserialize<T>(serialized.Span, _options);
+        }
+
         public Task<T>  Deserialize<T>(Stream serialized)
         {
             return JsonSerializer.DeserializeAsync<T>(serialized, _options).AsTask();
