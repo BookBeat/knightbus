@@ -70,8 +70,8 @@ namespace KnightBus.Azure.ServiceBus
 
         public async Task SendAsync<T>(IList<T> messages, CancellationToken cancellationToken = default) where T : IServiceBusCommand
         {
-            var client = await ClientFactory.GetSenderClient<T>().ConfigureAwait(false);
             if (!messages.Any()) return;
+            var client = await ClientFactory.GetSenderClient<T>().ConfigureAwait(false);
             var sbMessages = new List<ServiceBusMessage>();
             foreach (var message in messages)
             {
@@ -100,8 +100,8 @@ namespace KnightBus.Azure.ServiceBus
 
         public async Task PublishEventsAsync<T>(IList<T> messages, CancellationToken cancellationToken = default) where T : IServiceBusEvent
         {
-            var client = await ClientFactory.GetSenderClient<T>().ConfigureAwait(false);
             if (!messages.Any()) return;
+            var client = await ClientFactory.GetSenderClient<T>().ConfigureAwait(false);
             var brokeredMessages = new List<ServiceBusMessage>();
             foreach (var message in messages)
             {
