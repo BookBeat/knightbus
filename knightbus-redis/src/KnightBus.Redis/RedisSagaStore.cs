@@ -24,7 +24,7 @@ namespace KnightBus.Redis
         {
             byte[] saga = await _db.StringGetAsync(GetKey(partitionKey, id)).ConfigureAwait(false);
             if (saga == null) throw new SagaNotFoundException(partitionKey, id);
-            return _serializer.Deserialize<T>(saga);
+            return _serializer.Deserialize<T>(saga.AsSpan());
         }
 
         public async Task<T> Create<T>(string partitionKey, string id, T sagaData, TimeSpan ttl)

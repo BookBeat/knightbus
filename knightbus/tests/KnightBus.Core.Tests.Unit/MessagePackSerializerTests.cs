@@ -1,20 +1,20 @@
 using System;
 using FluentAssertions;
+using KnightBus.MessagePack;
 using KnightBus.Messages;
-using KnightBus.ProtobufNet;
+using MessagePack;
 using NUnit.Framework;
-using ProtoBuf;
 
 namespace KnightBus.Core.Tests.Unit
 {
     [TestFixture]
-    public class ProtobufSerializerTests
+    public class MessagePackSerializerTests
     {
         [Test]
         public void Should_serialize_deserialize_message()
         {
             //arrange
-            var serializer = new ProtobufNetSerializer();
+            var serializer = new MessagePackCSharpSerializer();
             var original = new TestSerializationCommand
             {
                 Age = 1,
@@ -30,14 +30,14 @@ namespace KnightBus.Core.Tests.Unit
             deserialized.Height.Should().Be(original.Height);
         }
 
-        [ProtoContract]
+        [MessagePackObject]
         public class TestSerializationCommand : ICommand
         {
-            [ProtoMember(1)]
+            [Key(1)]
             public string Name { get; set; }
-            [ProtoMember(2)]
+            [Key(2)]
             public int Age { get; set; }
-            [ProtoMember(3)]
+            [Key(3)]
             public float Height { get; set; }
         }
     }

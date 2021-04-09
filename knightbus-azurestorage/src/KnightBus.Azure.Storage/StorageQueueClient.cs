@@ -247,7 +247,7 @@ namespace KnightBus.Azure.Storage
         {
             try
             {
-                return _serializer.Deserialize<Dictionary<string, string>>(serialized);
+                return _serializer.Deserialize<Dictionary<string, string>>(serialized.ToMemory());
             }
             catch
             {
