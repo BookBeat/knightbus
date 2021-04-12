@@ -84,6 +84,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.ProtobufNet", "kn
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.MessagePack", "knightbus-messagepack\src\KnightBus.MessagePack\KnightBus.MessagePack.csproj", "{C7125035-C8A5-4036-915E-817FBCAC7FBA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.Newtonsoft", "knightbus-newtonsoft\src\KnightBus.Newtonsoft\KnightBus.Newtonsoft.csproj", "{D50B4102-ABDC-4DCD-91E8-37DE31247CA3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -218,6 +220,10 @@ Global
 		{C7125035-C8A5-4036-915E-817FBCAC7FBA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C7125035-C8A5-4036-915E-817FBCAC7FBA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C7125035-C8A5-4036-915E-817FBCAC7FBA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D50B4102-ABDC-4DCD-91E8-37DE31247CA3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D50B4102-ABDC-4DCD-91E8-37DE31247CA3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D50B4102-ABDC-4DCD-91E8-37DE31247CA3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D50B4102-ABDC-4DCD-91E8-37DE31247CA3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
