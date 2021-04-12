@@ -1,5 +1,5 @@
-using KnightBus.Core;
 using KnightBus.Messages;
+using KnightBus.Newtonsoft;
 
 namespace KnightBus.Azure.ServiceBus
 {
@@ -9,7 +9,7 @@ namespace KnightBus.Azure.ServiceBus
         {
             ConnectionString = connectionString;
         }
-        public IMessageSerializer MessageSerializer { get; set; } = new MicrosoftJsonSerializer();
+        public IMessageSerializer MessageSerializer { get; set; } = new NewtonsoftSerializer();
         public string ConnectionString { get; }
         public ServiceBusCreationOptions DefaultCreationOptions  { get; } = new ServiceBusCreationOptions();
     }
