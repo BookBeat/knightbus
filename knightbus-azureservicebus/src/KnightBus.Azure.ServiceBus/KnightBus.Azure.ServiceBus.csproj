@@ -11,7 +11,7 @@
     <PackageIconUrl>https://raw.githubusercontent.com/BookBeat/knightbus/master/documentation/media/images/knighbus-64.png</PackageIconUrl>
     <PackageIcon>knighbus-64.png</PackageIcon>
     <RepositoryUrl>https://github.com/BookBeat/knightbus</RepositoryUrl>
-    <Version>12.1.0</Version>
+    <Version>12.2.0</Version>
     <PackageTags>knightbus;azure servicebus;amqp;queues;messaging</PackageTags>
   </PropertyGroup>
 
@@ -23,6 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\knightbus-newtonsoft\src\KnightBus.Newtonsoft\KnightBus.Newtonsoft.csproj" />
     <ProjectReference Include="..\..\..\knightbus\src\KnightBus.Core\KnightBus.Core.csproj" />
     <ProjectReference Include="..\KnightBus.Azure.ServiceBus.Messages\KnightBus.Azure.ServiceBus.Messages.csproj" />
   </ItemGroup>

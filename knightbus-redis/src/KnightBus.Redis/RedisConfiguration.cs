@@ -1,5 +1,6 @@
 ﻿using KnightBus.Core;
 using KnightBus.Messages;
+using KnightBus.Newtonsoft;
 
 namespace KnightBus.Redis
 {
@@ -15,7 +16,7 @@ namespace KnightBus.Redis
             ConnectionString = connectionString;
         }
         public string ConnectionString { get; }
-        public IMessageSerializer MessageSerializer { get; set; } = new MicrosoftJsonSerializer();
+        public IMessageSerializer MessageSerializer { get; set; } = new NewtonsoftSerializer();
         public int DatabaseId { get; set; }
     }
 }
