@@ -13,6 +13,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\knightbus-messagepack\src\KnightBus.MessagePack\KnightBus.MessagePack.csproj" />
+    <ProjectReference Include="..\..\..\knightbus-newtonsoft\src\KnightBus.Newtonsoft\KnightBus.Newtonsoft.csproj" />
     <ProjectReference Include="..\..\..\knightbus-protobuf-net\src\KnightBus.ProtobufNet\KnightBus.ProtobufNet.csproj" />
     <ProjectReference Include="..\..\src\KnightBus.Core\KnightBus.Core.csproj" />
   </ItemGroup>
