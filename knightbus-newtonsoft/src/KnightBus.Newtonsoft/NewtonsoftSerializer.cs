@@ -20,18 +20,18 @@ namespace KnightBus.Newtonsoft
 
         public byte[] Serialize<T>(T message)
         {
-            var serialized = JsonConvert.SerializeObject(message);
+            var serialized = JsonConvert.SerializeObject(message, _settings);
             return Encoding.UTF8.GetBytes(serialized);
         }
 
         public T Deserialize<T>(ReadOnlySpan<byte> serialized)
         {
-            return JsonConvert.DeserializeObject<T>(Encoding.UTF8.GetString(serialized));
+            return JsonConvert.DeserializeObject<T>(Encoding.UTF8.GetString(serialized), _settings);
         }
 
         public T Deserialize<T>(ReadOnlyMemory<byte> serialized)
         {
-            return JsonConvert.DeserializeObject<T>(Encoding.UTF8.GetString(serialized.Span));
+            return JsonConvert.DeserializeObject<T>(Encoding.UTF8.GetString(serialized.Span), _settings);
         }
 
         public Task<T> Deserialize<T>(Stream serialized)
