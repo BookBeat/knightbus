@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace KnightBus.Core.Exceptions
+namespace KnightBus.Azure.ServiceBus
 {
     public sealed class ServiceBusMessageTooLargeException : Exception
     {

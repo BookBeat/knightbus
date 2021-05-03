@@ -6,10 +6,6 @@
 
 * Use Service Bus internal framework for making sure batches of messages do not exceed maximum batch size
 
-### KnightBus.Core 10.2.0
-
-* Add `ServiceBusMessageTooLargeException`
-
 ### KnightBus.Azure.ServiceBus 13.0.0
 
 * Change IList<T> -> IEnumerable<T> for SendAsync
