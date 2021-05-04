@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2021-05-04
+
+### KnightBus.Azure.ServiceBus 13.2.0
+
+* Add batch `PublishEventsAsync<T>(IEnumerable<T>, CancellationToken)`
+
 ## 2021-05-03
 
 ### KnightBus.Azure.ServiceBus 13.1.0
