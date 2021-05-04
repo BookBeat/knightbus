@@ -34,6 +34,11 @@ namespace KnightBus.Azure.ServiceBus
         /// Sends a topic message immediately
         /// </summary>
         Task PublishEventAsync<T>(T message, CancellationToken cancellationToken = default) where T : IServiceBusEvent;
+
+        /// <summary>
+        /// Sends a batch of topic message immediately using the batch send method
+        /// </summary>
+        Task PublishEventsAsync<T>(IEnumerable<T> messages, CancellationToken cancellationToken = default) where T : IServiceBusEvent;
     }
 
     public class ServiceBus : IServiceBus
@@ -91,6 +96,18 @@ namespace KnightBus.Azure.ServiceBus
             var brokeredMessage = await CreateMessageAsync(message).ConfigureAwait(false);
 
             await SendAsync(client, brokeredMessage, cancellationToken).ConfigureAwait(false);
+        }
+
+        public async Task PublishEventsAsync<T>(IEnumerable<T> messages, CancellationToken cancellationToken = default) where T : IServiceBusEvent
+        {
+            var client = await ClientFactory.GetSenderClient<T>().ConfigureAwait(false);
+            var sbMessages = new Queue<ServiceBusMessage>();
+            foreach (var message in messages)
+            {
+                sbMessages.Enqueue(await CreateMessageAsync(message).ConfigureAwait(false));
+            }
+
+            await SendAsync(client, sbMessages, cancellationToken).ConfigureAwait(false);
         }
 
         private async Task SendAsync(ServiceBusSender client, ServiceBusMessage message, CancellationToken cancellationToken)
