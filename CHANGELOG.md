@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 2021-05-03
+
+### KnightBus.Azure.ServiceBus 13.1.0
+
+* Use Service Bus internal framework for making sure batches of messages do not exceed maximum batch size
+
+### KnightBus.Azure.ServiceBus 13.0.0
+
+* Change IList<T> -> IEnumerable<T> for SendAsync
+
 ## 2021-04-06
 
 ### KnightBus.Core 9.0.0

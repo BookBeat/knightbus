@@ -67,10 +67,10 @@ namespace KnightBus.Azure.ServiceBus
         public async Task SendAsync<T>(IEnumerable<T> messages, CancellationToken cancellationToken = default) where T : IServiceBusCommand
         {
             var client = await ClientFactory.GetSenderClient<T>().ConfigureAwait(false);
-            var sbMessages = new List<ServiceBusMessage>();
+            var sbMessages = new Queue<ServiceBusMessage>();
             foreach (var message in messages)
             {
-                sbMessages.Add(await CreateMessageAsync(message).ConfigureAwait(false));
+                sbMessages.Enqueue(await CreateMessageAsync(message).ConfigureAwait(false));
             }
 
             await SendAsync(client, sbMessages, cancellationToken).ConfigureAwait(false);
@@ -98,9 +98,30 @@ namespace KnightBus.Azure.ServiceBus
             await client.SendMessageAsync(message, cancellationToken).ConfigureAwait(false);
         }
 
-        private async Task SendAsync(ServiceBusSender client, IEnumerable<ServiceBusMessage> messages, CancellationToken cancellationToken)
+        private async Task SendAsync(ServiceBusSender client, Queue<ServiceBusMessage> messages, CancellationToken cancellationToken)
         {
-            await client.SendMessagesAsync(messages, cancellationToken).ConfigureAwait(false);
+            while (messages.Count > 0)
+            {
+                using var messageBatch = await client.CreateMessageBatchAsync(cancellationToken).ConfigureAwait(false);
+
+                if (messageBatch.TryAddMessage(messages.Peek()))
+                {
+                    messages.Dequeue();
+                }
+                else
+                {
+                    // First message too large. Won't be able to send it so better throw exception
+                    throw new ServiceBusMessageTooLargeException();
+                }
+
+                // Add as many messages as possible to the current batch
+                while (messages.Count > 0 && messageBatch.TryAddMessage(messages.Peek()))
+                {
+                    messages.Dequeue();
+                }
+
+                await client.SendMessagesAsync(messageBatch, cancellationToken).ConfigureAwait(false);
+            }
         }
 
         private async Task<ServiceBusMessage> CreateMessageAsync<T>(T body) where T : IMessage
