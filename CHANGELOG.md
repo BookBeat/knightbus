@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2021-05-05
+
+### KnightBus.Azure.ServiceBus 13.3.0
+
+* Add batch `ScheduleAsync<T>(IEnumerable<T>, TimeSpan, CancellationToken)`
+
 ## 2021-05-04
 
 ### KnightBus.Azure.ServiceBus 13.2.0
