@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Azure.Messaging.ServiceBus;
@@ -19,6 +17,11 @@ namespace KnightBus.Azure.ServiceBus
         /// Schedules a queue message for delivery a certain time into the future
         /// </summary>
         Task ScheduleAsync<T>(T message, TimeSpan span, CancellationToken cancellationToken = default) where T : IServiceBusCommand;
+
+        /// <summary>
+        /// Schedules a batch of queue message for delivery a certain time into the future using the batch send method
+        /// </summary>
+        Task ScheduleAsync<T>(IEnumerable<T> messages, TimeSpan span, CancellationToken cancellationToken = default) where T : IServiceBusCommand;
 
         /// <summary>
         /// Sends a queue message immediately 
@@ -88,6 +91,20 @@ namespace KnightBus.Azure.ServiceBus
             sbMessage.ScheduledEnqueueTime = DateTime.UtcNow.Add(span);
 
             await SendAsync(client, sbMessage, cancellationToken).ConfigureAwait(false);
+        }
+
+        public async Task ScheduleAsync<T>(IEnumerable<T> messages, TimeSpan span, CancellationToken cancellationToken = default) where T : IServiceBusCommand
+        {
+            var client = await ClientFactory.GetSenderClient<T>().ConfigureAwait(false);
+            var sbMessages = new Queue<ServiceBusMessage>();
+            foreach (var message in messages)
+            {
+                var msg = await CreateMessageAsync(message).ConfigureAwait(false);
+                msg.ScheduledEnqueueTime = DateTime.UtcNow.Add(span);
+                sbMessages.Enqueue(msg);
+            }
+
+            await SendAsync(client, sbMessages, cancellationToken).ConfigureAwait(false);
         }
 
         public async Task PublishEventAsync<T>(T message, CancellationToken cancellationToken = default) where T : IServiceBusEvent
