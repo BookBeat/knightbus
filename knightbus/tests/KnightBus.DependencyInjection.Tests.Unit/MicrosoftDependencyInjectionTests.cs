@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -13,6 +14,7 @@ namespace KnightBus.DependencyInjection.Tests.Unit
     public class TestSchedule : ISchedule
     {
         public string CronExpression { get; }
+        public TimeZoneInfo TimeZone => TimeZoneInfo.Utc;
     }
 
     public class TestScheduleProcessor : IProcessSchedule<TestSchedule>
