@@ -54,7 +54,7 @@ namespace KnightBus.Schedule
 
                     var trigger = TriggerBuilder.Create()
                         .ForJob(job)
-                        .WithCronSchedule(settings.CronExpression)
+                        .WithCronSchedule(settings.CronExpression, builder=> builder.InTimeZone(settings.TimeZone))
                         .WithIdentity(Guid.NewGuid().ToString())
                         .StartNow()
                         .Build();

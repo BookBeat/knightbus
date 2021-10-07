@@ -88,6 +88,7 @@ namespace KnightBus.Schedule.Tests.Unit
         public class DummySchedule : ISchedule
         {
             public string CronExpression { get; }
+            public TimeZoneInfo TimeZone => TimeZoneInfo.Utc;
         }
     }
 }

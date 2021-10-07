@@ -37,10 +37,12 @@ namespace KnightBus.Examples.Schedule
     public class EveryMinute : ISchedule
     {
         public string CronExpression => "0 * * ? * *";
+        public TimeZoneInfo TimeZone => TimeZoneInfo.Utc;
     }
     public class EveryMinuteToo : ISchedule
     {
         public string CronExpression => "0 * * ? * *";
+        public TimeZoneInfo TimeZone => TimeZoneInfo.Utc;
     }
 
     public class MySchedule : IProcessSchedule<EveryMinute>, IProcessSchedule<EveryMinuteToo>
