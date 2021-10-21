@@ -65,9 +65,8 @@ namespace KnightBus.Azure.Storage
 
         public async Task DeadLetterAsync(StorageQueueMessage message)
         {
-            await _dlQueue.SendMessageAsync(new BinaryData(_serializer.Serialize(message.Properties)), timeToLive: TimeSpan.FromSeconds(-1))
-                .ContinueWith(task => _queue.DeleteMessageAsync(message.QueueMessageId, message.PopReceipt), TaskContinuationOptions.OnlyOnRanToCompletion)
-                .ConfigureAwait(false);
+            await _dlQueue.SendMessageAsync(new BinaryData(_serializer.Serialize(message.Properties)), timeToLive: TimeSpan.FromSeconds(-1)).ConfigureAwait(false);
+            await _queue.DeleteMessageAsync(message.QueueMessageId, message.PopReceipt).ConfigureAwait(false);
         }
 
         public async Task<int> GetDeadLetterCountAsync()
@@ -78,9 +77,8 @@ namespace KnightBus.Azure.Storage
 
         public async Task CompleteAsync(StorageQueueMessage message)
         {
-            await _queue.DeleteMessageAsync(message.QueueMessageId, message.PopReceipt)
-                .ContinueWith(task => TryDeleteBlob(message.BlobMessageId), TaskContinuationOptions.OnlyOnRanToCompletion)
-                .ConfigureAwait(false);
+            await _queue.DeleteMessageAsync(message.QueueMessageId, message.PopReceipt).ConfigureAwait(false);
+            await TryDeleteBlob(message.BlobMessageId).ConfigureAwait(false);
         }
 
         public async Task AbandonByErrorAsync(StorageQueueMessage message, TimeSpan? visibilityTimeout)
@@ -92,7 +90,6 @@ namespace KnightBus.Azure.Storage
 
         public async Task SendAsync<T>(T message, TimeSpan? delay, CancellationToken cancellationToken = default) where T : IStorageQueueCommand
         {
-
             var storageMessage = new StorageQueueMessage(message)
             {
                 BlobMessageId = Guid.NewGuid().ToString()
@@ -135,7 +132,8 @@ namespace KnightBus.Azure.Storage
             return GetMessagesAsync<T>(count, null, _dlQueue);
         }
 
-        public async Task RequeueDeadLettersAsync<T>(int count, Func<T, bool> shouldRequeue) where T : IStorageQueueCommand
+        public async Task RequeueDeadLettersAsync<T>(int count, Func<T, bool> shouldRequeue)
+            where T : IStorageQueueCommand
         {
             for (var i = 0; i < count; i++)
             {
@@ -147,7 +145,8 @@ namespace KnightBus.Azure.Storage
                 var deadletter = messages.Single();
 
                 // Delete the old message
-                await _dlQueue.DeleteMessageAsync(deadletter.QueueMessageId, deadletter.PopReceipt).ConfigureAwait(false);
+                await _dlQueue.DeleteMessageAsync(deadletter.QueueMessageId, deadletter.PopReceipt)
+                    .ConfigureAwait(false);
 
                 // The dead letter will be deleted even though shouldRequeue is false
                 if (shouldRequeue != null && !shouldRequeue((T)deadletter.Message))
@@ -164,11 +163,11 @@ namespace KnightBus.Azure.Storage
             if (!messages.Any()) return null;
             var message = messages.Single();
 
-            await _dlQueue.DeleteMessageAsync(message.QueueMessageId, message.PopReceipt)
-                .ContinueWith(task => TryDeleteBlob(message.BlobMessageId), TaskContinuationOptions.OnlyOnRanToCompletion).ConfigureAwait(false);
-
+            await _dlQueue.DeleteMessageAsync(message.QueueMessageId, message.PopReceipt).ConfigureAwait(false);
+            await TryDeleteBlob(message.BlobMessageId).ConfigureAwait(false);
             return message;
         }
+
         private async Task TryDeleteBlob(string id)
         {
             try
@@ -189,6 +188,7 @@ namespace KnightBus.Azure.Storage
                 _dlQueue.CreateIfNotExistsAsync()
             ).ConfigureAwait(false);
         }
+
         public async Task DeleteIfExistsAsync()
         {
             await Task.WhenAll(
@@ -240,6 +240,7 @@ namespace KnightBus.Azure.Storage
                     await queue.DeleteMessageAsync(queueMessage.MessageId, queueMessage.PopReceipt);
                 }
             }
+
             return messageContainers;
         }
 
