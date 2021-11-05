@@ -41,6 +41,9 @@ namespace KnightBus.Azure.Storage
             var messagesFound = false;
             try
             {
+                //Do not fetch and lock messages if we won't be able to process them
+                if(_maxConcurrent.CurrentCount == 0) return;
+
                 var queueName = AutoMessageMapper.GetQueueName<T>();
 
                 var prefetchCount = _settings.PrefetchCount > 0 ? _settings.PrefetchCount : 1;

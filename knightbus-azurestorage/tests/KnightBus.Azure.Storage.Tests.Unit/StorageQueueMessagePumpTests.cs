@@ -47,6 +47,39 @@ namespace KnightBus.Azure.Storage.Tests.Unit
             //assert
             invocations.Should().Be(10);
         }
+
+        [Test]
+        public async Task Should_not_fetch_more_messages_when_max_concurrent_is_reached()
+        {
+            //arrange
+            var settings = new TestMessageSettings
+            {
+                DeadLetterDeliveryLimit = 1,
+                PrefetchCount = 0,
+                MaxConcurrentCalls = 1
+            };
+            var messages = new List<StorageQueueMessage> { new StorageQueueMessage(new LongRunningTestCommand { Message = 1.ToString() }) };
+
+
+            _clientMock.Setup(x => x.GetMessagesAsync<LongRunningTestCommand>(1, It.IsAny<TimeSpan?>()))
+                .ReturnsAsync(messages);
+            var pump = new StorageQueueMessagePump(_clientMock.Object, settings, Mock.Of<ILog>());
+            var invocations = 0;
+
+            async Task Function(StorageQueueMessage a, CancellationToken b)  
+            {
+                invocations++;
+                await Task.Delay(1000);
+            }
+
+            //act
+            await pump.PumpAsync<LongRunningTestCommand>(Function, CancellationToken.None);
+            await pump.PumpAsync<LongRunningTestCommand>(Function, CancellationToken.None);
+            await Task.Delay(100);
+            //assert
+            invocations.Should().Be(1, "Max concurrent = 1, and Prefetch = 0");
+        }
+
         [Test]
         public async Task Should_release_semaphore_if_exception()
         {
