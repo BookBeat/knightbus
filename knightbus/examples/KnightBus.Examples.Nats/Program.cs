@@ -10,12 +10,7 @@ namespace KnightBus.Examples.Nats
 {
     class Program
     {
-        static void Main(string[] args)
-        {
-            MainAsync().GetAwaiter().GetResult();
-        }
-
-        static async Task MainAsync()
+        static async Task Main(string[] args)
         {
             var connectionString = "localhost";
 
@@ -38,25 +33,23 @@ namespace KnightBus.Examples.Nats
             //Start the KnightBus Host, it will now connect to the StorageBus and listen to the SampleStorageBusMessageMapping.QueueName
             await knightBusHost.StartAsync(CancellationToken.None);
 
-            await client.SendAsync(new SampleNatsMessage
-            {
-                Message = "Hej Rabbit"
-            });
-            
             //Send some Messages and watch them print in the console
-            for (var i = 0; i < 10; i++)
+            for (var i = 0; i < 100; i++)
             {
-                await client.SendAsync(new SampleNatsMessage
-                {
-                    Message = $"Hello from command {i}"
-                });
+                var response = await client.RequestAsync<SampleNatsMessage, SampleNatsReply>(new SampleNatsMessage { Message = $"Hello from command {i}" });
+                Console.WriteLine(response.Reply);
             }
             Console.ReadKey();
         }
 
-        class SampleNatsMessage : INatsCommand
+        class SampleNatsMessage : INatsCommand, IRequest
         {
             public string Message { get; set; }
+        }
+
+        class SampleNatsReply
+        {
+            public string Reply { get; set; }
         }
 
         class SampleNatsMessageMapping : IMessageMapping<SampleNatsMessage>
@@ -65,12 +58,12 @@ namespace KnightBus.Examples.Nats
         }
 
        
-        class SampleNatsBusMessageProcessor : IProcessCommand<SampleNatsMessage, SomeProcessingSetting>
+        class SampleNatsBusMessageProcessor : IProcessRequest<SampleNatsMessage, SampleNatsReply, SomeProcessingSetting>
         {
-            public Task ProcessAsync(SampleNatsMessage message, CancellationToken cancellationToken)
+            public Task<SampleNatsReply> ProcessAsync(SampleNatsMessage message, CancellationToken cancellationToken)
             {
                 Console.WriteLine($"Received command: '{message.Message}'");
-                return Task.CompletedTask;
+                return Task.FromResult(new SampleNatsReply { Reply = $"Reply:\t {message.Message}" });
             }
         }
 
