@@ -172,6 +172,11 @@ namespace KnightBus.Host.Tests.Unit.Middleware
                 throw new NotImplementedException();
             }
 
+            public Task ReplyAsync<TReply>(TReply reply)
+            {
+                throw new NotImplementedException();
+            }
+
             public Task AbandonByErrorAsync(Exception e)
             {
                 throw new NotImplementedException();

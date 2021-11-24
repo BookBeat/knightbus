@@ -30,6 +30,11 @@ namespace KnightBus.Redis
             return _queueClient.CompleteMessageAsync(_redisMessage);
         }
 
+        public Task ReplyAsync<TReply>(TReply reply)
+        {
+            throw new NotImplementedException();
+        }
+
         public Task AbandonByErrorAsync(Exception e)
         {
             return _queueClient.AbandonMessageByErrorAsync(_redisMessage, e);

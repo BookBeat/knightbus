@@ -25,7 +25,7 @@ namespace KnightBus.Host.Tests.Unit
             channel.Setup(x => x.Configuration).Returns(config.Object);
             var starter = new TransportStarterFactory(new[] {channel.Object}, new HostConfiguration());
             //act
-            starter.CreateChannelReceiver(typeof(TestCommand), null, typeof(IProcessCommand<TestCommand, TestMessageSettings>), typeof(TestMessageSettings), typeof(JsonProcessor));
+            starter.CreateChannelReceiver(typeof(TestCommand), null, null, typeof(IProcessCommand<TestCommand, TestMessageSettings>), typeof(TestMessageSettings), typeof(JsonProcessor));
             //assert
             channel.Verify(x=> x.Create(typeof(TestCommand), null, It.IsAny<IProcessingSettings>(), It.IsAny<MicrosoftJsonSerializer>(), It.IsAny<IHostConfiguration>(), It.IsAny<IMessageProcessor>()), 
                 Times.Once);
@@ -43,7 +43,7 @@ namespace KnightBus.Host.Tests.Unit
             channel.Setup(x => x.Configuration).Returns(config.Object);
             var starter = new TransportStarterFactory(new[] {channel.Object}, new HostConfiguration());
             //act
-            starter.CreateChannelReceiver(typeof(ProtobufCommand), null, typeof(IProcessCommand<ProtobufCommand, TestMessageSettings>), typeof(TestMessageSettings), typeof(ProtobufProcessor));
+            starter.CreateChannelReceiver(typeof(ProtobufCommand), null, null, typeof(IProcessCommand<ProtobufCommand, TestMessageSettings>), typeof(TestMessageSettings), typeof(ProtobufProcessor));
             //assert
             channel.Verify(x=> x.Create(typeof(ProtobufCommand), null, It.IsAny<IProcessingSettings>(), It.IsAny<ProtobufNetSerializer>(), It.IsAny<IHostConfiguration>(), It.IsAny<IMessageProcessor>()), 
                 Times.Once);

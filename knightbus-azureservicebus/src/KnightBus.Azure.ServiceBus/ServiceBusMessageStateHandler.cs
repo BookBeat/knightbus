@@ -33,6 +33,11 @@ namespace KnightBus.Azure.ServiceBus
             await _processMessage.CompleteMessageAsync(_sbMessage).ConfigureAwait(false);
         }
 
+        public Task ReplyAsync<TReply>(TReply reply)
+        {
+            throw new NotImplementedException();
+        }
+
         public async Task AbandonByErrorAsync(Exception e)
         {
             await _sbMessage.AbandonByErrorAsync(_processMessage, e).ConfigureAwait(false);
