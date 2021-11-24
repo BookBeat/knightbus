@@ -5,6 +5,7 @@ using KnightBus.Core;
 using KnightBus.Host;
 using KnightBus.Messages;
 using KnightBus.Nats;
+using NATS.Client;
 
 namespace KnightBus.Examples.Nats
 {
@@ -18,7 +19,9 @@ namespace KnightBus.Examples.Nats
             // $ docker run -p 4222:4222 -ti nats:latest
             
             //Initiate the client
-             var client = new NatsBus(new NatsBusConfiguration(connectionString));
+            var config = new NatsBusConfiguration(connectionString);
+            var factory = new ConnectionFactory();
+            var client = new NatsBus(factory.CreateConnection(), config);
 
             var knightBusHost = new KnightBusHost()
                 //Enable the Nats Transport

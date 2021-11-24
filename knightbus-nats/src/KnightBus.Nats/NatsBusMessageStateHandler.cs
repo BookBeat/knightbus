@@ -39,13 +39,11 @@ namespace KnightBus.Nats
 
         public Task AbandonByErrorAsync(Exception e)
         {
-            // await _sbMessage.AbandonByErrorAsync(_processMessage, e).ConfigureAwait(false);
             return Task.CompletedTask;
         }
 
         public Task DeadLetterAsync(int deadLetterLimit)
         {
-            // await _sbMessage.DeadLetterByDeliveryLimitAsync(_processMessage, deadLetterLimit).ConfigureAwait(false);
             return Task.CompletedTask;
         }
         
