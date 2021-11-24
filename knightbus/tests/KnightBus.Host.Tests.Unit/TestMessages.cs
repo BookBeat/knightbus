@@ -8,6 +8,11 @@ namespace KnightBus.Host.Tests.Unit
     {
 
     }
+    public class TestRequestMapping:IMessageMapping<TestRequest>
+    {
+        public string QueueName => "testreq";
+    }
+
     public class TestResponse
     {
 

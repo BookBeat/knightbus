@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using KnightBus.Core;
 using KnightBus.Messages;
 using KnightBus.Newtonsoft;
+using NATS.Client;
 
 namespace KnightBus.Nats
 {
@@ -68,6 +69,7 @@ namespace KnightBus.Nats
     
     public interface INatsBusConfiguration : ITransportConfiguration
     {
+        public Options Options { get; }
     }
 
     public class NatsBusConfiguration : INatsBusConfiguration
@@ -78,6 +80,7 @@ namespace KnightBus.Nats
         }
         public string ConnectionString { get; }
         public IMessageSerializer MessageSerializer { get; set; } = new NewtonsoftSerializer();
+        public Options Options { get; } = ConnectionFactory.GetDefaultOptions();
     }
 
     public interface INatsCommand : ICommand
