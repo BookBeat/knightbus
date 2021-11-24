@@ -14,6 +14,7 @@ namespace KnightBus.Core
         int DeadLetterDeliveryLimit { get; }
         IDictionary<string, string> MessageProperties { get; }
         Task CompleteAsync();
+        Task ReplyAsync<TReply>(TReply reply);
         Task AbandonByErrorAsync(Exception e);
         Task DeadLetterAsync(int deadLetterLimit);
         Task<T> GetMessageAsync();
