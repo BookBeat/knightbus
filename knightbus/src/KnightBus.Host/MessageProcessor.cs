@@ -48,8 +48,8 @@ namespace KnightBus.Host
             var messageHandler = messageStateHandler.MessageScope.GetInstance<IProcessRequest<T,TResponse>>(_messageHandlerType);
 
             var response = await messageHandler.ProcessAsync(typedMessage, cancellationToken).ConfigureAwait(false);
-            //TODO: Send the response back to the client
             await messageStateHandler.CompleteAsync().ConfigureAwait(false);
+            await messageStateHandler.ReplyAsync(response).ConfigureAwait(false);
         }   
     }
 }

@@ -11,13 +11,15 @@ namespace KnightBus.Nats
     {
         private readonly T _message;
         private readonly MsgHandlerEventArgs _processMessage;
+        private readonly IMessageSerializer _serializer;
 
         public NatsBusMessageStateHandler(MsgHandlerEventArgs processMessage, IMessageSerializer serializer, int deadLetterDeliveryLimit, IDependencyInjection messageScope)
         {
             DeadLetterDeliveryLimit = deadLetterDeliveryLimit;
             MessageScope = messageScope;
             _processMessage = processMessage;
-            _message = serializer.Deserialize<T>(new ReadOnlyMemory<byte>(processMessage.Message.Data));
+            _serializer = serializer;
+            _message = serializer.Deserialize<T>(processMessage.Message.Data.AsSpan());
         }
 
         public int DeliveryCount { get; } = 1;
@@ -26,7 +28,12 @@ namespace KnightBus.Nats
 
         public Task CompleteAsync()
         {
-            _processMessage.Message.Respond(null);
+            return Task.CompletedTask;
+        }
+
+        public Task ReplyAsync<TReply>(TReply reply)
+        {
+            _processMessage.Message.Respond(_serializer.Serialize(reply));
             return Task.CompletedTask;
         }
 

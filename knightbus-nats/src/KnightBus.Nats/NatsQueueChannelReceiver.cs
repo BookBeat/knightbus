@@ -30,18 +30,21 @@ namespace KnightBus.Nats
             _log = hostConfiguration.Log;
             _factory = new ConnectionFactory();
         }
-        public async Task StartAsync(CancellationToken cancellationToken)
+        public Task StartAsync(CancellationToken cancellationToken)
         {
             _cancellationToken = cancellationToken;
 
             _connection = _factory.CreateConnection();
             var queueName = AutoMessageMapper.GetQueueName<T>();
 
-            var a = _connection.SubscribeAsync(queueName, queueName, async (sender, args) =>
+            var a = _connection.SubscribeAsync(queueName, queueName, (sender, args) =>
             {
-                var stateHandler = new NatsBusMessageStateHandler<T>(args, _serializer, 5, _hostConfiguration.DependencyInjection);
-                await _processor.ProcessAsync(stateHandler, _cancellationToken).ConfigureAwait(false);
+                var stateHandler = new NatsBusMessageStateHandler<T>(args, _serializer, _settings.DeadLetterDeliveryLimit, _hostConfiguration.DependencyInjection);
+#pragma warning disable CS4014
+                _processor.ProcessAsync(stateHandler, _cancellationToken).ConfigureAwait(false);
+#pragma warning restore CS4014
             });
+
             
 #pragma warning disable 4014
             // ReSharper disable once MethodSupportsCancellation
@@ -59,6 +62,7 @@ namespace KnightBus.Nats
                     //Swallow
                 }
             });
+            return Task.CompletedTask;
 #pragma warning restore 4014
         }
         public IProcessingSettings Settings { get; set; }
