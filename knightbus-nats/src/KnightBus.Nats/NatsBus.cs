@@ -60,7 +60,6 @@ namespace KnightBus.Nats
             do
             {
                 var msg = sub.NextMessage();
-                stop = true;
                 if (msg.Data.Length == 0)
                 {
                     stop = true;
