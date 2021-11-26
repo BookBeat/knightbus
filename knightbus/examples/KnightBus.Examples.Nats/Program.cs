@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
@@ -29,7 +30,7 @@ namespace KnightBus.Examples.Nats
                 .Configure(configuration => configuration
                     //Register our message processors without IoC using the standard provider
                     .UseDependencyInjection(new StandardDependecyInjection()
-                        .RegisterProcessor(new SampleNatsBusMessageProcessor())
+                        .RegisterProcessor(new NatsBusStreamRequestProcessor())
                     )
                 );
 
@@ -37,20 +38,23 @@ namespace KnightBus.Examples.Nats
             await knightBusHost.StartAsync(CancellationToken.None);
 
             //Send some Messages and watch them print in the console
-            for (var i = 0; i < 100; i++)
+            for (var i = 0; i < 1; i++)
             {
-                var response = await client.RequestAsync<SampleNatsMessage, SampleNatsReply>(new SampleNatsMessage { Message = $"Hello from command {i}" });
-                Console.WriteLine(response.Reply);
+                var response =  client.RequestStreamAsync(new SampleNatsMessage { Message = $"Hello from command {i}" });
+                foreach (var reply in response)
+                {
+                    Console.WriteLine(reply.Reply);
+                }
             }
             Console.ReadKey();
         }
 
-        class SampleNatsMessage : INatsCommand, IRequest
+        class SampleNatsMessage : INatsRequest<SampleNatsReply>
         {
             public string Message { get; set; }
         }
 
-        class SampleNatsReply
+        class SampleNatsReply : INatsReponse
         {
             public string Reply { get; set; }
         }
@@ -61,12 +65,15 @@ namespace KnightBus.Examples.Nats
         }
 
        
-        class SampleNatsBusMessageProcessor : IProcessRequest<SampleNatsMessage, SampleNatsReply, SomeProcessingSetting>
+        class NatsBusStreamRequestProcessor : IProcessStreamRequest<SampleNatsMessage, SampleNatsReply, SomeProcessingSetting>
         {
-            public Task<SampleNatsReply> ProcessAsync(SampleNatsMessage message, CancellationToken cancellationToken)
+            public async IAsyncEnumerable<SampleNatsReply> ProcessAsync(SampleNatsMessage message, CancellationToken cancellationToken)
             {
-                Console.WriteLine($"Received command: '{message.Message}'");
-                return Task.FromResult(new SampleNatsReply { Reply = $"Reply:\t {message.Message}" });
+                for (int i = 0; i < 20; i++)
+                {
+                    await Task.Delay(1000);
+                    yield return new SampleNatsReply { Reply = $"Async Reply {i}:\t {message.Message}" };
+                }
             }
         }
 

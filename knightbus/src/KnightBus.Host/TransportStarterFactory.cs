@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Linq;
 using KnightBus.Core;
 using KnightBus.Core.Exceptions;
@@ -25,8 +26,16 @@ namespace KnightBus.Host
             IMessageProcessor processorInstance;
             if (responseType != null)
             {
-                var requestProcessorType = typeof(RequestProcessor<>).MakeGenericType(responseType);
-                processorInstance = (IMessageProcessor)Activator.CreateInstance(requestProcessorType, processorInterface);
+                if (processorInterface.GetGenericTypeDefinition() == typeof(IProcessStreamRequest<,,>))
+                {
+                    var requestProcessorType = typeof(StreamRequestProcessor<>).MakeGenericType(responseType);
+                    processorInstance = (IMessageProcessor)Activator.CreateInstance(requestProcessorType, processorInterface);
+                }
+                else
+                {
+                    var requestProcessorType = typeof(RequestProcessor<>).MakeGenericType(responseType);
+                    processorInstance = (IMessageProcessor)Activator.CreateInstance(requestProcessorType, processorInterface);
+                }
             }
             else
             {

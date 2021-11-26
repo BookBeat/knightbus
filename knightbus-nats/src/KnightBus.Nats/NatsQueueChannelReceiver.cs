@@ -8,7 +8,7 @@ using NATS.Client;
 namespace KnightBus.Nats
 {
     public class NatsQueueChannelReceiver<T> : IChannelReceiver
-        where T : class, ICommand
+        where T : class, IMessage
     {
         private readonly IProcessingSettings _settings;
         private readonly IMessageSerializer _serializer;
