@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -45,11 +46,32 @@ namespace KnightBus.Host
         public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, CancellationToken cancellationToken) where T : class, IMessage
         {
             var typedMessage = await messageStateHandler.GetMessageAsync().ConfigureAwait(false);
-            var messageHandler = messageStateHandler.MessageScope.GetInstance<IProcessRequest<T,TResponse>>(_messageHandlerType);
+            var messageHandler = messageStateHandler.MessageScope.GetInstance<IProcessRequest<T,Task<TResponse>>>(_messageHandlerType);
 
             var response = await messageHandler.ProcessAsync(typedMessage, cancellationToken).ConfigureAwait(false);
             await messageStateHandler.CompleteAsync().ConfigureAwait(false);
             await messageStateHandler.ReplyAsync(response).ConfigureAwait(false);
         }   
+    }
+
+    internal class StreamRequestProcessor<TResponse> : IMessageProcessor
+    {
+        private readonly Type _messageHandlerType;
+
+        public StreamRequestProcessor(Type messageHandlerType)
+        {
+            _messageHandlerType = messageHandlerType;
+        }
+        public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, CancellationToken cancellationToken) where T : class, IMessage
+        {
+            var typedMessage = await messageStateHandler.GetMessageAsync().ConfigureAwait(false);
+            var messageHandler = messageStateHandler.MessageScope.GetInstance<IProcessRequest<T, IAsyncEnumerable<TResponse>>>(_messageHandlerType);
+
+            await foreach (var response in messageHandler.ProcessAsync(typedMessage, cancellationToken))
+            {
+                await messageStateHandler.ReplyAsync(response).ConfigureAwait(false);
+            }
+            await messageStateHandler.CompleteAsync().ConfigureAwait(false);
+        }
     }
 }

@@ -28,7 +28,8 @@ namespace KnightBus.Host
             var processors = _configuration.DependencyInjection.GetOpenGenericRegistrations(typeof(IProcessMessage<>)).ToArray();
             return CreateCommandReceivers(processors)
                 .Concat(CreateEventReceivers(processors))
-                .Concat(CreateRequestReceivers());
+                .Concat(CreateRequestReceivers()
+                .Concat(CreateRequestStreamReceivers()));
         }
 
         private IEnumerable<IChannelReceiver> CreateCommandReceivers(IEnumerable<Type> processors)
@@ -60,6 +61,25 @@ namespace KnightBus.Host
                     var responseType = processorInterface.GenericTypeArguments[1];
                     var settingsType = processorInterface.GenericTypeArguments[2];
                     
+                    ConsoleWriter.WriteLine($"Found {processor.Name}<{messageType.Name}, {responseType.Name}, {settingsType.Name}>");
+
+                    yield return _transportStarterFactory.CreateChannelReceiver(messageType, responseType, null, processorInterface, settingsType, processor);
+                }
+            }
+        }
+
+        private IEnumerable<IChannelReceiver> CreateRequestStreamReceivers()
+        {
+            var processors = _configuration.DependencyInjection.GetOpenGenericRegistrations(typeof(IProcessRequest<,>)).ToArray();
+            foreach (var processor in processors)
+            {
+                var processorInterfaces = ReflectionHelper.GetAllInterfacesImplementingOpenGenericInterface(processor, typeof(IProcessStreamRequest<,,>));
+                foreach (var processorInterface in processorInterfaces)
+                {
+                    var messageType = processorInterface.GenericTypeArguments[0];
+                    var responseType = processorInterface.GenericTypeArguments[1];
+                    var settingsType = processorInterface.GenericTypeArguments[2];
+
                     ConsoleWriter.WriteLine($"Found {processor.Name}<{messageType.Name}, {responseType.Name}, {settingsType.Name}>");
 
                     yield return _transportStarterFactory.CreateChannelReceiver(messageType, responseType, null, processorInterface, settingsType, processor);

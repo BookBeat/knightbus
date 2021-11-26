@@ -28,6 +28,7 @@ namespace KnightBus.Nats
 
         public Task CompleteAsync()
         {
+            _processMessage.Message.Respond(null);
             return Task.CompletedTask;
         }
 

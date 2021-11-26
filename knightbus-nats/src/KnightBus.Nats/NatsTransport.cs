@@ -63,7 +63,7 @@ namespace KnightBus.Nats
 
         public bool CanCreate(Type messageType)
         {
-            return typeof(INatsCommand).IsAssignableFrom(messageType);
+            return typeof(INatsMessage).IsAssignableFrom(messageType);
         }
     }
     
@@ -81,10 +81,5 @@ namespace KnightBus.Nats
         public string ConnectionString { get; }
         public IMessageSerializer MessageSerializer { get; set; } = new NewtonsoftSerializer();
         public Options Options { get; } = ConnectionFactory.GetDefaultOptions();
-    }
-
-    public interface INatsCommand : ICommand
-    {
-        
     }
 }
