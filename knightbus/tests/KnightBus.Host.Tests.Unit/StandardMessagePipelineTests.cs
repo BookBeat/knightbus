@@ -29,7 +29,7 @@ namespace KnightBus.Host.Tests.Unit
             _stateHandler = new Mock<IMessageStateHandler<TestCommandOne>>();
             _countable = new Mock<ICountable>();
             _messageHandlerProvider.Setup(x => x.GetScope()).Returns(_messageHandlerProvider.Object);
-            _messageHandlerProvider.Setup(x => x.GetInstance<IProcessMessage<TestCommandOne>>(typeof(MultipleCommandProcessor))).Returns(
+            _messageHandlerProvider.Setup(x => x.GetInstance<IProcessMessage<TestCommandOne, Task>>(typeof(MultipleCommandProcessor))).Returns(
                 () => new MultipleCommandProcessor(_countable.Object)
             );
             _stateHandler.Setup(x => x.MessageScope).Returns(_messageHandlerProvider.Object);

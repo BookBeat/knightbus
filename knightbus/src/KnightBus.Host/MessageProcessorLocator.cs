@@ -25,7 +25,7 @@ namespace KnightBus.Host
         /// <returns></returns>
         public IEnumerable<IChannelReceiver> CreateReceivers()
         {
-            var processors = _configuration.DependencyInjection.GetOpenGenericRegistrations(typeof(IProcessMessage<>)).ToArray();
+            var processors = _configuration.DependencyInjection.GetOpenGenericRegistrations(typeof(IProcessMessage<,>)).ToArray();
             return CreateCommandReceivers(processors)
                 .Concat(CreateEventReceivers(processors))
                 .Concat(CreateRequestReceivers()
@@ -51,7 +51,7 @@ namespace KnightBus.Host
         
         private IEnumerable<IChannelReceiver> CreateRequestReceivers()
         {
-            var processors = _configuration.DependencyInjection.GetOpenGenericRegistrations(typeof(IProcessRequest<,>)).ToArray();
+            var processors = _configuration.DependencyInjection.GetOpenGenericRegistrations(typeof(IProcessMessage<,>)).ToArray();
             foreach (var processor in processors)
             {
                 var processorInterfaces = ReflectionHelper.GetAllInterfacesImplementingOpenGenericInterface(processor, typeof(IProcessRequest<,,>));
@@ -70,7 +70,7 @@ namespace KnightBus.Host
 
         private IEnumerable<IChannelReceiver> CreateRequestStreamReceivers()
         {
-            var processors = _configuration.DependencyInjection.GetOpenGenericRegistrations(typeof(IProcessRequest<,>)).ToArray();
+            var processors = _configuration.DependencyInjection.GetOpenGenericRegistrations(typeof(IProcessMessage<,>)).ToArray();
             foreach (var processor in processors)
             {
                 var processorInterfaces = ReflectionHelper.GetAllInterfacesImplementingOpenGenericInterface(processor, typeof(IProcessStreamRequest<,,>));

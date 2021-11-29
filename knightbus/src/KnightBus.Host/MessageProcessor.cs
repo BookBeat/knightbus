@@ -24,7 +24,7 @@ namespace KnightBus.Host
         public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, CancellationToken cancellationToken) where T : class, IMessage
         {
             var typedMessage = await messageStateHandler.GetMessageAsync().ConfigureAwait(false);
-            var messageHandler = messageStateHandler.MessageScope.GetInstance<IProcessMessage<T>>(_messageHandlerType);
+            var messageHandler = messageStateHandler.MessageScope.GetInstance<IProcessMessage<T, Task>>(_messageHandlerType);
 
             await messageHandler.ProcessAsync(typedMessage, cancellationToken).ConfigureAwait(false);
             await messageStateHandler.CompleteAsync().ConfigureAwait(false);
@@ -46,7 +46,7 @@ namespace KnightBus.Host
         public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, CancellationToken cancellationToken) where T : class, IMessage
         {
             var typedMessage = await messageStateHandler.GetMessageAsync().ConfigureAwait(false);
-            var messageHandler = messageStateHandler.MessageScope.GetInstance<IProcessRequest<T,Task<TResponse>>>(_messageHandlerType);
+            var messageHandler = messageStateHandler.MessageScope.GetInstance<IProcessMessage<T,Task<TResponse>>>(_messageHandlerType);
 
             var response = await messageHandler.ProcessAsync(typedMessage, cancellationToken).ConfigureAwait(false);
             await messageStateHandler.CompleteAsync().ConfigureAwait(false);
@@ -65,7 +65,7 @@ namespace KnightBus.Host
         public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, CancellationToken cancellationToken) where T : class, IMessage
         {
             var typedMessage = await messageStateHandler.GetMessageAsync().ConfigureAwait(false);
-            var messageHandler = messageStateHandler.MessageScope.GetInstance<IProcessRequest<T, IAsyncEnumerable<TResponse>>>(_messageHandlerType);
+            var messageHandler = messageStateHandler.MessageScope.GetInstance<IProcessMessage<T, IAsyncEnumerable<TResponse>>>(_messageHandlerType);
 
             await foreach (var response in messageHandler.ProcessAsync(typedMessage, cancellationToken))
             {

@@ -7,8 +7,8 @@ namespace KnightBus.Core
     /// <summary>
     /// Base interface shared for message processing regardless of message type
     /// </summary>
-    public interface IProcessMessage<T> where T : IMessage
+    public interface IProcessMessage<T, TResult> where T : IMessage
     {
-        Task ProcessAsync(T message, CancellationToken cancellationToken);
+        TResult ProcessAsync(T message, CancellationToken cancellationToken);
     }
 }

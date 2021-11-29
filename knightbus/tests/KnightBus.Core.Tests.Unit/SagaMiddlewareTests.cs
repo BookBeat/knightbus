@@ -20,10 +20,10 @@ namespace KnightBus.Core.Tests.Unit
             var partitionKey = "a";
             var id = "b";
             var sagaStore = new Mock<ISagaStore>();
-            sagaStore.Setup(x => x.Create<SagaData>(partitionKey, id, It.IsAny<SagaData>(), TimeSpan.FromHours(1))).ThrowsAsync(new SagaAlreadyStartedException(partitionKey, id));
+            sagaStore.Setup(x => x.Create(partitionKey, id, It.IsAny<SagaData>(), TimeSpan.FromHours(1))).ThrowsAsync(new SagaAlreadyStartedException(partitionKey, id));
 
             var di = new Mock<IDependencyInjection>();
-            di.Setup(x => x.GetInstance<IProcessMessage<SagaStartMessage>>(typeof(IProcessCommand<SagaStartMessage, Settings>))).Returns(new Saga());
+            di.Setup(x => x.GetInstance<object>(typeof(IProcessCommand<SagaStartMessage, Settings>))).Returns(new Saga());
 
             var hostConfiguration = new Mock<IHostConfiguration>();
             hostConfiguration.Setup(x => x.Log).Returns(Mock.Of<ILog>());
@@ -54,7 +54,7 @@ namespace KnightBus.Core.Tests.Unit
 
             var di = new Mock<IDependencyInjection>();
             var countable = new Mock<ICountable>();
-            di.Setup(x => x.GetInstance<IProcessMessage<SagaStartMessage>>(typeof(IProcessCommand<SagaStartMessage, Settings>))).Returns(new SagaDuplicateWithDuplicate(countable.Object));
+            di.Setup(x => x.GetInstance<object>(typeof(IProcessCommand<SagaStartMessage, Settings>))).Returns(new SagaDuplicateWithDuplicate(countable.Object));
 
             var hostConfiguration = new Mock<IHostConfiguration>();
             hostConfiguration.Setup(x => x.Log).Returns(Mock.Of<ILog>());
@@ -86,7 +86,7 @@ namespace KnightBus.Core.Tests.Unit
 
             var di = new Mock<IDependencyInjection>();
             var countable = new Mock<ICountable>();
-            di.Setup(x => x.GetInstance<IProcessMessage<SagaStartMessage>>(typeof(IProcessCommand<SagaStartMessage, Settings>))).Returns(new SagaDuplicateWithDuplicate(countable.Object, true));
+            di.Setup(x => x.GetInstance<object>(typeof(IProcessCommand<SagaStartMessage, Settings>))).Returns(new SagaDuplicateWithDuplicate(countable.Object, true));
 
             var hostConfiguration = new Mock<IHostConfiguration>();
             hostConfiguration.Setup(x => x.Log).Returns(Mock.Of<ILog>());
@@ -122,7 +122,7 @@ namespace KnightBus.Core.Tests.Unit
             var saga = new Saga();
 
             var di = new Mock<IDependencyInjection>();
-            di.Setup(x => x.GetInstance<IProcessMessage<SagaStartMessage>>(typeof(IProcessCommand<SagaStartMessage, Settings>))).Returns(saga);
+            di.Setup(x => x.GetInstance<object>(typeof(IProcessCommand<SagaStartMessage, Settings>))).Returns(saga);
 
             var hostConfiguration = new Mock<IHostConfiguration>();
             hostConfiguration.Setup(x => x.Log).Returns(Mock.Of<ILog>());

@@ -75,7 +75,7 @@ namespace KnightBus.Core.Tests.Unit
             var processor = new DeadLetterTestProcessor(countable.Object);
 
             var di = new Mock<IDependencyInjection>();
-            di.Setup(x => x.GetInstance<IProcessMessage<TestCommand>>(It.IsAny<Type>())).Returns(processor);
+            di.Setup(x => x.GetInstance<object>(It.IsAny<Type>())).Returns(processor);
 
             var hostConfiguration = new Mock<IHostConfiguration>();
             hostConfiguration.Setup(x => x.Log).Returns(Mock.Of<ILog>());

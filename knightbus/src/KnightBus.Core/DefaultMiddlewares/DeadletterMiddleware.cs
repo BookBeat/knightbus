@@ -11,7 +11,7 @@ namespace KnightBus.Core.DefaultMiddlewares
         {
             if (messageStateHandler.DeliveryCount > messageStateHandler.DeadLetterDeliveryLimit)
             {
-                var processor = messageStateHandler.MessageScope.GetInstance<IProcessMessage<T>>(pipelineInformation.ProcessorInterfaceType); 
+                var processor = messageStateHandler.MessageScope.GetInstance<object>(pipelineInformation.ProcessorInterfaceType); 
 
                 if (processor is IProcessBeforeDeadLetter<T> deadletterProcessor)
                 {
