@@ -8,7 +8,7 @@ namespace KnightBus.Host.MessageProcessing.Factories
     {
         private readonly Type _genericInterface;
 
-        public MessageProcessorFactoryBase(Type genericInterface)
+        protected MessageProcessorFactoryBase(Type genericInterface)
         {
             _genericInterface = genericInterface;
         }
