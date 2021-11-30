@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
 using KnightBus.Core.Exceptions;
+using KnightBus.Host.MessageProcessing;
 using Microsoft.Extensions.Hosting;
 
 namespace KnightBus.Host

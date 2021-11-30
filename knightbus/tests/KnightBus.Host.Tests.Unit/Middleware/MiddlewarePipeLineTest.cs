@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using KnightBus.Core;
+using KnightBus.Host.MessageProcessing.Processors;
 using KnightBus.Messages;
 using KnightBus.Microsoft.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;

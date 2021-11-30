@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
 using KnightBus.Core.DefaultMiddlewares;
+using KnightBus.Host.MessageProcessing.Processors;
 using KnightBus.Host.Tests.Unit.Processors;
 using Moq;
 using NUnit.Framework;

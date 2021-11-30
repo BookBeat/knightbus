@@ -4,6 +4,7 @@ using System.Linq;
 using FluentAssertions;
 using KnightBus.Core;
 using KnightBus.Core.Singleton;
+using KnightBus.Host.MessageProcessing;
 using KnightBus.Host.Singleton;
 using KnightBus.Host.Tests.Unit.Processors;
 using KnightBus.Messages;
@@ -62,6 +63,26 @@ namespace KnightBus.Host.Tests.Unit
             _queueStarterFactory.Setup(x => x.Create(typeof(TestRequest), null, It.IsAny<TestMessageSettings>(), It.IsAny<IMessageSerializer>(), It.IsAny<HostConfiguration>(), It.IsAny<IMessageProcessor>()))
                 .Returns(Mock.Of<IChannelReceiver>()).Verifiable();
             _messageHandlerProvider.RegisterProcessor(new RequestProcessor(Mock.Of<ICountable>()));
+            //act
+            var reader = locator.CreateReceivers().ToList();
+            //assert
+            reader.Count.Should().Be(1);
+            _queueStarterFactory.Verify();
+        }
+
+        [Test]
+        public void Should_locate_single__stream_request_processor()
+        {
+            //arrange
+            var locator = new MessageProcessorLocator(new HostConfiguration
+            {
+                DependencyInjection = _messageHandlerProvider
+
+            }, new[] { _queueStarterFactory.Object });
+            _queueStarterFactory.Setup(x => x.CanCreate(typeof(TestRequest))).Returns(true);
+            _queueStarterFactory.Setup(x => x.Create(typeof(TestRequest), null, It.IsAny<TestMessageSettings>(), It.IsAny<IMessageSerializer>(), It.IsAny<HostConfiguration>(), It.IsAny<IMessageProcessor>()))
+                .Returns(Mock.Of<IChannelReceiver>()).Verifiable();
+            _messageHandlerProvider.RegisterProcessor(new StreamRequestProcessor(Mock.Of<ICountable>()));
             //act
             var reader = locator.CreateReceivers().ToList();
             //assert
