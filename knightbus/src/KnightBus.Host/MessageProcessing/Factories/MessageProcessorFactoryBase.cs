@@ -19,7 +19,7 @@ namespace KnightBus.Host.MessageProcessing.Factories
 
         public bool CanCreate(Type processorInterface)
         {
-            return processorInterface.IsGenericType && processorInterface.GetGenericTypeDefinition() == _genericInterface);
+            return processorInterface.IsGenericType && processorInterface.GetGenericTypeDefinition() == _genericInterface;
         }
     }
 }
