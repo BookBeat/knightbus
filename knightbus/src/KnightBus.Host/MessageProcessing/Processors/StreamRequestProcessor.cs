@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using KnightBus.Core;
 using KnightBus.Messages;
 
-namespace KnightBus.Host.MessageProcessing.Factories
+namespace KnightBus.Host.MessageProcessing.Processors
 {
     internal class StreamRequestProcessor<TResponse> : IMessageProcessor
     {

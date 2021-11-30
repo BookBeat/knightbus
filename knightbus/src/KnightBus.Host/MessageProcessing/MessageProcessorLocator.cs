@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using KnightBus.Core;
 using KnightBus.Host.MessageProcessing.Factories;
-using KnightBus.Host.MessageProcessing.Processors;
 
 namespace KnightBus.Host.MessageProcessing
 {

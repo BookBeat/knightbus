@@ -1,12 +1,14 @@
 using System;
-using System.Collections.Generic;
 using KnightBus.Core;
 using KnightBus.Host.MessageProcessing.Processors;
 
 namespace KnightBus.Host.MessageProcessing.Factories
 {
-    internal class RequestProcessorFactory : IProcessorFactory
+    internal class RequestProcessorFactory : MessageProcessorFactoryBase, IProcessorFactory
     {
+        public RequestProcessorFactory() : base(typeof(IProcessRequest<,,>))
+        { }
+
         public ProcessorTypes GetProcessorTypes(Type processorInterface)
         {
             var messageType = processorInterface.GenericTypeArguments[0];
@@ -19,16 +21,6 @@ namespace KnightBus.Host.MessageProcessing.Factories
         {
             var requestProcessorType = typeof(RequestProcessor<>).MakeGenericType(GetProcessorTypes(processorInterface).ResponseType);
             return (IMessageProcessor)Activator.CreateInstance(requestProcessorType, processorInterface);
-        }
-
-        public IEnumerable<Type> GetInterfaces(Type processorType)
-        {
-            return ReflectionHelper.GetAllInterfacesImplementingOpenGenericInterface(processorType, typeof(IProcessRequest<,,>));
-        }
-
-        public bool CanCreate(Type processorInterface)
-        {
-            return processorInterface.IsGenericType && processorInterface.GetGenericTypeDefinition() == typeof(IProcessRequest<,,>);
         }
     }
 }
