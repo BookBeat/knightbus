@@ -34,11 +34,15 @@ namespace KnightBus.Nats
         public Task StartAsync(CancellationToken cancellationToken)
         {
             _cancellationToken = cancellationToken;
-
             _connection = _factory.CreateConnection(_configuration.Options);
-            
+
             var queueName = AutoMessageMapper.GetQueueName<T>();
-            var subscription = _connection.SubscribeAsync(queueName, queueName);
+            IAsyncSubscription subscription;
+            if(typeof(IEvent).IsAssignableFrom(typeof(T)))
+                subscription = _connection.SubscribeAsync(queueName);
+            else
+                subscription = _connection.SubscribeAsync(queueName, queueName);
+
             subscription.PendingMessageLimit = _settings.MaxConcurrentCalls;
             subscription.MessageHandler += SubscriptionOnMessageHandler;
             subscription.Start();
