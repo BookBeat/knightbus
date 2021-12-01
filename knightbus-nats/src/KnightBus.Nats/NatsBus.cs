@@ -4,14 +4,16 @@ using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
 using KnightBus.Messages;
+using KnightBus.Nats.Messages;
 using NATS.Client;
 
 namespace KnightBus.Nats
 {
     public interface INatsBus
     {
-        Task PublishAsync(INatsMessage command, CancellationToken cancellationToken = default);
-        Task<T> RequestAsync<T>(INatsRequest<T> command, CancellationToken cancellationToken = default) where T : INatsReponse;
+        void Publish(INatsCommand command, CancellationToken cancellationToken = default);
+        Task<TResponse> RequestAsync<T, TResponse>(INatsRequest request, CancellationToken cancellationToken = default) where T : INatsRequest;
+        IEnumerable<TResponse> RequestStream<T, TResponse>(INatsRequest command, CancellationToken cancellationToken = default) where T : INatsRequest;
     }
 
     public class NatsBus : INatsBus
@@ -25,37 +27,36 @@ namespace KnightBus.Nats
             _configuration = configuration;
         }
 
-        public Task PublishAsync(INatsMessage command, CancellationToken cancellationToken = default)
+        public void Publish(INatsCommand command, CancellationToken cancellationToken = default)
         {
-            
+
             var mapping = AutoMessageMapper.GetMapping(command.GetType());
             var serializer = _configuration.MessageSerializer;
             if (mapping is ICustomMessageSerializer customSerializer) serializer = customSerializer.MessageSerializer;
 
             _connection.Publish(mapping.QueueName, serializer.Serialize(command));
-            return Task.CompletedTask;
         }
 
-        public async Task<T> RequestAsync<T>(INatsRequest<T> command, CancellationToken cancellationToken = default) where T : INatsReponse
+        public async Task<TResponse> RequestAsync<T, TResponse>(INatsRequest request, CancellationToken cancellationToken = default) where T : INatsRequest
+        {
+            var mapping = AutoMessageMapper.GetMapping(request.GetType());
+            var serializer = _configuration.MessageSerializer;
+            if (mapping is ICustomMessageSerializer customSerializer) serializer = customSerializer.MessageSerializer;
+
+            var reply = await _connection.RequestAsync(mapping.QueueName, serializer.Serialize(request), cancellationToken).ConfigureAwait(false);
+            return serializer.Deserialize<TResponse>(reply.Data.AsSpan());
+        }
+
+        public IEnumerable<TResponse> RequestStream<T, TResponse>(INatsRequest command, CancellationToken cancellationToken = default) where T : INatsRequest
         {
             var mapping = AutoMessageMapper.GetMapping(command.GetType());
             var serializer = _configuration.MessageSerializer;
             if (mapping is ICustomMessageSerializer customSerializer) serializer = customSerializer.MessageSerializer;
 
-            var reply = await _connection.RequestAsync(mapping.QueueName, serializer.Serialize(command), cancellationToken).ConfigureAwait(false);
-            return serializer.Deserialize<T>(reply.Data.AsSpan());
-        }
-
-        public IEnumerable<T> RequestStreamAsync<T>(INatsRequest<T> command, CancellationToken cancellationToken = default) where T : INatsReponse
-        {
-            var mapping = AutoMessageMapper.GetMapping(command.GetType());
-            var serializer = _configuration.MessageSerializer;
-            if (mapping is ICustomMessageSerializer customSerializer) serializer = customSerializer.MessageSerializer;
-            
             var inbox = Guid.NewGuid().ToString("N");
             var sub = _connection.SubscribeSync(inbox);
             _connection.Publish(mapping.QueueName, inbox, serializer.Serialize(command));
-            
+
             var stop = false;
             do
             {
@@ -66,9 +67,9 @@ namespace KnightBus.Nats
                 }
                 else
                 {
-                    yield return serializer.Deserialize<T>(msg.Data.AsSpan());
+                    yield return serializer.Deserialize<TResponse>(msg.Data.AsSpan());
                 }
-                
+
             } while (!stop);
             sub.Unsubscribe();
             sub.Dispose();

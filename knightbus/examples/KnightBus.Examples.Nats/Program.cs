@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
 using KnightBus.Host;
 using KnightBus.Messages;
 using KnightBus.Nats;
+using KnightBus.Nats.Messages;
 using NATS.Client;
 
 namespace KnightBus.Examples.Nats
@@ -40,7 +42,7 @@ namespace KnightBus.Examples.Nats
             //Send some Messages and watch them print in the console
             for (var i = 0; i < 1; i++)
             {
-                var response =  client.RequestStreamAsync(new SampleNatsMessage { Message = $"Hello from command {i}" });
+                var response =  client.RequestStream<SampleNatsMessage, SampleNatsReply>(new SampleNatsMessage { Message = $"Hello from command {i}" });
                 foreach (var reply in response)
                 {
                     Console.WriteLine(reply.Reply);
@@ -49,12 +51,12 @@ namespace KnightBus.Examples.Nats
             Console.ReadKey();
         }
 
-        class SampleNatsMessage : INatsRequest<SampleNatsReply>
+        class SampleNatsMessage : INatsRequest
         {
             public string Message { get; set; }
         }
 
-        class SampleNatsReply : INatsReponse
+        class SampleNatsReply
         {
             public string Reply { get; set; }
         }
@@ -67,7 +69,7 @@ namespace KnightBus.Examples.Nats
        
         class NatsBusStreamRequestProcessor : IProcessStreamRequest<SampleNatsMessage, SampleNatsReply, SomeProcessingSetting>
         {
-            public async IAsyncEnumerable<SampleNatsReply> ProcessAsync(SampleNatsMessage message, CancellationToken cancellationToken)
+            public async IAsyncEnumerable<SampleNatsReply> ProcessAsync(SampleNatsMessage message, [EnumeratorCancellation] CancellationToken cancellationToken)
             {
                 for (int i = 0; i < 20; i++)
                 {

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using KnightBus.Core;
 using KnightBus.Messages;
+using KnightBus.Nats.Messages;
 
 namespace KnightBus.Nats
 {
@@ -28,7 +29,7 @@ namespace KnightBus.Nats
 
         public bool CanCreate(Type messageType)
         {
-            return typeof(INatsMessage).IsAssignableFrom(messageType);
+            return typeof(INatsCommand).IsAssignableFrom(messageType) || typeof(INatsEvent).IsAssignableFrom(messageType) || typeof(INatsRequest).IsAssignableFrom(messageType); ;
         }
     }
 }

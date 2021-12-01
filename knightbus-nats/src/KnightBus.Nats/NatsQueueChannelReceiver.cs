@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
 using KnightBus.Messages;
+using KnightBus.Nats.Messages;
 using NATS.Client;
 
 namespace KnightBus.Nats
@@ -38,7 +39,7 @@ namespace KnightBus.Nats
 
             var queueName = AutoMessageMapper.GetQueueName<T>();
             IAsyncSubscription subscription;
-            if(typeof(IEvent).IsAssignableFrom(typeof(T)))
+            if(typeof(INatsEvent).IsAssignableFrom(typeof(T)))
                 subscription = _connection.SubscribeAsync(queueName);
             else
                 subscription = _connection.SubscribeAsync(queueName, queueName);

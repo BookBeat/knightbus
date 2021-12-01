@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
@@ -13,7 +14,7 @@ namespace KnightBus.Host.Tests.Unit.Processors
         {
             _countable = countable;
         }
-        public async IAsyncEnumerable<TestResponse> ProcessAsync(TestRequest message, CancellationToken cancellationToken)
+        public async IAsyncEnumerable<TestResponse> ProcessAsync(TestRequest message, [EnumeratorCancellation] CancellationToken cancellationToken)
         {
             _countable.Count();
             await Task.Delay(1, cancellationToken);
