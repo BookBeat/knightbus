@@ -57,20 +57,17 @@ namespace KnightBus.Nats
             var sub = _connection.SubscribeSync(inbox);
             _connection.Publish(mapping.QueueName, inbox, serializer.Serialize(command));
 
-            var stop = false;
             do
             {
                 var msg = sub.NextMessage();
                 if (msg.Data.Length == 0)
                 {
-                    stop = true;
-                }
-                else
-                {
-                    yield return serializer.Deserialize<TResponse>(msg.Data.AsSpan());
+                    break;
                 }
 
-            } while (!stop);
+                yield return serializer.Deserialize<TResponse>(msg.Data.AsSpan());
+
+            } while (true);
             sub.Unsubscribe();
             sub.Dispose();
         }
