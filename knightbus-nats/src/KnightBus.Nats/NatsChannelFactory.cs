@@ -21,8 +21,7 @@ namespace KnightBus.Nats
         {
 
             var readerType = typeof(NatsQueueChannelReceiver<>).MakeGenericType(messageType);
-            var reader = (IChannelReceiver) Activator.CreateInstance(readerType, processingSettings, serializer,
-                configuration, processor, Configuration);
+            var reader = (IChannelReceiver) Activator.CreateInstance(readerType, processingSettings, serializer, configuration, processor, Configuration, subscription);
 
             return reader;
         }

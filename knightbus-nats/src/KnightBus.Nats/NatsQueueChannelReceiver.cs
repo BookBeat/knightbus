@@ -16,19 +16,22 @@ namespace KnightBus.Nats
         private readonly IHostConfiguration _hostConfiguration;
         private readonly IMessageProcessor _processor;
         private readonly INatsBusConfiguration _configuration;
+        private readonly IEventSubscription _subscription;
+        private const string CommandQueueGroup = "qg";
         public IProcessingSettings Settings { get; set; }
         private readonly ConnectionFactory _factory;
         private readonly ILog _log;
         private CancellationToken _cancellationToken;
         private IConnection _connection;
 
-        public NatsQueueChannelReceiver(IProcessingSettings settings, IMessageSerializer serializer, IHostConfiguration hostConfiguration, IMessageProcessor processor, INatsBusConfiguration configuration)
+        public NatsQueueChannelReceiver(IProcessingSettings settings, IMessageSerializer serializer, IHostConfiguration hostConfiguration, IMessageProcessor processor, INatsBusConfiguration configuration, IEventSubscription subscription)
         {
             _settings = settings;
             _serializer = serializer;
             _hostConfiguration = hostConfiguration;
             _processor = processor;
             _configuration = configuration;
+            _subscription = subscription;
             _log = hostConfiguration.Log;
             _factory = new ConnectionFactory();
         }
@@ -39,11 +42,11 @@ namespace KnightBus.Nats
 
             var queueName = AutoMessageMapper.GetQueueName<T>();
             IAsyncSubscription subscription;
-            if(typeof(INatsEvent).IsAssignableFrom(typeof(T)))
-                subscription = _connection.SubscribeAsync(queueName);
+            if (_subscription is null)
+                subscription = _connection.SubscribeAsync(queueName, CommandQueueGroup);
             else
-                subscription = _connection.SubscribeAsync(queueName, queueName);
-
+                subscription = _connection.SubscribeAsync(queueName, _subscription.Name);
+            
             subscription.PendingMessageLimit = _settings.MaxConcurrentCalls;
             subscription.MessageHandler += SubscriptionOnMessageHandler;
             subscription.Start();
