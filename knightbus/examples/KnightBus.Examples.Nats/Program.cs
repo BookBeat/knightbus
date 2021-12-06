@@ -20,7 +20,7 @@ namespace KnightBus.Examples.Nats
 
             // Start nats.io first
             // $ docker run -p 4222:4222 -ti nats:latest
-            
+
             //Initiate the client
             var config = new NatsBusConfiguration(connectionString);
             var factory = new ConnectionFactory();
@@ -33,6 +33,9 @@ namespace KnightBus.Examples.Nats
                     //Register our message processors without IoC using the standard provider
                     .UseDependencyInjection(new StandardDependecyInjection()
                         .RegisterProcessor(new NatsBusStreamRequestProcessor())
+                        .RegisterProcessor(new NatsBusEventProcessor1())
+                        .RegisterProcessor(new NatsBusEventProcessor2())
+                        .RegisterProcessor(new NatsBusCommandProcessor())
                     )
                 );
 
@@ -42,18 +45,45 @@ namespace KnightBus.Examples.Nats
             //Send some Messages and watch them print in the console
             for (var i = 0; i < 1; i++)
             {
-                var response =  client.RequestStream<SampleNatsMessage, SampleNatsReply>(new SampleNatsMessage { Message = $"Hello from command {i}" });
+                var response = client.RequestStream<SampleNatsMessage, SampleNatsReply>(new SampleNatsMessage { Message = $"Hello from command {i}" });
                 foreach (var reply in response)
                 {
                     Console.WriteLine(reply.Reply);
                 }
             }
+
+            client.Publish(new SampleNatsEvent(), CancellationToken.None);
+            client.Send(new SampleNatsCommand());
             Console.ReadKey();
         }
 
         class SampleNatsMessage : INatsRequest
         {
             public string Message { get; set; }
+        }
+
+        class SampleNatsCommand:INatsCommand
+        {
+            
+        }
+
+        class SampleNatsCommandMapping:IMessageMapping<SampleNatsCommand>
+        {
+            public string QueueName { get; } = "your-command";
+        }
+
+        class SampleNatsEvent : INatsEvent
+        {
+            public string Message { get; set; }
+        }
+
+        class SampleSubscription1 : IEventSubscription<SampleNatsEvent>
+        {
+            public string Name => "one";
+        }
+        class SampleSubscription2 : IEventSubscription<SampleNatsEvent>
+        {
+            public string Name => "two";
         }
 
         class SampleNatsReply
@@ -66,16 +96,48 @@ namespace KnightBus.Examples.Nats
             public string QueueName => "your-queue";
         }
 
-       
+        class SampleNatsEventMapping : IMessageMapping<SampleNatsEvent>
+        {
+            public string QueueName => "your-queue-2";
+        }
+
+
         class NatsBusStreamRequestProcessor : IProcessStreamRequest<SampleNatsMessage, SampleNatsReply, SomeProcessingSetting>
         {
             public async IAsyncEnumerable<SampleNatsReply> ProcessAsync(SampleNatsMessage message, [EnumeratorCancellation] CancellationToken cancellationToken)
             {
                 for (int i = 0; i < 20; i++)
                 {
-                    await Task.Delay(1000);
+                    await Task.Delay(100);
                     yield return new SampleNatsReply { Reply = $"Async Reply {i}:\t {message.Message}" };
                 }
+            }
+        }
+
+        class NatsBusEventProcessor1 : IProcessEvent<SampleNatsEvent, SampleSubscription1, SomeProcessingSetting>
+        {
+            public Task ProcessAsync(SampleNatsEvent message, CancellationToken cancellationToken)
+            {
+                Console.WriteLine($"Event listener 1");
+                return Task.CompletedTask;
+            }
+        }
+
+        class NatsBusEventProcessor2 : IProcessEvent<SampleNatsEvent, SampleSubscription2, SomeProcessingSetting>
+        {
+            public Task ProcessAsync(SampleNatsEvent message, CancellationToken cancellationToken)
+            {
+                Console.WriteLine($"Event listener 2");
+                return Task.CompletedTask;
+            }
+        }
+
+        class NatsBusCommandProcessor :IProcessCommand<SampleNatsCommand, SomeProcessingSetting>
+        {
+            public Task ProcessAsync(SampleNatsCommand message, CancellationToken cancellationToken)
+            {
+                Console.WriteLine($"Command");
+                return Task.CompletedTask;
             }
         }
 

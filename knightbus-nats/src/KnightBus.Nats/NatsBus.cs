@@ -11,7 +11,8 @@ namespace KnightBus.Nats
 {
     public interface INatsBus
     {
-        void Publish(INatsCommand command, CancellationToken cancellationToken = default);
+        void Send(INatsCommand message, CancellationToken cancellationToken = default);
+        void Publish(INatsEvent message, CancellationToken cancellationToken = default);
         Task<TResponse> RequestAsync<T, TResponse>(INatsRequest request, CancellationToken cancellationToken = default) where T : INatsRequest;
         IEnumerable<TResponse> RequestStream<T, TResponse>(INatsRequest command, CancellationToken cancellationToken = default) where T : INatsRequest;
     }
@@ -27,14 +28,22 @@ namespace KnightBus.Nats
             _configuration = configuration;
         }
 
-        public void Publish(INatsCommand command, CancellationToken cancellationToken = default)
+        public void Send(INatsCommand message, CancellationToken cancellationToken = default)
         {
-
-            var mapping = AutoMessageMapper.GetMapping(command.GetType());
+            var mapping = AutoMessageMapper.GetMapping(message.GetType());
             var serializer = _configuration.MessageSerializer;
             if (mapping is ICustomMessageSerializer customSerializer) serializer = customSerializer.MessageSerializer;
 
-            _connection.Publish(mapping.QueueName, serializer.Serialize(command));
+            _connection.Publish(mapping.QueueName, serializer.Serialize(message));
+        }
+
+        public void Publish(INatsEvent message, CancellationToken cancellationToken = default)
+        {
+            var mapping = AutoMessageMapper.GetMapping(message.GetType());
+            var serializer = _configuration.MessageSerializer;
+            if (mapping is ICustomMessageSerializer customSerializer) serializer = customSerializer.MessageSerializer;
+
+            _connection.Publish(mapping.QueueName, serializer.Serialize(message));
         }
 
         public async Task<TResponse> RequestAsync<T, TResponse>(INatsRequest request, CancellationToken cancellationToken = default) where T : INatsRequest
