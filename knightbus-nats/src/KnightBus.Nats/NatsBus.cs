@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
+using KnightBus.Core.Exceptions;
 using KnightBus.Messages;
 using KnightBus.Nats.Messages;
 using NATS.Client;
@@ -11,8 +12,8 @@ namespace KnightBus.Nats
 {
     public interface INatsBus
     {
-        void Send(INatsCommand message, CancellationToken cancellationToken = default);
-        void Publish(INatsEvent message, CancellationToken cancellationToken = default);
+        Task Send(INatsCommand message, CancellationToken cancellationToken = default);
+        Task Publish(INatsEvent message, CancellationToken cancellationToken = default);
         Task<TResponse> RequestAsync<T, TResponse>(INatsRequest request, CancellationToken cancellationToken = default) where T : INatsRequest;
         IEnumerable<TResponse> RequestStream<T, TResponse>(INatsRequest command, CancellationToken cancellationToken = default) where T : INatsRequest;
     }
@@ -21,6 +22,12 @@ namespace KnightBus.Nats
     {
         private readonly IConnection _connection;
         private readonly INatsBusConfiguration _configuration;
+        private IMessageAttachmentProvider _attachmentProvider;
+
+        public void EnableAttachments(IMessageAttachmentProvider attachmentProvider)
+        {
+            _attachmentProvider = attachmentProvider;
+        }
 
         public NatsBus(IConnection connection, INatsBusConfiguration configuration)
         {
@@ -28,22 +35,38 @@ namespace KnightBus.Nats
             _configuration = configuration;
         }
 
-        public void Send(INatsCommand message, CancellationToken cancellationToken = default)
+        public  Task Send(INatsCommand message, CancellationToken cancellationToken = default)
         {
-            var mapping = AutoMessageMapper.GetMapping(message.GetType());
-            var serializer = _configuration.MessageSerializer;
-            if (mapping is ICustomMessageSerializer customSerializer) serializer = customSerializer.MessageSerializer;
-
-            _connection.Publish(mapping.QueueName, serializer.Serialize(message));
+            return SendInternal(message, cancellationToken);
         }
 
-        public void Publish(INatsEvent message, CancellationToken cancellationToken = default)
+        public Task Publish(INatsEvent message, CancellationToken cancellationToken = default)
+        {
+            return SendInternal(message, cancellationToken);
+        }
+
+        private async Task SendInternal(IMessage message, CancellationToken cancellationToken = default)
         {
             var mapping = AutoMessageMapper.GetMapping(message.GetType());
             var serializer = _configuration.MessageSerializer;
             if (mapping is ICustomMessageSerializer customSerializer) serializer = customSerializer.MessageSerializer;
 
-            _connection.Publish(mapping.QueueName, serializer.Serialize(message));
+            var msg = new Msg(mapping.QueueName, serializer.Serialize(message));
+
+            if (message is ICommandWithAttachment attachmentMessage)
+            {
+                if (_attachmentProvider == null) throw new AttachmentProviderMissingException();
+
+                if (attachmentMessage.Attachment != null)
+                {
+                    var attachmentIds = new List<string>();
+                    var id = Guid.NewGuid().ToString("N");
+                    await _attachmentProvider.UploadAttachmentAsync(mapping.QueueName, id, attachmentMessage.Attachment, cancellationToken).ConfigureAwait(false);
+                    attachmentIds.Add(id);
+                    msg.Header.Add(AttachmentUtility.AttachmentKey, string.Join(",", attachmentIds));
+                }
+            }
+            _connection.Publish(msg);
         }
 
         public async Task<TResponse> RequestAsync<T, TResponse>(INatsRequest request, CancellationToken cancellationToken = default) where T : INatsRequest

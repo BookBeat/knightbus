@@ -24,7 +24,7 @@ namespace KnightBus.Nats
 
         public int DeliveryCount { get; } = 1;
         public int DeadLetterDeliveryLimit { get; }
-        public IDictionary<string, string> MessageProperties { get; }
+        public IDictionary<string, string> MessageProperties => _processMessage.Message.Header.
 
         public Task CompleteAsync()
         {
