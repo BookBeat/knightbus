@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using KnightBus.Core;
 using KnightBus.Messages;
@@ -24,7 +25,9 @@ namespace KnightBus.Nats
 
         public int DeliveryCount { get; } = 1;
         public int DeadLetterDeliveryLimit { get; }
-        public IDictionary<string, string> MessageProperties => _processMessage.Message.Header.
+
+        public IDictionary<string, string> MessageProperties => _processMessage.Message.Header.Keys.Cast<string>().ToDictionary(key => key, key => _processMessage.Message.Header[key]);
+
 
         public Task CompleteAsync()
         {

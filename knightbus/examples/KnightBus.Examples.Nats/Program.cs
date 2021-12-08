@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using KnightBus.Azure.Storage;
 using KnightBus.Core;
 using KnightBus.Host;
 using KnightBus.Messages;
@@ -17,7 +20,7 @@ namespace KnightBus.Examples.Nats
         static async Task Main(string[] args)
         {
             var connectionString = "localhost";
-
+            var storageConnection = "your-connection-string";
             // Start nats.io first
             // $ docker run -p 4222:4222 -ti nats:latest
 
@@ -25,6 +28,7 @@ namespace KnightBus.Examples.Nats
             var config = new NatsBusConfiguration(connectionString);
             var factory = new ConnectionFactory();
             var client = new NatsBus(factory.CreateConnection(), config);
+            client.EnableAttachments(new BlobStorageMessageAttachmentProvider(storageConnection));
 
             var knightBusHost = new KnightBusHost()
                 //Enable the Nats Transport
@@ -37,6 +41,7 @@ namespace KnightBus.Examples.Nats
                         .RegisterProcessor(new NatsBusEventProcessor2())
                         .RegisterProcessor(new NatsBusCommandProcessor())
                     )
+                    .UseBlobStorageAttachments(storageConnection)
                 );
 
             //Start the KnightBus Host, it will now connect to the StorageBus and listen to the SampleStorageBusMessageMapping.QueueName
@@ -52,8 +57,10 @@ namespace KnightBus.Examples.Nats
                 }
             }
 
-            client.Publish(new SampleNatsEvent(), CancellationToken.None);
-            client.Send(new SampleNatsCommand());
+            await client.Publish(new SampleNatsEvent(), CancellationToken.None);
+            var stream = new MemoryStream(Encoding.UTF8.GetBytes("Hello"));
+            stream.Position = 0;
+            await client.Send(new SampleNatsCommand{Attachment = new MessageAttachment("file.txt", "txt", stream)});
             Console.ReadKey();
         }
 
@@ -62,9 +69,9 @@ namespace KnightBus.Examples.Nats
             public string Message { get; set; }
         }
 
-        class SampleNatsCommand:INatsCommand
+        class SampleNatsCommand:INatsCommand, ICommandWithAttachment
         {
-            
+            public IMessageAttachment Attachment { get; set; }
         }
 
         class SampleNatsCommandMapping:IMessageMapping<SampleNatsCommand>
@@ -136,7 +143,11 @@ namespace KnightBus.Examples.Nats
         {
             public Task ProcessAsync(SampleNatsCommand message, CancellationToken cancellationToken)
             {
-                Console.WriteLine($"Command");
+                using (var s = new StreamReader(message.Attachment.Stream))
+                {
+                    Console.WriteLine($"Command {s.ReadToEnd()}");
+                }
+                
                 return Task.CompletedTask;
             }
         }
