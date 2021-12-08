@@ -74,19 +74,17 @@ namespace KnightBus.Nats
 
         private void SubscriptionOnMessageHandler(object sender, MsgHandlerEventArgs args)
         {
-            var messageExpiration = new CancellationTokenSource(_settings.MessageLockTimeout);
-            var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(messageExpiration.Token, _cancellationToken);
-            var stateHandler = new NatsBusMessageStateHandler<T>(args, _serializer, _settings.DeadLetterDeliveryLimit, _hostConfiguration.DependencyInjection);
-#pragma warning disable CS4014
-            _processor.ProcessAsync(stateHandler, linkedToken.Token)
-                .ContinueWith(task =>
-                    {
-                        messageExpiration.Dispose();
-                        linkedToken.Dispose();
-                    }
-                )
-                .ConfigureAwait(false);
-#pragma warning restore CS4014
+            try
+            {
+                using var messageExpiration = new CancellationTokenSource(_settings.MessageLockTimeout);
+                using var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(messageExpiration.Token, _cancellationToken);
+                var stateHandler = new NatsBusMessageStateHandler<T>(args, _serializer, _settings.DeadLetterDeliveryLimit, _hostConfiguration.DependencyInjection);
+                _processor.ProcessAsync(stateHandler, linkedToken.Token).GetAwaiter().GetResult();
+            }
+            catch (Exception e)
+            {
+                _log.Error(e, "Nats OnMessageHandler Failed");
+            }
         }
     }
 }
