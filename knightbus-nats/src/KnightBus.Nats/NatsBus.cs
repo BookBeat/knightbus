@@ -86,7 +86,7 @@ namespace KnightBus.Nats
             if (mapping is ICustomMessageSerializer customSerializer) serializer = customSerializer.MessageSerializer;
 
             var inbox = Guid.NewGuid().ToString("N");
-            var sub = _connection.SubscribeSync(inbox);
+            using var sub = _connection.SubscribeSync(inbox);
             _connection.Publish(mapping.QueueName, inbox, serializer.Serialize(command));
 
             do
@@ -101,7 +101,6 @@ namespace KnightBus.Nats
 
             } while (true);
             sub.Unsubscribe();
-            sub.Dispose();
         }
     }
 }
