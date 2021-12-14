@@ -39,11 +39,9 @@ namespace KnightBus.Host.MessageProcessing
                 foreach (var processorInterface in processorInterfaces)
                 {
                     var factory = factories.SingleOrDefault(x => x.CanCreate(processorInterface));
-                    if (factory != null)
-                    {
-                        ConsoleWriter.WriteLine($"Found {processor.Name}{factory.GetProcessorTypes(processorInterface)}");
-                        yield return _transportStarterFactory.CreateChannelReceiver(factory, processorInterface, processor);
-                    }
+                    if (factory == null) continue;
+                    ConsoleWriter.WriteLine($"Found {processor.Name}{factory.GetProcessorTypes(processorInterface)}");
+                    yield return _transportStarterFactory.CreateChannelReceiver(factory, processorInterface, processor);
                 }
             }
         }
