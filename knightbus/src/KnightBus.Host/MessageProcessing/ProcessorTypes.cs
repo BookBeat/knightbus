@@ -2,7 +2,7 @@ using System;
 
 namespace KnightBus.Host.MessageProcessing
 {
-    internal class ProcessorTypes
+    internal struct ProcessorTypes
     {
         public ProcessorTypes(Type messageType, Type responseType, Type subscriptionType, Type settingsType)
         {
@@ -16,5 +16,13 @@ namespace KnightBus.Host.MessageProcessing
         public Type ResponseType { get; }
         public Type SubscriptionType { get; }
         public Type SettingsType { get; }
+
+        public override string ToString()
+        {
+            if(SubscriptionType == null && ResponseType == null)
+                return $"<{MessageType.Name}, {SettingsType.Name}>";
+
+            return $"<{MessageType.Name}, {ResponseType?.Name ?? SubscriptionType?.Name}, {SettingsType.Name}>";
+        }
     }
 }
