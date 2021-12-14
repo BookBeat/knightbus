@@ -3,7 +3,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
 using KnightBus.Messages;
-using KnightBus.Nats.Messages;
 using NATS.Client;
 
 namespace KnightBus.Nats
@@ -11,7 +10,6 @@ namespace KnightBus.Nats
     public class NatsQueueChannelReceiver<T> : IChannelReceiver
         where T : class, IMessage
     {
-        private readonly IProcessingSettings _settings;
         private readonly IMessageSerializer _serializer;
         private readonly IHostConfiguration _hostConfiguration;
         private readonly IMessageProcessor _processor;
@@ -23,10 +21,11 @@ namespace KnightBus.Nats
         private readonly ILog _log;
         private CancellationToken _cancellationToken;
         private IConnection _connection;
+        private readonly SemaphoreSlim _maxConcurrent;
 
         public NatsQueueChannelReceiver(IProcessingSettings settings, IMessageSerializer serializer, IHostConfiguration hostConfiguration, IMessageProcessor processor, INatsBusConfiguration configuration, IEventSubscription subscription)
         {
-            _settings = settings;
+            Settings = settings;
             _serializer = serializer;
             _hostConfiguration = hostConfiguration;
             _processor = processor;
@@ -34,6 +33,7 @@ namespace KnightBus.Nats
             _subscription = subscription;
             _log = hostConfiguration.Log;
             _factory = new ConnectionFactory();
+            _maxConcurrent = new SemaphoreSlim(Settings.MaxConcurrentCalls);
         }
         public Task StartAsync(CancellationToken cancellationToken)
         {
@@ -41,15 +41,15 @@ namespace KnightBus.Nats
             _connection = _factory.CreateConnection(_configuration.Options);
 
             var queueName = AutoMessageMapper.GetQueueName<T>();
-            IAsyncSubscription subscription;
+            ISyncSubscription subscription;
             if (_subscription is null)
-                subscription = _connection.SubscribeAsync(queueName, CommandQueueGroup);
+                subscription = _connection.SubscribeSync(queueName, CommandQueueGroup);
             else
-                subscription = _connection.SubscribeAsync(queueName, _subscription.Name);
-            
-            subscription.PendingMessageLimit = _settings.MaxConcurrentCalls;
-            subscription.MessageHandler += SubscriptionOnMessageHandler;
-            subscription.Start();
+                subscription = _connection.SubscribeSync(queueName, _subscription.Name);
+
+#pragma warning disable CS4014
+            Task.Run(() => ListenForMessages(subscription), cancellationToken);
+#pragma warning restore CS4014
 
 #pragma warning disable 4014
             // ReSharper disable once MethodSupportsCancellation
@@ -72,14 +72,42 @@ namespace KnightBus.Nats
 #pragma warning restore 4014
         }
 
-        private void SubscriptionOnMessageHandler(object sender, MsgHandlerEventArgs args)
+        private async Task ListenForMessages(ISyncSubscription subscription)
+        {
+            while (!_cancellationToken.IsCancellationRequested)
+            {
+                var messageExpiration = new CancellationTokenSource(Settings.MessageLockTimeout);
+                var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(messageExpiration.Token, _cancellationToken);
+                await _maxConcurrent.WaitAsync(linkedToken.Token);
+                try
+                {
+                    var msg = subscription.NextMessage();
+
+#pragma warning disable CS4014
+                    Task.Run(
+                        () => ProcessMessage(msg, linkedToken.Token).ContinueWith(t =>
+                      {
+                          _maxConcurrent.Release();
+                          messageExpiration.Dispose();
+                          linkedToken.Dispose();
+
+                      }).ConfigureAwait(false), linkedToken.Token);
+                }
+                catch (Exception e)
+                {
+                    _log.Error(e, "Failed to read message from Nats");
+                }
+#pragma warning restore CS4014
+            }
+        }
+
+        private async Task ProcessMessage(Msg msg, CancellationToken token)
         {
             try
             {
-                using var messageExpiration = new CancellationTokenSource(_settings.MessageLockTimeout);
-                using var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(messageExpiration.Token, _cancellationToken);
-                var stateHandler = new NatsBusMessageStateHandler<T>(args, _serializer, _settings.DeadLetterDeliveryLimit, _hostConfiguration.DependencyInjection);
-                _processor.ProcessAsync(stateHandler, linkedToken.Token).GetAwaiter().GetResult();
+
+                var stateHandler = new NatsBusMessageStateHandler<T>(msg, _serializer, Settings.DeadLetterDeliveryLimit, _hostConfiguration.DependencyInjection);
+                await _processor.ProcessAsync(stateHandler, token).ConfigureAwait(false);
             }
             catch (Exception e)
             {

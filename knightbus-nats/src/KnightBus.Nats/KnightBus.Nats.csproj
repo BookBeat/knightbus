@@ -13,7 +13,6 @@
 		<RepositoryUrl>https://github.com/BookBeat/knightbus</RepositoryUrl>
 		<Version>0.0.1</Version>
 		<PackageTags>knightbus;nats;queues;messaging</PackageTags>
-		<Nullable>enable</Nullable>
 	</PropertyGroup>
 
 	<ItemGroup>

@@ -11,33 +11,33 @@ namespace KnightBus.Nats
     internal class NatsBusMessageStateHandler<T> : IMessageStateHandler<T> where T : class, IMessage
     {
         private readonly T _message;
-        private readonly MsgHandlerEventArgs _processMessage;
+        private readonly Msg _processMessage;
         private readonly IMessageSerializer _serializer;
 
-        public NatsBusMessageStateHandler(MsgHandlerEventArgs processMessage, IMessageSerializer serializer, int deadLetterDeliveryLimit, IDependencyInjection messageScope)
+        public NatsBusMessageStateHandler(Msg processMessage, IMessageSerializer serializer, int deadLetterDeliveryLimit, IDependencyInjection messageScope)
         {
             DeadLetterDeliveryLimit = deadLetterDeliveryLimit;
             MessageScope = messageScope;
             _processMessage = processMessage;
             _serializer = serializer;
-            _message = serializer.Deserialize<T>(processMessage.Message.Data.AsSpan());
+            _message = serializer.Deserialize<T>(processMessage.Data.AsSpan());
         }
 
         public int DeliveryCount { get; } = 1;
         public int DeadLetterDeliveryLimit { get; }
 
-        public IDictionary<string, string> MessageProperties => _processMessage.Message.Header.Keys.Cast<string>().ToDictionary(key => key, key => _processMessage.Message.Header[key]);
+        public IDictionary<string, string> MessageProperties => _processMessage.Header.Keys.Cast<string>().ToDictionary(key => key, key => _processMessage.Header[key]);
 
 
         public Task CompleteAsync()
         {
-            _processMessage.Message.Respond(null);
+            _processMessage.Respond(null);
             return Task.CompletedTask;
         }
 
         public Task ReplyAsync<TReply>(TReply reply)
         {
-            _processMessage.Message.Respond(_serializer.Serialize(reply));
+            _processMessage.Respond(_serializer.Serialize(reply));
             return Task.CompletedTask;
         }
 
