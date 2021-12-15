@@ -65,11 +65,4 @@ namespace KnightBus.Host
         {
         }
     }
-
-    public class SingletonScope : IDisposable
-    {
-        public void Dispose()
-        {
-        }
-    }
 }
