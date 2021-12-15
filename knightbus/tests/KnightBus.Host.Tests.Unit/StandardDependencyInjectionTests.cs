@@ -90,18 +90,18 @@ namespace KnightBus.Host.Tests.Unit
             //arrange
             var provider = new StandardDependecyInjection();
             //act
-            provider.RegisterProcessor(new RequestProcessor(Mock.Of<ICountable>()));
+            provider.RegisterProcessor(new SingleRequestProcessor(Mock.Of<ICountable>()));
             //assert
             var r = provider.GetOpenGenericRegistrations(typeof(IProcessMessage<,>));
             provider.GetOpenGenericRegistrations(typeof(IProcessMessage<,>)).Count().Should().Be(1);
-            provider.GetOpenGenericRegistrations(typeof(IProcessMessage<,>)).Should().Contain(x => x == typeof(RequestProcessor));
+            provider.GetOpenGenericRegistrations(typeof(IProcessMessage<,>)).Should().Contain(x => x == typeof(SingleRequestProcessor));
         }
         [Test]
         public void Should_get_registered_request_processor()
         {
             //arrange
             var provider = new StandardDependecyInjection();
-            var processor = new RequestProcessor(Mock.Of<ICountable>());
+            var processor = new SingleRequestProcessor(Mock.Of<ICountable>());
             provider.RegisterProcessor(processor);
             //act
             var processorFound = provider.GetInstance<IProcessMessage<TestRequest,Task<TestResponse>>>(typeof(IProcessRequest<TestRequest, TestResponse, TestMessageSettings>));

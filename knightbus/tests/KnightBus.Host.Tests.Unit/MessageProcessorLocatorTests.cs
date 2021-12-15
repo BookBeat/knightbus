@@ -62,7 +62,7 @@ namespace KnightBus.Host.Tests.Unit
             _queueStarterFactory.Setup(x => x.CanCreate(typeof(TestRequest))).Returns(true);
             _queueStarterFactory.Setup(x => x.Create(typeof(TestRequest), null, It.IsAny<TestMessageSettings>(), It.IsAny<IMessageSerializer>(), It.IsAny<HostConfiguration>(), It.IsAny<IMessageProcessor>()))
                 .Returns(Mock.Of<IChannelReceiver>()).Verifiable();
-            _messageHandlerProvider.RegisterProcessor(new RequestProcessor(Mock.Of<ICountable>()));
+            _messageHandlerProvider.RegisterProcessor(new SingleRequestProcessor(Mock.Of<ICountable>()));
             //act
             var reader = locator.CreateReceivers().ToList();
             //assert

@@ -4,11 +4,11 @@ using KnightBus.Core;
 
 namespace KnightBus.Host.Tests.Unit.ExampleProcessors
 {
-    public class RequestProcessor: IProcessRequest<TestRequest, TestResponse, TestMessageSettings>
+    public class SingleRequestProcessor: IProcessRequest<TestRequest, TestResponse, TestMessageSettings>
     {
         private readonly ICountable _countable;
 
-        public RequestProcessor(ICountable countable)
+        public SingleRequestProcessor(ICountable countable)
         {
             _countable = countable;
         }
