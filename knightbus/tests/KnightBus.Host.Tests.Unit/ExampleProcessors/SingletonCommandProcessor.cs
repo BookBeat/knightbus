@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using KnightBus.Core;
 using KnightBus.Core.Singleton;
 
-namespace KnightBus.Host.Tests.Unit.Processors
+namespace KnightBus.Host.Tests.Unit.ExampleProcessors
 {
     public class SingletonCommandProcessor : IProcessCommand<SingletonCommand, TestTopicSettings>, ISingletonProcessor
     {

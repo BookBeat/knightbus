@@ -2,7 +2,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
 using KnightBus.Core;
-using KnightBus.Host.Tests.Unit.Processors;
+using KnightBus.Host.Tests.Unit.ExampleProcessors;
 using Moq;
 using NUnit.Framework;
 

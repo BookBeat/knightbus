@@ -2,7 +2,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
 
-namespace KnightBus.Host.Tests.Unit.Processors
+namespace KnightBus.Host.Tests.Unit.ExampleProcessors
 {
     public class RequestProcessor: IProcessRequest<TestRequest, TestResponse, TestMessageSettings>
     {

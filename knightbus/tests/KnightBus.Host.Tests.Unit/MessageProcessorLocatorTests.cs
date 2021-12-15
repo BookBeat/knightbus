@@ -6,7 +6,7 @@ using KnightBus.Core;
 using KnightBus.Core.Singleton;
 using KnightBus.Host.MessageProcessing;
 using KnightBus.Host.Singleton;
-using KnightBus.Host.Tests.Unit.Processors;
+using KnightBus.Host.Tests.Unit.ExampleProcessors;
 using KnightBus.Messages;
 using Moq;
 using NUnit.Framework;
