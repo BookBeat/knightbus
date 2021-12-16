@@ -121,39 +121,5 @@ namespace KnightBus.Host.Tests.Unit.MessageProcessing.Processors
             //assert
             messageStateHandler.Verify(x => x.ReplyAsync(response), Times.Never);
         }
-
-        [Test]
-        public void Should_signal_broken_reply_failed_request()
-        {
-            //arrange
-            var request = new TestRequest();
-            var response = BrokenEnumerable();
-            var requestProcessor = new StreamRequestProcessor<TestResponse>(typeof(StreamRequestProcessor));
-            var commandHandler = new Mock<IProcessMessage<TestRequest, IAsyncEnumerable<TestResponse>>>();
-            commandHandler.Setup(x => x.ProcessAsync(request, CancellationToken.None))
-                .Returns(response);
-            var messageStateHandler = new Mock<IMessageStateHandler<TestRequest>>();
-            messageStateHandler
-                .Setup(x => x.MessageScope.GetInstance<IProcessMessage<TestRequest, IAsyncEnumerable<TestResponse>>>(typeof(StreamRequestProcessor)))
-                .Returns(commandHandler.Object);
-            messageStateHandler.Setup(x => x.GetMessageAsync()).ReturnsAsync(request);
-            //act
-            requestProcessor.Awaiting(x => x.ProcessAsync(messageStateHandler.Object, CancellationToken.None))
-                .Should().Throw<Exception>();
-            //assert
-            messageStateHandler.Verify(x => x.ReplyAsync(It.IsAny<TestResponse>()), Times.Never);
-        }
-
-        private async IAsyncEnumerable<TestResponse> BrokenEnumerable()
-        {
-            for (var i = 0; i < 3; i++)
-            {
-                await Task.Delay(1);
-                if (i == 2)
-                    throw new Exception();
-
-                yield return new TestResponse();
-            }
-        }
     }
 }
