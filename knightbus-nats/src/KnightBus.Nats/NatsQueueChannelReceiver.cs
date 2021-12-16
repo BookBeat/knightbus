@@ -95,7 +95,7 @@ namespace KnightBus.Nats
                 }
                 catch (Exception e)
                 {
-                    _log.Error(e, "Failed to read message from Nats");
+                    _log.Error(e, "Error to read message from Nats");
                 }
 #pragma warning restore CS4014
             }
@@ -111,7 +111,7 @@ namespace KnightBus.Nats
             }
             catch (Exception e)
             {
-                _log.Error(e, "Nats OnMessageHandler Failed");
+                _log.Error(e, "Nats OnMessageHandler Error");
             }
         }
     }

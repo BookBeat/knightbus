@@ -76,6 +76,7 @@ namespace KnightBus.Nats
             if (mapping is ICustomMessageSerializer customSerializer) serializer = customSerializer.MessageSerializer;
 
             var reply = await _connection.RequestAsync(mapping.QueueName, serializer.Serialize(request), cancellationToken).ConfigureAwait(false);
+            ThrowIfErrorResponse(reply);
             return serializer.Deserialize<TResponse>(reply.Data.AsSpan());
         }
 
@@ -94,13 +95,27 @@ namespace KnightBus.Nats
                 var msg = sub.NextMessage();
                 if (msg.Data.Length == 0)
                 {
-                    break;
+                    if (msg.HasHeaders && msg.Header[MsgConstants.HeaderName] == MsgConstants.Completed)
+                    {
+                        break;
+                    }
+                    ThrowIfErrorResponse(msg);
+
+                    yield return default;
                 }
 
                 yield return serializer.Deserialize<TResponse>(msg.Data.AsSpan());
 
             } while (true);
             sub.Unsubscribe();
+        }
+
+        private void ThrowIfErrorResponse(Msg msg)
+        {
+            if (msg.Data.Length == 0 && msg.HasHeaders && msg.Header[MsgConstants.HeaderName] == MsgConstants.Error)
+            {
+                throw new NATSException("Receiver failed");
+            }
         }
     }
 }

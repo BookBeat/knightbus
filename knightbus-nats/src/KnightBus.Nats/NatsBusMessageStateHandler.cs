@@ -11,38 +11,39 @@ namespace KnightBus.Nats
     internal class NatsBusMessageStateHandler<T> : IMessageStateHandler<T> where T : class, IMessage
     {
         private readonly T _message;
-        private readonly Msg _processMessage;
+        private readonly Msg _msg;
         private readonly IMessageSerializer _serializer;
 
-        public NatsBusMessageStateHandler(Msg processMessage, IMessageSerializer serializer, int deadLetterDeliveryLimit, IDependencyInjection messageScope)
+        public NatsBusMessageStateHandler(Msg msg, IMessageSerializer serializer, int deadLetterDeliveryLimit, IDependencyInjection messageScope)
         {
             DeadLetterDeliveryLimit = deadLetterDeliveryLimit;
             MessageScope = messageScope;
-            _processMessage = processMessage;
+            _msg = msg;
             _serializer = serializer;
-            _message = serializer.Deserialize<T>(processMessage.Data.AsSpan());
+            _message = serializer.Deserialize<T>(msg.Data.AsSpan());
         }
 
         public int DeliveryCount { get; } = 1;
         public int DeadLetterDeliveryLimit { get; }
 
-        public IDictionary<string, string> MessageProperties => _processMessage.Header.Keys.Cast<string>().ToDictionary(key => key, key => _processMessage.Header[key]);
+        public IDictionary<string, string> MessageProperties => _msg.Header.Keys.Cast<string>().ToDictionary(key => key, key => _msg.Header[key]);
 
 
         public Task CompleteAsync()
         {
-            _processMessage.Respond(null);
+            TryReply(MsgConstants.Completed);
             return Task.CompletedTask;
         }
 
         public Task ReplyAsync<TReply>(TReply reply)
         {
-            _processMessage.Respond(_serializer.Serialize(reply));
+            _msg.Respond(_serializer.Serialize(reply));
             return Task.CompletedTask;
         }
 
         public Task AbandonByErrorAsync(Exception e)
         {
+            TryReply(MsgConstants.Error);
             return Task.CompletedTask;
         }
 
@@ -57,5 +58,29 @@ namespace KnightBus.Nats
         }
 
         public IDependencyInjection MessageScope { get; set; }
+
+        private void TryReply(string status)
+        {
+            if (!string.IsNullOrEmpty(_msg.Reply))
+            {
+                var msg = new Msg(_msg.Reply);
+                msg.Header.Add(MsgConstants.HeaderName, status);
+                try
+                {
+                    _msg.ArrivalSubscription.Connection.Publish(msg);
+                }
+                catch (NATSException)
+                {
+                    //Replies are best effort
+                }
+            }
+        }
+    }
+
+    internal static class MsgConstants
+    {
+        public static string HeaderName = "kb";
+        public static string Completed = "ok";
+        public static string Error = "err";
     }
 }
