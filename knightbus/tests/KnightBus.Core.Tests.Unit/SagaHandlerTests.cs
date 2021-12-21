@@ -52,7 +52,7 @@ namespace KnightBus.Core.Tests.Unit
             var startMessage = new TestSagaMessage(id);
             var handler = new SagaHandler<TestSagaData, TestSagaMessage>(store.Object, saga, startMessage);
             //act & assert
-            handler.Awaiting(x => x.Initialize()).Should().Throw<SagaMessageMappingNotFoundException>();
+            handler.Awaiting(x => x.Initialize()).Should().ThrowAsync<SagaMessageMappingNotFoundException>();
         }
 
         internal class TestSagaData

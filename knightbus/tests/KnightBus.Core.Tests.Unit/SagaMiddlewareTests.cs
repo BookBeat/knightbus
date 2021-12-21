@@ -102,7 +102,7 @@ namespace KnightBus.Core.Tests.Unit
 
             //act
             middleware.Awaiting(x=> x.ProcessAsync(messageStateHandler.Object, pipelineInformation.Object, null, CancellationToken.None))
-                .Should().Throw<ApplicationException>();
+                .Should().ThrowAsync<ApplicationException>();
             //assert
             countable.Verify(x=> x.Count(), Times.Once);
             messageStateHandler.Verify(x => x.CompleteAsync(), Times.Never);

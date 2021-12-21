@@ -33,7 +33,7 @@ namespace KnightBus.Shared.Tests.Integration
             //act
             await SagaStore.Complete(partitionKey, id);
             //assert
-            SagaStore.Awaiting(x => x.GetSaga<SagaData>(partitionKey, id)).Should().Throw<SagaNotFoundException>();
+            SagaStore.Awaiting(x => x.GetSaga<SagaData>(partitionKey, id)).Should().ThrowAsync<SagaNotFoundException>();
         }
 
         [Test]
@@ -43,7 +43,7 @@ namespace KnightBus.Shared.Tests.Integration
             var partitionKey = Guid.NewGuid().ToString("N");
             var id = Guid.NewGuid().ToString("N");
             //act & assert
-            SagaStore.Awaiting(x => x.Complete(partitionKey, id)).Should().Throw<SagaNotFoundException>();
+            SagaStore.Awaiting(x => x.Complete(partitionKey, id)).Should().ThrowAsync<SagaNotFoundException>();
         }
 
         [Test]
@@ -84,7 +84,7 @@ namespace KnightBus.Shared.Tests.Integration
             await SagaStore.Create(partitionKey, id, new SagaData { Message = "yo" }, TimeSpan.FromMinutes(1));
             //act & assert
             SagaStore.Awaiting(x => x.Create(partitionKey, id, new SagaData { Message = "yo" }, TimeSpan.FromMinutes(1)))
-                .Should().Throw<SagaAlreadyStartedException>();
+                .Should().ThrowAsync<SagaAlreadyStartedException>();
         }
 
         [Test]
@@ -94,7 +94,7 @@ namespace KnightBus.Shared.Tests.Integration
             var partitionKey = Guid.NewGuid().ToString("N");
             var id = Guid.NewGuid().ToString("N");
             //act & assert
-            SagaStore.Awaiting(x => x.GetSaga<SagaData>(partitionKey, id)).Should().Throw<SagaNotFoundException>();
+            SagaStore.Awaiting(x => x.GetSaga<SagaData>(partitionKey, id)).Should().ThrowAsync<SagaNotFoundException>();
         }
 
         [Test]
@@ -106,7 +106,7 @@ namespace KnightBus.Shared.Tests.Integration
             await SagaStore.Create(partitionKey, id, new SagaData { Message = "yo" }, TimeSpan.FromMilliseconds(1));
             await Task.Delay(2);
             //act & assert
-            SagaStore.Awaiting(x => x.GetSaga<SagaData>(partitionKey, id)).Should().Throw<SagaNotFoundException>();
+            SagaStore.Awaiting(x => x.GetSaga<SagaData>(partitionKey, id)).Should().ThrowAsync<SagaNotFoundException>();
         }
 
         [Test]
@@ -116,7 +116,7 @@ namespace KnightBus.Shared.Tests.Integration
             var partitionKey = Guid.NewGuid().ToString("N");
             var id = Guid.NewGuid().ToString("N");
             //act & assert
-            SagaStore.Awaiting(x => x.Update(partitionKey, id, new SagaData())).Should().Throw<SagaNotFoundException>();
+            SagaStore.Awaiting(x => x.Update(partitionKey, id, new SagaData())).Should().ThrowAsync<SagaNotFoundException>();
         }
 
         [Test]

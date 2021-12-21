@@ -65,7 +65,7 @@ namespace KnightBus.Core.Tests.Unit
             tokenSource.Cancel();
 
             semaphore.Awaiting(x=>  x.WaitAsync(token))
-                .Should().Throw<OperationCanceledException>();
+                .Should().ThrowAsync<OperationCanceledException>();
 
             //assert
             semaphore.CurrentCount.Should().Be(1);

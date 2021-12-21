@@ -22,7 +22,7 @@ namespace KnightBus.Core.Tests.Unit
             var middleware = new ThrottlingMiddleware(1);
             //act 
             var action = new Func<Task>(() => middleware.ProcessAsync(messageStateHandler.Object, Mock.Of<IPipelineInformation>(), nextProcessor.Object, CancellationToken.None));
-            action.Should().Throw<Exception>();
+            action.Should().ThrowAsync<Exception>();
             //assert
             middleware.CurrentCount.Should().Be(1);
         }
@@ -40,7 +40,7 @@ namespace KnightBus.Core.Tests.Unit
             var middleware = new ThrottlingMiddleware(1);
             //act 
             middleware.Awaiting(x=> x.ProcessAsync(messageStateHandler.Object, Mock.Of<IPipelineInformation>(), nextProcessor.Object, cts.Token))
-                .Should().Throw<OperationCanceledException>();
+                .Should().ThrowAsync<OperationCanceledException>();
             
             //assert
             middleware.CurrentCount.Should().Be(1);
