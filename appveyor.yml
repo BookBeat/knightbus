@@ -3,8 +3,10 @@ version: 2.0.{build}
 image: Visual Studio 2022
 
 services: 
-- mssql2017
 - docker
+
+init:
+- net start MSSQL$SQL2019
 
 build_script:
 - cmd: >-
