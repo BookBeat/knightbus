@@ -54,7 +54,7 @@ namespace KnightBus.Core.Tests.Unit
         }
 
         [Test]
-        public void Should_cancel()
+        public async Task Should_cancel()
         {
             //arrange
             var tokenSource = new CancellationTokenSource();
@@ -64,8 +64,10 @@ namespace KnightBus.Core.Tests.Unit
 
             tokenSource.Cancel();
 
-            semaphore.Awaiting(x=>  x.WaitAsync(token))
-                .Should().ThrowAsync<OperationCanceledException>();
+            await semaphore
+                .Awaiting(x=>  x.WaitAsync(token))
+                .Should()
+                .ThrowAsync<OperationCanceledException>();
 
             //assert
             semaphore.CurrentCount.Should().Be(1);

@@ -43,7 +43,7 @@ namespace KnightBus.Core.Tests.Unit
         }
 
         [Test]
-        public void Initialize_should_throw_when_message_is_not_mapped()
+        public async Task Initialize_should_throw_when_message_is_not_mapped()
         {
             //arrange
             var id = "something-unique";
@@ -52,7 +52,10 @@ namespace KnightBus.Core.Tests.Unit
             var startMessage = new TestSagaMessage(id);
             var handler = new SagaHandler<TestSagaData, TestSagaMessage>(store.Object, saga, startMessage);
             //act & assert
-            handler.Awaiting(x => x.Initialize()).Should().ThrowAsync<SagaMessageMappingNotFoundException>();
+            await handler
+                .Awaiting(x => x.Initialize())
+                .Should()
+                .ThrowAsync<SagaMessageMappingNotFoundException>();
         }
 
         internal class TestSagaData

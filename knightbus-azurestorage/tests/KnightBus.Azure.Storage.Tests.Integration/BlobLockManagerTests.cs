@@ -92,7 +92,10 @@ namespace KnightBus.Azure.Storage.Tests.Integration
             await Task.Delay(TimeSpan.FromSeconds(16));
             //steal lock
             await lockManager.TryLockAsync(lockId, TimeSpan.FromSeconds(15), CancellationToken.None);
-            handle.Awaiting(x=> x.RenewAsync(Mock.Of<ILog>(), CancellationToken.None)).Should().ThrowAsync<RequestFailedException>();
+            await handle
+                .Awaiting(x=> x.RenewAsync(Mock.Of<ILog>(), CancellationToken.None))
+                .Should()
+                .ThrowAsync<RequestFailedException>();
         }
     }
 }
