@@ -10,13 +10,12 @@ init:
 
 build_script:
 - cmd: >-
-    "C:\Program Files (x86)\Microsoft SDKs\Azure\Storage Emulator\AzureStorageEmulator.exe" start
-
     dotnet build KnightBus.sln --configuration Release
 
 before_test:
 - docker pull redis
 - docker run -d -p 6379:6379 --name redis6379 redis
+- docker run -d -p 10000:10000 mcr.microsoft.com/azure-storage/azurite
 
 test_script:
 - cmd: >-
