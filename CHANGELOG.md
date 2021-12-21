@@ -1,5 +1,85 @@
 # CHANGELOG
 
+## 2021-12-21
+
+### KnightBus.SqlServer 9.0.0
+
+* Change target framework from net5.0 -> net6.0
+
+### KnightBus.SimpleInjector 11.0.0
+
+* Change target framework from net5.0 -> net6.0
+
+### KnightBus.Serilog 9.0.0
+
+* Change target framework from net5.0 -> net6.0
+
+### KnightBus.Schedule 8.0.0
+
+* Change target framework from net5.0 -> net6.0
+
+### KnightBus.ProtobufNet 3.0.0
+
+* Change target framework from net5.0 -> net6.0
+
+### KnightBus.Netwonsoft 2.0.0
+
+* Change target framework from net5.0 -> net6.0
+
+### KnightBus.NewRelic 5.0.0
+
+* Change target framework from net5.0 -> net6.0
+
+### KnightBus.Microsoft.DependencyInjection 11.0.0
+
+* Change target framework from net5.0 -> net6.0
+
+### KnightBus.Messages 5.0.0
+
+* Change target framework from net5.0 -> net6.0
+
+### KnightBus.MessagePack 2.0.0
+
+* Change target framework from net5.0 -> net6.0
+
+### KnightBus.Host 12.0.0
+
+* Change target framework from net5.0 -> net6.0
+
+### KnightBus.Core 11.0.0
+
+* Change target framework from net5.0 -> net6.0
+
+### KnightBus.ApplicationInsights 8.0.0
+
+* Change target framework from net5.0 -> net6.0
+
+### KnightBus.Redis.Messages 4.0.0
+
+* Change target framework from net5.0 -> net6.0
+
+### KnightBus.Redis 7.0.0
+
+* Change target framework from net5.0 -> net6.0
+
+### KnightBus.Azure.Storage.Messages 4.0.0
+
+* Change target framework from net5.0 -> net6.0
+
+### KnightBus.Azure.Storage 11.0.0
+
+* Change target framework from net5.0 -> net6.0
+
+### KnightBus.Azure.ServiceBus.Messages 4.0.0
+
+* Change target framework from net5.0 -> net6.0
+
+### KnightBus.Azure.ServiceBus 14.0.0
+
+* Change target framework from net5.0 -> net6.0
+
+### 
+
 ## 2021-05-05
 
 ### KnightBus.Azure.ServiceBus 13.3.0

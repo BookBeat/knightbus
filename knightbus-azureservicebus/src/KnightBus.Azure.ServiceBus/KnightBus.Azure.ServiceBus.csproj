@@ -1,22 +1,22 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.1;net5.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.1;net6.0</TargetFrameworks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Authors>BookBeat</Authors>
     <Description>Azure Service Bus Transport for KnightBus</Description>
-    <Copyright>Copyright © BookBeat 2019</Copyright>
+    <Copyright>Copyright © BookBeat 2021</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://knightbus.readthedocs.io</PackageProjectUrl>
     <PackageIconUrl>https://raw.githubusercontent.com/BookBeat/knightbus/master/documentation/media/images/knighbus-64.png</PackageIconUrl>
     <PackageIcon>knighbus-64.png</PackageIcon>
     <RepositoryUrl>https://github.com/BookBeat/knightbus</RepositoryUrl>
-    <Version>13.4.0</Version>
+    <Version>14.0.0</Version>
     <PackageTags>knightbus;azure servicebus;amqp;queues;messaging</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.2.0" />
+    <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.5.1" />
   </ItemGroup>
   <ItemGroup>
     <None Include="knighbus-64.png" Pack="true" Visible="false" PackagePath="" />

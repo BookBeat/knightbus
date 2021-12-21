@@ -12,23 +12,29 @@ namespace KnightBus.Core.Tests.Unit
     public class ThrottlingMiddlewareTests
     {
         [Test]
-        public void Should_release_throttle_on_exception()
+        public async Task Should_release_throttle_on_exception()
         {
             //arrange
             var nextProcessor = new Mock<IMessageProcessor>();
             var messageStateHandler = new Mock<IMessageStateHandler<TestCommand>>();
-            nextProcessor.Setup(x => x.ProcessAsync(messageStateHandler.Object, CancellationToken.None)).Throws<Exception>();
+            nextProcessor
+                .Setup(x => x.ProcessAsync(messageStateHandler.Object, It.IsAny<CancellationToken>()))
+                .Throws<Exception>();
             
             var middleware = new ThrottlingMiddleware(1);
+
             //act 
-            var action = new Func<Task>(() => middleware.ProcessAsync(messageStateHandler.Object, Mock.Of<IPipelineInformation>(), nextProcessor.Object, CancellationToken.None));
-            action.Should().Throw<Exception>();
+            await middleware
+                .Awaiting(x => x.ProcessAsync(messageStateHandler.Object, Mock.Of<IPipelineInformation>(), nextProcessor.Object, CancellationToken.None))
+                .Should()
+                .ThrowAsync<Exception>();
+
             //assert
             middleware.CurrentCount.Should().Be(1);
         }
 
         [Test]
-        public void Should_release_throttle_when_cancellation_token_cancelled()
+        public async Task Should_release_throttle_when_cancellation_token_cancelled()
         {
             //arrange
             var nextProcessor = new Mock<IMessageProcessor>();
@@ -39,8 +45,10 @@ namespace KnightBus.Core.Tests.Unit
 
             var middleware = new ThrottlingMiddleware(1);
             //act 
-            middleware.Awaiting(x=> x.ProcessAsync(messageStateHandler.Object, Mock.Of<IPipelineInformation>(), nextProcessor.Object, cts.Token))
-                .Should().Throw<OperationCanceledException>();
+            await middleware
+                .Awaiting(x=> x.ProcessAsync(messageStateHandler.Object, Mock.Of<IPipelineInformation>(), nextProcessor.Object, cts.Token))
+                .Should()
+                .ThrowAsync<OperationCanceledException>();
             
             //assert
             middleware.CurrentCount.Should().Be(1);
