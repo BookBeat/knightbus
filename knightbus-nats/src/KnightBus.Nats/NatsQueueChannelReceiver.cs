@@ -91,7 +91,7 @@ namespace KnightBus.Nats
                           messageExpiration.Dispose();
                           linkedToken.Dispose();
 
-                      }).ConfigureAwait(false), linkedToken.Token);
+                      }, CancellationToken.None).ConfigureAwait(false), linkedToken.Token);
                 }
                 catch (Exception e)
                 {
