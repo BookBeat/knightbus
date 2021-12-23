@@ -77,7 +77,7 @@ namespace KnightBus.Nats
         }
     }
 
-    internal static class MsgConstants
+    public static class MsgConstants
     {
         public static string HeaderName = "kb";
         public static string Completed = "ok";

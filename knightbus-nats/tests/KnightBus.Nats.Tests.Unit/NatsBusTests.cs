@@ -1,4 +1,6 @@
-﻿using System.Threading;
+﻿using System;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using KnightBus.Messages;
@@ -52,42 +54,53 @@ namespace KnightBus.Nats.Tests.Unit
             //assert
             response.Should().NotBeNull();
         }
+
+        [Test]
+        public void When_request_stream_should_recieve_all_messages()
+        {
+            //arrange
+            var sub = new Mock<ISyncSubscription>();
+            var stopHeader = new MsgHeader {{MsgConstants.HeaderName, MsgConstants.Completed}};
+            //10 results
+            sub.SetupSequence(x => x.NextMessage())
+                .Returns(new Msg("inbox", Array.Empty<byte>()))
+                .Returns(new Msg("inbox", stopHeader, Array.Empty<byte>()));
+                
+
+            var connection = new Mock<IConnection>();
+            connection.Setup(x => x.SubscribeSync(It.IsAny<string>())).Returns(sub.Object);
+            var bus = new NatsBus(connection.Object, new NatsBusConfiguration(""));
+            //act 
+            var response =  bus.RequestStream<TestNatsRequest, TestNatsResponse>(new TestNatsRequest());
+
+            //assert
+            response.Count().Should().Be(2);
+        }
+
+        [Test]
+        public void When_request_stream_error_should_throw()
+        {
+            //arrange
+            var sub = new Mock<ISyncSubscription>();
+            var errorHeader = new MsgHeader { { MsgConstants.HeaderName, MsgConstants.Error } };
+            //10 results
+            sub.SetupSequence(x => x.NextMessage())
+                .Returns(new Msg("inbox", Array.Empty<byte>()))
+                .Returns(new Msg("inbox", errorHeader, Array.Empty<byte>()));
+
+
+            var connection = new Mock<IConnection>();
+            connection.Setup(x => x.SubscribeSync(It.IsAny<string>())).Returns(sub.Object);
+            var bus = new NatsBus(connection.Object, new NatsBusConfiguration(""));
+            //act 
+            var response = bus.RequestStream<TestNatsRequest, TestNatsResponse>(new TestNatsRequest());
+
+            //assert
+            response.Invoking(x => x.Count()).Should().Throw<NATSException>();
+        }
     }
 
-    public class TestNatsCommand : INatsCommand
-    {
-
-    }
-
-    public class TestNatsCommandMapping:IMessageMapping<TestNatsCommand>
-    {
-        public string QueueName => "queueName";
-    }
-
-    public class TestNatsEvent : INatsEvent
-    {
-
-    }
-
-    public class TestNatsEventMapping : IMessageMapping<TestNatsEvent>
-    {
-        public string QueueName => "topicName";
-    }
-
-    public class TestNatsRequest : INatsRequest
-    {
-
-    }
-
-    public class TestNatsResponse
-    {
-
-    }
-
-    public class TestNatsRequestMapping : IMessageMapping<TestNatsRequest>
-    {
-        public string QueueName => "requestName";
-    }
+    
 
 
 }
