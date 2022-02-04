@@ -1,4 +1,4 @@
-﻿using System.Data.SqlClient;
+﻿using Microsoft.Data.SqlClient;
 using NUnit.Framework;
 
 namespace KnightBus.SqlServer.Tests.Integration
