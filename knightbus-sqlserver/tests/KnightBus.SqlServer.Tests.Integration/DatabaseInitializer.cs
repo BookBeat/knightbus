@@ -7,8 +7,8 @@ namespace KnightBus.SqlServer.Tests.Integration
     public class DatabaseInitializer
     {
         private const string DatabaseName = "KnightBus";
-        public static readonly string ConnectionString = $@"Server=(local)\SQL2019;Database={DatabaseName};User ID=sa;Password=Password12!";
-        private const string AdminConnectionString = @"Server=(local)\SQL2019;Database=master;User ID=sa;Password=Password12!";
+        public static readonly string ConnectionString = $@"Server=(local)\SQL2019;Database={DatabaseName};User ID=sa;Password=Password12!;Encrypt=False;TrustServerCertificate=True;";
+        private const string AdminConnectionString = @"Server=(local)\SQL2019;Database=master;User ID=sa;Password=Password12!;Encrypt=False;TrustServerCertificate=True;";
 
         [OneTimeSetUp]
         public void Setup()

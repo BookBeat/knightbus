@@ -95,7 +95,7 @@ namespace KnightBus.DependencyInjection.Tests.Unit
             var dependencyInjection = new MicrosoftDependencyInjection(container);
             dependencyInjection.Build();
 
-            var testHandler = dependencyInjection.GetScope().GetInstance<IProcessMessage<TestMessage>>(typeof(IProcessCommand<TestMessage, TestMessageSettings>));
+            var testHandler = dependencyInjection.GetScope().GetInstance<IProcessMessage<TestMessage, Task>>(typeof(IProcessCommand<TestMessage, TestMessageSettings>));
             testHandler.Should().NotBeNull();
         }
     }

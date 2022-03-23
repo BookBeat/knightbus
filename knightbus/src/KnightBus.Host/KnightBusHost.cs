@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
 using KnightBus.Core.Exceptions;
+using KnightBus.Host.MessageProcessing;
 using Microsoft.Extensions.Hosting;
 
 namespace KnightBus.Host
@@ -50,7 +51,7 @@ namespace KnightBus.Host
             if (_transports.Any())
             {
                 _locator = new MessageProcessorLocator(_configuration, _transports.SelectMany(transport => transport.TransportChannelFactories).ToArray());
-                var channelReceivers = _locator.Locate().ToList();
+                var channelReceivers = _locator.CreateReceivers().ToList();
                 ConsoleWriter.Write("Starting receivers [");
                 foreach (var receiver in channelReceivers)
                 {

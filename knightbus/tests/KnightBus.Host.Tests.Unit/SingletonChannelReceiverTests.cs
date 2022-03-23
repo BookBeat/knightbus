@@ -75,7 +75,7 @@ namespace KnightBus.Host.Tests.Unit
             };
             //act
             await singletonChannelReceiver.StartAsync(CancellationToken.None);
-            await Task.Delay(2000); 
+            await Task.Delay(2100); 
             //assert
             underlyingReceiver.Verify(x => x.StartAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
         }

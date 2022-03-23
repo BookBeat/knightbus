@@ -1,7 +1,8 @@
 using System.Linq;
+using System.Threading.Tasks;
 using FluentAssertions;
 using KnightBus.Core;
-using KnightBus.Host.Tests.Unit.Processors;
+using KnightBus.Host.Tests.Unit.ExampleProcessors;
 using Moq;
 using NUnit.Framework;
 
@@ -18,8 +19,8 @@ namespace KnightBus.Host.Tests.Unit
             //act
             provider.RegisterProcessor(new SingleCommandProcessor(Mock.Of<ICountable>()));
             //assert
-            provider.GetOpenGenericRegistrations(typeof(IProcessMessage<>)).Count().Should().Be(1);
-            provider.GetOpenGenericRegistrations(typeof(IProcessMessage<>)).FirstOrDefault().Should().Be(typeof(SingleCommandProcessor));
+            provider.GetOpenGenericRegistrations(typeof(IProcessMessage<,>)).Count().Should().Be(1);
+            provider.GetOpenGenericRegistrations(typeof(IProcessMessage<,>)).FirstOrDefault().Should().Be(typeof(SingleCommandProcessor));
         }
 
         [Test]
@@ -30,7 +31,7 @@ namespace KnightBus.Host.Tests.Unit
             var processor = new SingleCommandProcessor(Mock.Of<ICountable>());
             provider.RegisterProcessor(processor);
             //act
-            var processorFound = provider.GetInstance<IProcessMessage<TestCommand>>(typeof(IProcessCommand<TestCommand, TestTopicSettings>));
+            var processorFound = provider.GetInstance<IProcessMessage<TestCommand, Task>>(typeof(IProcessCommand<TestCommand, TestTopicSettings>));
             //assert
             processorFound.Should().Be(processor);
         }
@@ -43,8 +44,8 @@ namespace KnightBus.Host.Tests.Unit
             //act
             provider.RegisterProcessor(new MultipleCommandProcessor(Mock.Of<ICountable>()));
             //assert
-            provider.GetOpenGenericRegistrations(typeof(IProcessMessage<>)).Count().Should().Be(1);
-            provider.GetOpenGenericRegistrations(typeof(IProcessMessage<>)).Should().Contain(x => x == typeof(MultipleCommandProcessor));
+            provider.GetOpenGenericRegistrations(typeof(IProcessMessage<,>)).Count().Should().Be(1);
+            provider.GetOpenGenericRegistrations(typeof(IProcessMessage<,>)).Should().Contain(x => x == typeof(MultipleCommandProcessor));
         }
         [Test]
         public void Should_get_registered_multi_processor()
@@ -54,8 +55,8 @@ namespace KnightBus.Host.Tests.Unit
             var processor = new MultipleCommandProcessor(Mock.Of<ICountable>());
             provider.RegisterProcessor(processor);
             //act
-            var processorFound = provider.GetInstance<IProcessMessage<TestCommandOne>>(typeof(IProcessCommand<TestCommandOne, TestTopicSettings>));
-            var processorFoundTwo = provider.GetInstance<IProcessMessage<TestCommandTwo>>(typeof(IProcessCommand<TestCommandTwo, TestTopicSettings>));
+            var processorFound = provider.GetInstance<IProcessMessage<TestCommandOne, Task>>(typeof(IProcessCommand<TestCommandOne, TestTopicSettings>));
+            var processorFoundTwo = provider.GetInstance<IProcessMessage<TestCommandTwo, Task>>(typeof(IProcessCommand<TestCommandTwo, TestTopicSettings>));
             //assert
             processorFound.Should().Be(processor);
             processorFoundTwo.Should().Be(processor);
@@ -68,8 +69,8 @@ namespace KnightBus.Host.Tests.Unit
             //act
             provider.RegisterProcessor(new EventProcessor(Mock.Of<ICountable>()));
             //assert
-            provider.GetOpenGenericRegistrations(typeof(IProcessMessage<>)).Count().Should().Be(1);
-            provider.GetOpenGenericRegistrations(typeof(IProcessMessage<>)).Should().Contain(x => x == typeof(EventProcessor));
+            provider.GetOpenGenericRegistrations(typeof(IProcessMessage<,>)).Count().Should().Be(1);
+            provider.GetOpenGenericRegistrations(typeof(IProcessMessage<,>)).Should().Contain(x => x == typeof(EventProcessor));
         }
         [Test]
         public void Should_get_registered_event_processor()
@@ -79,7 +80,31 @@ namespace KnightBus.Host.Tests.Unit
             var processor = new EventProcessor(Mock.Of<ICountable>());
             provider.RegisterProcessor(processor);
             //act
-            var processorFound = provider.GetInstance<IProcessMessage<TestEvent>>(typeof(IProcessEvent<TestEvent, TestSubscription, TestTopicSettings>));
+            var processorFound = provider.GetInstance<IProcessMessage<TestEvent, Task>>(typeof(IProcessEvent<TestEvent, TestSubscription, TestTopicSettings>));
+            //assert
+            processorFound.Should().Be(processor);
+        }
+        [Test]
+        public void Should_register_request_processor()
+        {
+            //arrange
+            var provider = new StandardDependecyInjection();
+            //act
+            provider.RegisterProcessor(new SingleRequestProcessor(Mock.Of<ICountable>()));
+            //assert
+            var r = provider.GetOpenGenericRegistrations(typeof(IProcessMessage<,>));
+            provider.GetOpenGenericRegistrations(typeof(IProcessMessage<,>)).Count().Should().Be(1);
+            provider.GetOpenGenericRegistrations(typeof(IProcessMessage<,>)).Should().Contain(x => x == typeof(SingleRequestProcessor));
+        }
+        [Test]
+        public void Should_get_registered_request_processor()
+        {
+            //arrange
+            var provider = new StandardDependecyInjection();
+            var processor = new SingleRequestProcessor(Mock.Of<ICountable>());
+            provider.RegisterProcessor(processor);
+            //act
+            var processorFound = provider.GetInstance<IProcessMessage<TestRequest,Task<TestResponse>>>(typeof(IProcessRequest<TestRequest, TestResponse, TestMessageSettings>));
             //assert
             processorFound.Should().Be(processor);
         }

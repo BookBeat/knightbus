@@ -129,10 +129,15 @@ namespace KnightBus.Azure.ServiceBus
 
         private async Task ClientOnProcessMessageAsync(ProcessMessageEventArgs arg)
         {
-            var stateHandler = new ServiceBusMessageStateHandler<TTopic>(arg, _serializer, _deadLetterLimit, _hostConfiguration.DependencyInjection);
-            using (var cts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken, arg.CancellationToken))
+            try
             {
+                var stateHandler = new ServiceBusMessageStateHandler<TTopic>(arg, _serializer, _deadLetterLimit, _hostConfiguration.DependencyInjection);
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken, arg.CancellationToken);
                 await _processor.ProcessAsync(stateHandler, cts.Token).ConfigureAwait(false);
+            }
+            catch (Exception e)
+            {
+                _log.Error(e, "ServiceBus OnMessage Failed");
             }
         }
 

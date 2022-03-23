@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using KnightBus.Core;
+using KnightBus.Host.MessageProcessing.Processors;
 using KnightBus.Messages;
 using KnightBus.Microsoft.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
@@ -168,6 +169,11 @@ namespace KnightBus.Host.Tests.Unit.Middleware
             public int DeadLetterDeliveryLimit { get; }
             public IDictionary<string, string> MessageProperties { get; }
             public Task CompleteAsync()
+            {
+                throw new NotImplementedException();
+            }
+
+            public Task ReplyAsync<TReply>(TReply reply)
             {
                 throw new NotImplementedException();
             }

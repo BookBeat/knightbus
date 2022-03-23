@@ -18,7 +18,7 @@ namespace KnightBus.Core.Sagas
         public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, IPipelineInformation pipelineInformation, IMessageProcessor next, CancellationToken cancellationToken) where T : class, IMessage
         {
             //Is this a saga
-            var processor = messageStateHandler.MessageScope.GetInstance<IProcessMessage<T>>(pipelineInformation.ProcessorInterfaceType);
+            var processor = messageStateHandler.MessageScope.GetInstance<object>(pipelineInformation.ProcessorInterfaceType);
 
             if (processor is ISaga saga)
             {

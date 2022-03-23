@@ -11,12 +11,12 @@
     <PackageIconUrl>https://raw.githubusercontent.com/BookBeat/knightbus/master/documentation/media/images/knighbus-64.png</PackageIconUrl>
     <PackageIcon>knighbus-64.png</PackageIcon>
     <RepositoryUrl>https://github.com/BookBeat/knightbus</RepositoryUrl>
-    <Version>14.0.0</Version>
+    <Version>15.0.0</Version>
     <PackageTags>knightbus;azure servicebus;amqp;queues;messaging</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.5.1" />
+    <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.7.0" />
   </ItemGroup>
   <ItemGroup>
     <None Include="knighbus-64.png" Pack="true" Visible="false" PackagePath="" />

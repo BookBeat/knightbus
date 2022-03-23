@@ -1,5 +1,4 @@
 ﻿using System;
-using KnightBus.Messages;
 
 namespace KnightBus.Core
 {

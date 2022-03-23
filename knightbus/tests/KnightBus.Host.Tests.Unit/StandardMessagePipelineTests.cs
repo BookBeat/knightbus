@@ -3,7 +3,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
 using KnightBus.Core.DefaultMiddlewares;
-using KnightBus.Host.Tests.Unit.Processors;
+using KnightBus.Host.MessageProcessing.Processors;
+using KnightBus.Host.Tests.Unit.ExampleProcessors;
 using Moq;
 using NUnit.Framework;
 
@@ -29,7 +30,7 @@ namespace KnightBus.Host.Tests.Unit
             _stateHandler = new Mock<IMessageStateHandler<TestCommandOne>>();
             _countable = new Mock<ICountable>();
             _messageHandlerProvider.Setup(x => x.GetScope()).Returns(_messageHandlerProvider.Object);
-            _messageHandlerProvider.Setup(x => x.GetInstance<IProcessMessage<TestCommandOne>>(typeof(MultipleCommandProcessor))).Returns(
+            _messageHandlerProvider.Setup(x => x.GetInstance<IProcessMessage<TestCommandOne, Task>>(typeof(MultipleCommandProcessor))).Returns(
                 () => new MultipleCommandProcessor(_countable.Object)
             );
             _stateHandler.Setup(x => x.MessageScope).Returns(_messageHandlerProvider.Object);

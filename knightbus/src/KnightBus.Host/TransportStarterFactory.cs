@@ -3,6 +3,7 @@ using System.Linq;
 using KnightBus.Core;
 using KnightBus.Core.Exceptions;
 using KnightBus.Core.Singleton;
+using KnightBus.Host.MessageProcessing.Factories;
 using KnightBus.Host.Singleton;
 using KnightBus.Messages;
 
@@ -19,27 +20,30 @@ namespace KnightBus.Host
             _configuration = configuration;
         }
 
-        internal IChannelReceiver CreateChannelReceiver(Type messageType, Type subscriptionType, Type processorInterface, Type settingsType, Type processor)
+        internal IChannelReceiver CreateChannelReceiver(IProcessorFactory processorFactory, Type processorInterface, Type processor)
         {
-            var processorInstance = new MessageProcessor(processorInterface);
-            var channelFactory = _transportChannelFactories.SingleOrDefault(factory => factory.CanCreate(messageType));
-            if (channelFactory == null) throw new TransportMissingException(messageType);
 
-            var processingSettings = (IProcessingSettings)Activator.CreateInstance(settingsType);
+            IMessageProcessor processorInstance = processorFactory.GetProcessor(processorInterface);
+            var processorTypes = processorFactory.GetProcessorTypes(processorInterface);
 
-            var eventSubscription = subscriptionType == null ? null : (IEventSubscription)Activator.CreateInstance(subscriptionType);
+            var channelFactory = _transportChannelFactories.SingleOrDefault(factory => factory.CanCreate(processorTypes.MessageType));
+            if (channelFactory == null) throw new TransportMissingException(processorTypes.MessageType);
+
+            var processingSettings = (IProcessingSettings)Activator.CreateInstance(processorTypes.SettingsType);
+
+            var eventSubscription = processorTypes.SubscriptionType == null ? null : (IEventSubscription)Activator.CreateInstance(processorTypes.SubscriptionType);
             var pipelineInformation = new PipelineInformation(processorInterface, eventSubscription, processingSettings, _configuration);
 
             var pipeline = new MiddlewarePipeline(_configuration.Middlewares, pipelineInformation, channelFactory, _configuration.Log);
-            var serializer = GetSerializer(channelFactory, messageType);
-            var starter = channelFactory.Create(messageType, eventSubscription, processingSettings, serializer, _configuration, pipeline.GetPipeline(processorInstance));
+            var serializer = GetSerializer(channelFactory, processorTypes.MessageType);
+            var starter = channelFactory.Create(processorTypes.MessageType, eventSubscription, processingSettings, serializer, _configuration, pipeline.GetPipeline(processorInstance));
             return WrapSingletonReceiver(starter, processor);
         }
 
         private IMessageSerializer GetSerializer(ITransportChannelFactory channelFactory, Type messageType)
         {
             var mapping = AutoMessageMapper.GetMapping(messageType);
-            if(mapping is ICustomMessageSerializer serializer) return serializer.MessageSerializer;
+            if (mapping is ICustomMessageSerializer serializer) return serializer.MessageSerializer;
 
             return channelFactory.Configuration.MessageSerializer;
         }

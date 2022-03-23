@@ -1,8 +1,8 @@
-using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
+using KnightBus.Host.MessageProcessing.Factories;
 using KnightBus.Messages;
 using KnightBus.ProtobufNet;
 using Moq;
@@ -24,8 +24,9 @@ namespace KnightBus.Host.Tests.Unit
             channel.Setup(x => x.CanCreate(typeof(TestCommand))).Returns(true);
             channel.Setup(x => x.Configuration).Returns(config.Object);
             var starter = new TransportStarterFactory(new[] {channel.Object}, new HostConfiguration());
+            var factory = new CommandProcessorFactory();
             //act
-            starter.CreateChannelReceiver(typeof(TestCommand), null, typeof(IProcessCommand<TestCommand, TestMessageSettings>), typeof(TestMessageSettings), typeof(JsonProcessor));
+            starter.CreateChannelReceiver(factory, typeof(IProcessCommand<TestCommand, TestMessageSettings>), typeof(JsonProcessor));
             //assert
             channel.Verify(x=> x.Create(typeof(TestCommand), null, It.IsAny<IProcessingSettings>(), It.IsAny<MicrosoftJsonSerializer>(), It.IsAny<IHostConfiguration>(), It.IsAny<IMessageProcessor>()), 
                 Times.Once);
@@ -42,8 +43,9 @@ namespace KnightBus.Host.Tests.Unit
             channel.Setup(x => x.CanCreate(typeof(ProtobufCommand))).Returns(true);
             channel.Setup(x => x.Configuration).Returns(config.Object);
             var starter = new TransportStarterFactory(new[] {channel.Object}, new HostConfiguration());
+            var factory = new CommandProcessorFactory();
             //act
-            starter.CreateChannelReceiver(typeof(ProtobufCommand), null, typeof(IProcessCommand<ProtobufCommand, TestMessageSettings>), typeof(TestMessageSettings), typeof(ProtobufProcessor));
+            starter.CreateChannelReceiver(factory, typeof(IProcessCommand<ProtobufCommand, TestMessageSettings>), typeof(ProtobufProcessor));
             //assert
             channel.Verify(x=> x.Create(typeof(ProtobufCommand), null, It.IsAny<IProcessingSettings>(), It.IsAny<ProtobufNetSerializer>(), It.IsAny<IHostConfiguration>(), It.IsAny<IMessageProcessor>()), 
                 Times.Once);

@@ -30,6 +30,11 @@ namespace KnightBus.Azure.Storage
             return _queueClient.CompleteAsync(_message);
         }
 
+        public Task ReplyAsync<TReply>(TReply reply)
+        {
+            throw new NotImplementedException();
+        }
+
         public Task AbandonByErrorAsync(Exception e)
         {
             var errorMessage = e.ToString();

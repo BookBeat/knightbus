@@ -20,7 +20,7 @@ namespace KnightBus.Microsoft.DependencyInjection
         }
 
         /// <summary>
-        /// Registers all <see cref="IProcessCommand{T,TSettings}"/> and <see cref="IProcessEvent{TTopic,TTopicSubscription,TSettings}"/> found in the executing assembly
+        /// Registers all <see cref="IProcessCommand{T,TSettings}"/>, <see cref="IProcessRequest{T,TResponse,TSettings}"/> and <see cref="IProcessEvent{TTopic,TTopicSubscription,TSettings}"/> found in the executing assembly
         /// </summary>
         public static IHostConfiguration RegisterProcessors(this IHostConfiguration configuration, IServiceCollection serviceCollection, Assembly assembly)
         {
@@ -29,16 +29,17 @@ namespace KnightBus.Microsoft.DependencyInjection
         }
 
         /// <summary>
-        /// Registers all <see cref="IProcessCommand{T,TSettings}"/> and <see cref="IProcessEvent{TTopic,TTopicSubscription,TSettings}"/> found in the executing assembly
+        /// Registers all <see cref="IProcessCommand{T,TSettings}"/>, <see cref="IProcessRequest{T,TResponse,TSettings}"/> and <see cref="IProcessEvent{TTopic,TTopicSubscription,TSettings}"/> found in the executing assembly
         /// </summary>
         public static IServiceCollection RegisterProcessors(this IServiceCollection serviceCollection, Assembly assembly)
         {
-            foreach (var command in ReflectionHelper.GetAllTypesImplementingOpenGenericInterface(typeof(IProcessCommand<,>), assembly))
-                RegisterOpenGenericType(serviceCollection, command, typeof(IProcessCommand<,>));
-
-            foreach (var events in ReflectionHelper.GetAllTypesImplementingOpenGenericInterface(typeof(IProcessEvent<,,>), assembly))
-                RegisterOpenGenericType(serviceCollection, events, typeof(IProcessEvent<,,>));
-
+            foreach (var processorType in ValidProcessorInterfaces.Types)
+            {
+                foreach (var command in ReflectionHelper.GetAllTypesImplementingOpenGenericInterface(processorType, assembly))
+                {
+                    RegisterOpenGenericType(serviceCollection, command, processorType);
+                }
+            }
             return serviceCollection;
         }
 

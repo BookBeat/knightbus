@@ -18,12 +18,14 @@ namespace KnightBus.SimpleInjector
         }
 
         /// <summary>
-        /// Registers all <see cref="IProcessCommand{T,TSettings}"/> and <see cref="IProcessEvent{TTopic,TTopicSubscription,TSettings}"/> found in the executing assembly
+        /// Registers all <see cref="IProcessCommand{T,TSettings}"/>, <see cref="IProcessRequest{T,TResponse,TSettings}"/> and <see cref="IProcessEvent{TTopic,TTopicSubscription,TSettings}"/> found in the executing assembly
         /// </summary>
         public static IHostConfiguration RegisterProcessors(this IHostConfiguration configuration, Container container, Assembly assembly)
         {
-            container.Register(typeof(IProcessCommand<,>), new List<Assembly> { assembly }, Lifestyle.Scoped);
-            container.Register(typeof(IProcessEvent<,,>), new List<Assembly> { assembly }, Lifestyle.Scoped);
+            foreach (var processorType in ValidProcessorInterfaces.Types)
+            {
+                container.Register(processorType, new List<Assembly> { assembly }, Lifestyle.Scoped);
+            }
             return configuration;
         }
     }

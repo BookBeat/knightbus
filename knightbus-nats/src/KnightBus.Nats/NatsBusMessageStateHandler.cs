@@ -1,0 +1,86 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using KnightBus.Core;
+using KnightBus.Messages;
+using NATS.Client;
+
+namespace KnightBus.Nats
+{
+    internal class NatsBusMessageStateHandler<T> : IMessageStateHandler<T> where T : class, IMessage
+    {
+        private readonly T _message;
+        private readonly Msg _msg;
+        private readonly IMessageSerializer _serializer;
+
+        public NatsBusMessageStateHandler(Msg msg, IMessageSerializer serializer, int deadLetterDeliveryLimit, IDependencyInjection messageScope)
+        {
+            DeadLetterDeliveryLimit = deadLetterDeliveryLimit;
+            MessageScope = messageScope;
+            _msg = msg;
+            _serializer = serializer;
+            _message = serializer.Deserialize<T>(msg.Data.AsSpan());
+        }
+
+        public int DeliveryCount { get; } = 1;
+        public int DeadLetterDeliveryLimit { get; }
+
+        public IDictionary<string, string> MessageProperties => _msg.Header.Keys.Cast<string>().ToDictionary(key => key, key => _msg.Header[key]);
+
+
+        public Task CompleteAsync()
+        {
+            TryReply(MsgConstants.Completed);
+            return Task.CompletedTask;
+        }
+
+        public Task ReplyAsync<TReply>(TReply reply)
+        {
+            _msg.Respond(_serializer.Serialize(reply));
+            return Task.CompletedTask;
+        }
+
+        public Task AbandonByErrorAsync(Exception e)
+        {
+            TryReply(MsgConstants.Error);
+            return Task.CompletedTask;
+        }
+
+        public Task DeadLetterAsync(int deadLetterLimit)
+        {
+            return Task.CompletedTask;
+        }
+        
+        public Task<T> GetMessageAsync()
+        {
+            return Task.FromResult(_message);
+        }
+
+        public IDependencyInjection MessageScope { get; set; }
+
+        private void TryReply(string status)
+        {
+            if (!string.IsNullOrEmpty(_msg.Reply))
+            {
+                var msg = new Msg(_msg.Reply);
+                msg.Header.Add(MsgConstants.HeaderName, status);
+                try
+                {
+                    _msg.ArrivalSubscription.Connection.Publish(msg);
+                }
+                catch (NATSException)
+                {
+                    //Replies are best effort
+                }
+            }
+        }
+    }
+
+    public static class MsgConstants
+    {
+        public static string HeaderName = "kb";
+        public static string Completed = "ok";
+        public static string Error = "err";
+    }
+}
