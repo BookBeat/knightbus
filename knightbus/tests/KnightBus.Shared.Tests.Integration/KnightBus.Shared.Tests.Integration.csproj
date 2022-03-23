@@ -7,8 +7,8 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="FluentAssertions" Version="6.2.0" />
-    <PackageReference Include="nunit" Version="3.13.2" />
+    <PackageReference Include="FluentAssertions" Version="6.5.1" />
+    <PackageReference Include="nunit" Version="3.13.3" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\KnightBus.Host\KnightBus.Host.csproj" />
