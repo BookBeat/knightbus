@@ -10,42 +10,20 @@ using KnightBus.Messages;
 [assembly: InternalsVisibleTo("BB.Common.KnightBus.Tests.Unit")]
 namespace KnightBus.Azure.ServiceBus
 {
-    internal class ServiceBusQueueChannelReceiver<T> : IChannelReceiver
+    internal class ServiceBusQueueChannelReceiver<T> : ServiceBusChannelReceiverBase<T>
         where T : class, ICommand
     {
-        private IClientFactory _clientFactory;
-        public IProcessingSettings Settings { get; set; }
-        private readonly ILog _log;
-        private readonly IMessageSerializer _serializer;
-        private readonly IServiceBusConfiguration _configuration;
-        private readonly IHostConfiguration _hostConfiguration;
-        private readonly IMessageProcessor _processor;
-        private int _deadLetterLimit;
-        private ServiceBusProcessor _client;
-        private ServiceBusAdministrationClient _managementClient;
-        private CancellationToken _cancellationToken;
-        private CancellationTokenSource _shutdownTaskCancellation;
-        private DateTimeOffset? _lastProcess;
-        private AutoResetEvent _throughputAutoResetEvent;
-        private Timer _throughputTimer;
-
-        public ServiceBusQueueChannelReceiver(IProcessingSettings settings, IMessageSerializer serializer, IServiceBusConfiguration configuration, IHostConfiguration hostConfiguration, IMessageProcessor processor)
+        public ServiceBusQueueChannelReceiver(IProcessingSettings settings, IMessageSerializer serializer,
+            IServiceBusConfiguration configuration, IHostConfiguration hostConfiguration, IMessageProcessor processor) :
+            base(settings, serializer, configuration, hostConfiguration, processor)
         {
-            _serializer = serializer;
-            _configuration = configuration;
-            _hostConfiguration = hostConfiguration;
-            _processor = processor;
-            Settings = settings;
-            _log = hostConfiguration.Log;
-            //new client factory per ServiceBusQueueChannelReceiver means a separate communication channel per reader instead of a shared
-            _clientFactory = new ClientFactory(configuration.ConnectionString);
-            _managementClient = new ServiceBusAdministrationClient(configuration.ConnectionString);
+
         }
 
-        public async Task StartAsync(CancellationToken cancellationToken)
+        public override async Task StartAsync(CancellationToken cancellationToken)
         {
-            _cancellationToken = cancellationToken;
-            _client = await _clientFactory.GetReceiverClient<T>(new ServiceBusProcessorOptions
+            CancellationToken = cancellationToken;
+            Client = await ClientFactory.GetReceiverClient<T>(new ServiceBusProcessorOptions
             {
                 AutoCompleteMessages = false,
                 MaxAutoLockRenewalDuration = Settings.MessageLockTimeout,
@@ -58,13 +36,13 @@ namespace KnightBus.Azure.ServiceBus
             var queueName = AutoMessageMapper.GetQueueName<T>();
 
             //TODO: optimistic queue check
-            if (!await _managementClient.QueueExistsAsync(queueName, _cancellationToken).ConfigureAwait(false))
+            if (!await ManagementClient.QueueExistsAsync(queueName, CancellationToken).ConfigureAwait(false))
             {
                 try
                 {
                     var serviceBusCreationOptions = GetServiceBusCreationOptions();
 
-                    await _managementClient.CreateQueueAsync(new CreateQueueOptions(queueName)
+                    await ManagementClient.CreateQueueAsync(new CreateQueueOptions(queueName)
                     {
                         EnablePartitioning = serviceBusCreationOptions.EnablePartitioning,
                         EnableBatchedOperations = serviceBusCreationOptions.EnableBatchedOperations
@@ -73,109 +51,52 @@ namespace KnightBus.Azure.ServiceBus
                 }
                 catch (ServiceBusException e)
                 {
-                    _log.Error(e, "Failed to create queue {QueueName}", queueName);
+                    Log.Error(e, "Failed to create queue {QueueName}", queueName);
                     throw;
                 }
             }
-            _deadLetterLimit = Settings.DeadLetterDeliveryLimit;
+            DeadLetterLimit = Settings.DeadLetterDeliveryLimit;
 
-            _client.ProcessMessageAsync += ClientOnProcessMessageAsync;
-            _client.ProcessErrorAsync += ClientOnProcessErrorAsync;
+            Client.ProcessMessageAsync += ClientOnProcessMessageAsync;
+            Client.ProcessErrorAsync += ClientOnProcessErrorAsync;
 
-            await _client.StartProcessingAsync(cancellationToken);
+            await Client.StartProcessingAsync(cancellationToken).ConfigureAwait(false);
 
 #pragma warning disable 4014
             // ReSharper disable once MethodSupportsCancellation
-            _shutdownTaskCancellation = new CancellationTokenSource();
-
             Task.Run(async () =>
             {
-                _cancellationToken.WaitHandle.WaitOne();
-                //Cancellation requested
+                CancellationToken.WaitHandle.WaitOne();
                 try
                 {
-                    _log.Information($"Closing ServiceBus channel receiver for {typeof(T).Name}");
-                    await _client.CloseAsync(CancellationToken.None);
+                    Log.Information($"Closing ServiceBus channel receiver for {typeof(T).Name}");
+                    await Client.CloseAsync(CancellationToken.None).ConfigureAwait(false);
                 }
                 catch (Exception)
                 {
                     //Swallow
                 }
-            }, _shutdownTaskCancellation.Token);
+            }, cancellationToken);
+
+
+            RestartTaskCancellation = new CancellationTokenSource();
+            var linked = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken, RestartTaskCancellation.Token);
+
+            // ReSharper disable once SuspiciousTypeConversion.Global
+            if (Settings is IRestartTransportOnIdle restartOnIdle)
+            {
+                Log.Information($"Starting idle timeout check for {typeof(T).Name}");
+                Task.Run(async () =>
+                {
+                    while (!RestartTaskCancellation.IsCancellationRequested)
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(10), linked.Token).ConfigureAwait(false);
+                        await CheckIdleTime(restartOnIdle.IdleTimeout).ConfigureAwait(false);
+                    }
+                }, RestartTaskCancellation.Token);
+            }
+
 #pragma warning restore 4014
-
-            _throughputAutoResetEvent = new AutoResetEvent(false);
-            _throughputTimer = new Timer(CheckThroughput, _throughputAutoResetEvent, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(10)); // TODO: make interval configurable?
-        }
-
-        private void CheckThroughput(object state)
-        {
-            var timeSinceLastProcessedMessage = DateTimeOffset.UtcNow - _lastProcess;
-            if (timeSinceLastProcessedMessage == null || timeSinceLastProcessedMessage < TimeSpan.FromSeconds(30)) return; // TODO: make allowed idle time configurable?
-
-            _log.Information("Last message was processed {MinutesSinceLastProcessedMessage} minutes ago, restarting", timeSinceLastProcessedMessage?.TotalMinutes);
-            _ = RestartConnection();
-        }
-
-        private async Task RestartConnection()
-        {
-            try
-            {
-                _lastProcess = null;
-
-                await _client.StopProcessingAsync(_cancellationToken);
-                _client.ProcessMessageAsync -= ClientOnProcessMessageAsync;
-                _client.ProcessErrorAsync -= ClientOnProcessErrorAsync;
-
-                _shutdownTaskCancellation.Cancel();
-
-                _throughputAutoResetEvent.Dispose();
-                await _throughputTimer.DisposeAsync();
-                await _clientFactory.DisposeAsync();
-
-                // TODO: do we want to new up new instances or something else?
-                _clientFactory = new ClientFactory(_configuration.ConnectionString);
-                _managementClient = new ServiceBusAdministrationClient(_configuration.ConnectionString);
-
-                await StartAsync(_cancellationToken);
-            }
-            catch (Exception)
-            {
-                // TODO: what to do here?
-                throw;
-            }
-        }
-
-        private Task ClientOnProcessErrorAsync(ProcessErrorEventArgs arg)
-        {
-            if (!(arg.Exception is OperationCanceledException))
-            {
-                _log.Error(arg.Exception, $"{typeof(ServiceBusQueueChannelReceiver<T>).Name}");
-            }
-            return Task.CompletedTask;
-        }
-
-        private async Task ClientOnProcessMessageAsync(ProcessMessageEventArgs arg)
-        {
-            try
-            {
-                var stateHandler = new ServiceBusMessageStateHandler<T>(arg, _serializer, _deadLetterLimit, _hostConfiguration.DependencyInjection);
-                using var cts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken, arg.CancellationToken);
-                await _processor.ProcessAsync(stateHandler, cts.Token).ConfigureAwait(false);
-                _lastProcess = DateTimeOffset.UtcNow;
-            }
-            catch (Exception e)
-            {
-                _log.Error(e, "ServiceBus OnMessage Failed");
-            }
-        }
-
-        private IServiceBusCreationOptions GetServiceBusCreationOptions()
-        {
-            var queueMapping = AutoMessageMapper.GetMapping<T>();
-            var creationOptions = queueMapping as IServiceBusCreationOptions;
-
-            return creationOptions ?? _configuration.DefaultCreationOptions;
         }
     }
 }
