@@ -11,70 +11,120 @@ namespace KnightBus.Azure.ServiceBus
     internal abstract class ServiceBusChannelReceiverBase<T> : IChannelReceiver
         where T : class, IMessage
     {
-        protected IClientFactory ClientFactory;
-        public IProcessingSettings Settings { get; set; }
+        private readonly IServiceBusConfiguration _configuration;
+        private readonly IHostConfiguration _hostConfiguration;
+        private readonly object _lastActivityLock = new object();
+        private readonly IMessageProcessor _processor;
+        private readonly IMessageSerializer _serializer;
         protected readonly ILog Log;
-        protected readonly IMessageSerializer Serializer;
-        protected readonly IServiceBusConfiguration Configuration;
-        protected readonly IHostConfiguration HostConfiguration;
-        protected readonly IMessageProcessor Processor;
-        protected int DeadLetterLimit;
-        protected ServiceBusProcessor Client;
+        private CancellationToken _cancellationToken;
+        private ServiceBusProcessor _client;
+        private int _deadLetterLimit;
+        private DateTimeOffset _lastActivity;
+        private CancellationTokenSource _restartTaskCancellation;
+        protected IClientFactory ClientFactory;
         protected ServiceBusAdministrationClient ManagementClient;
-        protected CancellationToken CancellationToken;
-        protected CancellationTokenSource RestartTaskCancellation;
-        protected DateTimeOffset LastActivity;
-        protected readonly object LasActivityLocker = new object();
 
-        protected ServiceBusChannelReceiverBase(IProcessingSettings settings, IMessageSerializer serializer, IServiceBusConfiguration configuration, IHostConfiguration hostConfiguration, IMessageProcessor processor)
+        protected ServiceBusChannelReceiverBase(IProcessingSettings settings, IMessageSerializer serializer,
+            IServiceBusConfiguration configuration, IHostConfiguration hostConfiguration, IMessageProcessor processor)
         {
-            Serializer = serializer;
-            Configuration = configuration;
-            HostConfiguration = hostConfiguration;
-            Processor = processor;
+            _serializer = serializer;
+            _configuration = configuration;
+            _hostConfiguration = hostConfiguration;
+            _processor = processor;
             Settings = settings;
             Log = hostConfiguration.Log;
             //new client factory per ServiceBusQueueChannelReceiver means a separate communication channel per reader instead of a shared
             ClientFactory = new ClientFactory(configuration.ConnectionString);
             ManagementClient = new ServiceBusAdministrationClient(configuration.ConnectionString);
-            LastActivity = DateTimeOffset.UtcNow;
+            _lastActivity = DateTimeOffset.UtcNow;
         }
 
-        public abstract Task StartAsync(CancellationToken cancellationToken);
+        public IProcessingSettings Settings { get; set; }
 
-        protected async Task CheckIdleTime(TimeSpan idleTimeout)
+        public async Task StartAsync(CancellationToken cancellationToken)
         {
-            lock (LasActivityLocker)
+            _cancellationToken = cancellationToken;
+            _deadLetterLimit = Settings.DeadLetterDeliveryLimit;
+
+            _client = await CreateClient(cancellationToken).ConfigureAwait(false);
+            _client.ProcessMessageAsync += ClientOnProcessMessageAsync;
+            _client.ProcessErrorAsync += ClientOnProcessErrorAsync;
+            await _client.StartProcessingAsync(cancellationToken).ConfigureAwait(false);
+            _restartTaskCancellation = new CancellationTokenSource();
+
+#pragma warning disable 4014
+            Task.Run(async () =>
             {
-                var timeSinceLastActivity = DateTimeOffset.UtcNow - LastActivity;
+                _cancellationToken.WaitHandle.WaitOne();
+                //Cancellation requested
+                try
+                {
+                    Log.Information($"Closing ServiceBus channel receiver for {typeof(T).Name}");
+                    await _client.CloseAsync(CancellationToken.None);
+                }
+                catch (Exception)
+                {
+                    //Swallow
+                }
+            }, _restartTaskCancellation.Token);
+
+            
+            // ReSharper disable once SuspiciousTypeConversion.Global
+            if (Settings is IRestartTransportOnIdle restartOnIdle)
+            {
+                Log.Information(
+                    $"Starting idle timeout check for {typeof(T).Name} with maximum allowed idle timespan: {restartOnIdle.IdleTimeout}");
+                Task.Run(async () =>
+                {
+                    while (!_restartTaskCancellation.IsCancellationRequested)
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(10), _restartTaskCancellation.Token)
+                            .ConfigureAwait(false);
+                        await CheckIdleTime(restartOnIdle.IdleTimeout).ConfigureAwait(false);
+                    }
+                }, _restartTaskCancellation.Token);
+            }
+#pragma warning restore 4014
+        }
+
+        protected abstract Task<ServiceBusProcessor> CreateClient(CancellationToken cancellationToken);
+        protected abstract Task CreateMessagingEntity(CancellationToken cancellationToken);
+
+        private async Task CheckIdleTime(TimeSpan idleTimeout)
+        {
+            lock (_lastActivityLock)
+            {
+                var timeSinceLastActivity = DateTimeOffset.UtcNow - _lastActivity;
 
                 if (timeSinceLastActivity < idleTimeout) return;
 
-                Log.Information($"Last activity for {typeof(T).Name} was at: {LastActivity} (maximum allowed idle timespan: {idleTimeout}), restarting");
-                LastActivity = DateTimeOffset.UtcNow;
+                Log.Information(
+                    $"Last activity for {typeof(T).Name} was at: {_lastActivity} (maximum allowed idle timespan: {idleTimeout}), restarting");
+                _lastActivity = DateTimeOffset.UtcNow;
             }
 
             await RestartAsync().ConfigureAwait(false);
         }
 
-        protected async Task RestartAsync()
+        private async Task RestartAsync()
         {
             try
             {
                 Log.Information($"Restarting {typeof(T).Name}");
 
-                RestartTaskCancellation.Cancel();
+                _restartTaskCancellation.Cancel();
 
-                await Client.StopProcessingAsync(CancellationToken).ConfigureAwait(false);
-                Client.ProcessMessageAsync -= ClientOnProcessMessageAsync;
-                Client.ProcessErrorAsync -= ClientOnProcessErrorAsync;
+                await _client.StopProcessingAsync(_cancellationToken).ConfigureAwait(false);
+                _client.ProcessMessageAsync -= ClientOnProcessMessageAsync;
+                _client.ProcessErrorAsync -= ClientOnProcessErrorAsync;
 
                 await ClientFactory.DisposeAsync().ConfigureAwait(false);
 
-                ClientFactory = new ClientFactory(Configuration.ConnectionString);
-                ManagementClient = new ServiceBusAdministrationClient(Configuration.ConnectionString);
+                ClientFactory = new ClientFactory(_configuration.ConnectionString);
+                ManagementClient = new ServiceBusAdministrationClient(_configuration.ConnectionString);
 
-                await StartAsync(CancellationToken).ConfigureAwait(false);
+                await StartAsync(_cancellationToken).ConfigureAwait(false);
                 Log.Information($"Successfully restarted {typeof(T).Name}");
             }
             catch (Exception e)
@@ -84,26 +134,31 @@ namespace KnightBus.Azure.ServiceBus
             }
         }
 
-        protected Task ClientOnProcessErrorAsync(ProcessErrorEventArgs arg)
+        private async Task ClientOnProcessErrorAsync(ProcessErrorEventArgs arg)
         {
-            if (!(arg.Exception is OperationCanceledException))
+            if (arg.Exception is ServiceBusException { Reason: ServiceBusFailureReason.MessagingEntityNotFound })
             {
-                Log.Error(arg.Exception, $"{typeof(T).Name}");
+                Log.Information($"{typeof(T).Name} not found. Creating.");
+                await CreateMessagingEntity(_cancellationToken).ConfigureAwait(false);
             }
-            return Task.CompletedTask;
+            else if (!(arg.Exception is OperationCanceledException))
+                Log.Error(arg.Exception, $"{typeof(T).Name}");
         }
 
-        protected async Task ClientOnProcessMessageAsync(ProcessMessageEventArgs arg)
+        private async Task ClientOnProcessMessageAsync(ProcessMessageEventArgs arg)
         {
             try
             {
-                var stateHandler = new ServiceBusMessageStateHandler<T>(arg, Serializer, DeadLetterLimit, HostConfiguration.DependencyInjection);
-                using var cts = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken, arg.CancellationToken);
-                await Processor.ProcessAsync(stateHandler, cts.Token).ConfigureAwait(false);
-                lock (LasActivityLocker)
+                lock (_lastActivityLock)
                 {
-                    LastActivity = DateTimeOffset.UtcNow;
+                    _lastActivity = DateTimeOffset.UtcNow;
                 }
+
+                var stateHandler = new ServiceBusMessageStateHandler<T>(arg, _serializer, _deadLetterLimit,
+                    _hostConfiguration.DependencyInjection);
+                using var cts =
+                    CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken, arg.CancellationToken);
+                await _processor.ProcessAsync(stateHandler, cts.Token).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -117,7 +172,7 @@ namespace KnightBus.Azure.ServiceBus
             // ReSharper disable once SuspiciousTypeConversion.Global
             var creationOptions = queueMapping as IServiceBusCreationOptions;
 
-            return creationOptions ?? Configuration.DefaultCreationOptions;
+            return creationOptions ?? _configuration.DefaultCreationOptions;
         }
     }
 }

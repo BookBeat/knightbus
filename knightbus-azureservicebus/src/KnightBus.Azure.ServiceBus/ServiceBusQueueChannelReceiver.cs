@@ -20,81 +20,41 @@ namespace KnightBus.Azure.ServiceBus
 
         }
 
-        public override async Task StartAsync(CancellationToken cancellationToken)
+        protected override Task<ServiceBusProcessor> CreateClient(CancellationToken cancellationToken)
         {
-            CancellationToken = cancellationToken;
-            Client = await ClientFactory.GetReceiverClient<T>(new ServiceBusProcessorOptions
+            return ClientFactory.GetReceiverClient<T>(new ServiceBusProcessorOptions
             {
                 AutoCompleteMessages = false,
                 MaxAutoLockRenewalDuration = Settings.MessageLockTimeout,
                 MaxConcurrentCalls = Settings.MaxConcurrentCalls,
                 PrefetchCount = Settings.PrefetchCount,
                 ReceiveMode = ServiceBusReceiveMode.PeekLock
+            });
+        }
 
-            }).ConfigureAwait(false);
-
+        protected override async Task CreateMessagingEntity(CancellationToken cancellationToken)
+        {
             var queueName = AutoMessageMapper.GetQueueName<T>();
-
-            //TODO: optimistic queue check
-            if (!await ManagementClient.QueueExistsAsync(queueName, CancellationToken).ConfigureAwait(false))
+            try
             {
-                try
-                {
-                    var serviceBusCreationOptions = GetServiceBusCreationOptions();
+                var serviceBusCreationOptions = GetServiceBusCreationOptions();
 
-                    await ManagementClient.CreateQueueAsync(new CreateQueueOptions(queueName)
-                    {
-                        EnablePartitioning = serviceBusCreationOptions.EnablePartitioning,
-                        EnableBatchedOperations = serviceBusCreationOptions.EnableBatchedOperations
-
-                    }, cancellationToken).ConfigureAwait(false);
-                }
-                catch (ServiceBusException e)
+                await ManagementClient.CreateQueueAsync(new CreateQueueOptions(queueName)
                 {
-                    Log.Error(e, "Failed to create queue {QueueName}", queueName);
-                    throw;
-                }
+                    EnablePartitioning = serviceBusCreationOptions.EnablePartitioning,
+                    EnableBatchedOperations = serviceBusCreationOptions.EnableBatchedOperations
+
+                }, cancellationToken).ConfigureAwait(false);
             }
-            DeadLetterLimit = Settings.DeadLetterDeliveryLimit;
-
-            Client.ProcessMessageAsync += ClientOnProcessMessageAsync;
-            Client.ProcessErrorAsync += ClientOnProcessErrorAsync;
-
-            await Client.StartProcessingAsync(cancellationToken).ConfigureAwait(false);
-
-#pragma warning disable 4014
-            // ReSharper disable once MethodSupportsCancellation
-            Task.Run(async () =>
+            catch (ServiceBusException e) when (e.Reason == ServiceBusFailureReason.MessagingEntityAlreadyExists)
             {
-                CancellationToken.WaitHandle.WaitOne();
-                try
-                {
-                    Log.Information($"Closing ServiceBus channel receiver for {typeof(T).Name}");
-                    await Client.CloseAsync(CancellationToken.None).ConfigureAwait(false);
-                }
-                catch (Exception)
-                {
-                    //Swallow
-                }
-            }, cancellationToken);
-
-
-            RestartTaskCancellation = new CancellationTokenSource();
-            // ReSharper disable once SuspiciousTypeConversion.Global
-            if (Settings is IRestartTransportOnIdle restartOnIdle)
-            {
-                Log.Information($"Starting idle timeout check for {typeof(T).Name} with maximum allowed idle timespan: {restartOnIdle.IdleTimeout}");
-                Task.Run(async () =>
-                {
-                    while (!RestartTaskCancellation.IsCancellationRequested)
-                    {
-                        await Task.Delay(TimeSpan.FromSeconds(10), RestartTaskCancellation.Token).ConfigureAwait(false);
-                        await CheckIdleTime(restartOnIdle.IdleTimeout).ConfigureAwait(false);
-                    }
-                }, RestartTaskCancellation.Token);
+                //Swallow
             }
-
-#pragma warning restore 4014
+            catch (ServiceBusException e)
+            {
+                Log.Error(e, "Failed to create queue {QueueName}", queueName);
+                throw;
+            }
         }
     }
 }
