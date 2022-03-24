@@ -24,7 +24,7 @@ namespace KnightBus.Azure.ServiceBus
         protected CancellationToken CancellationToken;
         protected CancellationTokenSource RestartTaskCancellation;
         protected DateTimeOffset LastProcess;
-        protected readonly object Locker = new object();
+        protected readonly object LastProcessLocker = new object();
 
         protected ServiceBusChannelReceiverBase(IProcessingSettings settings, IMessageSerializer serializer, IServiceBusConfiguration configuration, IHostConfiguration hostConfiguration, IMessageProcessor processor)
         {
@@ -44,7 +44,7 @@ namespace KnightBus.Azure.ServiceBus
 
         protected async Task CheckIdleTime(TimeSpan idleTimeout)
         {
-            lock (Locker)
+            lock (LastProcessLocker)
             {
                 var timeSinceLastProcessedMessage = DateTimeOffset.UtcNow - LastProcess;
 
@@ -99,7 +99,7 @@ namespace KnightBus.Azure.ServiceBus
                 var stateHandler = new ServiceBusMessageStateHandler<T>(arg, Serializer, DeadLetterLimit, HostConfiguration.DependencyInjection);
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken, arg.CancellationToken);
                 await Processor.ProcessAsync(stateHandler, cts.Token).ConfigureAwait(false);
-                lock (Locker)
+                lock (LastProcessLocker)
                 {
                     LastProcess = DateTimeOffset.UtcNow;
                 }
