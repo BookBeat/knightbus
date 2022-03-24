@@ -80,17 +80,15 @@ namespace KnightBus.Azure.ServiceBus
 
 
             RestartTaskCancellation = new CancellationTokenSource();
-            var linked = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken, RestartTaskCancellation.Token);
-
             // ReSharper disable once SuspiciousTypeConversion.Global
             if (Settings is IRestartTransportOnIdle restartOnIdle)
             {
-                Log.Information($"Starting idle timeout check for {typeof(T).Name}");
+                Log.Information($"Starting idle timeout check for {typeof(T).Name} with maximum allowed idle timespan: {restartOnIdle.IdleTimeout}");
                 Task.Run(async () =>
                 {
                     while (!RestartTaskCancellation.IsCancellationRequested)
                     {
-                        await Task.Delay(TimeSpan.FromSeconds(10), linked.Token).ConfigureAwait(false);
+                        await Task.Delay(TimeSpan.FromSeconds(10), RestartTaskCancellation.Token).ConfigureAwait(false);
                         await CheckIdleTime(restartOnIdle.IdleTimeout).ConfigureAwait(false);
                     }
                 }, RestartTaskCancellation.Token);

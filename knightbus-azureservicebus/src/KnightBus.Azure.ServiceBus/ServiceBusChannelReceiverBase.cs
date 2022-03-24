@@ -23,8 +23,8 @@ namespace KnightBus.Azure.ServiceBus
         protected ServiceBusAdministrationClient ManagementClient;
         protected CancellationToken CancellationToken;
         protected CancellationTokenSource RestartTaskCancellation;
-        protected DateTimeOffset LastProcess;
-        protected readonly object LastProcessLocker = new object();
+        protected DateTimeOffset LastActivity;
+        protected readonly object LasActivityLocker = new object();
 
         protected ServiceBusChannelReceiverBase(IProcessingSettings settings, IMessageSerializer serializer, IServiceBusConfiguration configuration, IHostConfiguration hostConfiguration, IMessageProcessor processor)
         {
@@ -37,20 +37,21 @@ namespace KnightBus.Azure.ServiceBus
             //new client factory per ServiceBusQueueChannelReceiver means a separate communication channel per reader instead of a shared
             ClientFactory = new ClientFactory(configuration.ConnectionString);
             ManagementClient = new ServiceBusAdministrationClient(configuration.ConnectionString);
-            LastProcess = DateTimeOffset.UtcNow;
+            LastActivity = DateTimeOffset.UtcNow;
         }
 
         public abstract Task StartAsync(CancellationToken cancellationToken);
 
         protected async Task CheckIdleTime(TimeSpan idleTimeout)
         {
-            lock (LastProcessLocker)
+            lock (LasActivityLocker)
             {
-                var timeSinceLastProcessedMessage = DateTimeOffset.UtcNow - LastProcess;
+                var timeSinceLastActivity = DateTimeOffset.UtcNow - LastActivity;
 
-                if (timeSinceLastProcessedMessage < idleTimeout) return;
+                if (timeSinceLastActivity < idleTimeout) return;
 
-                Log.Information($"Last message was processed at: {LastProcess} (maximum allowed idle timespan: {idleTimeout}), restarting");
+                Log.Information($"Last activity for {typeof(T).Name} was at: {LastActivity} (maximum allowed idle timespan: {idleTimeout}), restarting");
+                LastActivity = DateTimeOffset.UtcNow;
             }
 
             await RestartAsync().ConfigureAwait(false);
@@ -62,11 +63,11 @@ namespace KnightBus.Azure.ServiceBus
             {
                 Log.Information($"Restarting {typeof(T).Name}");
 
+                RestartTaskCancellation.Cancel();
+
                 await Client.StopProcessingAsync(CancellationToken).ConfigureAwait(false);
                 Client.ProcessMessageAsync -= ClientOnProcessMessageAsync;
                 Client.ProcessErrorAsync -= ClientOnProcessErrorAsync;
-
-                RestartTaskCancellation.Cancel();
 
                 await ClientFactory.DisposeAsync().ConfigureAwait(false);
 
@@ -99,9 +100,9 @@ namespace KnightBus.Azure.ServiceBus
                 var stateHandler = new ServiceBusMessageStateHandler<T>(arg, Serializer, DeadLetterLimit, HostConfiguration.DependencyInjection);
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken, arg.CancellationToken);
                 await Processor.ProcessAsync(stateHandler, cts.Token).ConfigureAwait(false);
-                lock (LastProcessLocker)
+                lock (LasActivityLocker)
                 {
-                    LastProcess = DateTimeOffset.UtcNow;
+                    LastActivity = DateTimeOffset.UtcNow;
                 }
             }
             catch (Exception e)
