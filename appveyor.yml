@@ -16,7 +16,7 @@ before_test:
 - docker pull redis
 - docker run -d -p 6379:6379 --name redis6379 redis
 - docker run -d -p 4222:4222 nats:latest
-- docker run -d -p 10000:10000 mcr.microsoft.com/azure-storage/azurite
+- docker run -d -p 10000:10000 -p 10001:10001 mcr.microsoft.com/azure-storage/azurite
 
 test_script:
 - cmd: >-
