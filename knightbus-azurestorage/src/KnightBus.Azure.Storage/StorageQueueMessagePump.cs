@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Azure;
 using KnightBus.Azure.Storage.Messages;
 using KnightBus.Core;
 
@@ -42,7 +43,7 @@ namespace KnightBus.Azure.Storage
             try
             {
                 //Do not fetch and lock messages if we won't be able to process them
-                if(_maxConcurrent.CurrentCount == 0) return;
+                if (_maxConcurrent.CurrentCount == 0) return;
 
                 var queueName = AutoMessageMapper.GetQueueName<T>();
 
@@ -61,32 +62,39 @@ namespace KnightBus.Azure.Storage
                 //Make sure the lock still exist when the process is cancelled by token, otherwise the message cannot be abandoned
                 visibilityTimeout += TimeSpan.FromMinutes(2);
 
-                var messages = await _storageQueueClient.GetMessagesAsync<T>(prefetchCount, visibilityTimeout).ConfigureAwait(false);
+                var messages = await _storageQueueClient.GetMessagesAsync<T>(prefetchCount, visibilityTimeout)
+                    .ConfigureAwait(false);
                 messagesFound = messages.Any();
 
-                _log.Debug("Prefetched {MessageCount} messages from {QueueName} in {Name}", messages.Count, queueName, nameof(StorageQueueMessagePump));
+                _log.Debug("Prefetched {MessageCount} messages from {QueueName} in {Name}", messages.Count, queueName,
+                    nameof(StorageQueueMessagePump));
 
                 foreach (var message in messages)
                 {
                     var timeoutToken = new CancellationTokenSource(_settings.MessageLockTimeout);
-                    var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutToken.Token);
+                    var linkedToken =
+                        CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutToken.Token);
                     try
                     {
                         _log.Debug("Processing {@Message} in {Name}", message, nameof(StorageQueueMessagePump));
-                        _log.Debug("{ThreadCount} remaining threads that can process messages in {QueueName} in {Name}", _maxConcurrent.CurrentCount, queueName, nameof(StorageQueueMessagePump));
+                        _log.Debug("{ThreadCount} remaining threads that can process messages in {QueueName} in {Name}",
+                            _maxConcurrent.CurrentCount, queueName, nameof(StorageQueueMessagePump));
 
                         await _maxConcurrent.WaitAsync(timeoutToken.Token).ConfigureAwait(false);
                     }
                     catch (OperationCanceledException operationCanceledException)
                     {
-                        _log.Debug(operationCanceledException, "Operation canceled for {@Message} in {QueueName} in {Name}", message, queueName, nameof(StorageQueueMessagePump));
+                        _log.Debug(operationCanceledException,
+                            "Operation canceled for {@Message} in {QueueName} in {Name}", message, queueName,
+                            nameof(StorageQueueMessagePump));
 
                         //If we are still waiting when the message has not been scheduled for execution timeouts
 
                         continue;
                     }
 #pragma warning disable 4014 //No need to await the result, let's keep the pump going
-                    Task.Run(async () => await action.Invoke(message, linkedToken.Token).ConfigureAwait(false), timeoutToken.Token)
+                    Task.Run(async () => await action.Invoke(message, linkedToken.Token).ConfigureAwait(false),
+                            timeoutToken.Token)
                         .ContinueWith(task =>
                         {
                             _maxConcurrent.Release();
@@ -95,6 +103,11 @@ namespace KnightBus.Azure.Storage
                         }).ConfigureAwait(false);
 #pragma warning restore 4014
                 }
+            }
+            catch (RequestFailedException e) when (e.ErrorCode is "QueueNotFound")
+            {
+                _log.Information($"{typeof(T).Name} not found. Creating.");
+                await _storageQueueClient.CreateIfNotExistsAsync().ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -107,7 +120,6 @@ namespace KnightBus.Azure.Storage
                     //Only delay pump if no messages were found
                     await Task.Delay(_pollingInterval).ConfigureAwait(false);
                 }
-
             }
         }
     }

@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Azure;
+using Castle.Components.DictionaryAdapter;
 using FluentAssertions;
 using KnightBus.Core;
 using Moq;
@@ -66,7 +68,7 @@ namespace KnightBus.Azure.Storage.Tests.Unit
             var pump = new StorageQueueMessagePump(_clientMock.Object, settings, Mock.Of<ILog>());
             var invocations = 0;
 
-            async Task Function(StorageQueueMessage a, CancellationToken b)  
+            async Task Function(StorageQueueMessage a, CancellationToken b)
             {
                 invocations++;
                 await Task.Delay(1000);
@@ -109,7 +111,7 @@ namespace KnightBus.Azure.Storage.Tests.Unit
             await Task.Delay(100);
             //assert
             pump._maxConcurrent.CurrentCount.Should().Be(1);
-            
+
         }
         [Test]
         public async Task Should_prefetch_one_message_when_set_to_zero()
@@ -239,6 +241,52 @@ namespace KnightBus.Azure.Storage.Tests.Unit
             //assert
             pump._maxConcurrent.CurrentCount.Should().Be(1);
             countable.Verify(x => x.Count(), Times.Never);
+        }
+
+        [Test]
+        public async Task Should_create_queue_when_it_doesnt_exists()
+        {
+            //arrange
+            var settings = new TestMessageSettings
+            {
+                DeadLetterDeliveryLimit = 1,
+                PrefetchCount = 10
+            };
+
+            _clientMock.Setup(x => x.GetMessagesAsync<LongRunningTestCommand>(It.IsAny<int>(), It.IsAny<TimeSpan?>()))
+                .ThrowsAsync(new RequestFailedException(404, "not found", "QueueNotFound", null));
+            var pump = new StorageQueueMessagePump(_clientMock.Object, settings, Mock.Of<ILog>());
+
+            Task Function(StorageQueueMessage a, CancellationToken b) => Task.CompletedTask;
+
+            //act
+            await pump.PumpAsync<LongRunningTestCommand>(Function, CancellationToken.None);
+
+            //assert
+            _clientMock.Verify(x => x.CreateIfNotExistsAsync(), Times.Once);
+        }
+
+        [Test]
+        public async Task Should_not_create_queue_when_it_exists()
+        {
+            //arrange
+            var settings = new TestMessageSettings
+            {
+                DeadLetterDeliveryLimit = 1,
+                PrefetchCount = 10
+            };
+
+            _clientMock.Setup(x => x.GetMessagesAsync<LongRunningTestCommand>(It.IsAny<int>(), It.IsAny<TimeSpan?>()))
+                .ReturnsAsync(new List<StorageQueueMessage>());
+            var pump = new StorageQueueMessagePump(_clientMock.Object, settings, Mock.Of<ILog>());
+
+            Task Function(StorageQueueMessage a, CancellationToken b) => Task.CompletedTask;
+
+            //act
+            await pump.PumpAsync<LongRunningTestCommand>(Function, CancellationToken.None);
+
+            //assert
+            _clientMock.Verify(x => x.CreateIfNotExistsAsync(), Times.Never);
         }
 
         public interface ICountable
