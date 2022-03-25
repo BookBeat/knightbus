@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Azure;
@@ -104,7 +105,7 @@ namespace KnightBus.Azure.Storage
 #pragma warning restore 4014
                 }
             }
-            catch (RequestFailedException e) when (e.ErrorCode is "QueueNotFound")
+            catch (RequestFailedException e) when (e.Status is (int)HttpStatusCode.NotFound)
             {
                 _log.Information($"{typeof(T).Name} not found. Creating.");
                 await _storageQueueClient.CreateIfNotExistsAsync().ConfigureAwait(false);
