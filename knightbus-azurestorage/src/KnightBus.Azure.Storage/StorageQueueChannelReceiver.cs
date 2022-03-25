@@ -37,15 +37,14 @@ namespace KnightBus.Azure.Storage
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            await Initialize().ConfigureAwait(false);
+            Initialize();
             await _messagePump.StartAsync<T>(Handle, cancellationToken).ConfigureAwait(false);
         }
 
-        private async Task Initialize()
+        private void Initialize()
         {
             var queueName = AutoMessageMapper.GetQueueName<T>();
             _storageQueueClient = new StorageQueueClient(_storageOptions, _serializer, null, queueName);
-            await _storageQueueClient.CreateIfNotExistsAsync().ConfigureAwait(false);
             _messagePump = new StorageQueueMessagePump(_storageQueueClient, Settings, _hostConfiguration.Log);
         }
 
