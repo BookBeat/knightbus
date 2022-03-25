@@ -7,10 +7,10 @@ using Azure.Messaging.ServiceBus;
 using KnightBus.Core;
 using KnightBus.Messages;
 
-[assembly:InternalsVisibleTo("KnightBus.Azure.ServiceBus.Unit")]
+[assembly: InternalsVisibleTo("KnightBus.Azure.ServiceBus.Unit")]
 namespace KnightBus.Azure.ServiceBus
 {
-    internal interface IClientFactory
+    internal interface IClientFactory : IAsyncDisposable
     {
         Task<ServiceBusSender> GetSenderClient<T>() where T : IMessage;
         Task<ServiceBusProcessor> GetReceiverClient<T>(ServiceBusProcessorOptions options) where T : ICommand;
@@ -35,14 +35,14 @@ namespace KnightBus.Azure.ServiceBus
             var client = new ServiceBusClient(_connectionString);
             return client.CreateSender(queueName);
         }
-        
+
         private ServiceBusProcessor CreateSubscriptionClient<T>(string subscriptionName, ServiceBusProcessorOptions options) where T : IEvent
         {
             var topicName = AutoMessageMapper.GetQueueName<T>();
             var client = new ServiceBusClient(_connectionString);
             return client.CreateProcessor(topicName, subscriptionName, options);
         }
-        
+
         private ServiceBusProcessor CreateReceiverClient<T>(ServiceBusProcessorOptions options) where T : ICommand
         {
             var queueName = AutoMessageMapper.GetQueueName<T>();
@@ -130,6 +130,25 @@ namespace KnightBus.Azure.ServiceBus
             {
                 _semaphore.Release();
             }
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            _semaphore?.Dispose();
+
+            foreach (var client in ReceiverClients)
+            {
+                await client.Value.DisposeAsync();
+            }
+
+            ReceiverClients.Clear();
+
+            foreach (var client in SenderClients)
+            {
+                await client.Value.DisposeAsync();
+            }
+
+            SenderClients.Clear();
         }
     }
 }
