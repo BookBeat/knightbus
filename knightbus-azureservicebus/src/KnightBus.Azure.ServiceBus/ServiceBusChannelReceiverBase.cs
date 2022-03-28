@@ -69,7 +69,7 @@ namespace KnightBus.Azure.ServiceBus
                 }
             }, _restartTaskCancellation.Token);
 
-            
+
             // ReSharper disable once SuspiciousTypeConversion.Global
             if (Settings is IRestartTransportOnIdle restartOnIdle)
             {
@@ -114,6 +114,7 @@ namespace KnightBus.Azure.ServiceBus
                 Log.Information($"Restarting {typeof(T).Name}");
 
                 _restartTaskCancellation.Cancel();
+                _restartTaskCancellation.Dispose();
 
                 await _client.StopProcessingAsync(_cancellationToken).ConfigureAwait(false);
                 _client.ProcessMessageAsync -= ClientOnProcessMessageAsync;
