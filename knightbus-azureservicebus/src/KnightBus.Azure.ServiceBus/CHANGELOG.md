@@ -1,5 +1,9 @@
 ﻿# KnightBus.Azure.ServiceBus Changelog
 
+## 15.1.1
+### Fixed
+- Prevent potential memory leak when using `IRestartTransportOnIdle`.
+
 ## 15.1.0
 ### Added
 - Possibility to automatically force restart of Azure ServiceBus receivers after a fixed idle period (i.e. no messages processed). Specified through `IRestartTransportOnIdle`.
