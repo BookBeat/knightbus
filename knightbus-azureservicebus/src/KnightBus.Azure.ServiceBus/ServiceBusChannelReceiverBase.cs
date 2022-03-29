@@ -21,7 +21,6 @@ namespace KnightBus.Azure.ServiceBus
         private ServiceBusProcessor _client;
         private int _deadLetterLimit;
         private DateTimeOffset _lastActivity;
-        private CancellationTokenSource _restartTaskCancellation;
         protected IClientFactory ClientFactory;
         protected ServiceBusAdministrationClient ManagementClient;
 
@@ -47,17 +46,12 @@ namespace KnightBus.Azure.ServiceBus
             _cancellationToken = cancellationToken;
             _deadLetterLimit = Settings.DeadLetterDeliveryLimit;
 
-            _client = await CreateClient(cancellationToken).ConfigureAwait(false);
-            _client.ProcessMessageAsync += ClientOnProcessMessageAsync;
-            _client.ProcessErrorAsync += ClientOnProcessErrorAsync;
-            await _client.StartProcessingAsync(cancellationToken).ConfigureAwait(false);
-            _restartTaskCancellation = new CancellationTokenSource();
+            await InitializeAsync().ConfigureAwait(false);
 
 #pragma warning disable 4014
             Task.Run(async () =>
             {
                 _cancellationToken.WaitHandle.WaitOne();
-                //Cancellation requested
                 try
                 {
                     Log.Information($"Closing ServiceBus channel receiver for {typeof(T).Name}");
@@ -67,7 +61,7 @@ namespace KnightBus.Azure.ServiceBus
                 {
                     //Swallow
                 }
-            }, _restartTaskCancellation.Token);
+            }, _cancellationToken);
 
 
             // ReSharper disable once SuspiciousTypeConversion.Global
@@ -77,19 +71,28 @@ namespace KnightBus.Azure.ServiceBus
                     $"Starting idle timeout check for {typeof(T).Name} with maximum allowed idle timespan: {restartOnIdle.IdleTimeout}");
                 Task.Run(async () =>
                 {
-                    while (!_restartTaskCancellation.IsCancellationRequested)
+                    while (!_cancellationToken.IsCancellationRequested)
                     {
-                        await Task.Delay(TimeSpan.FromSeconds(10), _restartTaskCancellation.Token)
-                            .ConfigureAwait(false);
                         await CheckIdleTime(restartOnIdle.IdleTimeout).ConfigureAwait(false);
+
+                        await Task.Delay(TimeSpan.FromSeconds(10), _cancellationToken)
+                            .ConfigureAwait(false);
                     }
-                }, _restartTaskCancellation.Token);
+                }, _cancellationToken);
             }
 #pragma warning restore 4014
         }
 
         protected abstract Task<ServiceBusProcessor> CreateClient(CancellationToken cancellationToken);
         protected abstract Task CreateMessagingEntity(CancellationToken cancellationToken);
+
+        private async Task InitializeAsync()
+        {
+            _client = await CreateClient(_cancellationToken).ConfigureAwait(false);
+            _client.ProcessMessageAsync += ClientOnProcessMessageAsync;
+            _client.ProcessErrorAsync += ClientOnProcessErrorAsync;
+            await _client.StartProcessingAsync(_cancellationToken).ConfigureAwait(false);
+        }
 
         private async Task CheckIdleTime(TimeSpan idleTimeout)
         {
@@ -113,9 +116,6 @@ namespace KnightBus.Azure.ServiceBus
             {
                 Log.Information($"Restarting {typeof(T).Name}");
 
-                _restartTaskCancellation.Cancel();
-                _restartTaskCancellation.Dispose();
-
                 await _client.StopProcessingAsync(_cancellationToken).ConfigureAwait(false);
                 _client.ProcessMessageAsync -= ClientOnProcessMessageAsync;
                 _client.ProcessErrorAsync -= ClientOnProcessErrorAsync;
@@ -125,7 +125,8 @@ namespace KnightBus.Azure.ServiceBus
                 ClientFactory = new ClientFactory(_configuration.ConnectionString);
                 ManagementClient = new ServiceBusAdministrationClient(_configuration.ConnectionString);
 
-                await StartAsync(_cancellationToken).ConfigureAwait(false);
+                await InitializeAsync().ConfigureAwait(false);
+
                 Log.Information($"Successfully restarted {typeof(T).Name}");
             }
             catch (Exception e)

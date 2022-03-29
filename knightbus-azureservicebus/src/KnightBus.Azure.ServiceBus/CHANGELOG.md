@@ -1,5 +1,9 @@
 ﻿# KnightBus.Azure.ServiceBus Changelog
 
+## 15.1.2
+### Changed 
+- Simplify restart handling when using `IRestartTransportOnIdle`.
+
 ## 15.1.1
 ### Fixed
 - Prevent potential memory leak when using `IRestartTransportOnIdle`.
