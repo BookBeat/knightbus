@@ -22,7 +22,6 @@ namespace KnightBus.Azure.ServiceBus
         private readonly ServiceBusClient _serviceBusClient;
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
         private ConcurrentDictionary<Type, ServiceBusSender> SenderClients { get; } = new ConcurrentDictionary<Type, ServiceBusSender>();
-        private ConcurrentDictionary<Type, ServiceBusProcessor> ReceiverClients { get; } = new ConcurrentDictionary<Type, ServiceBusProcessor>();
 
         public ClientFactory(string connectionString)
         {
@@ -33,18 +32,6 @@ namespace KnightBus.Azure.ServiceBus
         {
             var queueName = AutoMessageMapper.GetQueueName<T>();
             return _serviceBusClient.CreateSender(queueName);
-        }
-
-        private ServiceBusProcessor CreateSubscriptionClient<T>(string subscriptionName, ServiceBusProcessorOptions options) where T : IEvent
-        {
-            var topicName = AutoMessageMapper.GetQueueName<T>();
-            return _serviceBusClient.CreateProcessor(topicName, subscriptionName, options);
-        }
-
-        private ServiceBusProcessor CreateReceiverClient<T>(ServiceBusProcessorOptions options) where T : ICommand
-        {
-            var queueName = AutoMessageMapper.GetQueueName<T>();
-            return _serviceBusClient.CreateProcessor(queueName, options);
         }
 
         public async Task<ServiceBusSender> GetSenderClient<T>() where T : IMessage
@@ -74,71 +61,21 @@ namespace KnightBus.Azure.ServiceBus
             }
         }
 
-        public async Task<ServiceBusProcessor> GetReceiverClient<T>(ServiceBusProcessorOptions options) where T : ICommand
+        public Task<ServiceBusProcessor> GetReceiverClient<T>(ServiceBusProcessorOptions options) where T : ICommand
         {
-            if (ReceiverClients.TryGetValue(typeof(T), out var client))
-            {
-                return client;
-            }
-
-            try
-            {
-                // No existing client found, try and create one making sure parallel threads do not compete
-                await _semaphore.WaitAsync().ConfigureAwait(false);
-
-                // After we have waited, another thread might have created the client we're looking for
-                if (ReceiverClients.TryGetValue(typeof(T), out client))
-                {
-                    return client;
-                }
-
-                client = CreateReceiverClient<T>(options);
-                return ReceiverClients.GetOrAdd(typeof(T), client);
-            }
-            finally
-            {
-                _semaphore.Release();
-            }
+            var queueName = AutoMessageMapper.GetQueueName<T>();
+            return Task.FromResult(_serviceBusClient.CreateProcessor(queueName, options));
         }
 
-
-        public async Task<ServiceBusProcessor> GetReceiverClient<TTopic, TSubscription>(TSubscription subscription, ServiceBusProcessorOptions options) where TTopic : IEvent where TSubscription : IEventSubscription<TTopic>
+        public Task<ServiceBusProcessor> GetReceiverClient<TTopic, TSubscription>(TSubscription subscription, ServiceBusProcessorOptions options) where TTopic : IEvent where TSubscription : IEventSubscription<TTopic>
         {
-            if (ReceiverClients.TryGetValue(typeof(IEventSubscription<TTopic>), out var client))
-            {
-                return client;
-            }
-
-            try
-            {
-                // No existing client found, try and create one making sure parallel threads do not compete
-                await _semaphore.WaitAsync().ConfigureAwait(false);
-
-                // After we have waited, another thread might have created the client we're looking for
-                if (ReceiverClients.TryGetValue(typeof(IEventSubscription<TTopic>), out client))
-                {
-                    return client;
-                }
-
-                client = CreateSubscriptionClient<TTopic>(subscription.Name, options);
-                return ReceiverClients.GetOrAdd(typeof(IEventSubscription<TTopic>), client);
-            }
-            finally
-            {
-                _semaphore.Release();
-            }
+            var topicName = AutoMessageMapper.GetQueueName<TTopic>();
+            return Task.FromResult(_serviceBusClient.CreateProcessor(topicName, subscription.Name, options));
         }
 
         public async ValueTask DisposeAsync()
         {
             _semaphore?.Dispose();
-
-            foreach (var client in ReceiverClients)
-            {
-                await client.Value.DisposeAsync();
-            }
-
-            ReceiverClients.Clear();
 
             foreach (var client in SenderClients)
             {
