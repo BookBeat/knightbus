@@ -33,8 +33,7 @@ namespace KnightBus.Azure.ServiceBus
             _processor = processor;
             Settings = settings;
             Log = hostConfiguration.Log;
-            //new client factory per ServiceBusQueueChannelReceiver means a separate communication channel per reader instead of a shared
-            ClientFactory = new ClientFactory(configuration.ConnectionString);
+            ClientFactory = configuration.ClientFactory;
             ManagementClient = new ServiceBusAdministrationClient(configuration.ConnectionString);
             _lastActivity = DateTimeOffset.UtcNow;
         }

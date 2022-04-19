@@ -10,7 +10,7 @@ using KnightBus.Messages;
 [assembly: InternalsVisibleTo("KnightBus.Azure.ServiceBus.Unit")]
 namespace KnightBus.Azure.ServiceBus
 {
-    internal interface IClientFactory : IAsyncDisposable
+    public interface IClientFactory : IAsyncDisposable
     {
         Task<ServiceBusSender> GetSenderClient<T>() where T : IMessage;
         Task<ServiceBusProcessor> GetReceiverClient<T>(ServiceBusProcessorOptions options) where T : ICommand;
@@ -19,35 +19,32 @@ namespace KnightBus.Azure.ServiceBus
 
     internal class ClientFactory : IClientFactory
     {
-        private readonly string _connectionString;
+        private readonly ServiceBusClient _serviceBusClient;
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
         private ConcurrentDictionary<Type, ServiceBusSender> SenderClients { get; } = new ConcurrentDictionary<Type, ServiceBusSender>();
         private ConcurrentDictionary<Type, ServiceBusProcessor> ReceiverClients { get; } = new ConcurrentDictionary<Type, ServiceBusProcessor>();
 
         public ClientFactory(string connectionString)
         {
-            _connectionString = connectionString;
+            _serviceBusClient = new ServiceBusClient(connectionString);
         }
 
         private ServiceBusSender CreateQueueClient<T>() where T : IMessage
         {
             var queueName = AutoMessageMapper.GetQueueName<T>();
-            var client = new ServiceBusClient(_connectionString);
-            return client.CreateSender(queueName);
+            return _serviceBusClient.CreateSender(queueName);
         }
 
         private ServiceBusProcessor CreateSubscriptionClient<T>(string subscriptionName, ServiceBusProcessorOptions options) where T : IEvent
         {
             var topicName = AutoMessageMapper.GetQueueName<T>();
-            var client = new ServiceBusClient(_connectionString);
-            return client.CreateProcessor(topicName, subscriptionName, options);
+            return _serviceBusClient.CreateProcessor(topicName, subscriptionName, options);
         }
 
         private ServiceBusProcessor CreateReceiverClient<T>(ServiceBusProcessorOptions options) where T : ICommand
         {
             var queueName = AutoMessageMapper.GetQueueName<T>();
-            var client = new ServiceBusClient(_connectionString);
-            return client.CreateProcessor(queueName, options);
+            return _serviceBusClient.CreateProcessor(queueName, options);
         }
 
         public async Task<ServiceBusSender> GetSenderClient<T>() where T : IMessage
