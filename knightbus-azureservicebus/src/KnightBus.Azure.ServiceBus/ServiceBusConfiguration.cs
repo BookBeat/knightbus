@@ -12,5 +12,6 @@ namespace KnightBus.Azure.ServiceBus
         public IMessageSerializer MessageSerializer { get; set; } = new NewtonsoftSerializer();
         public string ConnectionString { get; }
         public ServiceBusCreationOptions DefaultCreationOptions  { get; } = new ServiceBusCreationOptions();
+        public IClientFactory ClientFactory => new ClientFactory(ConnectionString);
     }
 }

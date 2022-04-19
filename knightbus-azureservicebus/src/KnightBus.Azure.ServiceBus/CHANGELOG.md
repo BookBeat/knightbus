@@ -1,5 +1,9 @@
 ﻿# KnightBus.Azure.ServiceBus Changelog
 
+## 16.0.0
+### Added/Changed 
+- Shared connection support of service bus client
+
 ## 15.1.2
 ### Changed 
 - Simplify restart handling when using `IRestartTransportOnIdle`.
