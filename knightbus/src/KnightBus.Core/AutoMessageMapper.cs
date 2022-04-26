@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using KnightBus.Core.Exceptions;
 using KnightBus.Messages;
@@ -10,7 +11,7 @@ namespace KnightBus.Core
     public static class AutoMessageMapper
     {
         private static readonly ConcurrentDictionary<string, bool> AlreadyMappedAssemblies = new ConcurrentDictionary<string, bool>();
-        private static readonly SemaphoreSlim Semaphore = new SemaphoreSlim(1,1);
+        private static readonly SemaphoreSlim Semaphore = new SemaphoreSlim(1, 1);
 
         private static void MapFromMessageAssembly(Type type)
         {
@@ -75,7 +76,7 @@ namespace KnightBus.Core
 
         public static IEnumerable<string> GetMappedQueueNames()
         {
-            return AlreadyMappedAssemblies.Keys;
+            return MessageMapper.GetMappings().Select(m => m.QueueName);
         }
     }
 }

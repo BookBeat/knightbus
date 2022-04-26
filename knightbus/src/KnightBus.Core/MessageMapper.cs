@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using KnightBus.Core.Exceptions;
@@ -56,6 +57,11 @@ namespace KnightBus.Core
             }
 
             throw new MessageMappingMissingException($"No mapping exists for {t.FullName}");
+        }
+
+        public static IEnumerable<IMessageMapping> GetMappings()
+        {
+            return Mappings.Values;
         }
     }
 }
