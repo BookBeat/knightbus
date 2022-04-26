@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading;
 using KnightBus.Core.Exceptions;
 using KnightBus.Messages;
@@ -70,6 +71,11 @@ namespace KnightBus.Core
         public static IMessageMapping GetMapping<T>() where T : IMessage
         {
             return GetMapping(typeof(T));
+        }
+
+        public static IEnumerable<string> GetMappedQueueNames()
+        {
+            return AlreadyMappedAssemblies.Keys;
         }
     }
 }
