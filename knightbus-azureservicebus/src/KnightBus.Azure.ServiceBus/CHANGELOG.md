@@ -1,5 +1,10 @@
 ﻿# KnightBus.Azure.ServiceBus Changelog
 
+
+## 17.0.0
+### Changed 
+- Default is now shared connection of service bus client
+
 ## 16.0.0
 ### Added/Changed 
 - Shared connection support of service bus client
