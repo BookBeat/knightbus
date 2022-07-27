@@ -86,7 +86,7 @@ namespace KnightBus.Nats
             var serializer = _configuration.MessageSerializer;
             if (mapping is ICustomMessageSerializer customSerializer) serializer = customSerializer.MessageSerializer;
 
-            var inbox = Guid.NewGuid().ToString("N");
+            var inbox = _connection.NewInbox();
             using var sub = _connection.SubscribeSync(inbox);
             _connection.Publish(mapping.QueueName, inbox, serializer.Serialize(command));
 
