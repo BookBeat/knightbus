@@ -32,6 +32,7 @@
 
 	<ItemGroup>
 		<InternalsVisibleTo Include="KnightBus.Nats.Tests.Unit" />
+		<InternalsVisibleTo Include="KnightBus.Nats.Tests.Integration" />
 	</ItemGroup>
 
 </Project>

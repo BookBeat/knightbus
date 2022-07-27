@@ -67,7 +67,6 @@ namespace KnightBus.Examples.Nats
         class SampleNatsMessage : INatsRequest
         {
             public string Message { get; set; }
-            public int Timeout { get; set; }
         }
 
         class SampleNatsCommand:INatsCommand, ICommandWithAttachment

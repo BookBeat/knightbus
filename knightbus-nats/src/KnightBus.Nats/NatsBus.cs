@@ -15,7 +15,7 @@ namespace KnightBus.Nats
         Task Send(INatsCommand message, CancellationToken cancellationToken = default);
         Task Publish(INatsEvent message, CancellationToken cancellationToken = default);
         Task<TResponse> RequestAsync<T, TResponse>(INatsRequest request, CancellationToken cancellationToken = default) where T : INatsRequest;
-        IEnumerable<TResponse> RequestStream<T, TResponse>(INatsRequest command, CancellationToken cancellationToken = default) where T : INatsRequest;
+        IEnumerable<TResponse> RequestStream<T, TResponse>(INatsRequest request, CancellationToken cancellationToken = default) where T : INatsRequest;
     }
 
     public class NatsBus : INatsBus
@@ -80,21 +80,21 @@ namespace KnightBus.Nats
             return serializer.Deserialize<TResponse>(reply.Data.AsSpan());
         }
 
-        public IEnumerable<TResponse> RequestStream<T, TResponse>(INatsRequest command, CancellationToken cancellationToken = default) where T : INatsRequest
+        public IEnumerable<TResponse> RequestStream<T, TResponse>(INatsRequest request, CancellationToken cancellationToken = default) where T : INatsRequest
         {
-            var mapping = AutoMessageMapper.GetMapping(command.GetType());
+            var mapping = AutoMessageMapper.GetMapping(request.GetType());
             var serializer = _configuration.MessageSerializer;
             if (mapping is ICustomMessageSerializer customSerializer) serializer = customSerializer.MessageSerializer;
 
             var inbox = _connection.NewInbox();
             using var sub = _connection.SubscribeSync(inbox);
-            _connection.Publish(mapping.QueueName, inbox, serializer.Serialize(command));
+            _connection.Publish(mapping.QueueName, inbox, serializer.Serialize(request));
 
             do
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 
-                var msg = sub.NextMessage();
+                var msg = sub.NextMessage(request.Timeout);
                 if (msg.Data.Length == 0)
                 {
                     if (msg.HasHeaders && msg.Header[MsgConstants.HeaderName] == MsgConstants.Completed)
