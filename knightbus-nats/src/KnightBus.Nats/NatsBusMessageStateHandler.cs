@@ -23,7 +23,7 @@ namespace KnightBus.Nats
             _message = serializer.Deserialize<T>(msg.Data.AsSpan());
         }
 
-        public int DeliveryCount { get; } = 1;
+        public int DeliveryCount => 1;
         public int DeadLetterDeliveryLimit { get; }
 
         public IDictionary<string, string> MessageProperties => _msg.Header.Keys.Cast<string>().ToDictionary(key => key, key => _msg.Header[key]);
@@ -77,10 +77,10 @@ namespace KnightBus.Nats
         }
     }
 
-    public static class MsgConstants
+    internal class MsgConstants
     {
-        public static string HeaderName = "kb";
-        public static string Completed = "ok";
-        public static string Error = "err";
+        public const string HeaderName = "kb";
+        public const string Completed = "ok";
+        public const string Error = "err";
     }
 }

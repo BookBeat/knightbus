@@ -96,6 +96,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Nats.Messages", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.Nats.Tests.Unit", "knightbus-nats\tests\KnightBus.Nats.Tests.Unit\KnightBus.Nats.Tests.Unit.csproj", "{4E160CA8-3B3F-404B-ACE5-FA9B696BC921}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.Nats.Tests.Integration", "KnightBus.Nats.Tests.Integration\KnightBus.Nats.Tests.Integration.csproj", "{E0DAA82C-7ED0-4430-ADAE-C762C28F1349}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -250,6 +252,10 @@ Global
 		{4E160CA8-3B3F-404B-ACE5-FA9B696BC921}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4E160CA8-3B3F-404B-ACE5-FA9B696BC921}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4E160CA8-3B3F-404B-ACE5-FA9B696BC921}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E0DAA82C-7ED0-4430-ADAE-C762C28F1349}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E0DAA82C-7ED0-4430-ADAE-C762C28F1349}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E0DAA82C-7ED0-4430-ADAE-C762C28F1349}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E0DAA82C-7ED0-4430-ADAE-C762C28F1349}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -277,6 +283,7 @@ Global
 		{3C9566A8-EB30-491A-9215-B62A30F05764} = {1A7A20B2-65E7-4712-B93B-4AA3F73017A8}
 		{BC97493B-C23A-40A9-AB96-51D93ED689C3} = {8598A638-84C1-4FE0-9E95-ABE6079A00E7}
 		{4E160CA8-3B3F-404B-ACE5-FA9B696BC921} = {8598A638-84C1-4FE0-9E95-ABE6079A00E7}
+		{E0DAA82C-7ED0-4430-ADAE-C762C28F1349} = {8598A638-84C1-4FE0-9E95-ABE6079A00E7}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {14950A56-4265-429E-AF71-2D98B3B8AC48}

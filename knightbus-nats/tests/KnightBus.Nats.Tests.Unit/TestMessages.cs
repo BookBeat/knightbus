@@ -25,7 +25,7 @@ namespace KnightBus.Nats.Tests.Unit
 
     public class TestNatsRequest : INatsRequest
     {
-
+        public int Timeout => 100;
     }
 
     public class TestNatsResponse
