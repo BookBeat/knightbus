@@ -3,11 +3,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
-using KnightBus.Messages;
-using KnightBus.Nats.Messages;
 using Moq;
 using NATS.Client;
-using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace KnightBus.Nats.Tests.Unit
@@ -46,7 +43,7 @@ namespace KnightBus.Nats.Tests.Unit
             var config = new NatsBusConfiguration("");
             var connection = new Mock<IConnection>();
             connection.Setup(x =>
-                    x.RequestAsync("requestName", It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
+                    x.RequestAsync("requestName", It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(() => new Msg("reply", config.MessageSerializer.Serialize(new TestNatsResponse())));
             var bus = new NatsBus(connection.Object,config );
             //act 
@@ -62,7 +59,7 @@ namespace KnightBus.Nats.Tests.Unit
             var sub = new Mock<ISyncSubscription>();
             var stopHeader = new MsgHeader {{MsgConstants.HeaderName, MsgConstants.Completed}};
             //10 results
-            sub.SetupSequence(x => x.NextMessage())
+            sub.SetupSequence(x => x.NextMessage(It.IsAny<int>()))
                 .Returns(new Msg("inbox", Array.Empty<byte>()))
                 .Returns(new Msg("inbox", stopHeader, Array.Empty<byte>()));
                 
@@ -84,7 +81,7 @@ namespace KnightBus.Nats.Tests.Unit
             var sub = new Mock<ISyncSubscription>();
             var errorHeader = new MsgHeader { { MsgConstants.HeaderName, MsgConstants.Error } };
             //10 results
-            sub.SetupSequence(x => x.NextMessage())
+            sub.SetupSequence(x => x.NextMessage(It.IsAny<int>()))
                 .Returns(new Msg("inbox", Array.Empty<byte>()))
                 .Returns(new Msg("inbox", errorHeader, Array.Empty<byte>()));
 
