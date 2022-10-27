@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
 using KnightBus.Core.Singleton;
+using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
 using Quartz;
@@ -24,7 +25,7 @@ namespace KnightBus.Schedule.Tests.Unit
             var di = new Mock<IDependencyInjection>();
             di.Setup(x => x.GetScope()).Returns(di.Object);
             di.Setup(x => x.GetInstance<IProcessSchedule<DummySchedule>>()).Returns(processor.Object);
-            var executor = new JobExecutor<DummySchedule>(Mock.Of<ILog>(), lockManager.Object, di.Object);
+            var executor = new JobExecutor<DummySchedule>(Mock.Of<ILogger>(), lockManager.Object, di.Object);
             //act
             await executor.Execute(Mock.Of<IJobExecutionContext>());
             //assert
@@ -42,7 +43,7 @@ namespace KnightBus.Schedule.Tests.Unit
             var di = new Mock<IDependencyInjection>();
             di.Setup(x => x.GetScope()).Returns(di.Object);
             di.Setup(x => x.GetInstance<IProcessSchedule<DummySchedule>>()).Returns(processor.Object);
-            var executor = new JobExecutor<DummySchedule>(Mock.Of<ILog>(), lockManager.Object, di.Object);
+            var executor = new JobExecutor<DummySchedule>(Mock.Of<ILogger>(), lockManager.Object, di.Object);
             //act & assert
             await executor.Execute(Mock.Of<IJobExecutionContext>());
         }
@@ -60,7 +61,7 @@ namespace KnightBus.Schedule.Tests.Unit
             var di = new Mock<IDependencyInjection>();
             di.Setup(x => x.GetScope()).Returns(di.Object);
             di.Setup(x => x.GetInstance<IProcessSchedule<DummySchedule>>()).Returns(processor.Object);
-            var executor = new JobExecutor<DummySchedule>(Mock.Of<ILog>(), lockManager.Object, di.Object);
+            var executor = new JobExecutor<DummySchedule>(Mock.Of<ILogger>(), lockManager.Object, di.Object);
             //act
             await executor.Execute(Mock.Of<IJobExecutionContext>());
             //assert
@@ -78,7 +79,7 @@ namespace KnightBus.Schedule.Tests.Unit
             var di = new Mock<IDependencyInjection>();
             di.Setup(x => x.GetScope()).Returns(di.Object);
             di.Setup(x => x.GetInstance<IProcessSchedule<DummySchedule>>()).Returns(processor.Object);
-            var executor = new JobExecutor<DummySchedule>(Mock.Of<ILog>(), lockManager.Object, di.Object);
+            var executor = new JobExecutor<DummySchedule>(Mock.Of<ILogger>(), lockManager.Object, di.Object);
             //act
             await executor.Execute(Mock.Of<IJobExecutionContext>());
             //assert

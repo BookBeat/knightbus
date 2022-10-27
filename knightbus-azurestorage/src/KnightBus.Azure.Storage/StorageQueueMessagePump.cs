@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Azure;
 using KnightBus.Azure.Storage.Messages;
 using KnightBus.Core;
+using Microsoft.Extensions.Logging;
 
 namespace KnightBus.Azure.Storage
 {
@@ -13,12 +14,12 @@ namespace KnightBus.Azure.Storage
     {
         private readonly IStorageQueueClient _storageQueueClient;
         private readonly IProcessingSettings _settings;
-        private readonly ILog _log;
+        private readonly ILogger _log;
         private readonly TimeSpan _pollingInterval = TimeSpan.FromMilliseconds(5000);
         internal readonly SemaphoreSlim _maxConcurrent;
         private Task _runningTask;
 
-        public StorageQueueMessagePump(IStorageQueueClient storageQueueClient, IProcessingSettings settings, ILog log)
+        public StorageQueueMessagePump(IStorageQueueClient storageQueueClient, IProcessingSettings settings, ILogger log)
         {
             _storageQueueClient = storageQueueClient;
             _settings = settings;
@@ -67,7 +68,7 @@ namespace KnightBus.Azure.Storage
                     .ConfigureAwait(false);
                 messagesFound = messages.Any();
 
-                _log.Debug("Prefetched {MessageCount} messages from {QueueName} in {Name}", messages.Count, queueName,
+                _log.LogDebug("Prefetched {MessageCount} messages from {QueueName} in {Name}", messages.Count, queueName,
                     nameof(StorageQueueMessagePump));
 
                 foreach (var message in messages)
@@ -77,15 +78,15 @@ namespace KnightBus.Azure.Storage
                         CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutToken.Token);
                     try
                     {
-                        _log.Debug("Processing {@Message} in {Name}", message, nameof(StorageQueueMessagePump));
-                        _log.Debug("{ThreadCount} remaining threads that can process messages in {QueueName} in {Name}",
+                        _log.LogDebug("Processing {@Message} in {Name}", message, nameof(StorageQueueMessagePump));
+                        _log.LogDebug("{ThreadCount} remaining threads that can process messages in {QueueName} in {Name}",
                             _maxConcurrent.CurrentCount, queueName, nameof(StorageQueueMessagePump));
 
                         await _maxConcurrent.WaitAsync(timeoutToken.Token).ConfigureAwait(false);
                     }
                     catch (OperationCanceledException operationCanceledException)
                     {
-                        _log.Debug(operationCanceledException,
+                        _log.LogDebug(operationCanceledException,
                             "Operation canceled for {@Message} in {QueueName} in {Name}", message, queueName,
                             nameof(StorageQueueMessagePump));
 
@@ -107,12 +108,12 @@ namespace KnightBus.Azure.Storage
             }
             catch (RequestFailedException e) when (e.Status is (int)HttpStatusCode.NotFound)
             {
-                _log.Information($"{typeof(T).Name} not found. Creating.");
+                _log.LogInformation($"{typeof(T).Name} not found. Creating.");
                 await _storageQueueClient.CreateIfNotExistsAsync().ConfigureAwait(false);
             }
             catch (Exception e)
             {
-                _log.Error(e, "StorageQueueMessagePump error in {MessageType}", typeof(T));
+                _log.LogError(e, "StorageQueueMessagePump error in {MessageType}", typeof(T));
             }
             finally
             {

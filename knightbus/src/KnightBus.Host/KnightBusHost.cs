@@ -7,25 +7,28 @@ using KnightBus.Core;
 using KnightBus.Core.Exceptions;
 using KnightBus.Host.MessageProcessing;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace KnightBus.Host
 {
     public class KnightBusHost : IHostedService
     {
+        private readonly ILogger<KnightBusHost> _logger;
         private IHostConfiguration _configuration;
         private MessageProcessorLocator _locator;
-        private readonly List<ITransport> _transports = new List<ITransport>();
+        
         public TimeSpan ShutdownGracePeriod { get; set; }= TimeSpan.FromMinutes(1);
-        private CancellationTokenSource _shutdownToken = new CancellationTokenSource();
+        private readonly CancellationTokenSource _shutdownToken = new CancellationTokenSource();
 
-        public KnightBusHost()
+        public KnightBusHost(IHostConfiguration configuration, ILogger<KnightBusHost> logger)
         {
-            _configuration = new HostConfiguration();
+            _logger = logger;
+            _configuration = configuration;
         }
 
         public KnightBusHost UseTransport(ITransport transport)
         {
-            _transports.Add(transport);
+            _configuration.Transports.Add(transport);
             return this;
         }
 
@@ -48,9 +51,9 @@ namespace KnightBus.Host
             if(_configuration.DependencyInjection is IIsolatedDependencyInjection isolated)
                 isolated.Build();
                 
-            if (_transports.Any())
+            if (_configuration.Transports.Any())
             {
-                _locator = new MessageProcessorLocator(_configuration, _transports.SelectMany(transport => transport.TransportChannelFactories).ToArray());
+                _locator = new MessageProcessorLocator(_configuration, _configuration.Transports.SelectMany(transport => transport.TransportChannelFactories).ToArray());
                 var channelReceivers = _locator.CreateReceivers().ToList();
                 ConsoleWriter.Write("Starting receivers [");
                 foreach (var receiver in channelReceivers)
@@ -82,10 +85,10 @@ namespace KnightBus.Host
 
         public async Task StopAsync(CancellationToken cancellationToken)
         {
-            _configuration.Log.Information("KnightBus received stop signal, initiating shutdown... ");
+            _configuration.Log.LogInformation("KnightBus received stop signal, initiating shutdown... ");
             _shutdownToken.Cancel();
             await Task.Delay(ShutdownGracePeriod, cancellationToken).ConfigureAwait(false);
-            _configuration.Log.Information("KnightBus received stopped");
+            _configuration.Log.LogInformation("KnightBus received stopped");
             _shutdownToken.Dispose();
         }
 

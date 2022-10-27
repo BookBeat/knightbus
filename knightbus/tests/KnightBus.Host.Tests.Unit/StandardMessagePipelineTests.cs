@@ -5,6 +5,7 @@ using KnightBus.Core;
 using KnightBus.Core.DefaultMiddlewares;
 using KnightBus.Host.MessageProcessing.Processors;
 using KnightBus.Host.Tests.Unit.ExampleProcessors;
+using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
 
@@ -16,7 +17,7 @@ namespace KnightBus.Host.Tests.Unit
         private IMessageProcessor _messageProcessor;
         private Mock<IMessageStateHandler<TestCommandOne>> _stateHandler;
         private Mock<ICountable> _countable;
-        private Mock<ILog> _logger;
+        private Mock<ILogger> _logger;
         private Mock<IDependencyInjection> _messageHandlerProvider;
         private Mock<IPipelineInformation> _pipelineInformation;
         private Mock<IHostConfiguration> _hostConfiguration;
@@ -26,7 +27,7 @@ namespace KnightBus.Host.Tests.Unit
         public void Setup()
         {
             _messageHandlerProvider = new Mock<IDependencyInjection>();
-            _logger = new Mock<ILog>();
+            _logger = new Mock<ILogger>();
             _stateHandler = new Mock<IMessageStateHandler<TestCommandOne>>();
             _countable = new Mock<ICountable>();
             _messageHandlerProvider.Setup(x => x.GetScope()).Returns(_messageHandlerProvider.Object);
@@ -99,7 +100,7 @@ namespace KnightBus.Host.Tests.Unit
             //act
             await _messageProcessor.ProcessAsync(_stateHandler.Object, CancellationToken.None);
             //assert
-            _logger.Verify(x => x.Error(It.IsAny<TestException>(), "Error processing message {@TestCommandOne}", It.IsAny<TestCommandOne>()), Times.Once);
+            _logger.Verify(x => x.LogError(It.IsAny<TestException>(), "Error processing message {@TestCommandOne}", It.IsAny<TestCommandOne>()), Times.Once);
         }
     }
 }

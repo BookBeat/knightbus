@@ -9,6 +9,7 @@ using KnightBus.Host.MessageProcessing.Processors;
 using KnightBus.Messages;
 using KnightBus.Microsoft.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
 
@@ -30,7 +31,7 @@ namespace KnightBus.Host.Tests.Unit.Middleware
             var transportConfig = new Mock<ITransportChannelFactory>();
             transportConfig.Setup(x => x.Middlewares).Returns(middlewares);
             var finalProcessor = new Mock<IMessageProcessor>();
-            var pipeline = new MiddlewarePipeline(new List<IMessageProcessorMiddleware>(), Mock.Of<IPipelineInformation>(), transportConfig.Object, Mock.Of<ILog>());
+            var pipeline = new MiddlewarePipeline(new List<IMessageProcessorMiddleware>(), Mock.Of<IPipelineInformation>(), transportConfig.Object, Mock.Of<ILogger>());
             //act
             var chain = pipeline.GetPipeline(finalProcessor.Object);
             await chain.ProcessAsync(Mock.Of<IMessageStateHandler<TestCommand>>(), CancellationToken.None);
@@ -60,7 +61,7 @@ namespace KnightBus.Host.Tests.Unit.Middleware
             var transportConfig = new Mock<ITransportChannelFactory>();
             transportConfig.Setup(x => x.Middlewares).Returns(new List<IMessageProcessorMiddleware>());
             var finalProcessor = new Mock<IMessageProcessor>();
-            var pipeline = new MiddlewarePipeline(middlewares, Mock.Of<IPipelineInformation>(), transportConfig.Object, Mock.Of<ILog>());
+            var pipeline = new MiddlewarePipeline(middlewares, Mock.Of<IPipelineInformation>(), transportConfig.Object, Mock.Of<ILogger>());
             //act
             var chain = pipeline.GetPipeline(finalProcessor.Object);
             await chain.ProcessAsync(Mock.Of<IMessageStateHandler<TestCommand>>(), CancellationToken.None);
@@ -114,7 +115,7 @@ namespace KnightBus.Host.Tests.Unit.Middleware
             pipelineInformation.Setup(x => x.HostConfiguration).Returns(hostConfiguration);
 
             var finalProcessor = new MessageProcessor(typeof(IProcessCommand<DiTestMessage, DiTestMessageSettings>));
-            var pipeline = new MiddlewarePipeline(new List<IMessageProcessorMiddleware>(), pipelineInformation.Object, transportChannelFactory.Object, Mock.Of<ILog>());
+            var pipeline = new MiddlewarePipeline(new List<IMessageProcessorMiddleware>(), pipelineInformation.Object, transportChannelFactory.Object, Mock.Of<ILogger>());
 
             var messageStateHandler = new Mock<IMessageStateHandler<DiTestMessage>>();
             messageStateHandler.Setup(x => x.MessageScope).Returns(hostConfiguration.DependencyInjection.GetScope);

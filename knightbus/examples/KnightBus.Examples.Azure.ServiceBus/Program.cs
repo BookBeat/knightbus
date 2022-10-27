@@ -7,6 +7,7 @@ using KnightBus.Core;
 using KnightBus.Host;
 using KnightBus.Messages;
 using KnightBus.ProtobufNet;
+using Microsoft.Extensions.Hosting;
 using ProtoBuf;
 
 namespace KnightBus.Examples.Azure.ServiceBus
@@ -24,19 +25,25 @@ namespace KnightBus.Examples.Azure.ServiceBus
 
             var configuration = new ServiceBusConfiguration(serviceBusConnection)
                 {MessageSerializer = new MicrosoftJsonSerializer()};
-            
-            var knightBusHost = new KnightBusHost()
-                //Enable the ServiceBus Transport
-                .UseTransport(new ServiceBusTransport(configuration))
-                .Configure(configuration => configuration
+
+            var builder = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
+                .UseKnightBus(hostConfiguration =>
                     //Register our message processors without IoC using the standard provider
-                    .UseDependencyInjection(new StandardDependecyInjection()
+                    hostConfiguration.UseDependencyInjection(new StandardDependecyInjection()
                         .RegisterProcessor(new SampleServiceBusMessageProcessor())
                         .RegisterProcessor(new SampleServiceBusEventProcessor()))
                 );
+                
+            
+            var knightBusHost = builder.Build();
+                //Enable the ServiceBus Transport
+                // .UseTransport(new ServiceBusTransport(configuration))
+                // .Configure(configuration => configuration
+                //     
+                // );
 
             //Start the KnightBus Host, it will now connect to the ServiceBus and listen to the SampleServiceBusMessageMapping.QueueName
-            await knightBusHost.StartAsync(new CancellationToken());
+            await knightBusHost.StartAsync(CancellationToken.None);
 
             //Initiate the client
             var protoClient = new KnightBus.Azure.ServiceBus.ServiceBus(new ServiceBusConfiguration(serviceBusConnection){MessageSerializer = new ProtobufNetSerializer()});

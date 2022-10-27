@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using KnightBus.Core;
 using KnightBus.Core.DefaultMiddlewares;
+using Microsoft.Extensions.Logging;
 
 namespace KnightBus.Host
 {
@@ -10,7 +11,7 @@ namespace KnightBus.Host
         private readonly IPipelineInformation _pipelineInformation;
         private readonly List<IMessageProcessorMiddleware> _middlewares = new List<IMessageProcessorMiddleware>();
 
-        public MiddlewarePipeline(IEnumerable<IMessageProcessorMiddleware> hostMiddlewares, IPipelineInformation pipelineInformation, ITransportChannelFactory transportChannelFactory, ILog log)
+        public MiddlewarePipeline(IEnumerable<IMessageProcessorMiddleware> hostMiddlewares, IPipelineInformation pipelineInformation, ITransportChannelFactory transportChannelFactory, ILogger log)
         {
             _pipelineInformation = pipelineInformation;
 

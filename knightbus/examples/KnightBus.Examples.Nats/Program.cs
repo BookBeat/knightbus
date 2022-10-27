@@ -30,27 +30,28 @@ namespace KnightBus.Examples.Nats
             var client = new NatsBus(factory.CreateConnection(), config);
             client.EnableAttachments(new BlobStorageMessageAttachmentProvider(storageConnection));
 
-            var knightBusHost = new KnightBusHost()
-                //Enable the Nats Transport
-                .UseTransport(new NatsTransport(connectionString))
-                .Configure(configuration => configuration
-                    //Register our message processors without IoC using the standard provider
-                    .UseDependencyInjection(new StandardDependecyInjection()
-                        .RegisterProcessor(new NatsBusStreamRequestProcessor())
-                        .RegisterProcessor(new NatsBusEventProcessor1())
-                        .RegisterProcessor(new NatsBusEventProcessor2())
-                        .RegisterProcessor(new NatsBusCommandProcessor())
-                    )
-                    .UseBlobStorageAttachments(storageConnection)
-                );
-
+            var host = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
+                .UseKnightBus(configuration =>
+                {
+                    configuration
+                        //Enable the Nats Transport
+                        .UseTransport(new NatsTransport(connectionString))
+                        .UseDependencyInjection(new StandardDependecyInjection()
+                            .RegisterProcessor(new NatsBusStreamRequestProcessor())
+                            .RegisterProcessor(new NatsBusEventProcessor1())
+                            .RegisterProcessor(new NatsBusEventProcessor2())
+                            .RegisterProcessor(new NatsBusCommandProcessor())
+                        )
+                        .UseBlobStorageAttachments(storageConnection);
+                }).Build();
             //Start the KnightBus Host, it will now connect to the StorageBus and listen to the SampleStorageBusMessageMapping.QueueName
-            await knightBusHost.StartAsync(CancellationToken.None);
+            await host.StartAsync(CancellationToken.None);
 
             //Send some Messages and watch them print in the console
             for (var i = 0; i < 1; i++)
             {
-                var response = client.RequestStream<SampleNatsMessage, SampleNatsReply>(new SampleNatsMessage { Message = $"Hello from command {i}" });
+                var response =
+                    client.RequestStream<SampleNatsMessage, SampleNatsReply>(new SampleNatsMessage {Message = $"Hello from command {i}"});
                 foreach (var reply in response)
                 {
                     Console.WriteLine(reply.Reply);
@@ -60,7 +61,7 @@ namespace KnightBus.Examples.Nats
             await client.Publish(new SampleNatsEvent(), CancellationToken.None);
             var stream = new MemoryStream(Encoding.UTF8.GetBytes("Hello"));
             stream.Position = 0;
-            await client.Send(new SampleNatsCommand{Attachment = new MessageAttachment("file.txt", "txt", stream)});
+            await client.Send(new SampleNatsCommand {Attachment = new MessageAttachment("file.txt", "txt", stream)});
             Console.ReadKey();
         }
 
@@ -69,12 +70,12 @@ namespace KnightBus.Examples.Nats
             public string Message { get; set; }
         }
 
-        class SampleNatsCommand:INatsCommand, ICommandWithAttachment
+        class SampleNatsCommand : INatsCommand, ICommandWithAttachment
         {
             public IMessageAttachment Attachment { get; set; }
         }
 
-        class SampleNatsCommandMapping:IMessageMapping<SampleNatsCommand>
+        class SampleNatsCommandMapping : IMessageMapping<SampleNatsCommand>
         {
             public string QueueName { get; } = "your-command";
         }
@@ -88,6 +89,7 @@ namespace KnightBus.Examples.Nats
         {
             public string Name => "one";
         }
+
         class SampleSubscription2 : IEventSubscription<SampleNatsEvent>
         {
             public string Name => "two";
@@ -111,12 +113,13 @@ namespace KnightBus.Examples.Nats
 
         class NatsBusStreamRequestProcessor : IProcessStreamRequest<SampleNatsMessage, SampleNatsReply, SomeProcessingSetting>
         {
-            public async IAsyncEnumerable<SampleNatsReply> ProcessAsync(SampleNatsMessage message, [EnumeratorCancellation] CancellationToken cancellationToken)
+            public async IAsyncEnumerable<SampleNatsReply> ProcessAsync(SampleNatsMessage message,
+                [EnumeratorCancellation] CancellationToken cancellationToken)
             {
                 for (int i = 0; i < 20; i++)
                 {
                     await Task.Delay(100);
-                    yield return new SampleNatsReply { Reply = $"Async Reply {i}:\t {message.Message}" };
+                    yield return new SampleNatsReply {Reply = $"Async Reply {i}:\t {message.Message}"};
                 }
             }
         }
@@ -139,7 +142,7 @@ namespace KnightBus.Examples.Nats
             }
         }
 
-        class NatsBusCommandProcessor :IProcessCommand<SampleNatsCommand, SomeProcessingSetting>
+        class NatsBusCommandProcessor : IProcessCommand<SampleNatsCommand, SomeProcessingSetting>
         {
             public Task ProcessAsync(SampleNatsCommand message, CancellationToken cancellationToken)
             {
@@ -147,7 +150,7 @@ namespace KnightBus.Examples.Nats
                 {
                     Console.WriteLine($"Command {s.ReadToEnd()}");
                 }
-                
+
                 return Task.CompletedTask;
             }
         }

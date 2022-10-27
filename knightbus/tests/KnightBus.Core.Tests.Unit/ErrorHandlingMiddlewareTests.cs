@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using KnightBus.Core.DefaultMiddlewares;
+using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
 
@@ -19,7 +20,7 @@ namespace KnightBus.Core.Tests.Unit
             var messageStateHandler = new Mock<IMessageStateHandler<TestCommand>>();
             nextProcessor.Setup(x => x.ProcessAsync(messageStateHandler.Object, CancellationToken.None))
                 .Throws<Exception>();
-            var logger = new Mock<ILog>();
+            var logger = new Mock<ILogger>();
             var middleware = new ErrorHandlingMiddleware(logger.Object);
             //act & assert
             middleware.Invoking(async x=> await x.ProcessAsync(messageStateHandler.Object, Mock.Of<IPipelineInformation>(), nextProcessor.Object, CancellationToken.None)).Should().NotThrowAsync();
@@ -34,12 +35,12 @@ namespace KnightBus.Core.Tests.Unit
             var messageStateHandler = new Mock<IMessageStateHandler<TestCommand>>();
             nextProcessor.Setup(x => x.ProcessAsync(messageStateHandler.Object, CancellationToken.None))
                 .Throws<Exception>();
-            var logger = new Mock<ILog>();
+            var logger = new Mock<ILogger>();
             var middleware = new ErrorHandlingMiddleware(logger.Object);
             //act
             await middleware.ProcessAsync(messageStateHandler.Object, Mock.Of<IPipelineInformation>(), nextProcessor.Object, CancellationToken.None);
             //assert
-            logger.Verify(x => x.Error(It.IsAny<Exception>(), "Error processing message {@TestCommand}", It.IsAny<TestCommand>()), Times.Once);
+            logger.Verify(x => x.LogError(It.IsAny<Exception>(), "Error processing message {@TestCommand}", It.IsAny<TestCommand>()), Times.Once);
         }
 
         [Test]
@@ -50,7 +51,7 @@ namespace KnightBus.Core.Tests.Unit
             var messageStateHandler = new Mock<IMessageStateHandler<TestCommand>>();
             nextProcessor.Setup(x => x.ProcessAsync(messageStateHandler.Object, CancellationToken.None))
                 .Throws<Exception>();
-            var logger = new Mock<ILog>();
+            var logger = new Mock<ILogger>();
             var middleware = new ErrorHandlingMiddleware(logger.Object);
             //act
             await middleware.ProcessAsync(messageStateHandler.Object, Mock.Of<IPipelineInformation>(), nextProcessor.Object, CancellationToken.None);
@@ -66,12 +67,12 @@ namespace KnightBus.Core.Tests.Unit
             messageStateHandler.Setup(x => x.AbandonByErrorAsync(It.IsAny<Exception>())).Throws<Exception>();
             nextProcessor.Setup(x => x.ProcessAsync(messageStateHandler.Object, CancellationToken.None))
                 .Throws<Exception>();
-            var logger = new Mock<ILog>();
+            var logger = new Mock<ILogger>();
             var middleware = new ErrorHandlingMiddleware(logger.Object);
             //act
             middleware.Invoking(async x => await x.ProcessAsync(messageStateHandler.Object, Mock.Of<IPipelineInformation>(), nextProcessor.Object, CancellationToken.None)).Should().NotThrowAsync();
             //assert
-            logger.Verify(x => x.Error(It.IsAny<Exception>(), "Failed to abandon message {@TestCommand}", It.IsAny<TestCommand>()), Times.Once);
+            logger.Verify(x => x.LogError(It.IsAny<Exception>(), "Failed to abandon message {@TestCommand}", It.IsAny<TestCommand>()), Times.Once);
         }
     }
 }

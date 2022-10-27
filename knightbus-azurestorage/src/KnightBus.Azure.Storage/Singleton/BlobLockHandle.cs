@@ -7,6 +7,7 @@ using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
 using KnightBus.Core;
 using KnightBus.Core.Singleton;
+using Microsoft.Extensions.Logging;
 
 namespace KnightBus.Azure.Storage.Singleton
 {
@@ -29,7 +30,7 @@ namespace KnightBus.Azure.Storage.Singleton
         public string LockId { get; }
         private BlobLeaseClient Blob { get; }
 
-        public async Task<bool> RenewAsync(ILog log, CancellationToken cancellationToken)
+        public async Task<bool> RenewAsync(ILogger log, CancellationToken cancellationToken)
         {
             try
             {
@@ -49,7 +50,7 @@ namespace KnightBus.Azure.Storage.Singleton
             {
                 if (exception.IsServerSideError())
                 {
-                    log.Warning(exception, string.Format(CultureInfo.InvariantCulture, "Singleton lock renewal failed for blob '{0}'", LockId));
+                    log.LogWarning(exception, string.Format(CultureInfo.InvariantCulture, "Singleton lock renewal failed for blob '{0}'", LockId));
                     return false; // The next execution should occur more quickly (try to renew the lease before it expires).
                 }
 
@@ -67,7 +68,7 @@ namespace KnightBus.Azure.Storage.Singleton
 
                 var msg = string.Format(CultureInfo.InvariantCulture, "Singleton lock renewal failed for blob '{0}'. The last successful renewal completed at {1} ({2} milliseconds ago) with a duration of {3} milliseconds. The lease period was {4} milliseconds.",
                     LockId, lastRenewalFormatted, millisecondsSinceLastSuccess, lastRenewalMilliseconds, leasePeriodMilliseconds);
-                log.Error(exception, msg);
+                log.LogError(exception, msg);
 
                 // If we've lost the lease or cannot re-establish it, we want to fail any
                 // in progress function execution

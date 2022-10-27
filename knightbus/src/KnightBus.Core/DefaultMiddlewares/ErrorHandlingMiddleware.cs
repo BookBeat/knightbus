@@ -2,14 +2,15 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Messages;
+using Microsoft.Extensions.Logging;
 
 namespace KnightBus.Core.DefaultMiddlewares
 {
     public class ErrorHandlingMiddleware : IMessageProcessorMiddleware
     {
-        private readonly ILog _log;
+        private readonly ILogger _log;
 
-        public ErrorHandlingMiddleware(ILog log)
+        public ErrorHandlingMiddleware(ILogger log)
         {
             _log = log;
         }
@@ -23,14 +24,14 @@ namespace KnightBus.Core.DefaultMiddlewares
             }
             catch (Exception e)
             {
-                _log.Error(e, "Error processing message {@" + typeof(T).Name + "}", message);
+                _log.LogError(e, "Error processing message {@" + typeof(T).Name + "}", message);
                 try
                 {
                     await messageStateHandler.AbandonByErrorAsync(e).ConfigureAwait(false);
                 }
                 catch (Exception exception)
                 {
-                    _log.Error(exception, "Failed to abandon message {@" + typeof(T).Name + "}", message);
+                    _log.LogError(exception, "Failed to abandon message {@" + typeof(T).Name + "}", message);
                 }
             }
         }

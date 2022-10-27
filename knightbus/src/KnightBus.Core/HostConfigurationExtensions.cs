@@ -1,10 +1,17 @@
 using KnightBus.Core.Singleton;
+using Microsoft.Extensions.Logging;
 
 namespace KnightBus.Core
 {
     public static class HostConfigurationExtensions
     {
-        public static IHostConfiguration UseLog(this IHostConfiguration configuration, ILog log)
+
+        public static IHostConfiguration UseTransport(this IHostConfiguration configuration, ITransport transport)
+        {
+            configuration.Transports.Add(transport);
+            return configuration;
+        }
+        public static IHostConfiguration UseLog(this IHostConfiguration configuration, ILogger log)
         {
             configuration.Log = log;
             return configuration;

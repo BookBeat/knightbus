@@ -6,6 +6,7 @@ using Azure.Messaging.ServiceBus;
 using Azure.Messaging.ServiceBus.Administration;
 using KnightBus.Core;
 using KnightBus.Messages;
+using Microsoft.Extensions.Logging;
 
 [assembly: InternalsVisibleTo("BB.Common.KnightBus.Tests.Unit")]
 namespace KnightBus.Azure.ServiceBus
@@ -52,7 +53,7 @@ namespace KnightBus.Azure.ServiceBus
             }
             catch (ServiceBusException e)
             {
-                Log.Error(e, "Failed to create queue {QueueName}", queueName);
+                Log.LogError(e, "Failed to create queue {QueueName}", queueName);
                 throw;
             }
         }

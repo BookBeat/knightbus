@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Messages;
+using Microsoft.Extensions.Logging;
 
 namespace KnightBus.Core.DefaultMiddlewares
 {
@@ -22,7 +23,7 @@ namespace KnightBus.Core.DefaultMiddlewares
                     }
                     catch (Exception e)
                     {
-                        pipelineInformation.HostConfiguration.Log.Error(e, "Failed before deadletter processing {@" + typeof(T).Name + "}", message);
+                        pipelineInformation.HostConfiguration.Log.LogError(e, "Failed before deadletter processing {@" + typeof(T).Name + "}", message);
                     }
                 }
 

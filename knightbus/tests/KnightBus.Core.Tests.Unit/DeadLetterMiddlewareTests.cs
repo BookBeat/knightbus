@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core.DefaultMiddlewares;
+using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
 
@@ -78,7 +79,7 @@ namespace KnightBus.Core.Tests.Unit
             di.Setup(x => x.GetInstance<object>(It.IsAny<Type>())).Returns(processor);
 
             var hostConfiguration = new Mock<IHostConfiguration>();
-            hostConfiguration.Setup(x => x.Log).Returns(Mock.Of<ILog>());
+            hostConfiguration.Setup(x => x.Log).Returns(Mock.Of<ILogger>());
             hostConfiguration.Setup(x => x.DependencyInjection).Returns(di.Object);
 
             var pipeline = new Mock<IPipelineInformation>();

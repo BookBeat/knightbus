@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using KnightBus.Core;
 using KnightBus.Messages;
 using KnightBus.Redis.Messages;
+using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
 namespace KnightBus.Redis
@@ -14,14 +15,14 @@ namespace KnightBus.Redis
     {
         private readonly IDatabase _db;
         private readonly IMessageSerializer _serializer;
-        private readonly ILog _log;
+        private readonly ILogger _log;
         private readonly TimeSpan _messageTimeout;
         private readonly TimeSpan _minimumInterval = TimeSpan.FromMinutes(1);
         private readonly string _queueName;
         private readonly Random _random;
 
 
-        internal LostMessageBackgroundService(IConnectionMultiplexer multiplexer, int dbId, IMessageSerializer serializer, ILog log, TimeSpan messageTimeout, string queueName)
+        internal LostMessageBackgroundService(IConnectionMultiplexer multiplexer, int dbId, IMessageSerializer serializer, ILogger log, TimeSpan messageTimeout, string queueName)
         {
             _db = multiplexer.GetDatabase(dbId);
             _serializer = serializer;
@@ -80,7 +81,7 @@ namespace KnightBus.Redis
             }
             catch (Exception e)
             {
-                _log.Error(e, "Error in redis lost message service");
+                _log.LogError(e, "Error in redis lost message service");
             }
         }
 
