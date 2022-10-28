@@ -21,6 +21,7 @@
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.1" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\knightbus-microsoft-dependencyinjection\src\KnightBus.Microsoft.DependencyInjection\KnightBus.Microsoft.DependencyInjection.csproj" />
     <ProjectReference Include="..\KnightBus.Core\KnightBus.Core.csproj" />
   </ItemGroup>
 </Project>

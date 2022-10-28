@@ -10,44 +10,42 @@ using KnightBus.Core;
 using KnightBus.Core.Sagas;
 using KnightBus.Host;
 using KnightBus.Messages;
+using KnightBus.Microsoft.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace KnightBus.Examples.Azure.Storage
 {
-    class Program
+    internal class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
-            MainAsync().GetAwaiter().GetResult();
-        }
-
-        static async Task MainAsync()
-        {
-            var storageConnection = "your-connection-string";
+            var storageConnection = "UseDevelopmentStorage=true";
 
             //Initiate the client
             var client = new StorageBus(new StorageBusConfiguration(storageConnection));
             client.EnableAttachments(new BlobStorageMessageAttachmentProvider(storageConnection));
-
-            var knightBusHost = new KnightBusHost()
-                //Enable the StorageBus Transport
-                .UseTransport(new StorageTransport(storageConnection)
-                    //Enable attachments on the transport using Azure Blobs
-                    .UseBlobStorageAttachments(storageConnection))
-                .Configure(configuration => configuration
+            var knightBusHost = global::Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
+                .ConfigureServices((context, collection) =>
+                {
+                    collection.RegisterProcessor<SampleStorageBusMessageProcessor>()
+                        .RegisterProcessor<SampleSagaMessageProcessor>()
+                        .AddScoped<IStorageBus>(_ => new StorageBus(new StorageBusConfiguration(storageConnection)));
+                })
+                .UseKnightBus(configuration =>
+                {
                     //Allow message processors to run in Singleton state using Azure Blob Locks
-                    .UseBlobStorageLockManager(storageConnection)
-                    //Register our message processors without IoC using the standard provider
-                    .UseDependencyInjection(new StandardDependecyInjection()
-                        .RegisterProcessor(new SampleStorageBusMessageProcessor())
-                        .RegisterProcessor(new SampleSagaMessageProcessor(client))
-                    )
-                    //Enable Saga support using the table storage Saga store
-                    .EnableSagas(new BlobSagaStore(storageConnection))
-                );
-
+                    configuration
+                        .UseTransport(new StorageTransport(storageConnection)
+                            .UseBlobStorageAttachments(storageConnection))
+                        .UseBlobStorageLockManager(storageConnection)
+                        //Enable Saga support using the table storage Saga store
+                        .EnableSagas(new BlobSagaStore(storageConnection));
+                }).Build();
+    
             //Start the KnightBus Host, it will now connect to the StorageBus and listen to the SampleStorageBusMessageMapping.QueueName
             await knightBusHost.StartAsync(CancellationToken.None);
-
+            
+            await Task.Delay(TimeSpan.FromSeconds(10));
             
             //Send some Messages and watch them print in the console
             for (var i = 0; i < 10; i++)

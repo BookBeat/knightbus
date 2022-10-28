@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using KnightBus.Core;
 using KnightBus.Core.Exceptions;
 using KnightBus.Host.MessageProcessing;
+using KnightBus.Microsoft.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -12,17 +13,17 @@ namespace KnightBus.Host
 {
     public class KnightBusHost : IHostedService
     {
-        private readonly ILogger<KnightBusHost> _logger;
         private IHostConfiguration _configuration;
         private MessageProcessorLocator _locator;
         
         public TimeSpan ShutdownGracePeriod { get; set; }= TimeSpan.FromMinutes(1);
         private readonly CancellationTokenSource _shutdownToken = new CancellationTokenSource();
 
-        public KnightBusHost(IHostConfiguration configuration, ILogger<KnightBusHost> logger)
+        public KnightBusHost(IHostConfiguration configuration, IServiceProvider provider, ILogger<KnightBusHost> logger)
         {
-            _logger = logger;
             _configuration = configuration;
+            configuration.DependencyInjection = new MicrosoftDependencyInjection(provider);
+            configuration.Log = logger;
         }
 
         public KnightBusHost UseTransport(ITransport transport)
