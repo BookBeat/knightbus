@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -48,9 +47,6 @@ namespace KnightBus.Host
             if(_configuration.DependencyInjection == null)
                 throw new DependencyInjectionMissingException();
 
-            if(_configuration.DependencyInjection is IIsolatedDependencyInjection isolated)
-                isolated.Build();
-                
             if (_configuration.Transports.Any())
             {
                 _locator = new MessageProcessorLocator(_configuration, _configuration.Transports.SelectMany(transport => transport.TransportChannelFactories).ToArray());

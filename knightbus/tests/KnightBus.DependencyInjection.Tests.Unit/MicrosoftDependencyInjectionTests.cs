@@ -35,8 +35,7 @@ namespace KnightBus.DependencyInjection.Tests.Unit
             var container = new ServiceCollection();
             container.AddScoped<ITestService, TestService>();
 
-            DependencyInjection = new MicrosoftDependencyInjection(container);
-            DependencyInjection.Build();
+            DependencyInjection = new MicrosoftDependencyInjection(container.BuildServiceProvider());
         }
 
         [Test]
@@ -44,11 +43,9 @@ namespace KnightBus.DependencyInjection.Tests.Unit
         {
             //arrange
             var container = new ServiceCollection();
-            var di = new MicrosoftDependencyInjection(container);
-            di.RegisterSchedules(typeof(TestSchedule).Assembly);
+            container.RegisterSchedules(typeof(TestSchedule).Assembly);
+            var di = new MicrosoftDependencyInjection(container.BuildServiceProvider());
 
-            di = new MicrosoftDependencyInjection(container);
-            di.Build();
             //act
             var resolved = di.GetScope().GetInstance<IProcessSchedule<TestSchedule>>();
             //assert
@@ -88,12 +85,11 @@ namespace KnightBus.DependencyInjection.Tests.Unit
         {
             var container = new ServiceCollection();
             container.AddScoped<ITestService, TestService>();
-            container.AddSingleton<ICountable>(Mock.Of<ICountable>());
+            container.AddSingleton(Mock.Of<ICountable>());
 
-            MicrosoftDependencyInjectionExtensions.RegisterOpenGenericType(container, typeof(TestCommandHandler), typeof(IProcessCommand<,>));
+            container.RegisterGenericProcessor(typeof(TestCommandHandler), typeof(IProcessCommand<,>));
 
-            var dependencyInjection = new MicrosoftDependencyInjection(container);
-            dependencyInjection.Build();
+            var dependencyInjection = new MicrosoftDependencyInjection(container.BuildServiceProvider());
 
             var testHandler = dependencyInjection.GetScope().GetInstance<IProcessMessage<TestMessage, Task>>(typeof(IProcessCommand<TestMessage, TestMessageSettings>));
             testHandler.Should().NotBeNull();

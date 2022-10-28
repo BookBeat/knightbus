@@ -100,7 +100,7 @@ namespace KnightBus.Host.Tests.Unit
             //act
             await _messageProcessor.ProcessAsync(_stateHandler.Object, CancellationToken.None);
             //assert
-            _logger.Verify(x => x.LogError(It.IsAny<TestException>(), "Error processing message {@TestCommandOne}", It.IsAny<TestCommandOne>()), Times.Once);
+            _logger.Verify(x => x.Log(LogLevel.Error, It.IsAny<TestException>(), "Error processing message {@TestCommandOne}", It.IsAny<TestCommandOne>()), Times.Once);
         }
     }
 }

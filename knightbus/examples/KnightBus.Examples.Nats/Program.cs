@@ -9,6 +9,7 @@ using KnightBus.Azure.Storage;
 using KnightBus.Core;
 using KnightBus.Host;
 using KnightBus.Messages;
+using KnightBus.Microsoft.DependencyInjection;
 using KnightBus.Nats;
 using KnightBus.Nats.Messages;
 using NATS.Client;
@@ -30,18 +31,16 @@ namespace KnightBus.Examples.Nats
             var client = new NatsBus(factory.CreateConnection(), config);
             client.EnableAttachments(new BlobStorageMessageAttachmentProvider(storageConnection));
 
-            var host = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
+            var host = global::Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
+                .ConfigureServices((_, collection) =>
+                {
+                    collection.RegisterProcessors(typeof(NatsBusCommandProcessor).Assembly);
+                })
                 .UseKnightBus(configuration =>
                 {
                     configuration
                         //Enable the Nats Transport
                         .UseTransport(new NatsTransport(connectionString))
-                        .UseDependencyInjection(new StandardDependecyInjection()
-                            .RegisterProcessor(new NatsBusStreamRequestProcessor())
-                            .RegisterProcessor(new NatsBusEventProcessor1())
-                            .RegisterProcessor(new NatsBusEventProcessor2())
-                            .RegisterProcessor(new NatsBusCommandProcessor())
-                        )
                         .UseBlobStorageAttachments(storageConnection);
                 }).Build();
             //Start the KnightBus Host, it will now connect to the StorageBus and listen to the SampleStorageBusMessageMapping.QueueName

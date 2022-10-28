@@ -6,6 +6,7 @@ using KnightBus.Azure.ServiceBus.Messages;
 using KnightBus.Core;
 using KnightBus.Host;
 using KnightBus.Messages;
+using KnightBus.Microsoft.DependencyInjection;
 using KnightBus.ProtobufNet;
 using Microsoft.Extensions.Hosting;
 using ProtoBuf;
@@ -26,13 +27,12 @@ namespace KnightBus.Examples.Azure.ServiceBus
             var configuration = new ServiceBusConfiguration(serviceBusConnection)
                 {MessageSerializer = new MicrosoftJsonSerializer()};
 
-            var builder = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
-                .UseKnightBus(hostConfiguration =>
-                    //Register our message processors without IoC using the standard provider
-                    hostConfiguration.UseDependencyInjection(new StandardDependecyInjection()
-                        .RegisterProcessor(new SampleServiceBusMessageProcessor())
-                        .RegisterProcessor(new SampleServiceBusEventProcessor()))
-                );
+            var builder = global::Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
+                    .ConfigureServices(services => services.RegisterProcessors(typeof(SampleServiceBusEventProcessor).Assembly))
+                .UseKnightBus(c => 
+                        //Register our message processors without IoC using the standard provider
+                        c.UseTransport(new ServiceBusTransport(configuration))
+                    );
                 
             
             var knightBusHost = builder.Build();

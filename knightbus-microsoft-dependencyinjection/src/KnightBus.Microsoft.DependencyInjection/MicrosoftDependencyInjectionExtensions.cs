@@ -12,9 +12,9 @@ namespace KnightBus.Microsoft.DependencyInjection
         /// <summary>
         /// Enables dependency injection by using <see cref="MicrosoftDependencyInjectionExtensions"/> and adding the <see cref="MicrosoftDependencyInjectionScopedLifeStyleMiddleware"/> enabling scoped per message
         /// </summary>
-        public static IHostConfiguration UseMicrosoftDependencyInjection(this IHostConfiguration configuration, IServiceCollection serviceCollection, ServiceProviderOptions options = null)
+        public static IHostConfiguration UseMicrosoftDependencyInjection(this IHostConfiguration configuration, IServiceProvider provider)
         {
-            configuration.DependencyInjection = new MicrosoftDependencyInjection(serviceCollection, options: options);
+            configuration.DependencyInjection = new MicrosoftDependencyInjection(provider);
             configuration.Middlewares.Add(new MicrosoftDependencyInjectionScopedLifeStyleMiddleware());
             return configuration;
         }
@@ -37,18 +37,36 @@ namespace KnightBus.Microsoft.DependencyInjection
             {
                 foreach (var command in ReflectionHelper.GetAllTypesImplementingOpenGenericInterface(processorType, assembly))
                 {
-                    RegisterOpenGenericType(serviceCollection, command, processorType);
+                    RegisterGenericProcessor(serviceCollection, command, processorType);
                 }
             }
             return serviceCollection;
         }
-
-        internal static void RegisterOpenGenericType(IServiceCollection serviceCollection, Type implementingType, Type openGenericType)
+        
+        public static IServiceCollection RegisterProcessor<T>(this IServiceCollection serviceCollection)
         {
-            var processorInterfaces = ReflectionHelper.GetAllInterfacesImplementingOpenGenericInterface(implementingType, openGenericType);
-            foreach (var processorInterface in processorInterfaces)
+            foreach (var processorType in ValidProcessorInterfaces.Types)
             {
-                serviceCollection.AddScoped(processorInterface, implementingType);
+                RegisterGenericProcessor(serviceCollection, typeof(T), processorType);
+            }
+            return serviceCollection;
+        }
+
+        public static void RegisterGenericProcessor(this IServiceCollection serviceCollection, Type implementingType, Type openGenericType)
+        {
+            var interfaces = ReflectionHelper.GetAllInterfacesImplementingOpenGenericInterface(implementingType, openGenericType);
+            foreach (var @interface in interfaces)
+            {
+                serviceCollection.AddScoped(@interface, implementingType);
+                serviceCollection.AddScoped(typeof(IGenericProcessor), provider => provider.GetRequiredService(@interface));
+            }
+        }
+        public static void RegisterGenericProcessor(this IServiceCollection serviceCollection, Type openGenericType, Assembly assembly)
+        {
+            var interfaces = ReflectionHelper.GetAllTypesImplementingOpenGenericInterface(openGenericType, assembly);
+            foreach (var @interface in interfaces)
+            {
+                RegisterGenericProcessor(serviceCollection, @interface, openGenericType);
             }
         }
     }

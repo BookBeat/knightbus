@@ -1,5 +1,7 @@
 ﻿using System.Reflection;
 using KnightBus.Core;
+using KnightBus.Microsoft.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace KnightBus.Schedule
 {
@@ -12,16 +14,10 @@ namespace KnightBus.Schedule
             return configuration;
         }
         
-        public static IHostConfiguration RegisterSchedules(this IHostConfiguration configuration, Assembly assembly)
+        public static IServiceCollection RegisterSchedules(this IServiceCollection collection, Assembly assembly)
         {
-            configuration.DependencyInjection.RegisterOpenGeneric(typeof(IProcessSchedule<>), assembly);
-            return configuration;
-        }
-
-        public static IDependencyInjection RegisterSchedules(this IDependencyInjection dependencyInjection, Assembly assembly)
-        {
-            dependencyInjection.RegisterOpenGeneric(typeof(IProcessSchedule<>), assembly);
-            return dependencyInjection;
+            collection.RegisterGenericProcessor(typeof(IProcessSchedule<>), assembly);
+            return collection;
         }
     }
 }

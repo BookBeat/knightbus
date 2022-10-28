@@ -104,9 +104,7 @@ namespace KnightBus.Host.Tests.Unit.Middleware
             var hostConfiguration = new HostConfiguration();
             hostConfiguration.RegisterProcessors(container, Assembly.GetExecutingAssembly());
             
-            hostConfiguration.UseMicrosoftDependencyInjection(container);
-
-            ((IIsolatedDependencyInjection)hostConfiguration.DependencyInjection).Build();
+            hostConfiguration.UseMicrosoftDependencyInjection(container.BuildServiceProvider());
 
             var transportChannelFactory = new Mock<ITransportChannelFactory>();
             transportChannelFactory.Setup(x => x.Middlewares).Returns(hostConfiguration.Middlewares);
