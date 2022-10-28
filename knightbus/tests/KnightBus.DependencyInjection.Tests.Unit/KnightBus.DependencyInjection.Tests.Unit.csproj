@@ -18,7 +18,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\knightbus-microsoft-dependencyinjection\src\KnightBus.Microsoft.DependencyInjection\KnightBus.Microsoft.DependencyInjection.csproj" />
     <ProjectReference Include="..\..\..\knightbus-schedule\src\KnightBus.Schedule\KnightBus.Schedule.csproj" />
-    <ProjectReference Include="..\..\..\knightbus-simpleinjector\src\KnightBus.SimpleInjector\KnightBus.SimpleInjector.csproj" />
   </ItemGroup>
 
 </Project>

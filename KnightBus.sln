@@ -13,8 +13,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Core.Tests.Unit",
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Host.Tests.Unit", "knightbus\tests\KnightBus.Host.Tests.Unit\KnightBus.Host.Tests.Unit.csproj", "{227165A5-9C2C-4F4A-ABB0-AFDF7F26A47B}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.SimpleInjector", "knightbus-simpleinjector\src\KnightBus.SimpleInjector\KnightBus.SimpleInjector.csproj", "{FEEB7C70-DEE9-47CA-A5F7-A6427F8C2163}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Azure.ServiceBus.Messages", "knightbus-azureservicebus\src\KnightBus.Azure.ServiceBus.Messages\KnightBus.Azure.ServiceBus.Messages.csproj", "{82F7F082-02F0-448E-B63A-1FC00B41AC02}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Azure.ServiceBus", "knightbus-azureservicebus\src\KnightBus.Azure.ServiceBus\KnightBus.Azure.ServiceBus.csproj", "{1153465A-C28E-4FEE-9D26-7A80114AB229}"
@@ -120,10 +118,6 @@ Global
 		{227165A5-9C2C-4F4A-ABB0-AFDF7F26A47B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{227165A5-9C2C-4F4A-ABB0-AFDF7F26A47B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{227165A5-9C2C-4F4A-ABB0-AFDF7F26A47B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{FEEB7C70-DEE9-47CA-A5F7-A6427F8C2163}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{FEEB7C70-DEE9-47CA-A5F7-A6427F8C2163}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{FEEB7C70-DEE9-47CA-A5F7-A6427F8C2163}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{FEEB7C70-DEE9-47CA-A5F7-A6427F8C2163}.Release|Any CPU.Build.0 = Release|Any CPU
 		{82F7F082-02F0-448E-B63A-1FC00B41AC02}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{82F7F082-02F0-448E-B63A-1FC00B41AC02}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{82F7F082-02F0-448E-B63A-1FC00B41AC02}.Release|Any CPU.ActiveCfg = Release|Any CPU
