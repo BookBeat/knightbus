@@ -25,11 +25,11 @@ namespace KnightBus.Core
     {
         private readonly JsonSerializerOptions _options;
 
-        public MicrosoftJsonSerializer(JsonSerializerOptions? options = null)
+        public MicrosoftJsonSerializer(JsonSerializerOptions options = null)
         {
             _options = options ?? new JsonSerializerOptions();
             _options.Converters.Add(new AttachmentTypeMapping());
-        }
+        }   
         public byte[] Serialize<T>(T message)
         {
             var s = JsonSerializer.Serialize(message, _options);
