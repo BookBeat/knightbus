@@ -5,52 +5,52 @@ using System.Threading.Tasks;
 using KnightBus.Azure.Storage;
 using KnightBus.Host;
 using KnightBus.Schedule;
-using KnightBus.SimpleInjector;
-using SimpleInjector;
-using SimpleInjector.Lifestyles;
+using Microsoft.Extensions.Hosting;
 
-namespace KnightBus.Examples.Schedule
+namespace KnightBus.Examples.Schedule;
+
+public class Program
 {
-    public class Program
+    static void Main(string[] args)
     {
-        static void Main(string[] args)
-        {
-            MainAsync(args).GetAwaiter().GetResult();
-        }
-        static async Task MainAsync(string[] args)
-        {
-            var connectionString = "";
-            var container = new Container {Options = { DefaultScopedLifestyle = new AsyncScopedLifestyle()}};
-
-            var host = new KnightBusHost()
-                .Configure(conf => 
-                    conf.UseScheduling()
-                        .UseSimpleInjector(container)
-                        .RegisterSchedules(Assembly.GetExecutingAssembly())
-                        .UseBlobStorageLockManager(connectionString)
-                    );
-            container.Verify();
-            await host.StartAndBlockAsync(CancellationToken.None);
-        }
+        MainAsync(args).GetAwaiter().GetResult();
     }
+    static async Task MainAsync(string[] args)
+    {
+        var blobConnection = "UseDevelopmentStorage=true";
 
-    public class EveryMinute : ISchedule
-    {
-        public string CronExpression => "0 * * ? * *";
-        public TimeZoneInfo TimeZone => TimeZoneInfo.Utc;
+        var host = global::Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
+            .ConfigureServices((context, collection) =>
+            {
+                collection.RegisterSchedules(Assembly.GetExecutingAssembly());
+            })
+            .UseKnightBus(configuration =>
+            {
+                configuration.UseScheduling()
+                    .UseBlobStorageLockManager(blobConnection);
+            }).Build();
+            
+        
+        await host.RunAsync(CancellationToken.None);
     }
-    public class EveryMinuteToo : ISchedule
-    {
-        public string CronExpression => "0 * * ? * *";
-        public TimeZoneInfo TimeZone => TimeZoneInfo.Utc;
-    }
+}
 
-    public class MySchedule : IProcessSchedule<EveryMinute>, IProcessSchedule<EveryMinuteToo>
+public class EveryMinute : ISchedule
+{
+    public string CronExpression => "0 * * ? * *";
+    public TimeZoneInfo TimeZone => TimeZoneInfo.Utc;
+}
+public class EveryMinuteToo : ISchedule
+{
+    public string CronExpression => "0 * * ? * *";
+    public TimeZoneInfo TimeZone => TimeZoneInfo.Utc;
+}
+
+public class MySchedule : IProcessSchedule<EveryMinute>, IProcessSchedule<EveryMinuteToo>
+{
+    public Task ProcessAsync(CancellationToken cancellationToken)
     {
-        public Task ProcessAsync(CancellationToken cancellationToken)
-        {
-            Console.WriteLine("Yo!");
-            return Task.CompletedTask;
-        }
+        Console.WriteLine("Yo!");
+        return Task.CompletedTask;
     }
 }
