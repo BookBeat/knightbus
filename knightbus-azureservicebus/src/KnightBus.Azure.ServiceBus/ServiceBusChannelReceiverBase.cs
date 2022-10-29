@@ -14,16 +14,14 @@ namespace KnightBus.Azure.ServiceBus
     {
         private readonly IServiceBusConfiguration _configuration;
         private readonly IHostConfiguration _hostConfiguration;
-        private readonly object _lastActivityLock = new object();
         private readonly IMessageProcessor _processor;
         private readonly IMessageSerializer _serializer;
         protected readonly ILogger Log;
         private CancellationToken _cancellationToken;
         private ServiceBusProcessor _client;
         private int _deadLetterLimit;
-        private DateTimeOffset _lastActivity;
-        protected IClientFactory ClientFactory;
-        protected ServiceBusAdministrationClient ManagementClient;
+        protected readonly IClientFactory ClientFactory;
+        protected readonly ServiceBusAdministrationClient ManagementClient;
 
         protected ServiceBusChannelReceiverBase(IProcessingSettings settings, IMessageSerializer serializer,
             IServiceBusConfiguration configuration, IHostConfiguration hostConfiguration, IMessageProcessor processor)
@@ -36,7 +34,6 @@ namespace KnightBus.Azure.ServiceBus
             Log = hostConfiguration.Log;
             ClientFactory = configuration.ClientFactory;
             ManagementClient = new ServiceBusAdministrationClient(configuration.ConnectionString);
-            _lastActivity = DateTimeOffset.UtcNow;
         }
 
         public IProcessingSettings Settings { get; set; }
@@ -62,24 +59,6 @@ namespace KnightBus.Azure.ServiceBus
                     //Swallow
                 }
             }, _cancellationToken);
-
-
-            // ReSharper disable once SuspiciousTypeConversion.Global
-            if (Settings is IRestartTransportOnIdle restartOnIdle)
-            {
-                Log.LogInformation(
-                    $"Starting idle timeout check for {typeof(T).Name} with maximum allowed idle timespan: {restartOnIdle.IdleTimeout}");
-                Task.Run(async () =>
-                {
-                    while (!_cancellationToken.IsCancellationRequested)
-                    {
-                        await CheckIdleTime(restartOnIdle.IdleTimeout).ConfigureAwait(false);
-
-                        await Task.Delay(TimeSpan.FromSeconds(10), _cancellationToken)
-                            .ConfigureAwait(false);
-                    }
-                }, _cancellationToken);
-            }
 #pragma warning restore 4014
         }
 
@@ -93,49 +72,7 @@ namespace KnightBus.Azure.ServiceBus
             _client.ProcessErrorAsync += ClientOnProcessErrorAsync;
             await _client.StartProcessingAsync(_cancellationToken).ConfigureAwait(false);
         }
-
-        private async Task CheckIdleTime(TimeSpan idleTimeout)
-        {
-            lock (_lastActivityLock)
-            {
-                var timeSinceLastActivity = DateTimeOffset.UtcNow - _lastActivity;
-
-                if (timeSinceLastActivity < idleTimeout) return;
-
-                Log.LogInformation(
-                    $"Last activity for {typeof(T).Name} was at: {_lastActivity} (maximum allowed idle timespan: {idleTimeout}), restarting");
-                _lastActivity = DateTimeOffset.UtcNow;
-            }
-
-            await RestartAsync().ConfigureAwait(false);
-        }
-
-        private async Task RestartAsync()
-        {
-            try
-            {
-                Log.LogInformation($"Restarting {typeof(T).Name}");
-
-                await _client.StopProcessingAsync(_cancellationToken).ConfigureAwait(false);
-                _client.ProcessMessageAsync -= ClientOnProcessMessageAsync;
-                _client.ProcessErrorAsync -= ClientOnProcessErrorAsync;
-
-                await ClientFactory.DisposeAsync().ConfigureAwait(false);
-
-                ClientFactory = new ClientFactory(_configuration.ConnectionString);
-                ManagementClient = new ServiceBusAdministrationClient(_configuration.ConnectionString);
-
-                await InitializeAsync().ConfigureAwait(false);
-
-                Log.LogInformation($"Successfully restarted {typeof(T).Name}");
-            }
-            catch (Exception e)
-            {
-                Log.LogError(e, $"Failed to restart {typeof(T).Name}");
-                await RestartAsync().ConfigureAwait(false);
-            }
-        }
-
+        
         private async Task ClientOnProcessErrorAsync(ProcessErrorEventArgs arg)
         {
             if (arg.Exception is ServiceBusException { Reason: ServiceBusFailureReason.MessagingEntityNotFound })
@@ -151,11 +88,6 @@ namespace KnightBus.Azure.ServiceBus
         {
             try
             {
-                lock (_lastActivityLock)
-                {
-                    _lastActivity = DateTimeOffset.UtcNow;
-                }
-
                 var stateHandler = new ServiceBusMessageStateHandler<T>(arg, _serializer, _deadLetterLimit,
                     _hostConfiguration.DependencyInjection);
                 using var cts =
