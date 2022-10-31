@@ -1,9 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using KnightBus.Core;
-using KnightBus.Core.Exceptions;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace KnightBus.Microsoft.DependencyInjection

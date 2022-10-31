@@ -5,7 +5,6 @@ using Azure;
 using FluentAssertions;
 using NUnit.Framework;
 using KnightBus.Azure.Storage.Singleton;
-using KnightBus.Core;
 using Microsoft.Extensions.Logging;
 using Moq;
 

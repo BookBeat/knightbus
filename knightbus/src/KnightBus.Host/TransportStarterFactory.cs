@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using KnightBus.Core;
-using KnightBus.Core.Exceptions;
 using KnightBus.Core.Singleton;
 using KnightBus.Host.MessageProcessing.Factories;
 using KnightBus.Host.Singleton;

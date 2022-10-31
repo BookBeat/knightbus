@@ -3,11 +3,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
-using KnightBus.Messages;
-using KnightBus.Nats.Messages;
 using Moq;
 using NATS.Client;
-using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace KnightBus.Nats.Tests.Unit

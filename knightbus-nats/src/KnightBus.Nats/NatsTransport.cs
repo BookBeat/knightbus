@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using KnightBus.Core;
+﻿using KnightBus.Core;
 using KnightBus.Messages;
 using KnightBus.Newtonsoft;
 using NATS.Client;

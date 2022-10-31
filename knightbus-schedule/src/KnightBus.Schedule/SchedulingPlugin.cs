@@ -3,7 +3,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
-using KnightBus.Core.Exceptions;
 using KnightBus.Core.Singleton;
 using Quartz;
 using Quartz.Impl;

@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Azure;
 using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
-using KnightBus.Core;
 using KnightBus.Core.Singleton;
 using Microsoft.Extensions.Logging;
 
