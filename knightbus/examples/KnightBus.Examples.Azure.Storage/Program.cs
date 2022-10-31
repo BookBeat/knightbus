@@ -29,6 +29,7 @@ namespace KnightBus.Examples.Azure.Storage
                 {
                     collection.RegisterProcessor<SampleStorageBusMessageProcessor>()
                         .RegisterProcessor<SampleSagaMessageProcessor>()
+                        .UseBlobStorageLockManager(storageConnection)
                         .AddScoped<IStorageBus>(_ => new StorageBus(new StorageBusConfiguration(storageConnection)));
                 })
                 .UseKnightBus(configuration =>
@@ -37,7 +38,6 @@ namespace KnightBus.Examples.Azure.Storage
                     configuration
                         .UseTransport(new StorageTransport(storageConnection)
                             .UseBlobStorageAttachments(storageConnection))
-                        .UseBlobStorageLockManager(storageConnection)
                         //Enable Saga support using the table storage Saga store
                         .EnableSagas(new BlobSagaStore(storageConnection));
                 }).Build();

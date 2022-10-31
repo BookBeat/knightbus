@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
 using KnightBus.Core.Exceptions;
+using KnightBus.Core.Singleton;
 using Quartz;
 using Quartz.Impl;
 
@@ -23,7 +24,7 @@ namespace KnightBus.Schedule
         public async Task StartAsync(CancellationToken cancellationToken)
         {
             ConsoleWriter.WriteLine($"Starting {nameof(SchedulingPlugin)}");
-            var lockManager = _configuration.SingletonLockManager ?? throw new SingletonLockManagerMissingException();
+            var lockManager = _configuration.DependencyInjection.GetInstance<ISingletonLockManager>();
             var dependencyInjection = _configuration.DependencyInjection;
             var log = _configuration.Log;
 

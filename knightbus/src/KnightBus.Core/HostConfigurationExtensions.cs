@@ -29,10 +29,10 @@ namespace KnightBus.Core
             return collection;
         }
 
-        public static IHostConfiguration UseSingletonLocks(this IHostConfiguration configuration, ISingletonLockManager lockManager)
+        public static IServiceCollection UseSingletonLocks(this IServiceCollection collection, ISingletonLockManager lockManager)
         {
-            configuration.SingletonLockManager = lockManager;
-            return configuration;
+            collection.AddSingleton(lockManager);
+            return collection;
         }
         public static IHostConfiguration UseDependencyInjection(this IHostConfiguration configuration, IDependencyInjection provider)
         {

@@ -52,10 +52,9 @@ namespace KnightBus.Host
         {
             if (typeof(ISingletonProcessor).IsAssignableFrom(type))
             {
-                if (_configuration.SingletonLockManager == null)
-                    throw new SingletonLockManagerMissingException("There is no ISingletonLockManager specified, you cannot use the ISingletonProcessor directive without one");
+                var lockManager = _configuration.DependencyInjection.GetInstance<ISingletonLockManager>();
                 ConsoleWriter.WriteLine($"Setting {type.Name} in Singleton mode");
-                var singletonStarter = new SingletonChannelReceiver(channelReceiver, _configuration.SingletonLockManager, _configuration.Log);
+                var singletonStarter = new SingletonChannelReceiver(channelReceiver, lockManager, _configuration.Log);
                 return singletonStarter;
             }
 

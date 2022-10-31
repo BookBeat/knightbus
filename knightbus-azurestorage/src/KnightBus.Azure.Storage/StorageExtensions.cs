@@ -1,6 +1,8 @@
 using KnightBus.Azure.Storage.Singleton;
 using KnightBus.Core;
 using KnightBus.Core.DefaultMiddlewares;
+using KnightBus.Core.Singleton;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace KnightBus.Azure.Storage
 {
@@ -18,15 +20,15 @@ namespace KnightBus.Azure.Storage
             return configuration;
         }
 
-        public static IHostConfiguration UseBlobStorageLockManager(this IHostConfiguration configuration, string connectionString)
+        public static IServiceCollection UseBlobStorageLockManager(this IServiceCollection collection, string connectionString)
         {
-            configuration.SingletonLockManager = new BlobLockManager(connectionString);
-            return configuration;
+            collection.AddSingleton<ISingletonLockManager>(_ => new BlobLockManager(connectionString));
+            return collection;
         }
-        public static IHostConfiguration UseBlobStorageLockManager(this IHostConfiguration configuration, string connectionString, IBlobLockScheme lockScheme)
+        public static IServiceCollection UseBlobStorageLockManager(this IServiceCollection collection, string connectionString, IBlobLockScheme lockScheme)
         {
-            configuration.SingletonLockManager = new BlobLockManager(connectionString, lockScheme);
-            return configuration;
+            collection.AddSingleton<ISingletonLockManager>(_ => new BlobLockManager(connectionString, lockScheme));
+            return collection;
         }
     }
 }

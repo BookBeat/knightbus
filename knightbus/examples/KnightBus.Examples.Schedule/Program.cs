@@ -24,11 +24,12 @@ public class Program
             {
                 collection.UseScheduling();
                 collection.UseTcpAliveListener(13000);
-                collection.RegisterSchedules(Assembly.GetExecutingAssembly());
+                collection.RegisterSchedules(Assembly.GetExecutingAssembly()); 
+                collection.UseBlobStorageLockManager(blobConnection);
             })
             .UseKnightBus(configuration =>
             {
-                configuration.UseBlobStorageLockManager(blobConnection);
+                
             }).Build();
             
         
