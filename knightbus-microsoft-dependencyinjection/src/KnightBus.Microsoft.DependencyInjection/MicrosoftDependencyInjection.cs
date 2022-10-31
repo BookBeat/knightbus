@@ -36,6 +36,11 @@ namespace KnightBus.Microsoft.DependencyInjection
             return (T)_provider.GetRequiredService(type);
         }
 
+        public IEnumerable<T> GetInstances<T>()
+        {
+            return _provider.GetServices<T>();
+        }
+
         public IEnumerable<Type> GetOpenGenericRegistrations(Type openGeneric)
         {
             var allTypes = _provider.GetServices<IGenericProcessor>().Distinct().Select(o=> o.GetType());

@@ -18,10 +18,10 @@ namespace KnightBus.Host
         private Task _listenerTask;
 #pragma warning restore IDE0052 // Remove unread private members
 
-        public TcpAliveListenerPlugin(IHostConfiguration hostConfiguration, int port)
+        public TcpAliveListenerPlugin(ITcpAliveListenerConfiguration configuration, ILogger<TcpAliveListenerPlugin> logger)
         {
-            _log = hostConfiguration.Log;
-            _port = port;
+            _log = logger;
+            _port = configuration.Port;
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)

@@ -12,7 +12,6 @@ namespace KnightBus.Core
     {
         IList<ITransport> Transports { get; }
         IList<IMessageProcessorMiddleware> Middlewares { get; }
-        IList<IPlugin> Plugins { get; } 
         ISingletonLockManager SingletonLockManager { get; set; }
         IDependencyInjection DependencyInjection { get; set; }
         ILogger Log { get; set; }

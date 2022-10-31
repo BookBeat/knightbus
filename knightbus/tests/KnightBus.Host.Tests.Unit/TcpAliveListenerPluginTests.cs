@@ -2,6 +2,8 @@
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
+using Moq;
 using NUnit.Framework;
 
 namespace KnightBus.Host.Tests.Unit
@@ -13,7 +15,7 @@ namespace KnightBus.Host.Tests.Unit
         public async Task Should_RespondToPing()
         {
             //Arrange
-            var target = new TcpAliveListenerPlugin(new HostConfiguration(), 13000);
+            var target = new TcpAliveListenerPlugin(new TcpAliveListenerConfiguration(13000),Mock.Of<ILogger<TcpAliveListenerPlugin>>());
             await target.StartAsync(CancellationToken.None);
 
             //Act

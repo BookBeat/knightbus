@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -100,7 +101,13 @@ namespace KnightBus.Host.Tests.Unit
             //act
             await _messageProcessor.ProcessAsync(_stateHandler.Object, CancellationToken.None);
             //assert
-            _logger.Verify(x => x.Log(LogLevel.Error, It.IsAny<TestException>(), "Error processing message {@TestCommandOne}", It.IsAny<TestCommandOne>()), Times.Once);
+            _logger.Verify(logger => logger.Log(
+                    It.Is<LogLevel>(logLevel => logLevel == LogLevel.Error),
+                    It.Is<EventId>(eventId => eventId.Id == 0),
+                    It.Is<It.IsAnyType>((@object, @type) => @object.ToString().StartsWith("Error processing message")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
         }
     }
 }

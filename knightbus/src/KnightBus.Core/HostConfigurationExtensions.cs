@@ -1,4 +1,5 @@
 using KnightBus.Core.Singleton;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace KnightBus.Core
@@ -22,10 +23,10 @@ namespace KnightBus.Core
             return configuration;
         }
 
-        public static IHostConfiguration AddPlugin(this IHostConfiguration configuration, IPlugin plugin)
+        public static IServiceCollection AddPlugin<T>(this IServiceCollection collection) where T : class, IPlugin
         {
-            configuration.Plugins.Add(plugin);
-            return configuration;
+            collection.AddSingleton<IPlugin, T>();
+            return collection;
         }
 
         public static IHostConfiguration UseSingletonLocks(this IHostConfiguration configuration, ISingletonLockManager lockManager)

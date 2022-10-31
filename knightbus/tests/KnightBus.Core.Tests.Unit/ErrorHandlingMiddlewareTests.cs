@@ -40,7 +40,13 @@ namespace KnightBus.Core.Tests.Unit
             //act
             await middleware.ProcessAsync(messageStateHandler.Object, Mock.Of<IPipelineInformation>(), nextProcessor.Object, CancellationToken.None);
             //assert
-            logger.Verify(x => x.LogError(It.IsAny<Exception>(), "Error processing message {@TestCommand}", It.IsAny<TestCommand>()), Times.Once);
+            logger.Verify(logger => logger.Log(
+                    It.Is<LogLevel>(logLevel => logLevel == LogLevel.Error),
+                    It.Is<EventId>(eventId => eventId.Id == 0),
+                    It.Is<It.IsAnyType>((@object, @type) => @object.ToString().StartsWith("Error processing message")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
         }
 
         [Test]
@@ -72,7 +78,13 @@ namespace KnightBus.Core.Tests.Unit
             //act
             middleware.Invoking(async x => await x.ProcessAsync(messageStateHandler.Object, Mock.Of<IPipelineInformation>(), nextProcessor.Object, CancellationToken.None)).Should().NotThrowAsync();
             //assert
-            logger.Verify(x => x.LogError(It.IsAny<Exception>(), "Failed to abandon message {@TestCommand}", It.IsAny<TestCommand>()), Times.Once);
+            logger.Verify(logger => logger.Log(
+                    It.Is<LogLevel>(logLevel => logLevel == LogLevel.Error),
+                    It.Is<EventId>(eventId => eventId.Id == 0),
+                    It.Is<It.IsAnyType>((@object, @type) => @object.ToString().StartsWith("Failed to abandon message")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
         }
     }
 }

@@ -21,7 +21,7 @@ namespace KnightBus.Examples.Nats
         static async Task Main(string[] args)
         {
             var connectionString = "localhost";
-            var storageConnection = "your-connection-string";
+            var storageConnection = "UseDevelopmentStorage=true";
             // Start nats.io first
             // $ docker run -p 4222:4222 -ti nats:latest
 

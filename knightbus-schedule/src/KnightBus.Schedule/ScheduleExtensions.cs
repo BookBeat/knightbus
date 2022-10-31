@@ -7,11 +7,10 @@ namespace KnightBus.Schedule
 {
     public static class ScheduleExtensions
     {
-        public static IHostConfiguration UseScheduling(this IHostConfiguration configuration)
+        public static IServiceCollection UseScheduling(this IServiceCollection collection)
         {
-            var scheduler = new SchedulingPlugin(configuration);
-            configuration.AddPlugin(scheduler);
-            return configuration;
+            collection.AddPlugin<SchedulingPlugin>();
+            return collection;
         }
         
         public static IServiceCollection RegisterSchedules(this IServiceCollection collection, Assembly assembly)

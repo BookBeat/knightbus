@@ -22,12 +22,13 @@ public class Program
         var host = global::Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
             .ConfigureServices((context, collection) =>
             {
+                collection.UseScheduling();
+                collection.UseTcpAliveListener(13000);
                 collection.RegisterSchedules(Assembly.GetExecutingAssembly());
             })
             .UseKnightBus(configuration =>
             {
-                configuration.UseScheduling()
-                    .UseBlobStorageLockManager(blobConnection);
+                configuration.UseBlobStorageLockManager(blobConnection);
             }).Build();
             
         
