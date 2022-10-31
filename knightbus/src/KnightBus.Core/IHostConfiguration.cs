@@ -8,7 +8,6 @@ namespace KnightBus.Core
     /// </summary>
     public interface IHostConfiguration
     {
-        IList<ITransport> Transports { get; }
         IList<IMessageProcessorMiddleware> Middlewares { get; }
         IDependencyInjection DependencyInjection { get; set; }
         ILogger Log { get; set; }

@@ -28,11 +28,12 @@ namespace KnightBus.Examples.Azure.ServiceBus
                 {MessageSerializer = new MicrosoftJsonSerializer()};
 
             var builder = global::Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
-                    .ConfigureServices(services => services.RegisterProcessors(typeof(SampleServiceBusEventProcessor).Assembly))
-                .UseKnightBus(c => 
-                        //Register our message processors without IoC using the standard provider
-                        c.UseTransport(new ServiceBusTransport(configuration))
-                    );
+                    .ConfigureServices(services =>
+                    {
+                        services.RegisterProcessors(typeof(SampleServiceBusEventProcessor).Assembly)
+                            .UseTransport(new ServiceBusTransport(configuration));
+                    })
+                .UseKnightBus(hostConfiguration => {});
                 
             
             var knightBusHost = builder.Build();

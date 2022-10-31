@@ -30,12 +30,13 @@ class Program
         var knightBusHost = global::Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
             .ConfigureServices(collection =>
             {
-                collection.RegisterProcessors(typeof(SampleRedisMessageProcessor).Assembly);
+                collection.RegisterProcessors(typeof(SampleRedisMessageProcessor).Assembly)
+                    //Enable the Redis Transport
+                    .UseTransport(new RedisTransport(redisConnection));
             })
             .UseKnightBus(configuration =>
             {
-                //Enable the Redis Transport
-                configuration.UseTransport(new RedisTransport(redisConnection))
+                configuration
                     //Enable reading attachments from Redis
                     .UseRedisAttachments(multiplexer, new RedisConfiguration(redisConnection))
                     //Enable the saga store

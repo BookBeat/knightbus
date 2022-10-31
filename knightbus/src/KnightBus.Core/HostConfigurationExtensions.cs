@@ -7,10 +7,15 @@ namespace KnightBus.Core
     public static class HostConfigurationExtensions
     {
 
-        public static IHostConfiguration UseTransport(this IHostConfiguration configuration, ITransport transport)
+        public static IServiceCollection UseTransport(this IServiceCollection collection, ITransport transport)
         {
-            configuration.Transports.Add(transport);
-            return configuration;
+            collection.AddSingleton(transport);
+            return collection;
+        }
+        public static IServiceCollection UseTransport<T>(this IServiceCollection collection) where T: class, ITransport
+        {
+            collection.AddSingleton<ITransport, T>();
+            return collection;
         }
         public static IHostConfiguration UseLog(this IHostConfiguration configuration, ILogger log)
         {

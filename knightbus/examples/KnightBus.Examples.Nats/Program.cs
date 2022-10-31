@@ -34,13 +34,13 @@ namespace KnightBus.Examples.Nats
             var host = global::Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
                 .ConfigureServices((_, collection) =>
                 {
-                    collection.RegisterProcessors(typeof(NatsBusCommandProcessor).Assembly);
+                    collection.RegisterProcessors(typeof(NatsBusCommandProcessor).Assembly)
+                        //Enable the Nats Transport
+                        .UseTransport(new NatsTransport(connectionString));
                 })
                 .UseKnightBus(configuration =>
                 {
                     configuration
-                        //Enable the Nats Transport
-                        .UseTransport(new NatsTransport(connectionString))
                         .UseBlobStorageAttachments(storageConnection);
                 }).Build();
             //Start the KnightBus Host, it will now connect to the StorageBus and listen to the SampleStorageBusMessageMapping.QueueName

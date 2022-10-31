@@ -25,12 +25,6 @@ namespace KnightBus.Host
             configuration.Log = logger;
         }
 
-        public KnightBusHost UseTransport(ITransport transport)
-        {
-            _configuration.Transports.Add(transport);
-            return this;
-        }
-
         public KnightBusHost Configure(Func<IHostConfiguration, IHostConfiguration> configuration)
         {
             _configuration = configuration(_configuration);
@@ -45,11 +39,13 @@ namespace KnightBus.Host
         {
             var combinedToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _shutdownToken.Token);
             ConsoleWriter.WriteLine("KnightBus starting");
+
+            var transports = _configuration.DependencyInjection.GetInstances<ITransport>().ToArray();
             
-            if (_configuration.Transports.Any())
+            if (transports.Any())
             {
                 _locator = new MessageProcessorLocator(_configuration,
-                    _configuration.Transports.SelectMany(transport => transport.TransportChannelFactories).ToArray());
+                    transports.SelectMany(transport => transport.TransportChannelFactories).ToArray());
                 var channelReceivers = _locator.CreateReceivers().ToList();
                 ConsoleWriter.Write("Starting receivers [");
                 foreach (var receiver in channelReceivers)
