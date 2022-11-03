@@ -23,10 +23,11 @@ namespace KnightBus.Examples.Azure.Storage
 
             //Initiate the client
             var client = new StorageBus(new StorageBusConfiguration(storageConnection));
-            client.EnableAttachments(new BlobStorageMessageAttachmentProvider(storageConnection));
+            
             var knightBusHost = global::Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
                 .ConfigureServices((context, collection) =>
                 {
+                    collection.UseBlobStorageAttachments(storageConnection);
                     collection.RegisterProcessor<SampleStorageBusMessageProcessor>()
                         .RegisterProcessor<SampleSagaMessageProcessor>()
                         .UseBlobStorageLockManager(storageConnection)

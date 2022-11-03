@@ -47,10 +47,12 @@ namespace KnightBus.Nats
     {
         public NatsBusConfiguration(string connectionString)
         {
+            Options = ConnectionFactory.GetDefaultOptions();
+            Options.Url = connectionString;
             ConnectionString = connectionString;
         }
         public string ConnectionString { get; }
         public IMessageSerializer MessageSerializer { get; set; } = new NewtonsoftSerializer();
-        public Options Options { get; } = ConnectionFactory.GetDefaultOptions();
+        public Options Options { get; }
     }
 }

@@ -25,6 +25,11 @@ namespace KnightBus.Azure.Storage
             collection.AddSingleton<ISingletonLockManager>(_ => new BlobLockManager(connectionString));
             return collection;
         }
+        public static IServiceCollection UseBlobStorageAttachments(this IServiceCollection collection, string connectionString)
+        {
+            collection.AddSingleton<IMessageAttachmentProvider>(_ => new BlobStorageMessageAttachmentProvider(connectionString));
+            return collection;
+        }
         public static IServiceCollection UseBlobStorageLockManager(this IServiceCollection collection, string connectionString, IBlobLockScheme lockScheme)
         {
             collection.AddSingleton<ISingletonLockManager>(_ => new BlobLockManager(connectionString, lockScheme));

@@ -21,18 +21,15 @@ namespace KnightBus.Nats
     public class NatsBus : INatsBus
     {
         private readonly IConnection _connection;
+        private readonly IMessageAttachmentProvider _attachmentProvider;
         private readonly INatsBusConfiguration _configuration;
-        private IMessageAttachmentProvider _attachmentProvider;
 
-        public void EnableAttachments(IMessageAttachmentProvider attachmentProvider)
-        {
-            _attachmentProvider = attachmentProvider;
-        }
 
-        public NatsBus(IConnection connection, INatsBusConfiguration configuration)
+        public NatsBus(IConnectionFactory connection, INatsBusConfiguration configuration, IMessageAttachmentProvider attachmentProvider = null)
         {
-            _connection = connection;
+            _connection = connection.CreateConnection(configuration.Options);
             _configuration = configuration;
+            _attachmentProvider = attachmentProvider;
         }
 
         public  Task Send(INatsCommand message, CancellationToken cancellationToken = default)

@@ -12,6 +12,7 @@ using KnightBus.Messages;
 using KnightBus.Microsoft.DependencyInjection;
 using KnightBus.Nats;
 using KnightBus.Nats.Messages;
+using Microsoft.Extensions.DependencyInjection;
 using NATS.Client;
 
 namespace KnightBus.Examples.Nats
@@ -24,17 +25,13 @@ namespace KnightBus.Examples.Nats
             var storageConnection = "UseDevelopmentStorage=true";
             // Start nats.io first
             // $ docker run -p 4222:4222 -ti nats:latest
-
-            //Initiate the client
-            var config = new NatsBusConfiguration(connectionString);
-            var factory = new ConnectionFactory();
-            var client = new NatsBus(factory.CreateConnection(), config);
-            client.EnableAttachments(new BlobStorageMessageAttachmentProvider(storageConnection));
-
+            
             var host = global::Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
-                .ConfigureServices((_, collection) =>
+                .ConfigureServices((_, services) =>
                 {
-                    collection.RegisterProcessors(typeof(NatsBusCommandProcessor).Assembly)
+                    services.UseBlobStorageAttachments(storageConnection);
+                    services.UseNatsClient(connectionString);
+                    services.RegisterProcessors(typeof(NatsBusCommandProcessor).Assembly)
                         //Enable the Nats Transport
                         .UseTransport(new NatsTransport(connectionString));
                 })
@@ -45,6 +42,8 @@ namespace KnightBus.Examples.Nats
                 }).Build();
             //Start the KnightBus Host, it will now connect to the StorageBus and listen to the SampleStorageBusMessageMapping.QueueName
             await host.StartAsync(CancellationToken.None);
+
+            var client = (NatsBus)host.Services.GetRequiredService<INatsBus>();
 
             //Send some Messages and watch them print in the console
             for (var i = 0; i < 1; i++)
