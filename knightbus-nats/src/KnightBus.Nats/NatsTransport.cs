@@ -51,7 +51,7 @@ namespace KnightBus.Nats
             Options.Url = connectionString;
             ConnectionString = connectionString;
         }
-        public string ConnectionString { get; }
+        public string ConnectionString { get; set; }
         public IMessageSerializer MessageSerializer { get; set; } = new NewtonsoftSerializer();
         public Options Options { get; }
     }

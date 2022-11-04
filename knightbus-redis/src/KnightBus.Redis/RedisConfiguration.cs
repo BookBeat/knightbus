@@ -4,18 +4,21 @@ using KnightBus.Newtonsoft;
 
 namespace KnightBus.Redis
 {
-    public interface IRedisBusConfiguration : ITransportConfiguration
+    public interface IRedisConfiguration : ITransportConfiguration
     {
         int DatabaseId { get; set; }
     }
     
-    public class RedisConfiguration : IRedisBusConfiguration
+    public class RedisConfiguration : IRedisConfiguration
     {
+        public RedisConfiguration()
+        {
+        }
         public RedisConfiguration(string connectionString)
         {
             ConnectionString = connectionString;
         }
-        public string ConnectionString { get; }
+        public string ConnectionString { get; set; }
         public IMessageSerializer MessageSerializer { get; set; } = new NewtonsoftSerializer();
         public int DatabaseId { get; set; }
     }

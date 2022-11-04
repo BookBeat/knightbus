@@ -19,7 +19,7 @@ namespace KnightBus.Azure.Storage
         {
             ConnectionString = connectionString;
         }
-        public string ConnectionString { get; }
+        public string ConnectionString { get; set; }
         public IMessageSerializer MessageSerializer { get; set; } = new NewtonsoftSerializer();
         /// <summary>
         /// Specifies if the bus should base64 encode or leave it up to the client. Base64 is mandatory for legacy.

@@ -6,7 +6,7 @@ namespace KnightBus.Redis.Tests.Integration
     [SetUpFixture]
     public sealed class RedisTestBase
     {
-        public static IRedisBusConfiguration Configuration;
+        public static IRedisConfiguration Configuration;
         public static IDatabase Database;
 
         private IConnectionMultiplexer _multiplexer;

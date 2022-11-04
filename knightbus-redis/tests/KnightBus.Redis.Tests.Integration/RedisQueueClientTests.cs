@@ -19,7 +19,7 @@ namespace KnightBus.Redis.Tests.Integration
         [SetUp]
         public void Setup()
         {
-            _bus = new RedisBus(RedisTestBase.Configuration);
+            _bus = new RedisBus(RedisTestBase.Configuration.ConnectionString);
             _target = new RedisQueueClient<TestCommand>(RedisTestBase.Database, new MicrosoftJsonSerializer(), _log);
         }
         [TearDown] //This should be done after each test thus not OneTime

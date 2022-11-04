@@ -22,7 +22,7 @@ namespace KnightBus.Redis
         private readonly IDatabase _db;
         private readonly IMessageSerializer _serializer;
 
-        public RedisManagementClient(IRedisBusConfiguration configuration, ILogger log)
+        public RedisManagementClient(IRedisConfiguration configuration, ILogger log)
         {
             _log = log;
             _db = ConnectionMultiplexer.Connect(configuration.ConnectionString).GetDatabase(configuration.DatabaseId);

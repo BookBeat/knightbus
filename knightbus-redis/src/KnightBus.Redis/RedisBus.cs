@@ -25,15 +25,15 @@ namespace KnightBus.Redis
     public class RedisBus : IRedisBus
     {
         private readonly IConnectionMultiplexer _multiplexer;
-        private readonly IRedisBusConfiguration _configuration;
+        private readonly IRedisConfiguration _configuration;
         private readonly IMessageAttachmentProvider _attachmentProvider;
         private readonly ConcurrentDictionary<Type, IMessageSerializer> _serializers;
 
-        public RedisBus(string connectionString) : this(new RedisConfiguration(connectionString))
+        public RedisBus(string connectionString) : this(new RedisConfiguration(connectionString), ConnectionMultiplexer.Connect(connectionString))
         { }
-        public RedisBus(IRedisBusConfiguration configuration, IMessageAttachmentProvider attachmentProvider = null)
+        public RedisBus(IRedisConfiguration configuration, IConnectionMultiplexer multiplexer, IMessageAttachmentProvider attachmentProvider = null)
         {
-            _multiplexer = ConnectionMultiplexer.Connect(configuration.ConnectionString);
+            _multiplexer = multiplexer;
             _configuration = configuration;
             _attachmentProvider = attachmentProvider;
             _serializers = new ConcurrentDictionary<Type, IMessageSerializer>();

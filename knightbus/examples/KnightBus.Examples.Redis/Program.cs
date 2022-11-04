@@ -11,6 +11,7 @@ using KnightBus.Messages;
 using KnightBus.Microsoft.DependencyInjection;
 using KnightBus.Redis;
 using KnightBus.Redis.Messages;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using StackExchange.Redis;
 
@@ -22,14 +23,10 @@ class Program
     {
         var redisConnection = "string";
 
-        var multiplexer = await ConnectionMultiplexer.ConnectAsync(redisConnection);
-        //Initiate the client
-        var client = new RedisBus(new RedisConfiguration(redisConnection));
-        client.EnableAttachments(new RedisAttachmentProvider(multiplexer, new RedisConfiguration(redisConnection)));
-        
         var knightBusHost = global::Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
             .ConfigureServices(collection =>
             {
+                collection.UseRedisAttachments();
                 collection.RegisterProcessors(typeof(SampleRedisMessageProcessor).Assembly)
                     //Enable the Redis Transport
                     .UseTransport(new RedisTransport(redisConnection));
@@ -49,6 +46,7 @@ class Program
         await knightBusHost.StartAsync(CancellationToken.None);
 
         //Start the saga
+        var client = knightBusHost.Services.GetRequiredService<IRedisBus>();
         await client.SendAsync(new SampleRedisSagaStarterCommand());
 
 
