@@ -25,7 +25,7 @@ namespace KnightBus.Nats.Tests.Unit
         {
             //arrange
             
-            var bus = new NatsBus(_factory.Object, new NatsBusConfiguration(""));
+            var bus = new NatsBus(_factory.Object, new NatsConfiguration());
             //act 
             bus.Send(new TestNatsCommand());
             //assert
@@ -36,7 +36,7 @@ namespace KnightBus.Nats.Tests.Unit
         public void When_publish_should_publish_message()
         {
             //arrange
-            var bus = new NatsBus(_factory.Object, new NatsBusConfiguration(""));
+            var bus = new NatsBus(_factory.Object, new NatsConfiguration());
             //act 
             bus.Publish(new TestNatsEvent());
             //assert
@@ -47,7 +47,7 @@ namespace KnightBus.Nats.Tests.Unit
         public async Task When_request_should_publish_message_and_receive()
         {
             //arrange
-            var config = new NatsBusConfiguration("");
+            var config = new NatsConfiguration();
             
             _connection.Setup(x =>
                     x.RequestAsync("requestName", It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
@@ -72,7 +72,7 @@ namespace KnightBus.Nats.Tests.Unit
                 
 
             _connection.Setup(x => x.SubscribeSync(It.IsAny<string>())).Returns(sub.Object);
-            var bus = new NatsBus(_factory.Object, new NatsBusConfiguration(""));
+            var bus = new NatsBus(_factory.Object, new NatsConfiguration());
             //act 
             var response =  bus.RequestStream<TestNatsRequest, TestNatsResponse>(new TestNatsRequest());
 
@@ -93,7 +93,7 @@ namespace KnightBus.Nats.Tests.Unit
 
             
             _connection.Setup(x => x.SubscribeSync(It.IsAny<string>())).Returns(sub.Object);
-            var bus = new NatsBus(_factory.Object, new NatsBusConfiguration(""));
+            var bus = new NatsBus(_factory.Object, new NatsConfiguration());
             //act 
             var response = bus.RequestStream<TestNatsRequest, TestNatsResponse>(new TestNatsRequest());
 

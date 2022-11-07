@@ -22,10 +22,10 @@ namespace KnightBus.Nats
     {
         private readonly IConnection _connection;
         private readonly IMessageAttachmentProvider _attachmentProvider;
-        private readonly INatsBusConfiguration _configuration;
+        private readonly INatsConfiguration _configuration;
 
 
-        public NatsBus(IConnectionFactory connection, INatsBusConfiguration configuration, IMessageAttachmentProvider attachmentProvider = null)
+        public NatsBus(IConnectionFactory connection, INatsConfiguration configuration, IMessageAttachmentProvider attachmentProvider = null)
         {
             _connection = connection.CreateConnection(configuration.Options);
             _configuration = configuration;

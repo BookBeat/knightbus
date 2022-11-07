@@ -19,6 +19,9 @@ namespace KnightBus.Azure.Storage
         {
             ConnectionString = connectionString;
         }
+        public StorageBusConfiguration()
+        {
+        }
         public string ConnectionString { get; set; }
         public IMessageSerializer MessageSerializer { get; set; } = new NewtonsoftSerializer();
         /// <summary>

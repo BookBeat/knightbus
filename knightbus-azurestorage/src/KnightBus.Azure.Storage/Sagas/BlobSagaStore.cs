@@ -22,6 +22,10 @@ namespace KnightBus.Azure.Storage.Sagas
             _container = blobServiceClient.GetBlobContainerClient("knightbus-sagas");
         }
 
+        public BlobSagaStore(IStorageBusConfiguration configuration) : this(configuration.ConnectionString)
+        {
+        }
+
         public async Task<T> GetSaga<T>(string partitionKey, string id)
         {
             var blob = _container.GetBlobClient(Filename(partitionKey, id));

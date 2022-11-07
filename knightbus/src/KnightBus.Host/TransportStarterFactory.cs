@@ -33,7 +33,8 @@ namespace KnightBus.Host
             var eventSubscription = processorTypes.SubscriptionType == null ? null : (IEventSubscription)Activator.CreateInstance(processorTypes.SubscriptionType);
             var pipelineInformation = new PipelineInformation(processorInterface, eventSubscription, processingSettings, _configuration);
 
-            var pipeline = new MiddlewarePipeline(_configuration.Middlewares, pipelineInformation, channelFactory, _configuration.Log);
+            var middlewares = _configuration.DependencyInjection.GetInstances<IMessageProcessorMiddleware>();
+            var pipeline = new MiddlewarePipeline(middlewares, pipelineInformation, _configuration.Log);
             var serializer = GetSerializer(channelFactory, processorTypes.MessageType);
             var starter = channelFactory.Create(processorTypes.MessageType, eventSubscription, processingSettings, serializer, _configuration, pipeline.GetPipeline(processorInstance));
             return WrapSingletonReceiver(starter, processor);

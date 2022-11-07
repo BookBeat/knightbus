@@ -11,7 +11,7 @@ namespace KnightBus.Host
         private readonly IPipelineInformation _pipelineInformation;
         private readonly List<IMessageProcessorMiddleware> _middlewares = new List<IMessageProcessorMiddleware>();
 
-        public MiddlewarePipeline(IEnumerable<IMessageProcessorMiddleware> hostMiddlewares, IPipelineInformation pipelineInformation, ITransportChannelFactory transportChannelFactory, ILogger log)
+        public MiddlewarePipeline(IEnumerable<IMessageProcessorMiddleware> hostMiddlewares, IPipelineInformation pipelineInformation, ILogger log)
         {
             _pipelineInformation = pipelineInformation;
 
@@ -30,8 +30,6 @@ namespace KnightBus.Host
             _middlewares.Add(new DeadLetterMiddleware());
             //Add host-global middlewares
             _middlewares.AddRange(processorMiddlewares);
-            //Add transport middlewares
-            _middlewares.AddRange(transportChannelFactory.Middlewares);
         }
 
         public IMessageProcessor GetPipeline(IMessageProcessor baseProcessor)

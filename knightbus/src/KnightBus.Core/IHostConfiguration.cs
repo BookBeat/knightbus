@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 
 namespace KnightBus.Core
@@ -8,7 +7,6 @@ namespace KnightBus.Core
     /// </summary>
     public interface IHostConfiguration
     {
-        IList<IMessageProcessorMiddleware> Middlewares { get; }
         IDependencyInjection DependencyInjection { get; set; }
         ILogger Log { get; set; }
     }

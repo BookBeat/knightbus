@@ -16,10 +16,10 @@ namespace KnightBus.Host
             return builder;
         }
         
-        public static IHostBuilder UseKnightBus(this IHostBuilder builder, Action<IHostConfiguration> configuration)
+        public static IHostBuilder UseKnightBus(this IHostBuilder builder, Action<IHostConfiguration> configuration = null)
         {
             IHostConfiguration conf = new HostConfiguration();
-            configuration.Invoke(conf);
+            configuration?.Invoke(conf);
             builder.UseConsoleLifetime()
                 //.ConfigureHostOptions(host => host.ShutdownTimeout = conf.ShutdownGracePeriod.Add(TimeSpan.FromSeconds(10)))
                 .ConfigureServices(collection =>

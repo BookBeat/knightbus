@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 
 namespace KnightBus.Host
 {
-    internal class TcpAliveListenerPlugin : IPlugin
+    public class TcpAliveListenerPlugin : IPlugin
     {
         private readonly ILogger _log;
         private readonly int _port;

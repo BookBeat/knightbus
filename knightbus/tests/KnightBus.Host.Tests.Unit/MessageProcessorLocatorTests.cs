@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using FluentAssertions;
 using KnightBus.Core;
@@ -26,7 +25,6 @@ namespace KnightBus.Host.Tests.Unit
         {
             _queueStarterFactory = new Mock<ITransportChannelFactory>();
             var transportConfiguration = new Mock<ITransportConfiguration>();
-            _queueStarterFactory.Setup(x => x.Middlewares).Returns(new List<IMessageProcessorMiddleware>());
             _queueStarterFactory.Setup(x => x.Configuration).Returns(transportConfiguration.Object);
         }
 
@@ -174,11 +172,10 @@ namespace KnightBus.Host.Tests.Unit
             //arrange
             var collection = new ServiceCollection();
             collection.RegisterProcessor<SingletonCommandProcessor>();
-            
+            collection.UseSingletonLocks(Mock.Of<ISingletonLockManager>());
             var locator = new MessageProcessorLocator(new HostConfiguration
             {
-                DependencyInjection = new MicrosoftDependencyInjection(collection.BuildServiceProvider()),
-                SingletonLockManager = Mock.Of<ISingletonLockManager>()
+                DependencyInjection = new MicrosoftDependencyInjection(collection.BuildServiceProvider())
 
             }, new[]{ _queueStarterFactory.Object });
             

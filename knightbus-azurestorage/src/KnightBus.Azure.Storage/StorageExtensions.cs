@@ -1,6 +1,9 @@
+using System;
+using KnightBus.Azure.Storage.Sagas;
 using KnightBus.Azure.Storage.Singleton;
 using KnightBus.Core;
 using KnightBus.Core.DefaultMiddlewares;
+using KnightBus.Core.Sagas;
 using KnightBus.Core.Singleton;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -8,32 +11,46 @@ namespace KnightBus.Azure.Storage
 {
     public static class StorageExtensions
     {
-        public static ITransport UseBlobStorageAttachments(this ITransport transport, string connectionString)
+
+        public static IServiceCollection UseBlobStorageAttachments(this IServiceCollection services)
         {
-            transport.UseMiddleware(new AttachmentMiddleware(new BlobStorageMessageAttachmentProvider(connectionString)));
-            return transport;
+            services.AddSingleton<IMessageAttachmentProvider, BlobStorageMessageAttachmentProvider>();
+            services.AddMiddleware<AttachmentMiddleware>();
+            return services;
+        }
+        
+        public static IServiceCollection UseBlobStorage(this IServiceCollection services, Action<IStorageBusConfiguration> config = null)
+        {
+            var storageConfig = new StorageBusConfiguration();
+            config?.Invoke(storageConfig);
+            services.AddSingleton<IStorageBusConfiguration>(storageConfig);
+            services.AddScoped<IStorageBus, StorageBus>();
+            return services;
+        }
+        public static IServiceCollection UseBlobStorage(this IServiceCollection services, string connectionString)
+        {
+            return services.UseBlobStorage(configuration =>
+            {
+                configuration.ConnectionString = connectionString;
+            });
         }
 
-        public static IHostConfiguration UseBlobStorageAttachments(this IHostConfiguration configuration, string connectionString)
+        public static IServiceCollection UseBlobStorageLockManager(this IServiceCollection services, IBlobLockScheme lockScheme)
         {
-            configuration.Middlewares.Add(new AttachmentMiddleware(new BlobStorageMessageAttachmentProvider(connectionString)));
-            return configuration;
+            services.AddSingleton(lockScheme);
+            return services.UseBlobStorageLockManager();
         }
-
-        public static IServiceCollection UseBlobStorageLockManager(this IServiceCollection collection, string connectionString)
+        
+        public static IServiceCollection UseBlobStorageLockManager(this IServiceCollection services)
         {
-            collection.AddSingleton<ISingletonLockManager>(_ => new BlobLockManager(connectionString));
-            return collection;
+            services.AddSingleton<ISingletonLockManager, BlobLockManager>();
+            return services;
         }
-        public static IServiceCollection UseBlobStorageAttachments(this IServiceCollection collection, string connectionString)
+        
+        public static IServiceCollection UseBlobStorageSagas(this IServiceCollection services)
         {
-            collection.AddSingleton<IMessageAttachmentProvider>(_ => new BlobStorageMessageAttachmentProvider(connectionString));
-            return collection;
-        }
-        public static IServiceCollection UseBlobStorageLockManager(this IServiceCollection collection, string connectionString, IBlobLockScheme lockScheme)
-        {
-            collection.AddSingleton<ISingletonLockManager>(_ => new BlobLockManager(connectionString, lockScheme));
-            return collection;
+            services.EnableSagas<BlobSagaStore>();
+            return services;
         }
     }
 }

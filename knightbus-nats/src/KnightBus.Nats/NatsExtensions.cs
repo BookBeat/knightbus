@@ -6,19 +6,14 @@ namespace KnightBus.Nats
 {
     public static class NatsExtensions
     {
-        public static IServiceCollection UseNatsClient(this IServiceCollection services, string connectionString,
-            Action<INatsBusConfiguration> configuration)
+        public static IServiceCollection UseNats(this IServiceCollection services, Action<INatsConfiguration> configuration = null)
         {
-            var natsConfiguration = new NatsBusConfiguration(connectionString);
+            var natsConfiguration = new NatsConfiguration();
             configuration?.Invoke(natsConfiguration);
             services.AddSingleton<IConnectionFactory>(_ => new ConnectionFactory());
-            services.AddSingleton<INatsBusConfiguration>(natsConfiguration);
-            services.AddSingleton<INatsBus, NatsBus>();
+            services.AddSingleton<INatsConfiguration>(natsConfiguration);
+            services.AddScoped<INatsBus, NatsBus>();
             return services;
-        }
-        public static IServiceCollection UseNatsClient(this IServiceCollection services, string connectionString)
-        {
-            return services.UseNatsClient(connectionString, _ => {});
         }
     }
 }

@@ -5,7 +5,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Azure.Storage;
 using KnightBus.Azure.Storage.Messages;
-using KnightBus.Azure.Storage.Sagas;
 using KnightBus.Core;
 using KnightBus.Core.Sagas;
 using KnightBus.Host;
@@ -21,32 +20,26 @@ namespace KnightBus.Examples.Azure.Storage
         {
             var storageConnection = "UseDevelopmentStorage=true";
 
-            //Initiate the client
-            var client = new StorageBus(new StorageBusConfiguration(storageConnection));
-            
             var knightBusHost = global::Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
-                .ConfigureServices((context, collection) =>
+                .ConfigureServices((context, services) =>
                 {
-                    collection.UseBlobStorageAttachments(storageConnection);
-                    collection.RegisterProcessor<SampleStorageBusMessageProcessor>()
-                        .RegisterProcessor<SampleSagaMessageProcessor>()
-                        .UseBlobStorageLockManager(storageConnection)
-                        .UseTransport(new StorageTransport(storageConnection))
-                        .AddScoped<IStorageBus>(_ => new StorageBus(new StorageBusConfiguration(storageConnection)));
-                })
-                .UseKnightBus(configuration =>
-                {
-                    //Allow message processors to run in Singleton state using Azure Blob Locks
-                    configuration
-                        .UseBlobStorageAttachments(storageConnection)
+                    services.UseBlobStorage(storageConnection)
+                        .RegisterProcessors(typeof(SampleStorageBusMessage).Assembly)
+                        //Allow message processors to run in Singleton state using Azure Blob Locks
+                        .UseBlobStorageLockManager()
+                        .UseBlobStorageAttachments()
+                        .UseTransport<StorageTransport>()
                         //Enable Saga support using the table storage Saga store
-                        .EnableSagas(new BlobSagaStore(storageConnection));
-                }).Build();
+                        .UseBlobStorageSagas();
+                })
+                .UseKnightBus().Build();
 
             //Start the KnightBus Host, it will now connect to the StorageBus and listen to the SampleStorageBusMessageMapping.QueueName
             await knightBusHost.StartAsync(CancellationToken.None);
 
+            var client = knightBusHost.Services.GetRequiredService<IStorageBus>();
             await Task.Delay(TimeSpan.FromSeconds(10));
+            
 
             //Send some Messages and watch them print in the console
             for (var i = 0; i < 10; i++)

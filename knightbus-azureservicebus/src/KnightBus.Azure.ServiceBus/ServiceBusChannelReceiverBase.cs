@@ -32,7 +32,7 @@ namespace KnightBus.Azure.ServiceBus
             _processor = processor;
             Settings = settings;
             Log = hostConfiguration.Log;
-            ClientFactory = configuration.ClientFactory;
+            ClientFactory = _hostConfiguration.DependencyInjection.GetInstance<IClientFactory>();
             ManagementClient = new ServiceBusAdministrationClient(configuration.ConnectionString);
         }
 

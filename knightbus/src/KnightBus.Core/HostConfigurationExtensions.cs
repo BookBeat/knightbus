@@ -1,43 +1,37 @@
 using KnightBus.Core.Singleton;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 
 namespace KnightBus.Core
 {
     public static class HostConfigurationExtensions
     {
 
-        public static IServiceCollection UseTransport(this IServiceCollection collection, ITransport transport)
+        public static IServiceCollection UseTransport<T>(this IServiceCollection services) where T: class, ITransport
         {
-            collection.AddSingleton(transport);
-            return collection;
+            services.AddSingleton<ITransport, T>();
+            return services;
         }
-        public static IServiceCollection UseTransport<T>(this IServiceCollection collection) where T: class, ITransport
+        public static IServiceCollection AddMiddleware<T>(this IServiceCollection services) where T: class, IMessageProcessorMiddleware
         {
-            collection.AddSingleton<ITransport, T>();
-            return collection;
+            services.AddSingleton<IMessageProcessorMiddleware, T>();
+            return services;
         }
-        public static IHostConfiguration UseLog(this IHostConfiguration configuration, ILogger log)
+        public static IServiceCollection AddMiddleware(this IServiceCollection services, IMessageProcessorMiddleware middleware)
         {
-            configuration.Log = log;
-            return configuration;
-        }
-        public static IHostConfiguration AddMiddleware(this IHostConfiguration configuration, IMessageProcessorMiddleware middleware)
-        {
-            configuration.Middlewares.Add(middleware);
-            return configuration;
+            services.AddSingleton(middleware);
+            return services;
         }
 
-        public static IServiceCollection AddPlugin<T>(this IServiceCollection collection) where T : class, IPlugin
+        public static IServiceCollection AddPlugin<T>(this IServiceCollection services) where T : class, IPlugin
         {
-            collection.AddSingleton<IPlugin, T>();
-            return collection;
+            services.AddSingleton<IPlugin, T>();
+            return services;
         }
 
-        public static IServiceCollection UseSingletonLocks(this IServiceCollection collection, ISingletonLockManager lockManager)
+        public static IServiceCollection UseSingletonLocks(this IServiceCollection services, ISingletonLockManager lockManager)
         {
-            collection.AddSingleton(lockManager);
-            return collection;
+            services.AddSingleton(lockManager);
+            return services;
         }
         public static IHostConfiguration UseDependencyInjection(this IHostConfiguration configuration, IDependencyInjection provider)
         {

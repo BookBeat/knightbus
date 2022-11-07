@@ -7,6 +7,5 @@
     {
         ITransportChannelFactory[] TransportChannelFactories { get; }
         ITransport ConfigureChannels(ITransportConfiguration configuration);
-        ITransport UseMiddleware(IMessageProcessorMiddleware middleware);
     }
 }

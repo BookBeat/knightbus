@@ -17,6 +17,10 @@ namespace KnightBus.Azure.Storage
         {
             _connectionString = connectionString;
         }
+        
+        public BlobStorageMessageAttachmentProvider(IStorageBusConfiguration configuration) : this(configuration.ConnectionString)
+        {
+        }
 
         public async Task<IMessageAttachment> GetAttachmentAsync(string queueName, string id, CancellationToken cancellationToken = default(CancellationToken))
         {

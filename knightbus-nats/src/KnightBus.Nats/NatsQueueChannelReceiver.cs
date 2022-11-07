@@ -14,7 +14,7 @@ namespace KnightBus.Nats
         private readonly IMessageSerializer _serializer;
         private readonly IHostConfiguration _hostConfiguration;
         private readonly IMessageProcessor _processor;
-        private readonly INatsBusConfiguration _configuration;
+        private readonly INatsConfiguration _configuration;
         private readonly IEventSubscription _subscription;
         private const string CommandQueueGroup = "qg";
         public IProcessingSettings Settings { get; set; }
@@ -24,7 +24,7 @@ namespace KnightBus.Nats
         private IConnection _connection;
         private readonly SemaphoreSlim _maxConcurrent;
 
-        public NatsQueueChannelReceiver(IProcessingSettings settings, IMessageSerializer serializer, IHostConfiguration hostConfiguration, IMessageProcessor processor, INatsBusConfiguration configuration, IEventSubscription subscription)
+        public NatsQueueChannelReceiver(IProcessingSettings settings, IMessageSerializer serializer, IHostConfiguration hostConfiguration, IMessageProcessor processor, INatsConfiguration configuration, IEventSubscription subscription)
         {
             Settings = settings;
             _serializer = serializer;

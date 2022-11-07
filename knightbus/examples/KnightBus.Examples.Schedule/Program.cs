@@ -20,17 +20,15 @@ public class Program
         var blobConnection = "UseDevelopmentStorage=true";
 
         var host = global::Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
-            .ConfigureServices((context, collection) =>
+            .ConfigureServices((context, services) =>
             {
-                collection.UseScheduling();
-                collection.UseTcpAliveListener(13000);
-                collection.RegisterSchedules(Assembly.GetExecutingAssembly()); 
-                collection.UseBlobStorageLockManager(blobConnection);
+                services.UseBlobStorage(blobConnection)
+                .UseScheduling()
+                .UseTcpAliveListener(13000)
+                .RegisterSchedules(Assembly.GetExecutingAssembly()) 
+                .UseBlobStorageLockManager();
             })
-            .UseKnightBus(configuration =>
-            {
-                
-            }).Build();
+            .UseKnightBus().Build();
             
         
         await host.RunAsync(CancellationToken.None);

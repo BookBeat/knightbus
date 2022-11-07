@@ -13,7 +13,6 @@ using KnightBus.Redis;
 using KnightBus.Redis.Messages;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using StackExchange.Redis;
 
 namespace KnightBus.Examples.Redis;
 
@@ -24,22 +23,19 @@ class Program
         var redisConnection = "string";
 
         var knightBusHost = global::Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
-            .ConfigureServices(collection =>
+            .ConfigureServices(services =>
             {
-                collection.UseRedisAttachments();
-                collection.RegisterProcessors(typeof(SampleRedisMessageProcessor).Assembly)
-                    //Enable the Redis Transport
-                    .UseTransport(new RedisTransport(redisConnection));
-            })
-            .UseKnightBus(configuration =>
-            {
-                configuration
+                services.UseRedis(configuration => { configuration.ConnectionString = redisConnection; })
                     //Enable reading attachments from Redis
-                    .UseRedisAttachments(multiplexer, new RedisConfiguration(redisConnection))
+                    .UseRedisAttachments()
                     //Enable the saga store
-                    .UseRedisSagaStore(multiplexer, new RedisConfiguration(redisConnection))
-                    .AddMiddleware(new PerformanceLogging());
-            }).Build();
+                    .UseRedisSagaStore()
+                    .RegisterProcessors(typeof(SampleRedisMessageProcessor).Assembly)
+                    //Enable the Redis Transport
+                    .UseTransport<RedisTransport>()
+                    .AddMiddleware<PerformanceLogging>();
+            })
+            .UseKnightBus().Build();
 
 
         //Start the KnightBus Host, it will now connect to the Redis and listen

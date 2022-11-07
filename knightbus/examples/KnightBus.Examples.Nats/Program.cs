@@ -13,7 +13,6 @@ using KnightBus.Microsoft.DependencyInjection;
 using KnightBus.Nats;
 using KnightBus.Nats.Messages;
 using Microsoft.Extensions.DependencyInjection;
-using NATS.Client;
 
 namespace KnightBus.Examples.Nats
 {
@@ -25,25 +24,24 @@ namespace KnightBus.Examples.Nats
             var storageConnection = "UseDevelopmentStorage=true";
             // Start nats.io first
             // $ docker run -p 4222:4222 -ti nats:latest
-            
+
             var host = global::Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
                 .ConfigureServices((_, services) =>
                 {
-                    services.UseBlobStorageAttachments(storageConnection);
-                    services.UseNatsClient(connectionString);
-                    services.RegisterProcessors(typeof(NatsBusCommandProcessor).Assembly)
+                    services
+                        .UseBlobStorage(storageConnection)
+                        .UseBlobStorageAttachments()
+                        .UseBlobStorageSagas()
+                        .UseNats(configuration => configuration.ConnectionString = connectionString)
+                        .RegisterProcessors(typeof(NatsBusCommandProcessor).Assembly)
                         //Enable the Nats Transport
-                        .UseTransport(new NatsTransport(connectionString));
+                        .UseTransport<NatsTransport>();
                 })
-                .UseKnightBus(configuration =>
-                {
-                    configuration
-                        .UseBlobStorageAttachments(storageConnection);
-                }).Build();
+                .UseKnightBus().Build();
             //Start the KnightBus Host, it will now connect to the StorageBus and listen to the SampleStorageBusMessageMapping.QueueName
             await host.StartAsync(CancellationToken.None);
 
-            var client = (NatsBus)host.Services.GetRequiredService<INatsBus>();
+            var client = (NatsBus) host.Services.GetRequiredService<INatsBus>();
 
             //Send some Messages and watch them print in the console
             for (var i = 0; i < 1; i++)
@@ -116,7 +114,6 @@ namespace KnightBus.Examples.Nats
             {
                 for (int i = 0; i < 20; i++)
                 {
-                    await Task.Delay(100);
                     yield return new SampleNatsReply {Reply = $"Async Reply {i}:\t {message.Message}"};
                 }
             }

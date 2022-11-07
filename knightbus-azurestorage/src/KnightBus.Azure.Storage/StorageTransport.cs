@@ -23,15 +23,5 @@ namespace KnightBus.Azure.Storage
 
             return this;
         }
-
-        public ITransport UseMiddleware(IMessageProcessorMiddleware middleware)
-        {
-            foreach (var channelFactory in TransportChannelFactories)
-            {
-                channelFactory.Middlewares.Add(middleware);
-            }
-
-            return this;
-        }
     }
 }
