@@ -37,8 +37,7 @@ namespace KnightBus.Examples.Azure.ServiceBus
             //Initiate the client
             var protoClient = new KnightBus.Azure.ServiceBus.ServiceBus(new ServiceBusConfiguration(serviceBusConnection)
                 {MessageSerializer = new ProtobufNetSerializer()});
-            var jsonClient = new KnightBus.Azure.ServiceBus.ServiceBus(new ServiceBusConfiguration(serviceBusConnection)
-                {MessageSerializer = new MicrosoftJsonSerializer()});
+            var jsonClient = new KnightBus.Azure.ServiceBus.ServiceBus(new ServiceBusConfiguration(serviceBusConnection));
             //Send some Messages and watch them print in the console
             for (var i = 0; i < 10; i++)
             {
@@ -65,12 +64,13 @@ namespace KnightBus.Examples.Azure.ServiceBus
             public string Message { get; set; }
         }
 
-        class SampleServiceBusMessageMapping : IMessageMapping<SampleServiceBusMessage>, IServiceBusCreationOptions
+        class SampleServiceBusMessageMapping : IMessageMapping<SampleServiceBusMessage>, IServiceBusCreationOptions, ICustomMessageSerializer
         {
             public string QueueName => "your-queue";
             public bool EnablePartitioning => true;
             public bool SupportOrdering => false;
             public bool EnableBatchedOperations => true;
+            public IMessageSerializer MessageSerializer { get; } = new ProtobufNetSerializer();
         }
 
         class SampleServiceBusEventMapping : IMessageMapping<SampleServiceBusEvent>
@@ -130,13 +130,12 @@ namespace KnightBus.Examples.Azure.ServiceBus
             public int DeadLetterDeliveryLimit => 2;
         }
 
-        class ProtoBufProcessingSetting : IProcessingSettings, ICustomMessageSerializer
+        class ProtoBufProcessingSetting : IProcessingSettings
         {
             public int MaxConcurrentCalls => 1;
             public int PrefetchCount => 1;
             public TimeSpan MessageLockTimeout => TimeSpan.FromMinutes(5);
             public int DeadLetterDeliveryLimit => 2;
-            public IMessageSerializer MessageSerializer => new ProtobufNetSerializer();
         }
     }
 }
