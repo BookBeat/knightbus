@@ -55,7 +55,7 @@ namespace KnightBus.Host.Tests.Unit
             //arrange
             _stateHandler.Setup(x => x.DeliveryCount).Returns(1);
             _stateHandler.Setup(x => x.DeadLetterDeliveryLimit).Returns(1);
-            _stateHandler.Setup(x => x.GetMessageAsync()).ReturnsAsync(new TestCommandOne());
+            _stateHandler.Setup(x => x.GetMessage()).Returns(new TestCommandOne());
             //act
             await _messageProcessor.ProcessAsync(_stateHandler.Object, CancellationToken.None);
             //assert
@@ -67,7 +67,7 @@ namespace KnightBus.Host.Tests.Unit
         public async Task Should_deadletter_message()
         {
             //arrange
-            _stateHandler.Setup(x => x.GetMessageAsync()).ReturnsAsync(new TestCommandOne());
+            _stateHandler.Setup(x => x.GetMessage()).Returns(new TestCommandOne());
             _stateHandler.Setup(x => x.DeliveryCount).Returns(2);
             _stateHandler.Setup(x => x.DeadLetterDeliveryLimit).Returns(1);
             //act
@@ -82,7 +82,7 @@ namespace KnightBus.Host.Tests.Unit
             //arrange
             _stateHandler.Setup(x => x.DeliveryCount).Returns(1);
             _stateHandler.Setup(x => x.DeadLetterDeliveryLimit).Returns(1);
-            _stateHandler.Setup(x => x.GetMessageAsync()).ReturnsAsync(new TestCommandOne { Throw = true });
+            _stateHandler.Setup(x => x.GetMessage()).Returns(new TestCommandOne { Throw = true });
             //act
             await _messageProcessor.ProcessAsync(_stateHandler.Object, CancellationToken.None);
             //assert
@@ -95,7 +95,7 @@ namespace KnightBus.Host.Tests.Unit
             //arrange
             _stateHandler.Setup(x => x.DeliveryCount).Returns(1);
             _stateHandler.Setup(x => x.DeadLetterDeliveryLimit).Returns(1);
-            _stateHandler.Setup(x => x.GetMessageAsync()).ReturnsAsync(new TestCommandOne { Throw = true });
+            _stateHandler.Setup(x => x.GetMessage()).Returns(new TestCommandOne { Throw = true });
             //act
             await _messageProcessor.ProcessAsync(_stateHandler.Object, CancellationToken.None);
             //assert

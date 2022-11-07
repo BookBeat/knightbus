@@ -19,7 +19,7 @@ namespace KnightBus.Core.DefaultMiddlewares
             T message = null;
             try
             {
-                message = await messageStateHandler.GetMessageAsync().ConfigureAwait(false);
+                message = messageStateHandler.GetMessage();
                 await next.ProcessAsync(messageStateHandler, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)

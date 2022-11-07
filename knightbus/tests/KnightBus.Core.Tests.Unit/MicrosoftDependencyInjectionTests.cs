@@ -2,14 +2,13 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
-using KnightBus.Core;
-using KnightBus.Microsoft.DependencyInjection;
+using KnightBus.Core.DependencyInjection;
 using KnightBus.Schedule;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using NUnit.Framework;
 
-namespace KnightBus.DependencyInjection.Tests.Unit
+namespace KnightBus.Core.Tests.Unit
 {
     public class TestSchedule : ISchedule
     {

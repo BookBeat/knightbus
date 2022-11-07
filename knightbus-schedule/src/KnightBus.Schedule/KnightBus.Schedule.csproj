@@ -22,7 +22,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\knightbus-microsoft-dependencyinjection\src\KnightBus.Microsoft.DependencyInjection\KnightBus.Microsoft.DependencyInjection.csproj" />
     <ProjectReference Include="..\..\..\knightbus\src\KnightBus.Core\KnightBus.Core.csproj" />
   </ItemGroup>
 

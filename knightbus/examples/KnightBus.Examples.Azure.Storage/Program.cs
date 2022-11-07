@@ -6,10 +6,10 @@ using System.Threading.Tasks;
 using KnightBus.Azure.Storage;
 using KnightBus.Azure.Storage.Messages;
 using KnightBus.Core;
+using KnightBus.Core.DependencyInjection;
 using KnightBus.Core.Sagas;
 using KnightBus.Host;
 using KnightBus.Messages;
-using KnightBus.Microsoft.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace KnightBus.Examples.Azure.Storage

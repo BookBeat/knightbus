@@ -6,7 +6,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\knightbus-microsoft-dependencyinjection\src\KnightBus.Microsoft.DependencyInjection\KnightBus.Microsoft.DependencyInjection.csproj" />
     <ProjectReference Include="..\..\..\knightbus-redis\src\KnightBus.Redis\KnightBus.Redis.csproj" />
     <ProjectReference Include="..\..\src\KnightBus.Host\KnightBus.Host.csproj" />
   </ItemGroup>

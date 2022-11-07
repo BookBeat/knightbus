@@ -5,9 +5,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using KnightBus.Core;
+using KnightBus.Core.DependencyInjection;
 using KnightBus.Host.MessageProcessing.Processors;
 using KnightBus.Messages;
-using KnightBus.Microsoft.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -204,7 +204,7 @@ namespace KnightBus.Host.Tests.Unit.Middleware
                 throw new NotImplementedException();
             }
 
-            public Task<TestCommand> GetMessageAsync()
+            public TestCommand GetMessage()
             {
                 throw new NotImplementedException();
             }

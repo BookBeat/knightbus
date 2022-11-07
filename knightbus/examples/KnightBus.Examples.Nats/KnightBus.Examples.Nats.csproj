@@ -8,7 +8,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\knightbus-azurestorage\src\KnightBus.Azure.Storage\KnightBus.Azure.Storage.csproj" />
-    <ProjectReference Include="..\..\..\knightbus-microsoft-dependencyinjection\src\KnightBus.Microsoft.DependencyInjection\KnightBus.Microsoft.DependencyInjection.csproj" />
     <ProjectReference Include="..\..\..\knightbus-nats\src\KnightBus.Nats\KnightBus.Nats.csproj" />
     <ProjectReference Include="..\..\src\KnightBus.Host\KnightBus.Host.csproj" />
   </ItemGroup>

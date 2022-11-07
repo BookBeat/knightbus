@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using KnightBus.Core;
 using KnightBus.Core.DefaultMiddlewares;
+using KnightBus.Core.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace KnightBus.Host
@@ -25,6 +26,10 @@ namespace KnightBus.Host
             {
                 _middlewares.Add(scopeProvider);
                 processorMiddlewares.Remove(scopeProvider);
+            }
+            else
+            {
+                _middlewares.Add(new MicrosoftDependencyInjectionScopedLifeStyleMiddleware());
             }
             
             _middlewares.Add(new DeadLetterMiddleware());

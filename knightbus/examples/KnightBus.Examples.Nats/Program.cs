@@ -7,12 +7,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Azure.Storage;
 using KnightBus.Core;
+using KnightBus.Core.DependencyInjection;
 using KnightBus.Host;
 using KnightBus.Messages;
-using KnightBus.Microsoft.DependencyInjection;
 using KnightBus.Nats;
 using KnightBus.Nats.Messages;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace KnightBus.Examples.Nats
 {
@@ -26,6 +27,11 @@ namespace KnightBus.Examples.Nats
             // $ docker run -p 4222:4222 -ti nats:latest
 
             var host = global::Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
+                .UseDefaultServiceProvider(options =>
+                {
+                    options.ValidateScopes = true;
+                    options.ValidateOnBuild = true;
+                })
                 .ConfigureServices((_, services) =>
                 {
                     services
@@ -36,12 +42,14 @@ namespace KnightBus.Examples.Nats
                         .RegisterProcessors(typeof(NatsBusCommandProcessor).Assembly)
                         //Enable the Nats Transport
                         .UseTransport<NatsTransport>();
+                    
                 })
-                .UseKnightBus().Build();
+                .UseKnightBus()
+                .Build();
             //Start the KnightBus Host, it will now connect to the StorageBus and listen to the SampleStorageBusMessageMapping.QueueName
             await host.StartAsync(CancellationToken.None);
 
-            var client = (NatsBus) host.Services.GetRequiredService<INatsBus>();
+            var client = (NatsBus) host.Services.CreateScope().ServiceProvider.GetRequiredService<INatsBus>();
 
             //Send some Messages and watch them print in the console
             for (var i = 0; i < 1; i++)

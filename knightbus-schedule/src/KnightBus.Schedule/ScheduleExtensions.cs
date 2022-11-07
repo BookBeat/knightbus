@@ -1,6 +1,6 @@
 ﻿using System.Reflection;
 using KnightBus.Core;
-using KnightBus.Microsoft.DependencyInjection;
+using KnightBus.Core.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace KnightBus.Schedule

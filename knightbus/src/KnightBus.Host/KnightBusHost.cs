@@ -3,8 +3,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
+using KnightBus.Core.DependencyInjection;
 using KnightBus.Host.MessageProcessing;
-using KnightBus.Microsoft.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 

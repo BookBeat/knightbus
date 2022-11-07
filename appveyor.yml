@@ -35,8 +35,6 @@ test_script:
     dotnet test knightbus-redis/tests/KnightBus.Redis.Tests.Unit/KnightBus.Redis.Tests.Unit.csproj --logger:Appveyor
 
     dotnet test knightbus-redis/tests/KnightBus.Redis.Tests.Integration/KnightBus.Redis.Tests.Integration.csproj --logger:Appveyor
-    
-    dotnet test knightbus/tests/KnightBus.DependencyInjection.Tests.Unit/KnightBus.DependencyInjection.Tests.Unit.csproj --logger:Appveyor
 
     dotnet test knightbus-nats/tests/KnightBus.Nats.Tests.Unit/KnightBus.Nats.Tests.Unit.csproj --logger:Appveyor
 

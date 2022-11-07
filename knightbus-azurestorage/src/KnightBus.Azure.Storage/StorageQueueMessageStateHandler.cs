@@ -54,9 +54,9 @@ namespace KnightBus.Azure.Storage
             return _queueClient.DeadLetterAsync(_message);
         }
 
-        public Task<T> GetMessageAsync()
+        public T GetMessage()
         {
-            return Task.FromResult((T)_message.Message);
+            return (T)_message.Message;
         }
 
         public IDependencyInjection MessageScope { get; set; }

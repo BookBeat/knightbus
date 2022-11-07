@@ -16,7 +16,7 @@ namespace KnightBus.Core.DefaultMiddlewares
 
                 if (processor is IProcessBeforeDeadLetter<T> deadletterProcessor)
                 {
-                    var message = await messageStateHandler.GetMessageAsync().ConfigureAwait(false);
+                    var message = messageStateHandler.GetMessage();
                     try
                     {
                         await deadletterProcessor.BeforeDeadLetterAsync(message, cancellationToken).ConfigureAwait(false);

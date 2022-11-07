@@ -46,9 +46,9 @@ namespace KnightBus.Redis
             return _queueClient.DeadletterMessageAsync(_redisMessage, DeadLetterDeliveryLimit);
         }
 
-        public Task<T> GetMessageAsync()
+        public T GetMessage()
         {
-            return Task.FromResult(_redisMessage.Message);
+            return _redisMessage.Message;
         }
 
         public IDependencyInjection MessageScope { get; set; }

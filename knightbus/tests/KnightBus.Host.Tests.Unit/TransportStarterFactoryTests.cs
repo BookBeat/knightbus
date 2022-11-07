@@ -1,9 +1,9 @@
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
+using KnightBus.Core.DependencyInjection;
 using KnightBus.Host.MessageProcessing.Factories;
 using KnightBus.Messages;
-using KnightBus.Microsoft.DependencyInjection;
 using KnightBus.ProtobufNet;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;

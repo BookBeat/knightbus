@@ -41,7 +41,7 @@ namespace KnightBus.Core
         /// <summary>
         /// Retrieves the message
         /// </summary>
-        Task<T> GetMessageAsync();
+        T GetMessage();
         /// <summary>
         /// Gets the message DI scope
         /// </summary>

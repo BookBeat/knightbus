@@ -1,11 +1,10 @@
 using System;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using KnightBus.Core;
 using Microsoft.Extensions.DependencyInjection;
 
 [assembly: InternalsVisibleTo("KnightBus.DependencyInjection.Tests.Unit")]
-namespace KnightBus.Microsoft.DependencyInjection
+namespace KnightBus.Core.DependencyInjection
 {
     public static class MicrosoftDependencyInjectionExtensions
     {

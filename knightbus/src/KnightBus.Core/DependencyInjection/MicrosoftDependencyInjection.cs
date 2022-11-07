@@ -1,10 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using KnightBus.Core;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace KnightBus.Microsoft.DependencyInjection
+namespace KnightBus.Core.DependencyInjection
 {
     public class MicrosoftDependencyInjection : IDependencyInjection
     {
@@ -41,7 +40,8 @@ namespace KnightBus.Microsoft.DependencyInjection
 
         public IEnumerable<Type> GetOpenGenericRegistrations(Type openGeneric)
         {
-            var allTypes = _provider.GetServices<IGenericProcessor>().Distinct().Select(o=> o.GetType());
+            using var scope = GetScope();
+            var allTypes = scope.GetInstances<IGenericProcessor>().Distinct().Select(o=> o.GetType());
             return ReflectionHelper.GetAllTypesImplementingOpenGenericInterface(openGeneric, allTypes).Distinct();
         }
 

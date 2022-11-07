@@ -28,7 +28,7 @@ namespace KnightBus.Core.Sagas
                 var sagaDataType = sagaType.GenericTypeArguments[0];
 
                 var sagaHandlerType = typeof(SagaHandler<,>).MakeGenericType(sagaDataType, typeof(T));
-                var message = await messageStateHandler.GetMessageAsync().ConfigureAwait(false);
+                var message = messageStateHandler.GetMessage();
                 var sagaHandler = (ISagaHandler)Activator.CreateInstance(sagaHandlerType, _sagaStore, processor, message);
                 try
                 {

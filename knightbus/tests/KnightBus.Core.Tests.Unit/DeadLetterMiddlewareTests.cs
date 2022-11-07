@@ -89,7 +89,7 @@ namespace KnightBus.Core.Tests.Unit
             var messageStateHandler = new Mock<IMessageStateHandler<TestCommand>>();
             messageStateHandler.Setup(x => x.DeadLetterDeliveryLimit).Returns(1);
             messageStateHandler.Setup(x => x.DeliveryCount).Returns(2);
-            messageStateHandler.Setup(x => x.GetMessageAsync()).Returns(Task.FromResult(new TestCommand()));
+            messageStateHandler.Setup(x => x.GetMessage()).Returns(new TestCommand());
             messageStateHandler.Setup(x => x.MessageScope).Returns(di.Object);
             var middleware = new DeadLetterMiddleware();
             //act
