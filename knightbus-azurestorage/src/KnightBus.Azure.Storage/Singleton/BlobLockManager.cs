@@ -21,8 +21,7 @@ namespace KnightBus.Azure.Storage.Singleton
         public BlobLockManager(string connectionString, IBlobLockScheme lockScheme = null)
         {
             _connectionString = connectionString;
-            if(lockScheme is null)
-                _lockScheme = new DefaultBlobLockScheme();
+            _lockScheme =  lockScheme ?? new DefaultBlobLockScheme();
         }
 
         public BlobLockManager(IStorageBusConfiguration configuration, IBlobLockScheme lockScheme = null) : this(configuration.ConnectionString, lockScheme)
