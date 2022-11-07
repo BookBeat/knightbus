@@ -33,10 +33,5 @@ namespace KnightBus.Core
             services.AddSingleton(lockManager);
             return services;
         }
-        public static IHostConfiguration UseDependencyInjection(this IHostConfiguration configuration, IDependencyInjection provider)
-        {
-            configuration.DependencyInjection = provider;
-            return configuration;
-        }
     }
 }

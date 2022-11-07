@@ -14,8 +14,6 @@ namespace KnightBus.Host
     {
         private IHostConfiguration _configuration;
         private MessageProcessorLocator _locator;
-
-        public TimeSpan ShutdownGracePeriod { get; set; } = TimeSpan.FromMinutes(1);
         private readonly CancellationTokenSource _shutdownToken = new CancellationTokenSource();
 
         public KnightBusHost(IHostConfiguration configuration, IServiceProvider provider, ILogger<KnightBusHost> logger)
@@ -72,7 +70,14 @@ namespace KnightBus.Host
         {
             _configuration.Log.LogInformation("KnightBus received stop signal, initiating shutdown... ");
             _shutdownToken.Cancel();
-            await Task.Delay(ShutdownGracePeriod, cancellationToken).ConfigureAwait(false);
+            try
+            {
+                await Task.Delay(_configuration.ShutdownGracePeriod, cancellationToken).ConfigureAwait(false);
+            }
+            catch (TaskCanceledException)
+            {
+                //Swallow
+            }
             _configuration.Log.LogInformation("KnightBus shutdown completed");
             _shutdownToken.Dispose();
         }

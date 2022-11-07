@@ -1,3 +1,4 @@
+using System;
 using Microsoft.Extensions.Logging;
 
 namespace KnightBus.Core
@@ -9,5 +10,6 @@ namespace KnightBus.Core
     {
         IDependencyInjection DependencyInjection { get; set; }
         ILogger Log { get; set; }
+        TimeSpan ShutdownGracePeriod { get; set; }
     }
 }
