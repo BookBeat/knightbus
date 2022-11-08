@@ -32,9 +32,11 @@ namespace KnightBus.Host.Tests.Unit.Middleware
             var finalProcessor = new Mock<IMessageProcessor>();
             var provider = services.BuildServiceProvider();
             var pipeline = new MiddlewarePipeline(provider.GetServices<IMessageProcessorMiddleware>(), Mock.Of<IPipelineInformation>(), Mock.Of<ILogger>());
+            var stateHandler = new Mock<IMessageStateHandler<TestCommand>>();
+            stateHandler.Setup(x => x.MessageScope).Returns(new MicrosoftDependencyInjection(provider).GetScope);
             //act
             var chain = pipeline.GetPipeline(finalProcessor.Object);
-            await chain.ProcessAsync(Mock.Of<IMessageStateHandler<TestCommand>>(), CancellationToken.None);
+            await chain.ProcessAsync(stateHandler.Object, CancellationToken.None);
             //assert
 
             for (int i = 0; i < 10; i++)
@@ -44,30 +46,6 @@ namespace KnightBus.Host.Tests.Unit.Middleware
             finalProcessor.Verify(x => x.ProcessAsync(It.IsAny<IMessageStateHandler<TestCommand>>(), CancellationToken.None), Times.Once);
         }
         
-        [Test]
-        public async Task Should_execute_ordered_pipeline()
-        {
-            //arrange
-            var executionOrderList = new List<int>();
-            var middlewares = new List<IMessageProcessorMiddleware>();
-            for (var i = 0; i < 10; i++)
-            {
-                middlewares.Add(new TestMiddleware(executionOrderList, i));
-            }
-            var finalProcessor = new Mock<IMessageProcessor>();
-            var pipeline = new MiddlewarePipeline(middlewares, Mock.Of<IPipelineInformation>(), Mock.Of<ILogger>());
-            //act
-            var chain = pipeline.GetPipeline(finalProcessor.Object);
-            await chain.ProcessAsync(Mock.Of<IMessageStateHandler<TestCommand>>(), CancellationToken.None);
-            //assert
-
-            for (int i = 0; i < 10; i++)
-            {
-                executionOrderList[i].Should().Be(i);
-            }
-            finalProcessor.Verify(x => x.ProcessAsync(It.IsAny<IMessageStateHandler<TestCommand>>(), CancellationToken.None), Times.Once);
-        }
-
         [Test]
         public async Task Should_move_message_scope_provider_right_after_error_middleware()
         {
