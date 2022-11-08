@@ -10,7 +10,7 @@ namespace KnightBus.Redis
     {
         private readonly IConnectionMultiplexer _connectionMultiplexer;
 
-        public RedisEventChannelFactory(RedisConfiguration configuration, IConnectionMultiplexer connectionMultiplexer)
+        public RedisEventChannelFactory(IRedisConfiguration configuration, IConnectionMultiplexer connectionMultiplexer)
         {
             _connectionMultiplexer = connectionMultiplexer;
             Configuration = configuration;

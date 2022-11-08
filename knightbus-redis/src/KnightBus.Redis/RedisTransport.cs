@@ -7,7 +7,7 @@ namespace KnightBus.Redis
     {
         public RedisTransport(string connectionString) : this(new RedisConfiguration(connectionString))
         { }
-        public RedisTransport(RedisConfiguration configuration)
+        public RedisTransport(IRedisConfiguration configuration)
         {
             var multiplexer = ConnectionMultiplexer.Connect(configuration.ConnectionString);
             TransportChannelFactories = new ITransportChannelFactory[]

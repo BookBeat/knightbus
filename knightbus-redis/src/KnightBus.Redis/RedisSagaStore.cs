@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using KnightBus.Core;
 using KnightBus.Core.Sagas;
 using KnightBus.Core.Sagas.Exceptions;
 using KnightBus.Messages;
@@ -15,11 +16,11 @@ namespace KnightBus.Redis
         
         private string GetKey(string partitionKey, string id) => $"sagas:{partitionKey}:{id}";
 
-        public RedisSagaStore(IConnectionMultiplexer connectionMultiplexer, IRedisConfiguration configuration, IMessageSerializer serializer)
+        public RedisSagaStore(IConnectionMultiplexer connectionMultiplexer, IRedisConfiguration configuration)
         {
             _connectionMultiplexer = connectionMultiplexer;
             _configuration = configuration;
-            _serializer = serializer;
+            _serializer = _configuration.MessageSerializer;
         }
         public async Task<T> GetSaga<T>(string partitionKey, string id)
         {
