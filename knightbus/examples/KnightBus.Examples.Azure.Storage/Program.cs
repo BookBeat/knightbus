@@ -11,6 +11,7 @@ using KnightBus.Core.Sagas;
 using KnightBus.Host;
 using KnightBus.Messages;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace KnightBus.Examples.Azure.Storage
 {
@@ -20,8 +21,13 @@ namespace KnightBus.Examples.Azure.Storage
         {
             var storageConnection = "UseDevelopmentStorage=true";
 
-            var knightBusHost = global::Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
-                .ConfigureServices((context, services) =>
+            var knightBus = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
+                .UseDefaultServiceProvider(options =>
+                {
+                    options.ValidateScopes = true;
+                    options.ValidateOnBuild = true;
+                })
+                .ConfigureServices(services =>
                 {
                     services.UseBlobStorage(storageConnection)
                         .RegisterProcessors(typeof(SampleStorageBusMessage).Assembly)
@@ -35,9 +41,9 @@ namespace KnightBus.Examples.Azure.Storage
                 .UseKnightBus().Build();
 
             //Start the KnightBus Host, it will now connect to the StorageBus and listen to the SampleStorageBusMessageMapping.QueueName
-            await knightBusHost.StartAsync(CancellationToken.None);
+            await knightBus.StartAsync(CancellationToken.None);
 
-            var client = knightBusHost.Services.GetRequiredService<IStorageBus>();
+            var client = knightBus.Services.GetRequiredService<IStorageBus>();
             await Task.Delay(TimeSpan.FromSeconds(10));
             
 

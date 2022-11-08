@@ -26,13 +26,13 @@ namespace KnightBus.Examples.Nats
             // Start nats.io first
             // $ docker run -p 4222:4222 -ti nats:latest
 
-            var host = global::Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
+            var knightBus = global::Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
                 .UseDefaultServiceProvider(options =>
                 {
                     options.ValidateScopes = true;
                     options.ValidateOnBuild = true;
                 })
-                .ConfigureServices((_, services) =>
+                .ConfigureServices(services =>
                 {
                     services
                         .UseBlobStorage(storageConnection)
@@ -47,9 +47,9 @@ namespace KnightBus.Examples.Nats
                 .UseKnightBus()
                 .Build();
             //Start the KnightBus Host, it will now connect to the StorageBus and listen to the SampleStorageBusMessageMapping.QueueName
-            await host.StartAsync(CancellationToken.None);
+            await knightBus.StartAsync(CancellationToken.None);
 
-            var client = (NatsBus) host.Services.CreateScope().ServiceProvider.GetRequiredService<INatsBus>();
+            var client = (NatsBus) knightBus.Services.CreateScope().ServiceProvider.GetRequiredService<INatsBus>();
 
             //Send some Messages and watch them print in the console
             for (var i = 0; i < 1; i++)

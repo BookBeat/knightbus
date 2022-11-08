@@ -19,19 +19,24 @@ public class Program
     {
         var blobConnection = "UseDevelopmentStorage=true";
 
-        var host = global::Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
-            .ConfigureServices((context, services) =>
+        var knightBus = global::Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
+            .UseDefaultServiceProvider(options =>
+            {
+                options.ValidateScopes = true;
+                options.ValidateOnBuild = true;
+            })
+            .ConfigureServices(services =>
             {
                 services.UseBlobStorage(blobConnection)
                 .UseScheduling()
                 .UseTcpAliveListener(13000)
-                .RegisterSchedules(Assembly.GetExecutingAssembly()) 
+                .RegisterSchedules() 
                 .UseBlobStorageLockManager();
             })
             .UseKnightBus().Build();
             
         
-        await host.RunAsync(CancellationToken.None);
+        await knightBus.RunAsync(CancellationToken.None);
     }
 }
 
@@ -50,7 +55,7 @@ public class MySchedule : IProcessSchedule<EveryMinute>, IProcessSchedule<EveryM
 {
     public Task ProcessAsync(CancellationToken cancellationToken)
     {
-        Console.WriteLine("Yo!");
+        Console.WriteLine("Schedule triggered!");
         return Task.CompletedTask;
     }
 }

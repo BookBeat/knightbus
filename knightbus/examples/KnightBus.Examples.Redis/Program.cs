@@ -20,9 +20,14 @@ class Program
 {
     static async Task Main(string[] args)
     {
-        var redisConnection = "string";
+        var redisConnection = "localhost:6379";
 
         var knightBusHost = global::Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
+            .UseDefaultServiceProvider(options =>
+            {
+                options.ValidateScopes = true;
+                options.ValidateOnBuild = true;
+            })
             .ConfigureServices(services =>
             {
                 services.UseRedis(configuration => { configuration.ConnectionString = redisConnection; })
@@ -30,7 +35,7 @@ class Program
                     .UseRedisAttachments()
                     //Enable the saga store
                     .UseRedisSagaStore()
-                    .RegisterProcessors(typeof(SampleRedisMessageProcessor).Assembly)
+                    .RegisterProcessors()
                     //Enable the Redis Transport
                     .UseTransport<RedisTransport>()
                     .AddMiddleware<PerformanceLogging>();
@@ -58,22 +63,8 @@ class Program
         sw.Start();
         await client.SendAsync<SampleRedisCommand>(commands);
         Console.WriteLine($"Elapsed {sw.Elapsed}");
-        Console.ReadKey();
-
-
-        //var attachmentCommands = Enumerable.Range(0, 10).Select(i => new SampleRedisAttachmentCommand()
-        //{
-        //    Message = $"Hello from command with attachment {i}",
-        //    Attachment = new MessageAttachment($"file{i}.txt", "text/plain", new MemoryStream(Encoding.UTF8.GetBytes($"this is a stream from Message {i}")))
-        //}).ToList();
-        //await client.SendAsync<SampleRedisAttachmentCommand>(attachmentCommands);
-
-
-        //var events = Enumerable.Range(0, 10).Select(i => new SampleRedisEvent
-        //{
-        //    Message = $"Hello from event {i}"
-        //}).ToList();
-        //await client.PublishAsync<SampleRedisEvent>(events);
+        
+        
         Console.ReadKey();
     }
 

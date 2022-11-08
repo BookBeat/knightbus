@@ -19,20 +19,23 @@ namespace KnightBus.Examples.Azure.ServiceBus
         {
             var serviceBusConnection = "your-connection-string";
 
-            var builder = global::Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
+            var knightBus = global::Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
+                .UseDefaultServiceProvider(options =>
+                {
+                    options.ValidateScopes = true;
+                    options.ValidateOnBuild = true;
+                })
                 .ConfigureServices(services =>
                 {
                     services.UseServiceBus(config => config.ConnectionString = serviceBusConnection)
                         .RegisterProcessors(typeof(SampleServiceBusEventProcessor).Assembly)
                         .UseTransport<ServiceBusTransport>();
                 })
-                .UseKnightBus();
+                .UseKnightBus().Build();
 
 
-            var knightBusHost = builder.Build();
-            
             //Start the KnightBus Host, it will now connect to the ServiceBus and listen to the SampleServiceBusMessageMapping.QueueName
-            await knightBusHost.StartAsync(CancellationToken.None);
+            await knightBus.StartAsync(CancellationToken.None);
 
             //Initiate the client
             var protoClient = new KnightBus.Azure.ServiceBus.ServiceBus(new ServiceBusConfiguration(serviceBusConnection)
