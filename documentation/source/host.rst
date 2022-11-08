@@ -52,15 +52,14 @@ It's really easy to write your own custom Middleware, just implement the IMessag
 Logging
 -------
 
-You can bring your own logging framwork or use the supplied Serilog implementation in nuget KnightBus.Serilog. To use another framework simply implement the ILog interface from KnightBus.Core
+You can bring your own logging framwork or use the supplied Microsoft.Abstractions implementation.
 
 Dependency Injection
 --------------------
 
-KnightBus supports using your own IoC container or you can use the supplied SimpleInjector implementation in KnightBus.SimpleInjector.
+KnightBus supports using your own IoC container or you can use the supplied Microsoft.Abstractions implementation.
 
-The SimpleInjectorMessageProcessorProvider works together with the SimpleInjectorScopedLifeStyleMiddleware and gives you scoped access to resolving your MessageProcessors and injecting them with dependencies. 
-The SimpleInjectorScopedLifeStyleMiddleware creates a per-message scoped lifestyle.
+Messages are lifestyle scoped per-message.
 
 
 Singleton Locks
