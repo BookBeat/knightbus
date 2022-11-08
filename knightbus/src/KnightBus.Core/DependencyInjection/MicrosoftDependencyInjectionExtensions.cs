@@ -28,7 +28,7 @@ namespace KnightBus.Core.DependencyInjection
         /// </summary>
         public static IServiceCollection RegisterProcessors(this IServiceCollection services)
         {
-            return services.RegisterProcessors(Assembly.GetExecutingAssembly());
+            return services.RegisterProcessors(Assembly.GetCallingAssembly());
         }
         
         public static IServiceCollection RegisterProcessor<T>(this IServiceCollection services)

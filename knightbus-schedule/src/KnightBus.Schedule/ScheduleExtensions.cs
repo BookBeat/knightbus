@@ -18,5 +18,10 @@ namespace KnightBus.Schedule
             collection.RegisterGenericProcessor(typeof(IProcessSchedule<>), assembly);
             return collection;
         }
+        public static IServiceCollection RegisterSchedules(this IServiceCollection collection)
+        {
+            collection.RegisterGenericProcessor(typeof(IProcessSchedule<>), Assembly.GetCallingAssembly());
+            return collection;
+        }
     }
 }
