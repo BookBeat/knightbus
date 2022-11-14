@@ -1,10 +1,11 @@
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
+using KnightBus.Core.DependencyInjection;
 using KnightBus.Host.MessageProcessing.Factories;
 using KnightBus.Messages;
 using KnightBus.ProtobufNet;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using NUnit.Framework;
 
@@ -20,10 +21,9 @@ namespace KnightBus.Host.Tests.Unit
             var config = new Mock<ITransportConfiguration>();
             config.Setup(x => x.MessageSerializer).Returns(new MicrosoftJsonSerializer());
             var channel = new Mock<ITransportChannelFactory>();
-            channel.Setup(x => x.Middlewares).Returns(new List<IMessageProcessorMiddleware>());
             channel.Setup(x => x.CanCreate(typeof(TestCommand))).Returns(true);
             channel.Setup(x => x.Configuration).Returns(config.Object);
-            var starter = new TransportStarterFactory(new[] {channel.Object}, new HostConfiguration());
+            var starter = new TransportStarterFactory(new[] {channel.Object}, new HostConfiguration{DependencyInjection = new MicrosoftDependencyInjection(new ServiceCollection().BuildServiceProvider())});
             var factory = new CommandProcessorFactory();
             //act
             starter.CreateChannelReceiver(factory, typeof(IProcessCommand<TestCommand, TestMessageSettings>), typeof(JsonProcessor));
@@ -39,10 +39,9 @@ namespace KnightBus.Host.Tests.Unit
             var config = new Mock<ITransportConfiguration>();
             config.Setup(x => x.MessageSerializer).Returns(new MicrosoftJsonSerializer());
             var channel = new Mock<ITransportChannelFactory>();
-            channel.Setup(x => x.Middlewares).Returns(new List<IMessageProcessorMiddleware>());
             channel.Setup(x => x.CanCreate(typeof(ProtobufCommand))).Returns(true);
             channel.Setup(x => x.Configuration).Returns(config.Object);
-            var starter = new TransportStarterFactory(new[] {channel.Object}, new HostConfiguration());
+            var starter = new TransportStarterFactory(new[] {channel.Object}, new HostConfiguration{DependencyInjection = new MicrosoftDependencyInjection(new ServiceCollection().BuildServiceProvider())});
             var factory = new CommandProcessorFactory();
             //act
             starter.CreateChannelReceiver(factory, typeof(IProcessCommand<ProtobufCommand, TestMessageSettings>), typeof(ProtobufProcessor));

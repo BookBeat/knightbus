@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using System.Linq;
 using KnightBus.Core;
 using KnightBus.Core.DefaultMiddlewares;
+using KnightBus.Core.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace KnightBus.Host
 {
@@ -10,7 +12,7 @@ namespace KnightBus.Host
         private readonly IPipelineInformation _pipelineInformation;
         private readonly List<IMessageProcessorMiddleware> _middlewares = new List<IMessageProcessorMiddleware>();
 
-        public MiddlewarePipeline(IEnumerable<IMessageProcessorMiddleware> hostMiddlewares, IPipelineInformation pipelineInformation, ITransportChannelFactory transportChannelFactory, ILog log)
+        public MiddlewarePipeline(IEnumerable<IMessageProcessorMiddleware> hostMiddlewares, IPipelineInformation pipelineInformation, ILogger log)
         {
             _pipelineInformation = pipelineInformation;
 
@@ -25,12 +27,14 @@ namespace KnightBus.Host
                 _middlewares.Add(scopeProvider);
                 processorMiddlewares.Remove(scopeProvider);
             }
+            else
+            {
+                _middlewares.Add(new MicrosoftDependencyInjectionScopedLifeStyleMiddleware());
+            }
             
             _middlewares.Add(new DeadLetterMiddleware());
             //Add host-global middlewares
             _middlewares.AddRange(processorMiddlewares);
-            //Add transport middlewares
-            _middlewares.AddRange(transportChannelFactory.Middlewares);
         }
 
         public IMessageProcessor GetPipeline(IMessageProcessor baseProcessor)

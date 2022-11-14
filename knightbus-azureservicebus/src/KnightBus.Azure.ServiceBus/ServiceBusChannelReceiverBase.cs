@@ -5,6 +5,7 @@ using Azure.Messaging.ServiceBus;
 using Azure.Messaging.ServiceBus.Administration;
 using KnightBus.Core;
 using KnightBus.Messages;
+using Microsoft.Extensions.Logging;
 
 namespace KnightBus.Azure.ServiceBus
 {
@@ -13,16 +14,14 @@ namespace KnightBus.Azure.ServiceBus
     {
         private readonly IServiceBusConfiguration _configuration;
         private readonly IHostConfiguration _hostConfiguration;
-        private readonly object _lastActivityLock = new object();
         private readonly IMessageProcessor _processor;
         private readonly IMessageSerializer _serializer;
-        protected readonly ILog Log;
+        protected readonly ILogger Log;
         private CancellationToken _cancellationToken;
         private ServiceBusProcessor _client;
         private int _deadLetterLimit;
-        private DateTimeOffset _lastActivity;
-        protected IClientFactory ClientFactory;
-        protected ServiceBusAdministrationClient ManagementClient;
+        protected readonly IClientFactory ClientFactory;
+        protected readonly ServiceBusAdministrationClient ManagementClient;
 
         protected ServiceBusChannelReceiverBase(IProcessingSettings settings, IMessageSerializer serializer,
             IServiceBusConfiguration configuration, IHostConfiguration hostConfiguration, IMessageProcessor processor)
@@ -33,9 +32,8 @@ namespace KnightBus.Azure.ServiceBus
             _processor = processor;
             Settings = settings;
             Log = hostConfiguration.Log;
-            ClientFactory = configuration.ClientFactory;
+            ClientFactory = _hostConfiguration.DependencyInjection.GetInstance<IClientFactory>();
             ManagementClient = new ServiceBusAdministrationClient(configuration.ConnectionString);
-            _lastActivity = DateTimeOffset.UtcNow;
         }
 
         public IProcessingSettings Settings { get; set; }
@@ -53,7 +51,7 @@ namespace KnightBus.Azure.ServiceBus
                 _cancellationToken.WaitHandle.WaitOne();
                 try
                 {
-                    Log.Information($"Closing ServiceBus channel receiver for {typeof(T).Name}");
+                    Log.LogInformation($"Closing ServiceBus channel receiver for {typeof(T).Name}");
                     await _client.CloseAsync(CancellationToken.None);
                 }
                 catch (Exception)
@@ -61,24 +59,6 @@ namespace KnightBus.Azure.ServiceBus
                     //Swallow
                 }
             }, _cancellationToken);
-
-
-            // ReSharper disable once SuspiciousTypeConversion.Global
-            if (Settings is IRestartTransportOnIdle restartOnIdle)
-            {
-                Log.Information(
-                    $"Starting idle timeout check for {typeof(T).Name} with maximum allowed idle timespan: {restartOnIdle.IdleTimeout}");
-                Task.Run(async () =>
-                {
-                    while (!_cancellationToken.IsCancellationRequested)
-                    {
-                        await CheckIdleTime(restartOnIdle.IdleTimeout).ConfigureAwait(false);
-
-                        await Task.Delay(TimeSpan.FromSeconds(10), _cancellationToken)
-                            .ConfigureAwait(false);
-                    }
-                }, _cancellationToken);
-            }
 #pragma warning restore 4014
         }
 
@@ -92,69 +72,22 @@ namespace KnightBus.Azure.ServiceBus
             _client.ProcessErrorAsync += ClientOnProcessErrorAsync;
             await _client.StartProcessingAsync(_cancellationToken).ConfigureAwait(false);
         }
-
-        private async Task CheckIdleTime(TimeSpan idleTimeout)
-        {
-            lock (_lastActivityLock)
-            {
-                var timeSinceLastActivity = DateTimeOffset.UtcNow - _lastActivity;
-
-                if (timeSinceLastActivity < idleTimeout) return;
-
-                Log.Information(
-                    $"Last activity for {typeof(T).Name} was at: {_lastActivity} (maximum allowed idle timespan: {idleTimeout}), restarting");
-                _lastActivity = DateTimeOffset.UtcNow;
-            }
-
-            await RestartAsync().ConfigureAwait(false);
-        }
-
-        private async Task RestartAsync()
-        {
-            try
-            {
-                Log.Information($"Restarting {typeof(T).Name}");
-
-                await _client.StopProcessingAsync(_cancellationToken).ConfigureAwait(false);
-                _client.ProcessMessageAsync -= ClientOnProcessMessageAsync;
-                _client.ProcessErrorAsync -= ClientOnProcessErrorAsync;
-
-                await ClientFactory.DisposeAsync().ConfigureAwait(false);
-
-                ClientFactory = new ClientFactory(_configuration.ConnectionString);
-                ManagementClient = new ServiceBusAdministrationClient(_configuration.ConnectionString);
-
-                await InitializeAsync().ConfigureAwait(false);
-
-                Log.Information($"Successfully restarted {typeof(T).Name}");
-            }
-            catch (Exception e)
-            {
-                Log.Error(e, $"Failed to restart {typeof(T).Name}");
-                await RestartAsync().ConfigureAwait(false);
-            }
-        }
-
+        
         private async Task ClientOnProcessErrorAsync(ProcessErrorEventArgs arg)
         {
             if (arg.Exception is ServiceBusException { Reason: ServiceBusFailureReason.MessagingEntityNotFound })
             {
-                Log.Information($"{typeof(T).Name} not found. Creating.");
+                Log.LogInformation($"{typeof(T).Name} not found. Creating.");
                 await CreateMessagingEntity(_cancellationToken).ConfigureAwait(false);
             }
             else if (!(arg.Exception is OperationCanceledException))
-                Log.Error(arg.Exception, $"{typeof(T).Name}");
+                Log.LogError(arg.Exception, $"{typeof(T).Name}");
         }
 
         private async Task ClientOnProcessMessageAsync(ProcessMessageEventArgs arg)
         {
             try
             {
-                lock (_lastActivityLock)
-                {
-                    _lastActivity = DateTimeOffset.UtcNow;
-                }
-
                 var stateHandler = new ServiceBusMessageStateHandler<T>(arg, _serializer, _deadLetterLimit,
                     _hostConfiguration.DependencyInjection);
                 using var cts =
@@ -163,7 +96,7 @@ namespace KnightBus.Azure.ServiceBus
             }
             catch (Exception e)
             {
-                Log.Error(e, "ServiceBus OnMessage Failed");
+                Log.LogError(e, "ServiceBus OnMessage Failed");
             }
         }
 

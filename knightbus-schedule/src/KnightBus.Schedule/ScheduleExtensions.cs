@@ -1,27 +1,27 @@
 ﻿using System.Reflection;
 using KnightBus.Core;
+using KnightBus.Core.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace KnightBus.Schedule
 {
     public static class ScheduleExtensions
     {
-        public static IHostConfiguration UseScheduling(this IHostConfiguration configuration)
+        public static IServiceCollection UseScheduling(this IServiceCollection collection)
         {
-            var scheduler = new SchedulingPlugin(configuration);
-            configuration.AddPlugin(scheduler);
-            return configuration;
+            collection.AddPlugin<SchedulingPlugin>();
+            return collection;
         }
         
-        public static IHostConfiguration RegisterSchedules(this IHostConfiguration configuration, Assembly assembly)
+        public static IServiceCollection RegisterSchedules(this IServiceCollection collection, Assembly assembly)
         {
-            configuration.DependencyInjection.RegisterOpenGeneric(typeof(IProcessSchedule<>), assembly);
-            return configuration;
+            collection.RegisterGenericProcessor(typeof(IProcessSchedule<>), assembly);
+            return collection;
         }
-
-        public static IDependencyInjection RegisterSchedules(this IDependencyInjection dependencyInjection, Assembly assembly)
+        public static IServiceCollection RegisterSchedules(this IServiceCollection collection)
         {
-            dependencyInjection.RegisterOpenGeneric(typeof(IProcessSchedule<>), assembly);
-            return dependencyInjection;
+            collection.RegisterGenericProcessor(typeof(IProcessSchedule<>), Assembly.GetCallingAssembly());
+            return collection;
         }
     }
 }

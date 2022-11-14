@@ -1,6 +1,7 @@
 ﻿using System.Threading.Tasks;
 using FluentAssertions;
 using KnightBus.Core;
+using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
 using StackExchange.Redis;
@@ -12,12 +13,13 @@ namespace KnightBus.Redis.Tests.Unit
     {
         private Mock<IDatabase> _db;
         private RedisQueueClient<TestCommand> _target;
+        private ILogger _log = Mock.Of<ILogger>();
 
         [SetUp]
         public void Setup()
         {
             _db = new Mock<IDatabase>();
-            _target = new RedisQueueClient<TestCommand>(_db.Object, new MicrosoftJsonSerializer());
+            _target = new RedisQueueClient<TestCommand>(_db.Object, new MicrosoftJsonSerializer(), _log);
         }
 
         [Test]
@@ -33,7 +35,8 @@ namespace KnightBus.Redis.Tests.Unit
 
             //Assert
             messages.Length.Should().Be(messageCount);
-            _db.Verify(d => d.ListRightPopLeftPushAsync(It.IsAny<RedisKey>(), It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()), Times.AtLeastOnce);
+            _db.Verify(d => d.ListRightPopLeftPushAsync(It.IsAny<RedisKey>(), It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()),
+                Times.AtLeastOnce);
         }
 
         [Test]

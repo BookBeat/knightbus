@@ -13,10 +13,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Core.Tests.Unit",
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Host.Tests.Unit", "knightbus\tests\KnightBus.Host.Tests.Unit\KnightBus.Host.Tests.Unit.csproj", "{227165A5-9C2C-4F4A-ABB0-AFDF7F26A47B}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.SimpleInjector", "knightbus-simpleinjector\src\KnightBus.SimpleInjector\KnightBus.SimpleInjector.csproj", "{FEEB7C70-DEE9-47CA-A5F7-A6427F8C2163}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Serilog", "knightbus-serilog\src\KnightBus.Serilog\KnightBus.Serilog.csproj", "{3B4450C2-82CD-4BA0-BF4F-9B8D140662D3}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Azure.ServiceBus.Messages", "knightbus-azureservicebus\src\KnightBus.Azure.ServiceBus.Messages\KnightBus.Azure.ServiceBus.Messages.csproj", "{82F7F082-02F0-448E-B63A-1FC00B41AC02}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Azure.ServiceBus", "knightbus-azureservicebus\src\KnightBus.Azure.ServiceBus\KnightBus.Azure.ServiceBus.csproj", "{1153465A-C28E-4FEE-9D26-7A80114AB229}"
@@ -47,8 +43,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Redis", "Redis", "{09D121DD
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Examples.Redis", "knightbus\examples\KnightBus.Examples.Redis\KnightBus.Examples.Redis.csproj", "{04087FF9-1A26-4230-807F-135E452453C3}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Microsoft.DependencyInjection", "knightbus-microsoft-dependencyinjection\src\KnightBus.Microsoft.DependencyInjection\KnightBus.Microsoft.DependencyInjection.csproj", "{0CF87A75-F4E6-43E5-AD33-8F0190CC7E1C}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.SqlServer", "knightbus-sqlserver\src\KnightBus.SqlServer\KnightBus.SqlServer.csproj", "{F1E48797-D982-45B6-8974-27443653BD06}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.SqlServer.Tests.Integration", "knightbus-sqlserver\tests\KnightBus.SqlServer.Tests.Integration\KnightBus.SqlServer.Tests.Integration.csproj", "{4B4B81DE-F55A-41D0-8A81-ACDE0E6F8D70}"
@@ -64,8 +58,6 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Redis.Tests.Integration", "knightbus-redis\tests\KnightBus.Redis.Tests.Integration\KnightBus.Redis.Tests.Integration.csproj", "{BD6A7EC2-E5A7-48C9-ADA4-0E3A824D8717}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Redis.Tests.Unit", "knightbus-redis\tests\KnightBus.Redis.Tests.Unit\KnightBus.Redis.Tests.Unit.csproj", "{495A52A9-3268-4744-BCD4-BEEECDD525F7}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.DependencyInjection.Tests.Unit", "knightbus\tests\KnightBus.DependencyInjection.Tests.Unit\KnightBus.DependencyInjection.Tests.Unit.csproj", "{A99FCB87-B55A-42D7-9ED8-229A03321E2D}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.NewRelic", "knightbus-newrelic\src\KnightBus.NewRelic\KnightBus.NewRelic.csproj", "{30C220D7-0F23-4742-9856-3D6466A1857A}"
 EndProject
@@ -122,14 +114,6 @@ Global
 		{227165A5-9C2C-4F4A-ABB0-AFDF7F26A47B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{227165A5-9C2C-4F4A-ABB0-AFDF7F26A47B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{227165A5-9C2C-4F4A-ABB0-AFDF7F26A47B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{FEEB7C70-DEE9-47CA-A5F7-A6427F8C2163}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{FEEB7C70-DEE9-47CA-A5F7-A6427F8C2163}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{FEEB7C70-DEE9-47CA-A5F7-A6427F8C2163}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{FEEB7C70-DEE9-47CA-A5F7-A6427F8C2163}.Release|Any CPU.Build.0 = Release|Any CPU
-		{3B4450C2-82CD-4BA0-BF4F-9B8D140662D3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{3B4450C2-82CD-4BA0-BF4F-9B8D140662D3}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{3B4450C2-82CD-4BA0-BF4F-9B8D140662D3}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{3B4450C2-82CD-4BA0-BF4F-9B8D140662D3}.Release|Any CPU.Build.0 = Release|Any CPU
 		{82F7F082-02F0-448E-B63A-1FC00B41AC02}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{82F7F082-02F0-448E-B63A-1FC00B41AC02}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{82F7F082-02F0-448E-B63A-1FC00B41AC02}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -170,10 +154,6 @@ Global
 		{04087FF9-1A26-4230-807F-135E452453C3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{04087FF9-1A26-4230-807F-135E452453C3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{04087FF9-1A26-4230-807F-135E452453C3}.Release|Any CPU.Build.0 = Release|Any CPU
-		{0CF87A75-F4E6-43E5-AD33-8F0190CC7E1C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{0CF87A75-F4E6-43E5-AD33-8F0190CC7E1C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{0CF87A75-F4E6-43E5-AD33-8F0190CC7E1C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{0CF87A75-F4E6-43E5-AD33-8F0190CC7E1C}.Release|Any CPU.Build.0 = Release|Any CPU
 		{F1E48797-D982-45B6-8974-27443653BD06}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{F1E48797-D982-45B6-8974-27443653BD06}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F1E48797-D982-45B6-8974-27443653BD06}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -206,10 +186,6 @@ Global
 		{495A52A9-3268-4744-BCD4-BEEECDD525F7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{495A52A9-3268-4744-BCD4-BEEECDD525F7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{495A52A9-3268-4744-BCD4-BEEECDD525F7}.Release|Any CPU.Build.0 = Release|Any CPU
-		{A99FCB87-B55A-42D7-9ED8-229A03321E2D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A99FCB87-B55A-42D7-9ED8-229A03321E2D}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A99FCB87-B55A-42D7-9ED8-229A03321E2D}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A99FCB87-B55A-42D7-9ED8-229A03321E2D}.Release|Any CPU.Build.0 = Release|Any CPU
 		{30C220D7-0F23-4742-9856-3D6466A1857A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{30C220D7-0F23-4742-9856-3D6466A1857A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{30C220D7-0F23-4742-9856-3D6466A1857A}.Release|Any CPU.ActiveCfg = Release|Any CPU

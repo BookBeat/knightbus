@@ -26,7 +26,7 @@ namespace KnightBus.Core.DefaultMiddlewares
                     if (!string.IsNullOrEmpty(attachmentId))
                     {
                         attachment = await _attachmentProvider.GetAttachmentAsync(queueName, attachmentId, cancellationToken).ConfigureAwait(false);
-                        var message = (ICommandWithAttachment)await messageStateHandler.GetMessageAsync().ConfigureAwait(false);
+                        var message = (ICommandWithAttachment) messageStateHandler.GetMessage();
                         message.Attachment = attachment;
                     }
                 }

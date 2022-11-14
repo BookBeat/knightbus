@@ -13,7 +13,7 @@ namespace KnightBus.Core
             {
                 return stringAttachments.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
             }
-            return new string[0];
+            return Array.Empty<string>();
         }
     }
 }

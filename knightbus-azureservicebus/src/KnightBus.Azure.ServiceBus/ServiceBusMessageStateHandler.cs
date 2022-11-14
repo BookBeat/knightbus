@@ -47,9 +47,9 @@ namespace KnightBus.Azure.ServiceBus
         {
             await _sbMessage.DeadLetterByDeliveryLimitAsync(_processMessage, deadLetterLimit).ConfigureAwait(false);
         }
-        public Task<T> GetMessageAsync()
+        public T GetMessage()
         {
-            return Task.FromResult(_message);
+            return _message;
         }
 
         public IDependencyInjection MessageScope { get; set; }

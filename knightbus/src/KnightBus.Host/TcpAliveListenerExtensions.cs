@@ -1,14 +1,24 @@
 ﻿using KnightBus.Core;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace KnightBus.Host
 {
+
     public static class TcpAliveListenerExtensions
     {
-        public static IHostConfiguration UseTcpAliveListener(this IHostConfiguration configuration, int port)
+        public static IServiceCollection UseTcpAliveListener(this IServiceCollection collection, int port)
         {
-            var listener = new TcpAliveListenerPlugin(configuration, port);
-            configuration.AddPlugin(listener);
-            return configuration;
+            collection.AddSingleton<ITcpAliveListenerConfiguration>(_ => new TcpAliveListenerConfiguration(port));
+            collection.AddPlugin<TcpAliveListenerPlugin>();
+            return collection;
+        }
+
+        public static IServiceCollection UseTcpAliveListener(this IServiceCollection collection,
+            ITcpAliveListenerConfiguration configuration)
+        {
+            collection.AddSingleton(_ => configuration);
+            collection.AddPlugin<TcpAliveListenerPlugin>();
+            return collection;
         }
     }
 }

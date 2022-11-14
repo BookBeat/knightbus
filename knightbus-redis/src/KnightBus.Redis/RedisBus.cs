@@ -25,22 +25,18 @@ namespace KnightBus.Redis
     public class RedisBus : IRedisBus
     {
         private readonly IConnectionMultiplexer _multiplexer;
-        private readonly IRedisBusConfiguration _configuration;
-        private IMessageAttachmentProvider _attachmentProvider;
+        private readonly IRedisConfiguration _configuration;
+        private readonly IMessageAttachmentProvider _attachmentProvider;
         private readonly ConcurrentDictionary<Type, IMessageSerializer> _serializers;
 
-        public RedisBus(string connectionString) : this(new RedisConfiguration(connectionString))
+        public RedisBus(string connectionString) : this(new RedisConfiguration(connectionString), ConnectionMultiplexer.Connect(connectionString))
         { }
-        public RedisBus(IRedisBusConfiguration configuration)
+        public RedisBus(IRedisConfiguration configuration, IConnectionMultiplexer multiplexer, IMessageAttachmentProvider attachmentProvider = null)
         {
-            _multiplexer = ConnectionMultiplexer.Connect(configuration.ConnectionString);
+            _multiplexer = multiplexer;
             _configuration = configuration;
-            _serializers = new ConcurrentDictionary<Type, IMessageSerializer>();
-        }
-
-        public void EnableAttachments(IMessageAttachmentProvider attachmentProvider)
-        {
             _attachmentProvider = attachmentProvider;
+            _serializers = new ConcurrentDictionary<Type, IMessageSerializer>();
         }
 
         public Task SendAsync<T>(T message) where T : IRedisCommand

@@ -58,55 +58,21 @@ Using a hosted service will allow graceful(ish) shutdown of running instance and
 
     class Program
     {
-        static void Main(string[] args)
-        {
-                var host = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder(args)
-                    .UseKnightBus(new KnightBusHost()
-                        //Multiple active transports
-                        .UseTransport(new ServiceBusTransport("sb-connection"))
-                        .UseTransport(new StorageBusTransport("storage-connection"))
-                            .Configure(configuration => configuration
-                                //Register our message processors without IoC using the standard provider
-                                //Register our message processors without IoC using the standard provider
-                                .UseDependencyInjection(new StandardDependecyInjection()
-                                    .RegisterProcessor(new SampleServiceBusMessageProcessor())
-                                    .RegisterProcessor(new SampleServiceBusEventProcessor()))
-                    )).Build();
-
-                try
-                {
-                    host.Run();
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e);
-                }
-        }
-    }
-
-Starting the KnightBus Host Standalone
---------------------------------------
-
-.. code-block:: c#
-
-    class Program
-    {
         static async Task Main(string[] args)
         {
-            var serviceBusConnection = "your-connection-string";
-
-            var knightBusHost = new KnightBusHost()
-                //Enable the ServiceBus Transport
-                .UseTransport(new ServiceBusTransport(serviceBusConnection))
-                .Configure(configuration => configuration
-                    //Register our message processors without IoC using the standard provider
-                    //Register our message processors without IoC using the standard provider
-                    .UseDependencyInjection(new StandardDependecyInjection()
-                        .RegisterProcessor(new SampleServiceBusMessageProcessor())
-                        .RegisterProcessor(new SampleServiceBusEventProcessor()))
-                );
-
-            await knightBusHost.StartAndBlockAsync(CancellationToken.None);
+                var host = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder(args)
+                .ConfigureServices(services =>
+                {
+                    //Multiple active transports
+                    services.UseServiceBus(config => config.ConnectionString = "sb-connection")
+                            .UseTransport<ServiceBusTransport>()
+                            .UseBlobStorage(config => config.ConnectionString = "storage-connection")
+                            .UseTransport<StorageTransport>()
+                            .RegisterProcessors();
+                })
+                .UseKnightBus().Build();                
+    
+                await host.StartAsync(CancellationToken.None);
         }
     }
 

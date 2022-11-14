@@ -2,6 +2,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Messages;
+using Microsoft.Extensions.Logging;
 
 namespace KnightBus.Core.DefaultMiddlewares
 {
@@ -34,7 +35,7 @@ namespace KnightBus.Core.DefaultMiddlewares
             }
         }
 
-        private async Task RenewLock<T>(TimeSpan interval, TimeSpan duration, CancellationToken cancellationToken, IMessageLockHandler<T> lockHandler, ILog log) where T : class, IMessage
+        private async Task RenewLock<T>(TimeSpan interval, TimeSpan duration, CancellationToken cancellationToken, IMessageLockHandler<T> lockHandler, ILogger log) where T : class, IMessage
         {
             while (!cancellationToken.IsCancellationRequested)
             {
@@ -47,7 +48,7 @@ namespace KnightBus.Core.DefaultMiddlewares
                 catch (Exception e)
                 {
                     //This will happen often since the message can have been removed or cancellation thrown
-                    log.Debug(e, $"Failed to renew lock for {typeof(T).FullName}");
+                    log.LogDebug(e, $"Failed to renew lock for {typeof(T).FullName}");
                 }
             }
         }

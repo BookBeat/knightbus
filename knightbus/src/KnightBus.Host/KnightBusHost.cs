@@ -1,12 +1,12 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
-using KnightBus.Core.Exceptions;
+using KnightBus.Core.DependencyInjection;
 using KnightBus.Host.MessageProcessing;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace KnightBus.Host
 {
@@ -14,19 +14,13 @@ namespace KnightBus.Host
     {
         private IHostConfiguration _configuration;
         private MessageProcessorLocator _locator;
-        private readonly List<ITransport> _transports = new List<ITransport>();
-        public TimeSpan ShutdownGracePeriod { get; set; }= TimeSpan.FromMinutes(1);
-        private CancellationTokenSource _shutdownToken = new CancellationTokenSource();
+        private readonly CancellationTokenSource _shutdownToken = new CancellationTokenSource();
 
-        public KnightBusHost()
+        public KnightBusHost(IHostConfiguration configuration, IServiceProvider provider, ILogger<KnightBusHost> logger)
         {
-            _configuration = new HostConfiguration();
-        }
-
-        public KnightBusHost UseTransport(ITransport transport)
-        {
-            _transports.Add(transport);
-            return this;
+            _configuration = configuration;
+            configuration.DependencyInjection = new MicrosoftDependencyInjection(provider);
+            configuration.Log = logger;
         }
 
         public KnightBusHost Configure(Func<IHostConfiguration, IHostConfiguration> configuration)
@@ -34,6 +28,7 @@ namespace KnightBus.Host
             _configuration = configuration(_configuration);
             return this;
         }
+
         /// <summary>
         /// Starts the bus and wires all listeners
         /// </summary>
@@ -42,15 +37,13 @@ namespace KnightBus.Host
         {
             var combinedToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _shutdownToken.Token);
             ConsoleWriter.WriteLine("KnightBus starting");
-            if(_configuration.DependencyInjection == null)
-                throw new DependencyInjectionMissingException();
 
-            if(_configuration.DependencyInjection is IIsolatedDependencyInjection isolated)
-                isolated.Build();
-                
-            if (_transports.Any())
+            var transports = _configuration.DependencyInjection.GetInstances<ITransport>().ToArray();
+            
+            if (transports.Any())
             {
-                _locator = new MessageProcessorLocator(_configuration, _transports.SelectMany(transport => transport.TransportChannelFactories).ToArray());
+                _locator = new MessageProcessorLocator(_configuration,
+                    transports.SelectMany(transport => transport.TransportChannelFactories).ToArray());
                 var channelReceivers = _locator.CreateReceivers().ToList();
                 ConsoleWriter.Write("Starting receivers [");
                 foreach (var receiver in channelReceivers)
@@ -58,34 +51,34 @@ namespace KnightBus.Host
                     await receiver.StartAsync(combinedToken.Token).ConfigureAwait(false);
                     Console.Write(".");
                 }
+
                 Console.WriteLine("]");
             }
             else
             {
                 ConsoleWriter.WriteLine("No transports found");
             }
-            
-            if (_configuration.Plugins.Any())
-            {
-                foreach (var plugin in _configuration.Plugins)
-                {
-                    await plugin.StartAsync(combinedToken.Token).ConfigureAwait(false);
-                }
-            }
-            else
-            {
-                ConsoleWriter.WriteLine("No plugins found");
-            }
 
+            foreach (var plugin in _configuration.DependencyInjection.GetInstances<IPlugin>())
+            {
+                await plugin.StartAsync(combinedToken.Token).ConfigureAwait(false);
+            }
             ConsoleWriter.WriteLine("KnightBus started");
         }
 
         public async Task StopAsync(CancellationToken cancellationToken)
         {
-            _configuration.Log.Information("KnightBus received stop signal, initiating shutdown... ");
+            _configuration.Log.LogInformation("KnightBus received stop signal, initiating shutdown... ");
             _shutdownToken.Cancel();
-            await Task.Delay(ShutdownGracePeriod, cancellationToken).ConfigureAwait(false);
-            _configuration.Log.Information("KnightBus received stopped");
+            try
+            {
+                await Task.Delay(_configuration.ShutdownGracePeriod, cancellationToken).ConfigureAwait(false);
+            }
+            catch (TaskCanceledException)
+            {
+                //Swallow
+            }
+            _configuration.Log.LogInformation("KnightBus shutdown completed");
             _shutdownToken.Dispose();
         }
 

@@ -4,14 +4,12 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
-using KnightBus.Core;
 using KnightBus.Core.DefaultMiddlewares;
-using KnightBus.Core.Tests.Unit;
 using KnightBus.Messages;
 using Moq;
 using NUnit.Framework;
 
-namespace KnightBus.Host.Tests.Unit.Middleware
+namespace KnightBus.Core.Tests.Unit
 {
     [TestFixture]
     public class AttachmentMiddlewareTests
@@ -25,7 +23,7 @@ namespace KnightBus.Host.Tests.Unit.Middleware
             var stream = new MemoryStream(Encoding.UTF8.GetBytes("this is a stream"));
             var attachment = new MessageAttachment("test.txt", "text/plain", stream);
             var stateHandler = new Mock<IMessageStateHandler<AttachmentCommand>>();
-            stateHandler.Setup(x => x.GetMessageAsync()).ReturnsAsync(message);
+            stateHandler.Setup(x => x.GetMessage()).Returns(message);
             stateHandler.Setup(x=> x.MessageProperties).Returns(new Dictionary<string, string>{ {AttachmentUtility.AttachmentKey, "89BDF3DB-896C-448D-A84E-872CBA8DBC9F" }});
             var attachmentProvider = new Mock<IMessageAttachmentProvider>();
             attachmentProvider.Setup(x => x.GetAttachmentAsync(AutoMessageMapper.GetQueueName<AttachmentCommand>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -49,7 +47,7 @@ namespace KnightBus.Host.Tests.Unit.Middleware
             var stream = new MemoryStream(Encoding.UTF8.GetBytes("this is a stream"));
             var attachment = new MessageAttachment("test.txt", "text/plain", stream);
             var stateHandler = new Mock<IMessageStateHandler<AttachmentCommand>>();
-            stateHandler.Setup(x => x.GetMessageAsync()).ReturnsAsync(message);
+            stateHandler.Setup(x => x.GetMessage()).Returns(message);
             stateHandler.Setup(x => x.MessageProperties).Returns(new Dictionary<string, string> { { AttachmentUtility.AttachmentKey, "89BDF3DB-896C-448D-A84E-872CBA8DBC9F" } });
             var attachmentProvider = new Mock<IMessageAttachmentProvider>();
             attachmentProvider.Setup(x => x.GetAttachmentAsync(AutoMessageMapper.GetQueueName<AttachmentCommand>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -69,7 +67,7 @@ namespace KnightBus.Host.Tests.Unit.Middleware
             var message = new TestCommand();
             var nextProcessor = new Mock<IMessageProcessor>();
             var stateHandler = new Mock<IMessageStateHandler<TestCommand>>();
-            stateHandler.Setup(x => x.GetMessageAsync()).ReturnsAsync(message);
+            stateHandler.Setup(x => x.GetMessage()).Returns(message);
             var attachmentProvider = new Mock<IMessageAttachmentProvider>();
             attachmentProvider.Setup(x => x.GetAttachmentAsync(AutoMessageMapper.GetQueueName<TestCommand>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(default(IMessageAttachment));

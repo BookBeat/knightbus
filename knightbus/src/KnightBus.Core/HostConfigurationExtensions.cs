@@ -1,35 +1,37 @@
 using KnightBus.Core.Singleton;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace KnightBus.Core
 {
     public static class HostConfigurationExtensions
     {
-        public static IHostConfiguration UseLog(this IHostConfiguration configuration, ILog log)
+
+        public static IServiceCollection UseTransport<T>(this IServiceCollection services) where T: class, ITransport
         {
-            configuration.Log = log;
-            return configuration;
+            services.AddSingleton<ITransport, T>();
+            return services;
         }
-        public static IHostConfiguration AddMiddleware(this IHostConfiguration configuration, IMessageProcessorMiddleware middleware)
+        public static IServiceCollection AddMiddleware<T>(this IServiceCollection services) where T: class, IMessageProcessorMiddleware
         {
-            configuration.Middlewares.Add(middleware);
-            return configuration;
+            services.AddSingleton<IMessageProcessorMiddleware, T>();
+            return services;
+        }
+        public static IServiceCollection AddMiddleware(this IServiceCollection services, IMessageProcessorMiddleware middleware)
+        {
+            services.AddSingleton(middleware);
+            return services;
         }
 
-        public static IHostConfiguration AddPlugin(this IHostConfiguration configuration, IPlugin plugin)
+        public static IServiceCollection AddPlugin<T>(this IServiceCollection services) where T : class, IPlugin
         {
-            configuration.Plugins.Add(plugin);
-            return configuration;
+            services.AddSingleton<IPlugin, T>();
+            return services;
         }
 
-        public static IHostConfiguration UseSingletonLocks(this IHostConfiguration configuration, ISingletonLockManager lockManager)
+        public static IServiceCollection UseSingletonLocks(this IServiceCollection services, ISingletonLockManager lockManager)
         {
-            configuration.SingletonLockManager = lockManager;
-            return configuration;
-        }
-        public static IHostConfiguration UseDependencyInjection(this IHostConfiguration configuration, IDependencyInjection provider)
-        {
-            configuration.DependencyInjection = provider;
-            return configuration;
+            services.AddSingleton(lockManager);
+            return services;
         }
     }
 }

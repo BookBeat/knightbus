@@ -11,28 +11,39 @@
 
 <img src="documentation/media/images/knightbus-logo.png" alt="KnightBus Logo" width="300"/>
 
-
-| Package | NuGet        |
-| ------- | ------------ |
-| [KnightBus.Host](https://www.nuget.org/packages/KnightBus.Host/) | [![KnightBus.Host](https://img.shields.io/nuget/v/KnightBus.Host.svg)](https://www.nuget.org/packages/KnightBus.Host/) |
-| [KnightBus.Core](https://www.nuget.org/packages/KnightBus.Core/) | [![KnightBus.Core](https://img.shields.io/nuget/v/KnightBus.Core.svg)](https://www.nuget.org/packages/KnightBus.Core/) |
-| [KnightBus.Messages](https://www.nuget.org/packages/KnightBus.Messages/) | [![KnightBus.Messages](https://img.shields.io/nuget/v/KnightBus.Messages.svg)](https://www.nuget.org/packages/KnightBus.Messages/) |
-| [KnightBus.Azure.ServiceBus](https://www.nuget.org/packages/KnightBus.Azure.ServiceBus/) | [![KnightBus.Azure.ServiceBus](https://img.shields.io/nuget/v/KnightBus.Azure.ServiceBus.svg)](https://www.nuget.org/packages/KnightBus.Azure.ServiceBus/) |
+## Transports
+| Package                                                                                                    | NuGet                                                                                                                                                                                 |
+|------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [KnightBus.Azure.ServiceBus](https://www.nuget.org/packages/KnightBus.Azure.ServiceBus/)                   | [![KnightBus.Azure.ServiceBus](https://img.shields.io/nuget/v/KnightBus.Azure.ServiceBus.svg)](https://www.nuget.org/packages/KnightBus.Azure.ServiceBus/)                            |
 | [KnightBus.Azure.ServiceBus.Messages](https://www.nuget.org/packages/KnightBus.Azure.ServiceBus.Messages/) | [![KnightBus.Azure.ServiceBus.Messages](https://img.shields.io/nuget/v/KnightBus.Azure.ServiceBus.Messages.svg)](https://www.nuget.org/packages/KnightBus.Azure.ServiceBus.Messages/) |
-| [KnightBus.Azure.Storage](https://www.nuget.org/packages/KnightBus.Azure.Storage/) | [![KnightBus.Azure.Storage](https://img.shields.io/nuget/v/KnightBus.Azure.Storage.svg)](https://www.nuget.org/packages/KnightBus.Azure.Storage/) |
-| [KnightBus.Azure.Storage.Messages](https://www.nuget.org/packages/KnightBus.Azure.Storage.Messages/) | [![KnightBus.Azure.Storage.Messages](https://img.shields.io/nuget/v/KnightBus.Azure.Storage.Messages.svg)](https://www.nuget.org/packages/KnightBus.Azure.Storage.Messages/) |
-| [KnightBus.Redis](https://www.nuget.org/packages/KnightBus.Redis/) | [![KnightBus.Redis](https://img.shields.io/nuget/v/KnightBus.Redis.svg)](https://www.nuget.org/packages/KnightBus.Redis/) |
-| [KnightBus.Redis.Messages](https://www.nuget.org/packages/KnightBus.Redis.Messages/) | [![KnightBus.Redis.Messages](https://img.shields.io/nuget/v/KnightBus.Redis.Messages.svg)](https://www.nuget.org/packages/KnightBus.Redis.Messages/) |
-| [KnightBus.Serilog](https://www.nuget.org/packages/KnightBus.Serilog/) | [![KnightBus.Serilog](https://img.shields.io/nuget/v/KnightBus.Serilog.svg)](https://www.nuget.org/packages/KnightBus.Serilog/) |
-| [KnightBus.SimpleInjector](https://www.nuget.org/packages/KnightBus.SimpleInjector/) | [![KnightBus.SimpleInjector](https://img.shields.io/nuget/v/KnightBus.SimpleInjector.svg)](https://www.nuget.org/packages/KnightBus.SimpleInjector/) |
-| [KnightBus.Microsoft.DependencyInjection](https://www.nuget.org/packages/KnightBus.Microsoft.DependencyInjection/) | [![KnightBus.Microsoft.DependencyInjection](https://img.shields.io/nuget/v/KnightBus.Microsoft.DependencyInjection.svg)](https://www.nuget.org/packages/KnightBus.Microsoft.DependencyInjection/) |
-| [KnightBus.ApplicationInsights](https://www.nuget.org/packages/KnightBus.ApplicationInsights/) | [![KnightBus.ApplicationInsights](https://img.shields.io/nuget/v/KnightBus.ApplicationInsights.svg)](https://www.nuget.org/packages/KnightBus.ApplicationInsights/) |
-| [KnightBus.SqlServer](https://www.nuget.org/packages/KnightBus.SqlServer/) | [![KnightBus.SqlServer](https://img.shields.io/nuget/v/KnightBus.SqlServer.svg)](https://www.nuget.org/packages/KnightBus.SqlServer/) |
-| [KnightBus.Schedule](https://www.nuget.org/packages/KnightBus.Schedule/) | [![KnightBus.Schedule](https://img.shields.io/nuget/v/KnightBus.Schedule.svg)](https://www.nuget.org/packages/KnightBus.Schedule/) |
-| [KnightBus.NewRelic](https://www.nuget.org/packages/KnightBus.NewRelic/) | [![KnightBus.NewRelic](https://img.shields.io/nuget/v/KnightBus.NewRelic.svg)](https://www.nuget.org/packages/KnightBus.NewRelic/) |
-| [KnightBus.ProtobufNet](https://www.nuget.org/packages/KnightBus.ProtobufNet/) | [![KnightBus.ProtobufNet](https://img.shields.io/nuget/v/KnightBus.ProtobufNet.svg)](https://www.nuget.org/packages/KnightBus.ProtobufNet/) |
-| [KnightBus.Newtonsoft](https://www.nuget.org/packages/KnightBus.Newtonsoft/) | [![KnightBus.Newtonsoft](https://img.shields.io/nuget/v/KnightBus.Newtonsoft.svg)](https://www.nuget.org/packages/KnightBus.Newtonsoft/) |
-| [KnightBus.MessagePack](https://www.nuget.org/packages/KnightBus.MessagePack/) | [![KnightBus.MessagePack](https://img.shields.io/nuget/v/KnightBus.MessagePack.svg)](https://www.nuget.org/packages/KnightBus.MessagePack/) |
+| [KnightBus.Azure.Storage](https://www.nuget.org/packages/KnightBus.Azure.Storage/)                         | [![KnightBus.Azure.Storage](https://img.shields.io/nuget/v/KnightBus.Azure.Storage.svg)](https://www.nuget.org/packages/KnightBus.Azure.Storage/)                                     |
+| [KnightBus.Azure.Storage.Messages](https://www.nuget.org/packages/KnightBus.Azure.Storage.Messages/)       | [![KnightBus.Azure.Storage.Messages](https://img.shields.io/nuget/v/KnightBus.Azure.Storage.Messages.svg)](https://www.nuget.org/packages/KnightBus.Azure.Storage.Messages/)          |
+| [KnightBus.Redis](https://www.nuget.org/packages/KnightBus.Redis/)                                         | [![KnightBus.Redis](https://img.shields.io/nuget/v/KnightBus.Redis.svg)](https://www.nuget.org/packages/KnightBus.Redis/)                                                             |
+| [KnightBus.Redis.Messages](https://www.nuget.org/packages/KnightBus.Redis.Messages/)                       | [![KnightBus.Redis.Messages](https://img.shields.io/nuget/v/KnightBus.Redis.Messages.svg)](https://www.nuget.org/packages/KnightBus.Redis.Messages/)                                  |
+| [KnightBus.Nats](https://www.nuget.org/packages/KnightBus.Nats/)                                           | [![KnightBus.Nats](https://img.shields.io/nuget/v/KnightBus.Nats.svg)](https://www.nuget.org/packages/KnightBus.Nats/)                                                                |
+| [KnightBus.Nats.Messages](https://www.nuget.org/packages/KnightBus.Nats.Messages/)                         | [![KnightBus.Nats.Messages](https://img.shields.io/nuget/v/KnightBus.Nats.Messages.svg)](https://www.nuget.org/packages/KnightBus.Nats.Messages/)                                     |
+
+## Monitoring
+| Package                                                                                                    | NuGet                                                                                                                                                                                 |
+|------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [KnightBus.ApplicationInsights](https://www.nuget.org/packages/KnightBus.ApplicationInsights/)             | [![KnightBus.ApplicationInsights](https://img.shields.io/nuget/v/KnightBus.ApplicationInsights.svg)](https://www.nuget.org/packages/KnightBus.ApplicationInsights/)                   |
+| [KnightBus.NewRelic](https://www.nuget.org/packages/KnightBus.NewRelic/)                                   | [![KnightBus.NewRelic](https://img.shields.io/nuget/v/KnightBus.NewRelic.svg)](https://www.nuget.org/packages/KnightBus.NewRelic/)                                                    |
+
+## Serialization
+| Package                                                                                                    | NuGet                                                                                                                                                                                 |
+|------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [KnightBus.ProtobufNet](https://www.nuget.org/packages/KnightBus.ProtobufNet/)                             | [![KnightBus.ProtobufNet](https://img.shields.io/nuget/v/KnightBus.ProtobufNet.svg)](https://www.nuget.org/packages/KnightBus.ProtobufNet/)                                           |
+| [KnightBus.Newtonsoft](https://www.nuget.org/packages/KnightBus.Newtonsoft/)                               | [![KnightBus.Newtonsoft](https://img.shields.io/nuget/v/KnightBus.Newtonsoft.svg)](https://www.nuget.org/packages/KnightBus.Newtonsoft/)                                              |
+| [KnightBus.MessagePack](https://www.nuget.org/packages/KnightBus.MessagePack/)                             | [![KnightBus.MessagePack](https://img.shields.io/nuget/v/KnightBus.MessagePack.svg)](https://www.nuget.org/packages/KnightBus.MessagePack/)                                           |
+
+## Framework
+| Package                                                                                                    | NuGet                                                                                                                                                                                 |
+|------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [KnightBus.Host](https://www.nuget.org/packages/KnightBus.Host/)                                           | [![KnightBus.Host](https://img.shields.io/nuget/v/KnightBus.Host.svg)](https://www.nuget.org/packages/KnightBus.Host/)                                                                |
+| [KnightBus.Core](https://www.nuget.org/packages/KnightBus.Core/)                                           | [![KnightBus.Core](https://img.shields.io/nuget/v/KnightBus.Core.svg)](https://www.nuget.org/packages/KnightBus.Core/)                                                                |
+| [KnightBus.Messages](https://www.nuget.org/packages/KnightBus.Messages/)                                   | [![KnightBus.Messages](https://img.shields.io/nuget/v/KnightBus.Messages.svg)](https://www.nuget.org/packages/KnightBus.Messages/)                                                    |
+| [KnightBus.SqlServer](https://www.nuget.org/packages/KnightBus.SqlServer/)                                 | [![KnightBus.SqlServer](https://img.shields.io/nuget/v/KnightBus.SqlServer.svg)](https://www.nuget.org/packages/KnightBus.SqlServer/)                                                 |
+| [KnightBus.Schedule](https://www.nuget.org/packages/KnightBus.Schedule/)                                   | [![KnightBus.Schedule](https://img.shields.io/nuget/v/KnightBus.Schedule.svg)](https://www.nuget.org/packages/KnightBus.Schedule/)                                                    |
 
 ## Message Processing
 ```csharp
@@ -55,28 +66,21 @@ public class CommandProcessor : IProcessCommand<SampleCommand, SampleSettings>,
 ```csharp
 class Program
 {
-    static void Main(string[] args)
+    static async Task Main(string[] args)
     {
             var host = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder(args)
-            .UseKnightBus(new KnightBusHost()
-            //Multiple active transports
-            .UseTransport(new ServiceBusTransport("sb-connection"))
-            .UseTransport(new StorageBusTransport("storage-connection"))
-                .Configure(configuration => configuration
-                    //Register our message processors without IoC using the standard provider
-                    .UseDependencyInjection(new StandardDependecyInjection()
-                        .RegisterProcessor(new SampleServiceBusMessageProcessor())
-                        .RegisterProcessor(new SampleServiceBusEventProcessor()))
-                )).Build();
+            .ConfigureServices(services =>
+            {
+                //Multiple active transports
+                services.UseServiceBus(config => config.ConnectionString = "sb-connection")
+                        .UseTransport<ServiceBusTransport>()
+                        .UseBlobStorage(config => config.ConnectionString = "storage-connection")
+                        .UseTransport<StorageTransport>()
+                        .RegisterProcessors();
+            })
+            .UseKnightBus().Build();                
 
-            try
-            {
-            host.Run();
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-            }
+            await host.StartAsync(CancellationToken.None);
     }
 }
 ```
@@ -108,6 +112,24 @@ public class CustomThrottlingMiddleware : IMessageProcessorMiddleware
             }
         }
     }
+```
+
+## Write your own Plugin
+
+KnightBus supports custom plugins. Examples of existing plugins are: TcpAliveListener (K8S liveness probes) and Scheduling (Chron triggers). 
+
+```csharp
+public class CustomPlugin : IPlugin
+{
+    public CustomPlugin(ISomeDependency dependency, ILogger<CustomPlugin> logger)
+    {        
+    }
+
+    public async Task StartAsync(CancellationToken cancellationToken)
+    {
+        // Start the plugin
+    }
+}
 ```
 
 ## Documentation

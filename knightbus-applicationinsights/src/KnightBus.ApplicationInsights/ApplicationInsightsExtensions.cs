@@ -2,16 +2,17 @@
 using Microsoft.ApplicationInsights.DependencyCollector;
 using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.ApplicationInsights.Extensibility.PerfCounterCollector.QuickPulse;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace KnightBus.ApplicationInsights
 {
     public static class ApplicationInsightsExtensions
     {
-        public static IHostConfiguration UseApplicationInsights(this IHostConfiguration hostConfiguration, TelemetryConfiguration telemetryConfiguration)
+        public static IServiceCollection UseApplicationInsights(this IServiceCollection services, TelemetryConfiguration telemetryConfiguration)
         {
             InitializeDependencyTracking(telemetryConfiguration);
-            hostConfiguration.AddMiddleware(new ApplicationInsightsMessageMiddleware(telemetryConfiguration));
-            return hostConfiguration;
+            services.AddMiddleware(new ApplicationInsightsMessageMiddleware(telemetryConfiguration));
+            return services;
         }
 
         public static IHostConfiguration EnableLiveMetricsStream(this IHostConfiguration hostConfiguration, TelemetryConfiguration telemetryConfiguration)

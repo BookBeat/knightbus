@@ -1,10 +1,9 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using KnightBus.Core;
 using KnightBus.Messages;
 
-namespace KnightBus.DependencyInjection.Tests.Unit
+namespace KnightBus.Core.Tests.Unit
 {
     public interface ITestService
     {

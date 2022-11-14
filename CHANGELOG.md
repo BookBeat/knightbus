@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## 2022-11-08
+
+### KnightBus.*
+
+#### Multiple major breaking changes
+* Replaced all DI with Microsoft.Abstractions
+* Replaced all Logging with Microsoft.Abstractions
+* Removed packages:
+  * KnightBus.Serilog
+  * KnightBus.SimpleInjector
+  * KnightBus.Microsoft.DependencyInjection
+
 ## 2021-12-21
 
 ### KnightBus.SqlServer 9.0.0

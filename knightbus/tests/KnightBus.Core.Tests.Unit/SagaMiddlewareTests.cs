@@ -5,6 +5,7 @@ using FluentAssertions;
 using KnightBus.Core.Sagas;
 using KnightBus.Core.Sagas.Exceptions;
 using KnightBus.Messages;
+using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
 
@@ -26,7 +27,7 @@ namespace KnightBus.Core.Tests.Unit
             di.Setup(x => x.GetInstance<object>(typeof(IProcessCommand<SagaStartMessage, Settings>))).Returns(new Saga());
 
             var hostConfiguration = new Mock<IHostConfiguration>();
-            hostConfiguration.Setup(x => x.Log).Returns(Mock.Of<ILog>());
+            hostConfiguration.Setup(x => x.Log).Returns(Mock.Of<ILogger>());
             hostConfiguration.Setup(x => x.DependencyInjection).Returns(di.Object); // TODO: setup dependency injection
             var messageStateHandler = new Mock<IMessageStateHandler<SagaStartMessage>>();
             messageStateHandler.Setup(x => x.MessageScope).Returns(di.Object);
@@ -57,7 +58,7 @@ namespace KnightBus.Core.Tests.Unit
             di.Setup(x => x.GetInstance<object>(typeof(IProcessCommand<SagaStartMessage, Settings>))).Returns(new SagaDuplicateWithDuplicate(countable.Object));
 
             var hostConfiguration = new Mock<IHostConfiguration>();
-            hostConfiguration.Setup(x => x.Log).Returns(Mock.Of<ILog>());
+            hostConfiguration.Setup(x => x.Log).Returns(Mock.Of<ILogger>());
             hostConfiguration.Setup(x => x.DependencyInjection).Returns(di.Object); // TODO: setup dependency injection
             var messageStateHandler = new Mock<IMessageStateHandler<SagaStartMessage>>();
             messageStateHandler.Setup(x => x.MessageScope).Returns(di.Object);
@@ -89,7 +90,7 @@ namespace KnightBus.Core.Tests.Unit
             di.Setup(x => x.GetInstance<object>(typeof(IProcessCommand<SagaStartMessage, Settings>))).Returns(new SagaDuplicateWithDuplicate(countable.Object, true));
 
             var hostConfiguration = new Mock<IHostConfiguration>();
-            hostConfiguration.Setup(x => x.Log).Returns(Mock.Of<ILog>());
+            hostConfiguration.Setup(x => x.Log).Returns(Mock.Of<ILogger>());
             hostConfiguration.Setup(x => x.DependencyInjection).Returns(di.Object); // TODO: setup dependency injection
             var messageStateHandler = new Mock<IMessageStateHandler<SagaStartMessage>>();
             messageStateHandler.Setup(x => x.MessageScope).Returns(di.Object);
@@ -125,7 +126,7 @@ namespace KnightBus.Core.Tests.Unit
             di.Setup(x => x.GetInstance<object>(typeof(IProcessCommand<SagaStartMessage, Settings>))).Returns(saga);
 
             var hostConfiguration = new Mock<IHostConfiguration>();
-            hostConfiguration.Setup(x => x.Log).Returns(Mock.Of<ILog>());
+            hostConfiguration.Setup(x => x.Log).Returns(Mock.Of<ILogger>());
             hostConfiguration.Setup(x => x.DependencyInjection).Returns(di.Object);
 
             var messageStateHandler = new Mock<IMessageStateHandler<SagaStartMessage>>();

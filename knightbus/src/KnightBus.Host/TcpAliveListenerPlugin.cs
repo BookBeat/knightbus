@@ -4,12 +4,13 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
+using Microsoft.Extensions.Logging;
 
 namespace KnightBus.Host
 {
-    internal class TcpAliveListenerPlugin : IPlugin
+    public class TcpAliveListenerPlugin : IPlugin
     {
-        private readonly ILog _log;
+        private readonly ILogger _log;
         private readonly int _port;
 
         // ReSharper disable once NotAccessedField.Local
@@ -17,10 +18,10 @@ namespace KnightBus.Host
         private Task _listenerTask;
 #pragma warning restore IDE0052 // Remove unread private members
 
-        public TcpAliveListenerPlugin(IHostConfiguration hostConfiguration, int port)
+        public TcpAliveListenerPlugin(ITcpAliveListenerConfiguration configuration, ILogger<TcpAliveListenerPlugin> logger)
         {
-            _log = hostConfiguration.Log;
-            _port = port;
+            _log = logger;
+            _port = configuration.Port;
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
@@ -31,18 +32,18 @@ namespace KnightBus.Host
             {
                 var listener = new TcpListener(IPAddress.Any, _port);
 
-                _log.Information($"Starting tcp listener on port {_port}");
+                _log.LogInformation($"Starting tcp listener on port {_port}");
                 await Task.Run(() => listener.Start(), cancellationToken);
-                _log.Information("Tcp listener started");
+                _log.LogInformation("Tcp listener started");
 
                 try
                 {
                     while (!cancellationToken.IsCancellationRequested)
                     {
-                        _log.Debug("Waiting for a connection...");
+                        _log.LogDebug("Waiting for a connection...");
                         using (var client = await listener.AcceptTcpClientAsync().ConfigureAwait(false))
                         {
-                            _log.Debug("Received connection");
+                            _log.LogDebug("Received connection");
 
                             var stream = client.GetStream();
                             var msg = System.Text.Encoding.ASCII.GetBytes(DateTimeOffset.UtcNow.ToString());
@@ -52,7 +53,7 @@ namespace KnightBus.Host
                             }
                             catch (Exception e) when (!(e is OperationCanceledException))
                             {
-                                _log.Error(e, "Failed to write to stream");
+                                _log.LogError(e, "Failed to write to stream");
                             }
 
                             client.Close();
@@ -61,7 +62,7 @@ namespace KnightBus.Host
                 }
                 catch (Exception e) when (!(e is TaskCanceledException))
                 {
-                    _log.Error(e, "TcpAliveListenerPlugin crashed");
+                    _log.LogError(e, "TcpAliveListenerPlugin crashed");
                 }
                 finally
                 {

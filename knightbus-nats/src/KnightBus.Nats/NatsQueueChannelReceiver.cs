@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
 using KnightBus.Messages;
+using Microsoft.Extensions.Logging;
 using NATS.Client;
 
 namespace KnightBus.Nats
@@ -13,17 +14,17 @@ namespace KnightBus.Nats
         private readonly IMessageSerializer _serializer;
         private readonly IHostConfiguration _hostConfiguration;
         private readonly IMessageProcessor _processor;
-        private readonly INatsBusConfiguration _configuration;
+        private readonly INatsConfiguration _configuration;
         private readonly IEventSubscription _subscription;
         private const string CommandQueueGroup = "qg";
         public IProcessingSettings Settings { get; set; }
         private readonly ConnectionFactory _factory;
-        private readonly ILog _log;
+        private readonly ILogger _log;
         private CancellationToken _cancellationToken;
         private IConnection _connection;
         private readonly SemaphoreSlim _maxConcurrent;
 
-        public NatsQueueChannelReceiver(IProcessingSettings settings, IMessageSerializer serializer, IHostConfiguration hostConfiguration, IMessageProcessor processor, INatsBusConfiguration configuration, IEventSubscription subscription)
+        public NatsQueueChannelReceiver(IProcessingSettings settings, IMessageSerializer serializer, IHostConfiguration hostConfiguration, IMessageProcessor processor, INatsConfiguration configuration, IEventSubscription subscription)
         {
             Settings = settings;
             _serializer = serializer;
@@ -59,7 +60,7 @@ namespace KnightBus.Nats
                 //Cancellation requested
                 try
                 {
-                    _log.Information($"Closing Nats queue consumer for {typeof(T).Name}");
+                    _log.LogInformation($"Closing Nats queue consumer for {typeof(T).Name}");
                     subscription.Drain();
                     _connection.Close();
                 }
@@ -95,7 +96,7 @@ namespace KnightBus.Nats
                 }
                 catch (Exception e)
                 {
-                    _log.Error(e, "Error to read message from Nats");
+                    _log.LogError(e, "Error to read message from Nats");
                 }
 #pragma warning restore CS4014
             }
@@ -111,7 +112,7 @@ namespace KnightBus.Nats
             }
             catch (Exception e)
             {
-                _log.Error(e, "Nats OnMessageHandler Error");
+                _log.LogError(e, "Nats OnMessageHandler Error");
             }
         }
     }

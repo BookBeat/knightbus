@@ -4,51 +4,52 @@ using System.Threading.Tasks;
 using KnightBus.Azure.ServiceBus;
 using KnightBus.Azure.ServiceBus.Messages;
 using KnightBus.Core;
+using KnightBus.Core.DependencyInjection;
 using KnightBus.Host;
 using KnightBus.Messages;
 using KnightBus.ProtobufNet;
+using Microsoft.Extensions.Hosting;
 using ProtoBuf;
 
 namespace KnightBus.Examples.Azure.ServiceBus
 {
     class Program
     {
-        static void Main(string[] args)
-        {
-            MainAsync().GetAwaiter().GetResult();
-        }
-
-        static async Task MainAsync()
+        static async Task Main(string[] args)
         {
             var serviceBusConnection = "your-connection-string";
 
-            var configuration = new ServiceBusConfiguration(serviceBusConnection)
-                {MessageSerializer = new MicrosoftJsonSerializer()};
-            
-            var knightBusHost = new KnightBusHost()
-                //Enable the ServiceBus Transport
-                .UseTransport(new ServiceBusTransport(configuration))
-                .Configure(configuration => configuration
-                    //Register our message processors without IoC using the standard provider
-                    .UseDependencyInjection(new StandardDependecyInjection()
-                        .RegisterProcessor(new SampleServiceBusMessageProcessor())
-                        .RegisterProcessor(new SampleServiceBusEventProcessor()))
-                );
+            var knightBus = global::Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
+                .UseDefaultServiceProvider(options =>
+                {
+                    options.ValidateScopes = true;
+                    options.ValidateOnBuild = true;
+                })
+                .ConfigureServices(services =>
+                {
+                    services.UseServiceBus(config => config.ConnectionString = serviceBusConnection)
+                        .RegisterProcessors(typeof(SampleServiceBusEventProcessor).Assembly)
+                        .UseTransport<ServiceBusTransport>();
+                })
+                .UseKnightBus().Build();
+
 
             //Start the KnightBus Host, it will now connect to the ServiceBus and listen to the SampleServiceBusMessageMapping.QueueName
-            await knightBusHost.StartAsync(new CancellationToken());
+            await knightBus.StartAsync(CancellationToken.None);
 
             //Initiate the client
-            var protoClient = new KnightBus.Azure.ServiceBus.ServiceBus(new ServiceBusConfiguration(serviceBusConnection){MessageSerializer = new ProtobufNetSerializer()});
-            var jsonClient = new KnightBus.Azure.ServiceBus.ServiceBus(new ServiceBusConfiguration(serviceBusConnection){MessageSerializer = new MicrosoftJsonSerializer()});
+            var protoClient = new KnightBus.Azure.ServiceBus.ServiceBus(new ServiceBusConfiguration(serviceBusConnection)
+                {MessageSerializer = new ProtobufNetSerializer()});
+            var jsonClient = new KnightBus.Azure.ServiceBus.ServiceBus(new ServiceBusConfiguration(serviceBusConnection));
             //Send some Messages and watch them print in the console
             for (var i = 0; i < 10; i++)
             {
-                await protoClient.SendAsync(new SampleServiceBusMessage { Message = $"Hello from command {i}" });
+                await protoClient.SendAsync(new SampleServiceBusMessage {Message = $"Hello from command {i}"});
             }
+
             for (var i = 0; i < 10; i++)
             {
-                await jsonClient.PublishEventAsync(new SampleServiceBusEvent { Message = $"Hello from event {i}" });
+                await jsonClient.PublishEventAsync(new SampleServiceBusEvent {Message = $"Hello from event {i}"});
             }
 
 
@@ -58,21 +59,21 @@ namespace KnightBus.Examples.Azure.ServiceBus
         [ProtoContract]
         class SampleServiceBusMessage : IServiceBusCommand
         {
-            [ProtoMember(1)]
-            public string Message { get; set; }
+            [ProtoMember(1)] public string Message { get; set; }
         }
-        
+
         class SampleServiceBusEvent : IServiceBusEvent
         {
             public string Message { get; set; }
         }
 
-        class SampleServiceBusMessageMapping : IMessageMapping<SampleServiceBusMessage>, IServiceBusCreationOptions
+        class SampleServiceBusMessageMapping : IMessageMapping<SampleServiceBusMessage>, IServiceBusCreationOptions, ICustomMessageSerializer
         {
             public string QueueName => "your-queue";
             public bool EnablePartitioning => true;
             public bool SupportOrdering => false;
             public bool EnableBatchedOperations => true;
+            public IMessageSerializer MessageSerializer { get; } = new ProtobufNetSerializer();
         }
 
         class SampleServiceBusEventMapping : IMessageMapping<SampleServiceBusEvent>
@@ -97,7 +98,7 @@ namespace KnightBus.Examples.Azure.ServiceBus
             }
         }
 
-        class SampleServiceBusEventProcessor : 
+        class SampleServiceBusEventProcessor :
             IProcessEvent<SampleServiceBusEvent, EventSubscriptionTwo, SomeProcessingSetting>,
             IProcessBeforeDeadLetter<SampleServiceBusEvent>
         {
@@ -118,6 +119,7 @@ namespace KnightBus.Examples.Azure.ServiceBus
         {
             public string Name => "subscription-1";
         }
+
         class EventSubscriptionTwo : IEventSubscription<SampleServiceBusEvent>
         {
             public string Name => "subscription-2";
@@ -130,14 +132,13 @@ namespace KnightBus.Examples.Azure.ServiceBus
             public TimeSpan MessageLockTimeout => TimeSpan.FromMinutes(5);
             public int DeadLetterDeliveryLimit => 2;
         }
-        
-        class ProtoBufProcessingSetting : IProcessingSettings, ICustomMessageSerializer
+
+        class ProtoBufProcessingSetting : IProcessingSettings
         {
             public int MaxConcurrentCalls => 1;
             public int PrefetchCount => 1;
             public TimeSpan MessageLockTimeout => TimeSpan.FromMinutes(5);
             public int DeadLetterDeliveryLimit => 2;
-            public IMessageSerializer MessageSerializer => new ProtobufNetSerializer();
         }
     }
 }

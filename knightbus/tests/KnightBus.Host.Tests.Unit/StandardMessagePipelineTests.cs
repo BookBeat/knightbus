@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -5,6 +6,7 @@ using KnightBus.Core;
 using KnightBus.Core.DefaultMiddlewares;
 using KnightBus.Host.MessageProcessing.Processors;
 using KnightBus.Host.Tests.Unit.ExampleProcessors;
+using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
 
@@ -16,7 +18,7 @@ namespace KnightBus.Host.Tests.Unit
         private IMessageProcessor _messageProcessor;
         private Mock<IMessageStateHandler<TestCommandOne>> _stateHandler;
         private Mock<ICountable> _countable;
-        private Mock<ILog> _logger;
+        private Mock<ILogger> _logger;
         private Mock<IDependencyInjection> _messageHandlerProvider;
         private Mock<IPipelineInformation> _pipelineInformation;
         private Mock<IHostConfiguration> _hostConfiguration;
@@ -26,7 +28,7 @@ namespace KnightBus.Host.Tests.Unit
         public void Setup()
         {
             _messageHandlerProvider = new Mock<IDependencyInjection>();
-            _logger = new Mock<ILog>();
+            _logger = new Mock<ILogger>();
             _stateHandler = new Mock<IMessageStateHandler<TestCommandOne>>();
             _countable = new Mock<ICountable>();
             _messageHandlerProvider.Setup(x => x.GetScope()).Returns(_messageHandlerProvider.Object);
@@ -43,9 +45,7 @@ namespace KnightBus.Host.Tests.Unit
             {
                 new ThrottlingMiddleware(1)
             };
-            var transportConfiguration = new Mock<ITransportChannelFactory>();
-            transportConfiguration.Setup(x => x.Middlewares).Returns(new List<IMessageProcessorMiddleware>());
-            var pipeline = new MiddlewarePipeline(middlewares, _pipelineInformation.Object, transportConfiguration.Object, _logger.Object);
+            var pipeline = new MiddlewarePipeline(middlewares, _pipelineInformation.Object, _logger.Object);
             _messageProcessor = pipeline.GetPipeline(new MessageProcessor(typeof(MultipleCommandProcessor)));
         }
 
@@ -55,7 +55,7 @@ namespace KnightBus.Host.Tests.Unit
             //arrange
             _stateHandler.Setup(x => x.DeliveryCount).Returns(1);
             _stateHandler.Setup(x => x.DeadLetterDeliveryLimit).Returns(1);
-            _stateHandler.Setup(x => x.GetMessageAsync()).ReturnsAsync(new TestCommandOne());
+            _stateHandler.Setup(x => x.GetMessage()).Returns(new TestCommandOne());
             //act
             await _messageProcessor.ProcessAsync(_stateHandler.Object, CancellationToken.None);
             //assert
@@ -67,7 +67,7 @@ namespace KnightBus.Host.Tests.Unit
         public async Task Should_deadletter_message()
         {
             //arrange
-            _stateHandler.Setup(x => x.GetMessageAsync()).ReturnsAsync(new TestCommandOne());
+            _stateHandler.Setup(x => x.GetMessage()).Returns(new TestCommandOne());
             _stateHandler.Setup(x => x.DeliveryCount).Returns(2);
             _stateHandler.Setup(x => x.DeadLetterDeliveryLimit).Returns(1);
             //act
@@ -82,7 +82,7 @@ namespace KnightBus.Host.Tests.Unit
             //arrange
             _stateHandler.Setup(x => x.DeliveryCount).Returns(1);
             _stateHandler.Setup(x => x.DeadLetterDeliveryLimit).Returns(1);
-            _stateHandler.Setup(x => x.GetMessageAsync()).ReturnsAsync(new TestCommandOne { Throw = true });
+            _stateHandler.Setup(x => x.GetMessage()).Returns(new TestCommandOne { Throw = true });
             //act
             await _messageProcessor.ProcessAsync(_stateHandler.Object, CancellationToken.None);
             //assert
@@ -95,11 +95,17 @@ namespace KnightBus.Host.Tests.Unit
             //arrange
             _stateHandler.Setup(x => x.DeliveryCount).Returns(1);
             _stateHandler.Setup(x => x.DeadLetterDeliveryLimit).Returns(1);
-            _stateHandler.Setup(x => x.GetMessageAsync()).ReturnsAsync(new TestCommandOne { Throw = true });
+            _stateHandler.Setup(x => x.GetMessage()).Returns(new TestCommandOne { Throw = true });
             //act
             await _messageProcessor.ProcessAsync(_stateHandler.Object, CancellationToken.None);
             //assert
-            _logger.Verify(x => x.Error(It.IsAny<TestException>(), "Error processing message {@TestCommandOne}", It.IsAny<TestCommandOne>()), Times.Once);
+            _logger.Verify(logger => logger.Log(
+                    It.Is<LogLevel>(logLevel => logLevel == LogLevel.Error),
+                    It.Is<EventId>(eventId => eventId.Id == 0),
+                    It.Is<It.IsAnyType>((@object, @type) => @object.ToString().StartsWith("Error processing message")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
         }
     }
 }

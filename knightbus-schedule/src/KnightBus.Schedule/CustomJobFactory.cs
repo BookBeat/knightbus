@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using KnightBus.Core;
 using KnightBus.Core.Singleton;
+using Microsoft.Extensions.Logging;
 using Quartz;
 using Quartz.Simpl;
 using Quartz.Spi;
@@ -14,7 +15,7 @@ namespace KnightBus.Schedule
     {
         private readonly ConcurrentDictionary<Type, IJob> _jobs = new ConcurrentDictionary<Type, IJob>();
 
-        internal void AddJob(Type settingsType, IDependencyInjection dependencyInjection, ILog log, ISingletonLockManager singletonLockManager)
+        internal void AddJob(Type settingsType, IDependencyInjection dependencyInjection, ILogger log, ISingletonLockManager singletonLockManager)
         {
             var jobType = typeof(JobExecutor<>).MakeGenericType(settingsType);
             var jobExecutor = (IJob)Activator.CreateInstance(jobType, log, singletonLockManager, dependencyInjection);

@@ -1,10 +1,10 @@
-using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Azure.Messaging.ServiceBus;
 using Azure.Messaging.ServiceBus.Administration;
 using KnightBus.Core;
 using KnightBus.Messages;
+using Microsoft.Extensions.Logging;
 
 namespace KnightBus.Azure.ServiceBus
 {
@@ -54,7 +54,7 @@ namespace KnightBus.Azure.ServiceBus
             }
             catch (ServiceBusException e)
             {
-                Log.Error(e, "Failed to create topic {TopicName}", topicName);
+                Log.LogError(e, "Failed to create topic {TopicName}", topicName);
                 throw;
             }
 
@@ -71,7 +71,7 @@ namespace KnightBus.Azure.ServiceBus
             }
             catch (ServiceBusException e)
             {
-                Log.Error(e, "Failed to create subscription {TopicName} {SubscriptionName}", topicName, _subscription.Name);
+                Log.LogError(e, "Failed to create subscription {TopicName} {SubscriptionName}", topicName, _subscription.Name);
                 throw;
             }
         }

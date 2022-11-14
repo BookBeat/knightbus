@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using KnightBus.Core;
 using KnightBus.Messages;
 using KnightBus.Redis.Messages;
+using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
 namespace KnightBus.Redis
@@ -109,14 +110,14 @@ namespace KnightBus.Redis
             }
             catch (Exception e)
             {
-                _hostConfiguration.Log.Error(e, "Redis message pump error");
+                _hostConfiguration.Log.LogError(e, "Redis message pump error");
                 return false;
             }
         }
 
         private async Task ProcessMessageAsync(RedisMessage<T> redisMessage, CancellationToken cancellationToken)
         {
-            var stateHandler = new RedisMessageStateHandler<T>(ConnectionMultiplexer, _redisConfiguration, redisMessage, _settings.DeadLetterDeliveryLimit, _hostConfiguration.DependencyInjection);
+            var stateHandler = new RedisMessageStateHandler<T>(ConnectionMultiplexer, _redisConfiguration, redisMessage, _settings.DeadLetterDeliveryLimit, _hostConfiguration.DependencyInjection, _hostConfiguration.Log);
             await _processor.ProcessAsync(stateHandler, cancellationToken).ConfigureAwait(false);
         }
     }

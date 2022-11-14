@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
 using KnightBus.Core.Singleton;
+using Microsoft.Extensions.Logging;
 
 namespace KnightBus.Host.Singleton
 {
@@ -10,7 +11,7 @@ namespace KnightBus.Host.Singleton
     {
         private readonly IChannelReceiver _channelReceiver;
         private readonly ISingletonLockManager _lockManager;
-        private readonly ILog _log;
+        private readonly ILogger _log;
         private SingletonTimerScope _singletonScope;
         private readonly string _lockId;
         public IProcessingSettings Settings { get; set; }
@@ -20,7 +21,7 @@ namespace KnightBus.Host.Singleton
         private bool _lockPollingEnabled = false;
         private Task _pollingLoop;
 
-        public SingletonChannelReceiver(IChannelReceiver channelReceiver, ISingletonLockManager lockManager, ILog log)
+        public SingletonChannelReceiver(IChannelReceiver channelReceiver, ISingletonLockManager lockManager, ILogger log)
         {
             _channelReceiver = channelReceiver;
             _lockManager = lockManager;
@@ -59,7 +60,7 @@ namespace KnightBus.Host.Singleton
             {
                 var linkedTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                 _singletonScope = new SingletonTimerScope(_log, lockHandle, true, LockRefreshInterval, linkedTokenSource);
-                _log.Information("Starting Singleton Processor with name {ProcessorName}", _lockId);
+                _log.LogInformation("Starting Singleton Processor with name {ProcessorName}", _lockId);
                 await _channelReceiver.StartAsync(linkedTokenSource.Token).ConfigureAwait(false);
                 _lockPollingEnabled = false;
 
@@ -71,7 +72,7 @@ namespace KnightBus.Host.Singleton
                     if (!cancellationToken.IsCancellationRequested)
                     {
                         _lockPollingEnabled = true;
-                        _log.Information("Singleton Processor with name {ProcessorName} lost its lock", _lockId);
+                        _log.LogInformation("Singleton Processor with name {ProcessorName} lost its lock", _lockId);
                     }
 
                 }, cancellationToken).ContinueWith(t => linkedTokenSource.Dispose());

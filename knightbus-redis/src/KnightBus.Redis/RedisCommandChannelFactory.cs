@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using KnightBus.Core;
 using KnightBus.Messages;
 using KnightBus.Redis.Messages;
@@ -11,15 +10,14 @@ namespace KnightBus.Redis
     {
         private readonly IConnectionMultiplexer _connectionMultiplexer;
 
-        public RedisCommandChannelFactory(RedisConfiguration configuration, IConnectionMultiplexer connectionMultiplexer)
+        public RedisCommandChannelFactory(IRedisConfiguration configuration, IConnectionMultiplexer connectionMultiplexer)
         {
             _connectionMultiplexer = connectionMultiplexer;
             Configuration = configuration;
         }
 
         public ITransportConfiguration Configuration { get; set; }
-        public IList<IMessageProcessorMiddleware> Middlewares { get; } = new List<IMessageProcessorMiddleware>();
-        
+
         public IChannelReceiver Create(Type messageType, IEventSubscription subscription, IProcessingSettings processingSettings, IMessageSerializer serializer, IHostConfiguration configuration, IMessageProcessor processor)
         {
             var queueReaderType = typeof(RedisCommandChannelReceiver<>).MakeGenericType(messageType);

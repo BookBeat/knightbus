@@ -1,19 +1,20 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace KnightBus.Core.Singleton
 {
     public class SingletonTimerScope : IDisposable
     {
-        private readonly ILog _log;
+        private readonly ILogger _log;
         private readonly ISingletonLockHandle _lockHandle;
         private readonly bool _autoRelease; //clock drift makes triggers unstable for singleton use if the function is fast
         private readonly TimeSpan _renewalInterval;
         private readonly CancellationTokenSource _cts;
         private Task _runningTask;
 
-        public SingletonTimerScope(ILog log, ISingletonLockHandle lockHandle, bool autoRelease, TimeSpan renewalInterval, CancellationTokenSource  cancellationTokenSource)
+        public SingletonTimerScope(ILogger log, ISingletonLockHandle lockHandle, bool autoRelease, TimeSpan renewalInterval, CancellationTokenSource  cancellationTokenSource)
         {
             _log = log;
             _lockHandle = lockHandle;
@@ -73,7 +74,7 @@ namespace KnightBus.Core.Singleton
             ;
             if (_lockHandle != null && _autoRelease)
             {
-                _log.Information("Releasing lock {LockHandle}", _lockHandle);
+                _log.LogInformation("Releasing lock {LockHandle}", _lockHandle);
                 _lockHandle.ReleaseAsync(CancellationToken.None).GetAwaiter().GetResult();
             }
         }

@@ -7,7 +7,7 @@ namespace KnightBus.Redis
     {
         public RedisTransport(string connectionString) : this(new RedisConfiguration(connectionString))
         { }
-        public RedisTransport(RedisConfiguration configuration)
+        public RedisTransport(IRedisConfiguration configuration)
         {
             var multiplexer = ConnectionMultiplexer.Connect(configuration.ConnectionString);
             TransportChannelFactories = new ITransportChannelFactory[]
@@ -23,16 +23,6 @@ namespace KnightBus.Redis
             foreach (var channelFactory in TransportChannelFactories)
             {
                 channelFactory.Configuration = configuration;
-            }
-
-            return this;
-        }
-
-        public ITransport UseMiddleware(IMessageProcessorMiddleware middleware)
-        {
-            foreach (var channelFactory in TransportChannelFactories)
-            {
-                channelFactory.Middlewares.Add(middleware);
             }
 
             return this;

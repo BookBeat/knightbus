@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using KnightBus.Core;
 using KnightBus.Messages;
 using KnightBus.Redis.Messages;
+using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
 namespace KnightBus.Redis
@@ -13,10 +14,10 @@ namespace KnightBus.Redis
         private readonly RedisQueueClient<T> _queueClient;
         private readonly RedisMessage<T> _redisMessage;
 
-        public RedisMessageStateHandler(IConnectionMultiplexer connection, RedisConfiguration configuration, RedisMessage<T> redisMessage, int deadLetterDeliveryLimit, IDependencyInjection messageScope)
+        public RedisMessageStateHandler(IConnectionMultiplexer connection, RedisConfiguration configuration, RedisMessage<T> redisMessage, int deadLetterDeliveryLimit, IDependencyInjection messageScope, ILogger logger)
         {
             _redisMessage = redisMessage;
-            _queueClient = new RedisQueueClient<T>(connection.GetDatabase(configuration.DatabaseId), configuration.MessageSerializer);
+            _queueClient = new RedisQueueClient<T>(connection.GetDatabase(configuration.DatabaseId), configuration.MessageSerializer, logger);
             DeadLetterDeliveryLimit = deadLetterDeliveryLimit;
             MessageScope = messageScope;
         }
@@ -45,9 +46,9 @@ namespace KnightBus.Redis
             return _queueClient.DeadletterMessageAsync(_redisMessage, DeadLetterDeliveryLimit);
         }
 
-        public Task<T> GetMessageAsync()
+        public T GetMessage()
         {
-            return Task.FromResult(_redisMessage.Message);
+            return _redisMessage.Message;
         }
 
         public IDependencyInjection MessageScope { get; set; }

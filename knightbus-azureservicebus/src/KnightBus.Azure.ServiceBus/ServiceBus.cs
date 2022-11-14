@@ -52,15 +52,11 @@ namespace KnightBus.Azure.ServiceBus
 
         internal IClientFactory ClientFactory { get; set; }
 
-        public void EnableAttachments(IMessageAttachmentProvider attachmentProvider)
-        {
-            _attachmentProvider = attachmentProvider;
-        }
-
-        public ServiceBus(IServiceBusConfiguration config)
+        public ServiceBus(IServiceBusConfiguration config, IMessageAttachmentProvider attachmentProvider = null)
         {
             ClientFactory = new ClientFactory(config.ConnectionString);
             _configuration = config;
+            _attachmentProvider = attachmentProvider;
             _serializers = new ConcurrentDictionary<Type, IMessageSerializer>();
         }
 

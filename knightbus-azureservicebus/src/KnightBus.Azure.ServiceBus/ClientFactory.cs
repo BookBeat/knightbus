@@ -28,6 +28,10 @@ namespace KnightBus.Azure.ServiceBus
             _serviceBusClient = new ServiceBusClient(connectionString);
         }
 
+        public ClientFactory(IServiceBusConfiguration configuration):this(configuration.ConnectionString)
+        {
+        }
+
         private ServiceBusSender CreateQueueClient<T>() where T : IMessage
         {
             var queueName = AutoMessageMapper.GetQueueName<T>();

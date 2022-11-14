@@ -1,5 +1,6 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace KnightBus.Core.Singleton
 {
@@ -7,7 +8,7 @@ namespace KnightBus.Core.Singleton
     {
         string LeaseId { get; }
         string LockId { get; }
-        Task<bool> RenewAsync(ILog log, CancellationToken cancellationToken);
+        Task<bool> RenewAsync(ILogger log, CancellationToken cancellationToken);
         Task ReleaseAsync(CancellationToken cancellationToken);
     }
 }
