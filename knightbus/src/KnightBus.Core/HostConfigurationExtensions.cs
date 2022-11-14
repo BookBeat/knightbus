@@ -27,6 +27,12 @@ namespace KnightBus.Core
             services.AddSingleton<IPlugin, T>();
             return services;
         }
+        
+        public static IServiceCollection AddPlugin<T>(this IServiceCollection services, T plugin) where T : class, IPlugin
+        {
+            services.AddSingleton<IPlugin>(plugin);
+            return services;
+        }
 
         public static IServiceCollection UseSingletonLocks(this IServiceCollection services, ISingletonLockManager lockManager)
         {
