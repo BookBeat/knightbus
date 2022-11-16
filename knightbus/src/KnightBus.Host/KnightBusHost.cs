@@ -18,9 +18,9 @@ namespace KnightBus.Host
 
         public KnightBusHost(IHostConfiguration configuration, IServiceProvider provider, ILogger<KnightBusHost> logger)
         {
-            _configuration = configuration;
             configuration.DependencyInjection = new MicrosoftDependencyInjection(provider);
             configuration.Log = logger;
+            _configuration = configuration;
         }
 
         public KnightBusHost Configure(Func<IHostConfiguration, IHostConfiguration> configuration)
