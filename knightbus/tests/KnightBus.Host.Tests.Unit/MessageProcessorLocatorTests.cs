@@ -9,6 +9,7 @@ using KnightBus.Host.Singleton;
 using KnightBus.Host.Tests.Unit.ExampleProcessors;
 using KnightBus.Messages;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
 
@@ -38,7 +39,8 @@ namespace KnightBus.Host.Tests.Unit
             
             var locator = new MessageProcessorLocator(new HostConfiguration
             {
-                DependencyInjection = new MicrosoftDependencyInjection(collection.BuildServiceProvider())
+                DependencyInjection = new MicrosoftDependencyInjection(collection.BuildServiceProvider()),
+                Log = Mock.Of<ILogger>()
                 
             }, new[]{ _queueStarterFactory.Object });
             _queueStarterFactory.Setup(x => x.CanCreate(typeof(TestCommand))).Returns(true);
@@ -61,7 +63,8 @@ namespace KnightBus.Host.Tests.Unit
             
             var locator = new MessageProcessorLocator(new HostConfiguration
             {
-                DependencyInjection = new MicrosoftDependencyInjection(collection.BuildServiceProvider())
+                DependencyInjection = new MicrosoftDependencyInjection(collection.BuildServiceProvider()),
+                Log = Mock.Of<ILogger>()
                 
             }, new[]{ _queueStarterFactory.Object });
             _queueStarterFactory.Setup(x => x.CanCreate(typeof(TestRequest))).Returns(true);
@@ -84,7 +87,8 @@ namespace KnightBus.Host.Tests.Unit
             
             var locator = new MessageProcessorLocator(new HostConfiguration
             {
-                DependencyInjection = new MicrosoftDependencyInjection(collection.BuildServiceProvider())
+                DependencyInjection = new MicrosoftDependencyInjection(collection.BuildServiceProvider()),
+                Log = Mock.Of<ILogger>()
                 
             }, new[]{ _queueStarterFactory.Object });
             
@@ -108,8 +112,9 @@ namespace KnightBus.Host.Tests.Unit
             
             var locator = new MessageProcessorLocator(new HostConfiguration
             {
-                DependencyInjection = new MicrosoftDependencyInjection(collection.BuildServiceProvider())
-                
+                DependencyInjection = new MicrosoftDependencyInjection(collection.BuildServiceProvider()),
+                Log = Mock.Of<ILogger>()
+
             }, new[]{ _queueStarterFactory.Object });
             _queueStarterFactory.Setup(x => x.CanCreate(typeof(TestCommandOne))).Returns(true);
             _queueStarterFactory.Setup(x => x.CanCreate(typeof(TestCommandTwo))).Returns(true);
@@ -134,7 +139,8 @@ namespace KnightBus.Host.Tests.Unit
             
             var locator = new MessageProcessorLocator(new HostConfiguration
             {
-                DependencyInjection = new MicrosoftDependencyInjection(collection.BuildServiceProvider())
+                DependencyInjection = new MicrosoftDependencyInjection(collection.BuildServiceProvider()),
+                Log = Mock.Of<ILogger>()
                 
             }, new[]{ _queueStarterFactory.Object });
             _queueStarterFactory.Setup(x => x.CanCreate(typeof(TestCommand))).Returns(false);
@@ -149,10 +155,11 @@ namespace KnightBus.Host.Tests.Unit
             var collection = new ServiceCollection();
             collection.RegisterProcessor<EventProcessor>();
             collection.AddScoped((_) => Mock.Of<ICountable>());
-            
+
             var locator = new MessageProcessorLocator(new HostConfiguration
             {
-                DependencyInjection = new MicrosoftDependencyInjection(collection.BuildServiceProvider())
+                DependencyInjection = new MicrosoftDependencyInjection(collection.BuildServiceProvider()),
+                Log = Mock.Of<ILogger>()
                 
             }, new[]{ _queueStarterFactory.Object });
             
@@ -175,7 +182,8 @@ namespace KnightBus.Host.Tests.Unit
             collection.UseSingletonLocks(Mock.Of<ISingletonLockManager>());
             var locator = new MessageProcessorLocator(new HostConfiguration
             {
-                DependencyInjection = new MicrosoftDependencyInjection(collection.BuildServiceProvider())
+                DependencyInjection = new MicrosoftDependencyInjection(collection.BuildServiceProvider()),
+                Log = Mock.Of<ILogger>()
 
             }, new[]{ _queueStarterFactory.Object });
             

@@ -5,6 +5,7 @@ using KnightBus.Core.Singleton;
 using KnightBus.Host.MessageProcessing.Factories;
 using KnightBus.Host.Singleton;
 using KnightBus.Messages;
+using Microsoft.Extensions.Logging;
 
 namespace KnightBus.Host
 {
@@ -53,7 +54,7 @@ namespace KnightBus.Host
             if (typeof(ISingletonProcessor).IsAssignableFrom(type))
             {
                 var lockManager = _configuration.DependencyInjection.GetInstance<ISingletonLockManager>();
-                ConsoleWriter.WriteLine($"Setting {type.Name} in Singleton mode");
+                _configuration.Log.LogInformation("Setting {SettingName} in Singleton mode", type.Name);
                 var singletonStarter = new SingletonChannelReceiver(channelReceiver, lockManager, _configuration.Log);
                 return singletonStarter;
             }
