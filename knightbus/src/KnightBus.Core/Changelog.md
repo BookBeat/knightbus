@@ -1,4 +1,6 @@
 # KnightBus.Core Changelog
+# 14.0.0
+* Removed ConsoleWriter
 
 ## 8.4.0
 * Added GetMapping for IMessage, to get IMessageMapper instance

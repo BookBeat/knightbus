@@ -48,7 +48,6 @@ namespace KnightBus.Schedule
             }
             catch (Exception e)
             {
-                ConsoleWriter.WriteLine($"Error processing schedule {typeof(T)} {e.Message} {e.StackTrace}");
                 _logger.LogError(e, "Error processing schedule {Schedule}", typeof(T));
             }
         }

@@ -36,7 +36,7 @@ namespace KnightBus.Host
         public async Task StartAsync(CancellationToken cancellationToken)
         {
             var combinedToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _shutdownToken.Token);
-            ConsoleWriter.WriteLine("KnightBus starting");
+            _configuration.Log.LogInformation("KnightBus starting");
 
             var transports = _configuration.DependencyInjection.GetInstances<ITransport>().ToArray();
             
@@ -45,25 +45,25 @@ namespace KnightBus.Host
                 _locator = new MessageProcessorLocator(_configuration,
                     transports.SelectMany(transport => transport.TransportChannelFactories).ToArray());
                 var channelReceivers = _locator.CreateReceivers().ToList();
-                ConsoleWriter.Write("Starting receivers [");
+                _configuration.Log.LogInformation("Starting receivers");
                 foreach (var receiver in channelReceivers)
                 {
+                    _configuration.Log.LogInformation("Starting receiver {ReceiverType]}", receiver.GetType().Name);
                     await receiver.StartAsync(combinedToken.Token).ConfigureAwait(false);
-                    Console.Write(".");
                 }
 
-                Console.WriteLine("]");
+                _configuration.Log.LogInformation("Finished starting receivers");
             }
             else
             {
-                ConsoleWriter.WriteLine("No transports found");
+                _configuration.Log.LogInformation("No transports found");
             }
 
             foreach (var plugin in _configuration.DependencyInjection.GetInstances<IPlugin>())
             {
                 await plugin.StartAsync(combinedToken.Token).ConfigureAwait(false);
             }
-            ConsoleWriter.WriteLine("KnightBus started");
+            _configuration.Log.LogInformation("KnightBus started");
         }
 
         public async Task StopAsync(CancellationToken cancellationToken)

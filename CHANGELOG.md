@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## 2022-12-05
+
+### KnightBus.Core 14.0.0
+* Removed ConsoleWriter
+
+### KnightBus.Host 14.0.1
+* Use ILogger instead of ConsoleWriter
+
+### KnightBus.Schedule 11.0.0
+* Use ILogger instead of ConsoleWriter
+* Changed ctor for SchedulingPlugin
+
 ## 2022-11-08
 
 ### KnightBus.*

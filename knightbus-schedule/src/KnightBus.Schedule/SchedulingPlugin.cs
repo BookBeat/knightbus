@@ -4,28 +4,29 @@ using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
 using KnightBus.Core.Singleton;
+using Microsoft.Extensions.Logging;
 using Quartz;
 using Quartz.Impl;
-
 
 namespace KnightBus.Schedule
 {
     public class SchedulingPlugin : IPlugin
     {
         private readonly IHostConfiguration _configuration;
+        private readonly ILogger<SchedulingPlugin> _logger;
         private IScheduler _scheduler;
 
-        public SchedulingPlugin(IHostConfiguration configuration)
+        public SchedulingPlugin(IHostConfiguration configuration, ILogger<SchedulingPlugin> logger)
         {
             _configuration = configuration;
+            _logger = logger;
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            ConsoleWriter.WriteLine($"Starting {nameof(SchedulingPlugin)}");
+            _configuration.Log.LogInformation("Starting {SchedulePluginType}", nameof(SchedulingPlugin));
             var lockManager = _configuration.DependencyInjection.GetInstance<ISingletonLockManager>();
             var dependencyInjection = _configuration.DependencyInjection;
-            var log = _configuration.Log;
 
             await lockManager.InitializeAsync().ConfigureAwait(false);
             var scheduleProcessors = dependencyInjection.GetOpenGenericRegistrations(typeof(IProcessSchedule<>)).ToList();
@@ -41,7 +42,7 @@ namespace KnightBus.Schedule
                 foreach (var processorInterface in processorInterfaces)
                 {
                     var scheduleType = processorInterface.GenericTypeArguments[0];
-                    ConsoleWriter.WriteLine($"Found {processor.Name}<{scheduleType.Name}>");
+                    _logger.LogInformation("Found {ProcessorName}<{ProcessorType}>",processor.Name, scheduleType.Name);
                     var settings = (ISchedule)Activator.CreateInstance(scheduleType);
                     
 
@@ -59,7 +60,7 @@ namespace KnightBus.Schedule
                         .StartNow()
                         .Build();
                     
-                    jobFactory.AddJob(scheduleType, dependencyInjection, log, lockManager);
+                    jobFactory.AddJob(scheduleType, dependencyInjection, _logger, lockManager);
                     await _scheduler.ScheduleJob(job, trigger, cancellationToken).ConfigureAwait(false);
                 }
             }
