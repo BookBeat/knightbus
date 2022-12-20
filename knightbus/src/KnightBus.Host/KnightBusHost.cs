@@ -48,7 +48,7 @@ namespace KnightBus.Host
                 _configuration.Log.LogInformation("Starting receivers");
                 foreach (var receiver in channelReceivers)
                 {
-                    _configuration.Log.LogInformation("Starting receiver {ReceiverType]}", receiver.GetType().Name);
+                    _configuration.Log.LogInformation("Starting receiver {ReceiverType}", receiver.GetType().Name);
                     await receiver.StartAsync(combinedToken.Token).ConfigureAwait(false);
                 }
 
