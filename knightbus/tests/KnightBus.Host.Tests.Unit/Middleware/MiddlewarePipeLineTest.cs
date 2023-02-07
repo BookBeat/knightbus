@@ -5,10 +5,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using KnightBus.Core;
+using KnightBus.Core.DependencyInjection;
 using KnightBus.Host.MessageProcessing.Processors;
 using KnightBus.Messages;
-using KnightBus.Microsoft.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
 
@@ -17,23 +18,25 @@ namespace KnightBus.Host.Tests.Unit.Middleware
     [TestFixture]
     public class MiddlewarePipelineTest
     {
+        
         [Test]
-        public async Task Should_execute_ordered_pipeline()
+        public async Task Should_execute_ordered_pipeline_from_microsoft_di()
         {
             //arrange
             var executionOrderList = new List<int>();
-            var middlewares = new List<IMessageProcessorMiddleware>();
+            var services = new ServiceCollection();
             for (var i = 0; i < 10; i++)
             {
-                middlewares.Add(new TestMiddleware(executionOrderList, i));
+                services.AddMiddleware(new TestMiddleware(executionOrderList, i));
             }
-            var transportConfig = new Mock<ITransportChannelFactory>();
-            transportConfig.Setup(x => x.Middlewares).Returns(middlewares);
             var finalProcessor = new Mock<IMessageProcessor>();
-            var pipeline = new MiddlewarePipeline(new List<IMessageProcessorMiddleware>(), Mock.Of<IPipelineInformation>(), transportConfig.Object, Mock.Of<ILog>());
+            var provider = services.BuildServiceProvider();
+            var pipeline = new MiddlewarePipeline(provider.GetServices<IMessageProcessorMiddleware>(), Mock.Of<IPipelineInformation>(), Mock.Of<ILogger>());
+            var stateHandler = new Mock<IMessageStateHandler<TestCommand>>();
+            stateHandler.Setup(x => x.MessageScope).Returns(new MicrosoftDependencyInjection(provider).GetScope);
             //act
             var chain = pipeline.GetPipeline(finalProcessor.Object);
-            await chain.ProcessAsync(Mock.Of<IMessageStateHandler<TestCommand>>(), CancellationToken.None);
+            await chain.ProcessAsync(stateHandler.Object, CancellationToken.None);
             //assert
 
             for (int i = 0; i < 10; i++)
@@ -42,7 +45,7 @@ namespace KnightBus.Host.Tests.Unit.Middleware
             }
             finalProcessor.Verify(x => x.ProcessAsync(It.IsAny<IMessageStateHandler<TestCommand>>(), CancellationToken.None), Times.Once);
         }
-
+        
         [Test]
         public async Task Should_move_message_scope_provider_right_after_error_middleware()
         {
@@ -57,10 +60,8 @@ namespace KnightBus.Host.Tests.Unit.Middleware
             middlewares.Add(new MessageScopeTestMiddleware(executionOrderList, 0));
 
 
-            var transportConfig = new Mock<ITransportChannelFactory>();
-            transportConfig.Setup(x => x.Middlewares).Returns(new List<IMessageProcessorMiddleware>());
             var finalProcessor = new Mock<IMessageProcessor>();
-            var pipeline = new MiddlewarePipeline(middlewares, Mock.Of<IPipelineInformation>(), transportConfig.Object, Mock.Of<ILog>());
+            var pipeline = new MiddlewarePipeline(middlewares, Mock.Of<IPipelineInformation>(), Mock.Of<ILogger>());
             //act
             var chain = pipeline.GetPipeline(finalProcessor.Object);
             await chain.ProcessAsync(Mock.Of<IMessageStateHandler<TestCommand>>(), CancellationToken.None);
@@ -98,23 +99,16 @@ namespace KnightBus.Host.Tests.Unit.Middleware
             //arrange
             var container = new ServiceCollection();
             var countableMock = new Mock<ICountable>();
-            container.AddSingleton<ICountable>(countableMock.Object);
+            container.AddSingleton(countableMock.Object);
 
-            var hostConfiguration = new HostConfiguration();
-            hostConfiguration.RegisterProcessors(container, Assembly.GetExecutingAssembly());
+            container.RegisterProcessors(Assembly.GetExecutingAssembly());
+            var hostConfiguration = new HostConfiguration{DependencyInjection = new MicrosoftDependencyInjection(container.BuildServiceProvider(new ServiceProviderOptions {ValidateScopes = true, ValidateOnBuild = true}))};
             
-            hostConfiguration.UseMicrosoftDependencyInjection(container);
-
-            ((IIsolatedDependencyInjection)hostConfiguration.DependencyInjection).Build();
-
-            var transportChannelFactory = new Mock<ITransportChannelFactory>();
-            transportChannelFactory.Setup(x => x.Middlewares).Returns(hostConfiguration.Middlewares);
-
             var pipelineInformation = new Mock<IPipelineInformation>();
             pipelineInformation.Setup(x => x.HostConfiguration).Returns(hostConfiguration);
 
             var finalProcessor = new MessageProcessor(typeof(IProcessCommand<DiTestMessage, DiTestMessageSettings>));
-            var pipeline = new MiddlewarePipeline(new List<IMessageProcessorMiddleware>(), pipelineInformation.Object, transportChannelFactory.Object, Mock.Of<ILog>());
+            var pipeline = new MiddlewarePipeline(new List<IMessageProcessorMiddleware>(), pipelineInformation.Object, Mock.Of<ILogger>());
 
             var messageStateHandler = new Mock<IMessageStateHandler<DiTestMessage>>();
             messageStateHandler.Setup(x => x.MessageScope).Returns(hostConfiguration.DependencyInjection.GetScope);
@@ -188,7 +182,7 @@ namespace KnightBus.Host.Tests.Unit.Middleware
                 throw new NotImplementedException();
             }
 
-            public Task<TestCommand> GetMessageAsync()
+            public TestCommand GetMessage()
             {
                 throw new NotImplementedException();
             }

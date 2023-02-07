@@ -1,5 +1,5 @@
-using System.Collections.Generic;
-using KnightBus.Core.Singleton;
+using System;
+using Microsoft.Extensions.Logging;
 
 namespace KnightBus.Core
 {
@@ -8,10 +8,8 @@ namespace KnightBus.Core
     /// </summary>
     public interface IHostConfiguration
     {
-        IList<IMessageProcessorMiddleware> Middlewares { get; }
-        IList<IPlugin> Plugins { get; } 
-        ISingletonLockManager SingletonLockManager { get; set; }
         IDependencyInjection DependencyInjection { get; set; }
-        ILog Log { get; set; }
+        ILogger Log { get; set; }
+        TimeSpan ShutdownGracePeriod { get; set; }
     }
 }

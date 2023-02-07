@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Azure;
@@ -17,6 +16,10 @@ namespace KnightBus.Azure.Storage
         public BlobStorageMessageAttachmentProvider(string connectionString)
         {
             _connectionString = connectionString;
+        }
+        
+        public BlobStorageMessageAttachmentProvider(IStorageBusConfiguration configuration) : this(configuration.ConnectionString)
+        {
         }
 
         public async Task<IMessageAttachment> GetAttachmentAsync(string queueName, string id, CancellationToken cancellationToken = default(CancellationToken))

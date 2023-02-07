@@ -3,6 +3,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
 using KnightBus.Core;
+using Microsoft.Extensions.Logging;
+using Moq;
 using NUnit.Framework;
 
 namespace KnightBus.Redis.Tests.Integration
@@ -11,13 +13,14 @@ namespace KnightBus.Redis.Tests.Integration
     {
         private IRedisBus _bus;
         private RedisQueueClient<TestCommand> _target;
+        private ILogger _log = Mock.Of<ILogger>();
         private readonly string _queueName = AutoMessageMapper.GetQueueName<TestCommand>();
 
         [SetUp]
         public void Setup()
         {
-            _bus = new RedisBus(RedisTestBase.Configuration);
-            _target = new RedisQueueClient<TestCommand>(RedisTestBase.Database, new MicrosoftJsonSerializer());
+            _bus = new RedisBus(RedisTestBase.Configuration.ConnectionString);
+            _target = new RedisQueueClient<TestCommand>(RedisTestBase.Database, new MicrosoftJsonSerializer(), _log);
         }
         [TearDown] //This should be done after each test thus not OneTime
         public void BaseTeardown()

@@ -1,14 +1,14 @@
-﻿using KnightBus.Core;
-using KnightBus.Core.Sagas;
+﻿using KnightBus.Core.Sagas;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace KnightBus.SqlServer
 {
     public static class SqlServerExtensions
     {
-        public static IHostConfiguration UseSqlServerSagaStore(this IHostConfiguration configuration, string connectionString)
+        public static IServiceCollection UseSqlServerSagaStore(this IServiceCollection services, string connectionString)
         {
-            configuration.EnableSagas(new SqlServerSagaStore(connectionString));
-            return configuration;
+            services.EnableSagas(new SqlServerSagaStore(connectionString));
+            return services;
         }
     }
 }

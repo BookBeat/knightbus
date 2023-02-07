@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using KnightBus.Core;
 using KnightBus.Messages;
 using KnightBus.Redis.Messages;
+using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
 [assembly: InternalsVisibleTo("KnightBus.Redis.Tests.Integration")]
@@ -18,13 +19,13 @@ namespace KnightBus.Redis
         private readonly string _queueName = AutoMessageMapper.GetQueueName<T>();
         private readonly IDatabase _db;
         private readonly IMessageSerializer _serializer;
-        private readonly ILog _log;
+        private readonly ILogger _log;
 
-        internal RedisQueueClient(IDatabase db, IMessageSerializer serializer, ILog log = null)
+        internal RedisQueueClient(IDatabase db, IMessageSerializer serializer, ILogger log)
         {
             _db = db;
             _serializer = serializer;
-            _log = log ?? new NoLogging();
+            _log = log;
         }
 
         internal async Task<RedisMessage<T>[]> GetMessagesAsync(int count)
@@ -74,12 +75,12 @@ namespace KnightBus.Redis
             }
             catch (RedisTimeoutException e)
             {
-                _log.Error(e, "Error retrieving redis message");
+                _log.LogError(e, "Error retrieving redis message");
                 return null;
             }
             catch (RedisException e)
             {
-                _log.Error(e, "Error retrieving redis message");
+                _log.LogError(e, "Error retrieving redis message");
                 return null;
             }
         }

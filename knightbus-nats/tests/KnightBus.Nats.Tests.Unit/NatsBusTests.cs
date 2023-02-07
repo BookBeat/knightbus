@@ -12,40 +12,47 @@ namespace KnightBus.Nats.Tests.Unit
     [TestFixture]
     public class NatsBusTests
     {
+        private Mock<IConnectionFactory> _factory = new Mock<IConnectionFactory>();
+        private Mock<IConnection> _connection = new Mock<IConnection>();
+        [SetUp]
+        public void Setup()
+        {
+            _factory.Setup(c => c.CreateConnection(It.IsAny<Options>()))
+                .Returns(_connection.Object);
+        }
         [Test]
         public void When_send_should_publish_message()
         {
             //arrange
-            var connection = new Mock<IConnection>();
-            var bus = new NatsBus(connection.Object, new NatsBusConfiguration(""));
+            
+            var bus = new NatsBus(_factory.Object, new NatsConfiguration());
             //act 
             bus.Send(new TestNatsCommand());
             //assert
-            connection.Verify(c=> c.Publish(It.Is<Msg>( m=> m.Subject == "queueName")), Times.Once);
+            _connection.Verify(c=> c.Publish(It.Is<Msg>( m=> m.Subject == "queueName")), Times.Once);
         }
 
         [Test]
         public void When_publish_should_publish_message()
         {
             //arrange
-            var connection = new Mock<IConnection>();
-            var bus = new NatsBus(connection.Object, new NatsBusConfiguration(""));
+            var bus = new NatsBus(_factory.Object, new NatsConfiguration());
             //act 
             bus.Publish(new TestNatsEvent());
             //assert
-            connection.Verify(c => c.Publish(It.Is<Msg>(m => m.Subject == "topicName")), Times.Once);
+            _connection.Verify(c => c.Publish(It.Is<Msg>(m => m.Subject == "topicName")), Times.Once);
         }
 
         [Test]
         public async Task When_request_should_publish_message_and_receive()
         {
             //arrange
-            var config = new NatsBusConfiguration("");
-            var connection = new Mock<IConnection>();
-            connection.Setup(x =>
+            var config = new NatsConfiguration();
+            
+            _connection.Setup(x =>
                     x.RequestAsync("requestName", It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(() => new Msg("reply", config.MessageSerializer.Serialize(new TestNatsResponse())));
-            var bus = new NatsBus(connection.Object,config );
+            var bus = new NatsBus(_factory.Object,config );
             //act 
             var response = await bus.RequestAsync<TestNatsRequest, TestNatsResponse>(new TestNatsRequest());
             //assert
@@ -64,9 +71,8 @@ namespace KnightBus.Nats.Tests.Unit
                 .Returns(new Msg("inbox", stopHeader, Array.Empty<byte>()));
                 
 
-            var connection = new Mock<IConnection>();
-            connection.Setup(x => x.SubscribeSync(It.IsAny<string>())).Returns(sub.Object);
-            var bus = new NatsBus(connection.Object, new NatsBusConfiguration(""));
+            _connection.Setup(x => x.SubscribeSync(It.IsAny<string>())).Returns(sub.Object);
+            var bus = new NatsBus(_factory.Object, new NatsConfiguration());
             //act 
             var response =  bus.RequestStream<TestNatsRequest, TestNatsResponse>(new TestNatsRequest());
 
@@ -85,10 +91,9 @@ namespace KnightBus.Nats.Tests.Unit
                 .Returns(new Msg("inbox", Array.Empty<byte>()))
                 .Returns(new Msg("inbox", errorHeader, Array.Empty<byte>()));
 
-
-            var connection = new Mock<IConnection>();
-            connection.Setup(x => x.SubscribeSync(It.IsAny<string>())).Returns(sub.Object);
-            var bus = new NatsBus(connection.Object, new NatsBusConfiguration(""));
+            
+            _connection.Setup(x => x.SubscribeSync(It.IsAny<string>())).Returns(sub.Object);
+            var bus = new NatsBus(_factory.Object, new NatsConfiguration());
             //act 
             var response = bus.RequestStream<TestNatsRequest, TestNatsResponse>(new TestNatsRequest());
 
@@ -96,8 +101,4 @@ namespace KnightBus.Nats.Tests.Unit
             response.Invoking(x => x.Count()).Should().Throw<NATSException>();
         }
     }
-
-    
-
-
 }

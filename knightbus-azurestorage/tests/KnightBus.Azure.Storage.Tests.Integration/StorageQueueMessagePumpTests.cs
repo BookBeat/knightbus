@@ -5,6 +5,7 @@ using KnightBus.Azure.Storage.Messages;
 using KnightBus.Core;
 using KnightBus.Messages;
 using KnightBus.Newtonsoft;
+using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
 
@@ -24,7 +25,7 @@ namespace KnightBus.Azure.Storage.Tests.Integration
                 new BlobStorageMessageAttachmentProvider("UseDevelopmentStorage=true"),
                 $"{GetType().Name}-{DateTime.UtcNow.Ticks}".ToLower());
             var settings = new TestMessageSettings();
-            var log = new Mock<ILog>();
+            var log = new Mock<ILogger>();
             _pump = new StorageQueueMessagePump(_storageQueueClient, settings, log.Object);
         }
 

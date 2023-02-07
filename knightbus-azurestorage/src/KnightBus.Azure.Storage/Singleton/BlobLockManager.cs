@@ -18,15 +18,14 @@ namespace KnightBus.Azure.Storage.Singleton
         private BlobContainerClient _client;
         private readonly IBlobLockScheme _lockScheme;
 
-        public BlobLockManager(string connectionString)
+        public BlobLockManager(string connectionString, IBlobLockScheme lockScheme = null)
         {
             _connectionString = connectionString;
-            _lockScheme = new DefaultBlobLockScheme();
+            _lockScheme =  lockScheme ?? new DefaultBlobLockScheme();
         }
-        public BlobLockManager(string connectionString, IBlobLockScheme lockScheme)
+
+        public BlobLockManager(IStorageBusConfiguration configuration, IBlobLockScheme lockScheme = null) : this(configuration.ConnectionString, lockScheme)
         {
-            _connectionString = connectionString;
-            _lockScheme = lockScheme;
         }
 
         public Task InitializeAsync()
@@ -35,16 +34,16 @@ namespace KnightBus.Azure.Storage.Singleton
             {
                 _client = new BlobContainerClient(_connectionString, _lockScheme.ContainerName);
             }
+
             return Task.CompletedTask;
         }
 
         public async Task<ISingletonLockHandle> TryLockAsync(string lockId, TimeSpan lockPeriod, CancellationToken cancellationToken)
         {
-
             var blob = _client.GetBlobClient(Path.Combine(_lockScheme.Directory, lockId));
 
             var lease = await TryAcquireLeaseAsync(blob, lockPeriod, cancellationToken).ConfigureAwait(false);
-            
+
             if (lease == null)
             {
                 return null;
@@ -59,9 +58,11 @@ namespace KnightBus.Azure.Storage.Singleton
 
             return lockHandle;
         }
-        private static async Task WriteLeaseBlobMetadata(BlobBaseClient blob, string leaseId, string functionInstanceId, CancellationToken cancellationToken)
+
+        private static async Task WriteLeaseBlobMetadata(BlobBaseClient blob, string leaseId, string functionInstanceId,
+            CancellationToken cancellationToken)
         {
-            await blob.SetMetadataAsync(new Dictionary<string, string> { { "FunctionInstance", functionInstanceId } }, new BlobRequestConditions
+            await blob.SetMetadataAsync(new Dictionary<string, string> {{"FunctionInstance", functionInstanceId}}, new BlobRequestConditions
             {
                 LeaseId = leaseId
             }, cancellationToken);
@@ -143,7 +144,7 @@ namespace KnightBus.Azure.Storage.Singleton
                 await container.CreateIfNotExistsAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
             }
             catch (RequestFailedException exc)
-            when (exc.Status == 409 && exc.ErrorCode == BlobErrorCode.ContainerBeingDeleted)
+                when (exc.Status == 409 && exc.ErrorCode == BlobErrorCode.ContainerBeingDeleted)
             {
                 throw;
             }
@@ -155,6 +156,7 @@ namespace KnightBus.Azure.Storage.Singleton
                 {
                     await blob.UploadAsync(stream, cancellationToken).ConfigureAwait(false);
                 }
+
                 return true;
             }
             catch (RequestFailedException exception)

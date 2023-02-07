@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using KnightBus.Core;
 using KnightBus.Host.MessageProcessing.Factories;
+using Microsoft.Extensions.Logging;
 
 namespace KnightBus.Host.MessageProcessing
 {
@@ -40,7 +41,8 @@ namespace KnightBus.Host.MessageProcessing
                 {
                     var factory = factories.SingleOrDefault(x => x.CanCreate(processorInterface));
                     if (factory == null) continue;
-                    ConsoleWriter.WriteLine($"Found {processor.Name}{factory.GetProcessorTypes(processorInterface)}");
+                    _configuration.Log.LogInformation("Found {ProcessorName}{ProcessorType}", processor.Name,
+                        factory.GetProcessorTypes(processorInterface));
                     yield return _transportStarterFactory.CreateChannelReceiver(factory, processorInterface, processor);
                 }
             }

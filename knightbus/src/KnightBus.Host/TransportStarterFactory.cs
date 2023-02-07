@@ -1,11 +1,11 @@
 using System;
 using System.Linq;
 using KnightBus.Core;
-using KnightBus.Core.Exceptions;
 using KnightBus.Core.Singleton;
 using KnightBus.Host.MessageProcessing.Factories;
 using KnightBus.Host.Singleton;
 using KnightBus.Messages;
+using Microsoft.Extensions.Logging;
 
 namespace KnightBus.Host
 {
@@ -34,7 +34,8 @@ namespace KnightBus.Host
             var eventSubscription = processorTypes.SubscriptionType == null ? null : (IEventSubscription)Activator.CreateInstance(processorTypes.SubscriptionType);
             var pipelineInformation = new PipelineInformation(processorInterface, eventSubscription, processingSettings, _configuration);
 
-            var pipeline = new MiddlewarePipeline(_configuration.Middlewares, pipelineInformation, channelFactory, _configuration.Log);
+            var middlewares = _configuration.DependencyInjection.GetInstances<IMessageProcessorMiddleware>();
+            var pipeline = new MiddlewarePipeline(middlewares, pipelineInformation, _configuration.Log);
             var serializer = GetSerializer(channelFactory, processorTypes.MessageType);
             var starter = channelFactory.Create(processorTypes.MessageType, eventSubscription, processingSettings, serializer, _configuration, pipeline.GetPipeline(processorInstance));
             return WrapSingletonReceiver(starter, processor);
@@ -52,10 +53,9 @@ namespace KnightBus.Host
         {
             if (typeof(ISingletonProcessor).IsAssignableFrom(type))
             {
-                if (_configuration.SingletonLockManager == null)
-                    throw new SingletonLockManagerMissingException("There is no ISingletonLockManager specified, you cannot use the ISingletonProcessor directive without one");
-                ConsoleWriter.WriteLine($"Setting {type.Name} in Singleton mode");
-                var singletonStarter = new SingletonChannelReceiver(channelReceiver, _configuration.SingletonLockManager, _configuration.Log);
+                var lockManager = _configuration.DependencyInjection.GetInstance<ISingletonLockManager>();
+                _configuration.Log.LogInformation("Setting {SettingName} in Singleton mode", type.Name);
+                var singletonStarter = new SingletonChannelReceiver(channelReceiver, lockManager, _configuration.Log);
                 return singletonStarter;
             }
 

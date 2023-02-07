@@ -52,9 +52,9 @@ namespace KnightBus.Nats
             return Task.CompletedTask;
         }
         
-        public Task<T> GetMessageAsync()
+        public T GetMessage()
         {
-            return Task.FromResult(_message);
+            return _message;
         }
 
         public IDependencyInjection MessageScope { get; set; }

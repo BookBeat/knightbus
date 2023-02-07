@@ -1,6 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Messages;
+using Microsoft.Extensions.Logging;
 
 namespace KnightBus.Core.DefaultMiddlewares
 {
@@ -18,7 +19,7 @@ namespace KnightBus.Core.DefaultMiddlewares
             var queueName = AutoMessageMapper.GetQueueName<T>();
 
             var log = pipelineInformation?.HostConfiguration?.Log;
-            log?.Debug("{ThreadCount} remaining threads that can process messages in {QueueName} in {Name}", _semaphoreQueue.CurrentCount, queueName, nameof(ThrottlingMiddleware));
+            log?.LogDebug("{ThreadCount} remaining threads that can process messages in {QueueName} in {Name}", _semaphoreQueue.CurrentCount, queueName, nameof(ThrottlingMiddleware));
 
             await _semaphoreQueue.WaitAsync(cancellationToken).ConfigureAwait(false);
             try

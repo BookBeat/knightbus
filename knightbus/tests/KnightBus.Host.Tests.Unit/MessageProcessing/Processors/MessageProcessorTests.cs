@@ -24,7 +24,7 @@ namespace KnightBus.Host.Tests.Unit.MessageProcessing.Processors
             messageStateHandler
                 .Setup(x => x.MessageScope.GetInstance<IProcessMessage<TestCommand, Task>>(typeof(SingleCommandProcessor)))
                 .Returns(commandHandler.Object);
-            messageStateHandler.Setup(x => x.GetMessageAsync()).ReturnsAsync(message);
+            messageStateHandler.Setup(x => x.GetMessage()).Returns(message);
             //act
             await messageProcessor.ProcessAsync(messageStateHandler.Object, CancellationToken.None);
             //assert
@@ -42,7 +42,7 @@ namespace KnightBus.Host.Tests.Unit.MessageProcessing.Processors
             messageStateHandler
                 .Setup(x => x.MessageScope.GetInstance<IProcessMessage<TestCommand, Task>>(typeof(SingleCommandProcessor)))
                 .Returns(commandHandler.Object);
-            messageStateHandler.Setup(x => x.GetMessageAsync()).ReturnsAsync(message);
+            messageStateHandler.Setup(x => x.GetMessage()).Returns(message);
             //act
             await messageProcessor.ProcessAsync(messageStateHandler.Object, CancellationToken.None);
             //assert
@@ -62,7 +62,7 @@ namespace KnightBus.Host.Tests.Unit.MessageProcessing.Processors
             messageStateHandler
                 .Setup(x => x.MessageScope.GetInstance<IProcessMessage<TestCommand, Task>>(typeof(SingleCommandProcessor)))
                 .Returns(commandHandler.Object);
-            messageStateHandler.Setup(x => x.GetMessageAsync()).ReturnsAsync(message);
+            messageStateHandler.Setup(x => x.GetMessage()).Returns(message);
             //act
             messageProcessor.Awaiting(x => x.ProcessAsync(messageStateHandler.Object, CancellationToken.None))
                 .Should().ThrowAsync<Exception>();

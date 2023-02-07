@@ -24,7 +24,7 @@ namespace KnightBus.Host.Tests.Unit.MessageProcessing.Processors
             messageStateHandler
                 .Setup(x => x.MessageScope.GetInstance<IProcessMessage<TestRequest, Task<TestResponse>>>(typeof(SingleRequestProcessor)))
                 .Returns(commandHandler.Object);
-            messageStateHandler.Setup(x => x.GetMessageAsync()).ReturnsAsync(request);
+            messageStateHandler.Setup(x => x.GetMessage()).Returns(request);
             //act
             await requestProcessor.ProcessAsync(messageStateHandler.Object, CancellationToken.None);
             //assert
@@ -42,7 +42,7 @@ namespace KnightBus.Host.Tests.Unit.MessageProcessing.Processors
             messageStateHandler
                 .Setup(x => x.MessageScope.GetInstance<IProcessMessage<TestRequest, Task<TestResponse>>>(typeof(SingleRequestProcessor)))
                 .Returns(commandHandler.Object);
-            messageStateHandler.Setup(x => x.GetMessageAsync()).ReturnsAsync(request);
+            messageStateHandler.Setup(x => x.GetMessage()).Returns(request);
             //act
             await requestProcessor.ProcessAsync(messageStateHandler.Object, CancellationToken.None);
             //assert
@@ -63,7 +63,7 @@ namespace KnightBus.Host.Tests.Unit.MessageProcessing.Processors
             messageStateHandler
                 .Setup(x => x.MessageScope.GetInstance<IProcessMessage<TestRequest, Task<TestResponse>>>(typeof(SingleRequestProcessor)))
                 .Returns(commandHandler.Object);
-            messageStateHandler.Setup(x => x.GetMessageAsync()).ReturnsAsync(request);
+            messageStateHandler.Setup(x => x.GetMessage()).Returns(request);
             //act
             await requestProcessor.ProcessAsync(messageStateHandler.Object, CancellationToken.None);
             //assert
@@ -83,7 +83,7 @@ namespace KnightBus.Host.Tests.Unit.MessageProcessing.Processors
             messageStateHandler
                 .Setup(x => x.MessageScope.GetInstance<IProcessMessage<TestRequest, Task<TestResponse>>>(typeof(SingleRequestProcessor)))
                 .Returns(commandHandler.Object);
-            messageStateHandler.Setup(x => x.GetMessageAsync()).ReturnsAsync(request);
+            messageStateHandler.Setup(x => x.GetMessage()).Returns(request);
             //act
             requestProcessor.Awaiting(x => x.ProcessAsync(messageStateHandler.Object, CancellationToken.None))
                 .Should().ThrowAsync<Exception>();
@@ -105,7 +105,7 @@ namespace KnightBus.Host.Tests.Unit.MessageProcessing.Processors
             messageStateHandler
                 .Setup(x => x.MessageScope.GetInstance<IProcessMessage<TestRequest, Task<TestResponse>>>(typeof(SingleRequestProcessor)))
                 .Returns(commandHandler.Object);
-            messageStateHandler.Setup(x => x.GetMessageAsync()).ReturnsAsync(request);
+            messageStateHandler.Setup(x => x.GetMessage()).Returns(request);
             //act
             requestProcessor.Awaiting(x=> x.ProcessAsync(messageStateHandler.Object, CancellationToken.None))
                 .Should().ThrowAsync<Exception>();

@@ -18,15 +18,11 @@ namespace KnightBus.Azure.Storage
     {
         private readonly IStorageBusConfiguration _options;
         private readonly ConcurrentDictionary<Type, IStorageQueueClient> _queueClients = new ConcurrentDictionary<Type, IStorageQueueClient>();
-        private IMessageAttachmentProvider _attachmentProvider;
+        private readonly IMessageAttachmentProvider _attachmentProvider;
 
-        public StorageBus(IStorageBusConfiguration options)
+        public StorageBus(IStorageBusConfiguration options, IMessageAttachmentProvider attachmentProvider = null)
         {
             _options = options;
-        }
-
-        public void EnableAttachments(IMessageAttachmentProvider attachmentProvider)
-        {
             _attachmentProvider = attachmentProvider;
         }
 

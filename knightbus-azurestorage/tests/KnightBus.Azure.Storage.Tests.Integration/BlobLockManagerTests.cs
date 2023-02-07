@@ -5,7 +5,7 @@ using Azure;
 using FluentAssertions;
 using NUnit.Framework;
 using KnightBus.Azure.Storage.Singleton;
-using KnightBus.Core;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace KnightBus.Azure.Storage.Tests.Integration
@@ -74,7 +74,7 @@ namespace KnightBus.Azure.Storage.Tests.Integration
             var handle = await lockManager.TryLockAsync(lockId, TimeSpan.FromSeconds(15), CancellationToken.None);
             //act
             await Task.Delay(TimeSpan.FromSeconds(10));
-            var renewed = await handle.RenewAsync(Mock.Of<ILog>(), CancellationToken.None);
+            var renewed = await handle.RenewAsync(Mock.Of<ILogger>(), CancellationToken.None);
             //assert
             renewed.Should().BeTrue();
         }
@@ -93,7 +93,7 @@ namespace KnightBus.Azure.Storage.Tests.Integration
             //steal lock
             await lockManager.TryLockAsync(lockId, TimeSpan.FromSeconds(15), CancellationToken.None);
             await handle
-                .Awaiting(x=> x.RenewAsync(Mock.Of<ILog>(), CancellationToken.None))
+                .Awaiting(x=> x.RenewAsync(Mock.Of<ILogger>(), CancellationToken.None))
                 .Should()
                 .ThrowAsync<RequestFailedException>();
         }

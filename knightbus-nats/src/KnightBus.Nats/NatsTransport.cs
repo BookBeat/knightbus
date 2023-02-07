@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using KnightBus.Core;
+﻿using KnightBus.Core;
 using KnightBus.Messages;
 using KnightBus.Newtonsoft;
 using NATS.Client;
@@ -9,12 +7,11 @@ namespace KnightBus.Nats
 {
     public class NatsTransport : ITransport
     {
-        public NatsTransport(string connectionString)
-            : this(new NatsBusConfiguration(connectionString))
+        public NatsTransport(string connectionString) : this(new NatsConfiguration {ConnectionString = connectionString})
         {
             
         }
-        public NatsTransport(INatsBusConfiguration configuration)
+        public NatsTransport(INatsConfiguration configuration)
         {
             TransportChannelFactories = new ITransportChannelFactory[] {new NatsChannelFactory(configuration),};
         }
@@ -28,30 +25,21 @@ namespace KnightBus.Nats
 
             return this;
         }
-
-        public ITransport UseMiddleware(IMessageProcessorMiddleware middleware)
-        {
-            foreach (var channelFactory in TransportChannelFactories)
-            {
-                channelFactory.Middlewares.Add(middleware);
-            }
-
-            return this;
-        }
     }
 
-    public interface INatsBusConfiguration : ITransportConfiguration
+    public interface INatsConfiguration : ITransportConfiguration
     {
         public Options Options { get; }
     }
 
-    public class NatsBusConfiguration : INatsBusConfiguration
+    public class NatsConfiguration : INatsConfiguration
     {
-        public NatsBusConfiguration(string connectionString)
+        public string ConnectionString
         {
-            ConnectionString = connectionString;
+            get => Options?.Url;
+            set => Options.Url = value;
         }
-        public string ConnectionString { get; }
+
         public IMessageSerializer MessageSerializer { get; set; } = new NewtonsoftSerializer();
         public Options Options { get; } = ConnectionFactory.GetDefaultOptions();
     }

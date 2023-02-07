@@ -5,61 +5,60 @@ using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Azure.Storage;
 using KnightBus.Azure.Storage.Messages;
-using KnightBus.Azure.Storage.Sagas;
 using KnightBus.Core;
+using KnightBus.Core.DependencyInjection;
 using KnightBus.Core.Sagas;
 using KnightBus.Host;
 using KnightBus.Messages;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace KnightBus.Examples.Azure.Storage
 {
-    class Program
+    internal class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
-            MainAsync().GetAwaiter().GetResult();
-        }
+            var storageConnection = "UseDevelopmentStorage=true";
 
-        static async Task MainAsync()
-        {
-            var storageConnection = "your-connection-string";
-
-            //Initiate the client
-            var client = new StorageBus(new StorageBusConfiguration(storageConnection));
-            client.EnableAttachments(new BlobStorageMessageAttachmentProvider(storageConnection));
-
-            var knightBusHost = new KnightBusHost()
-                //Enable the StorageBus Transport
-                .UseTransport(new StorageTransport(storageConnection)
-                    //Enable attachments on the transport using Azure Blobs
-                    .UseBlobStorageAttachments(storageConnection))
-                .Configure(configuration => configuration
-                    //Allow message processors to run in Singleton state using Azure Blob Locks
-                    .UseBlobStorageLockManager(storageConnection)
-                    //Register our message processors without IoC using the standard provider
-                    .UseDependencyInjection(new StandardDependecyInjection()
-                        .RegisterProcessor(new SampleStorageBusMessageProcessor())
-                        .RegisterProcessor(new SampleSagaMessageProcessor(client))
-                    )
-                    //Enable Saga support using the table storage Saga store
-                    .EnableSagas(new BlobSagaStore(storageConnection))
-                );
+            var knightBus = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
+                .UseDefaultServiceProvider(options =>
+                {
+                    options.ValidateScopes = true;
+                    options.ValidateOnBuild = true;
+                })
+                .ConfigureServices(services =>
+                {
+                    services.UseBlobStorage(storageConnection)
+                        .RegisterProcessors(typeof(SampleStorageBusMessage).Assembly)
+                        //Allow message processors to run in Singleton state using Azure Blob Locks
+                        .UseBlobStorageLockManager()
+                        .UseBlobStorageAttachments()
+                        .UseTransport<StorageTransport>()
+                        //Enable Saga support using the table storage Saga store
+                        .UseBlobStorageSagas();
+                })
+                .UseKnightBus().Build();
 
             //Start the KnightBus Host, it will now connect to the StorageBus and listen to the SampleStorageBusMessageMapping.QueueName
-            await knightBusHost.StartAsync(CancellationToken.None);
+            await knightBus.StartAsync(CancellationToken.None);
 
+            var client = knightBus.Services.GetRequiredService<IStorageBus>();
+            await Task.Delay(TimeSpan.FromSeconds(10));
             
+
             //Send some Messages and watch them print in the console
             for (var i = 0; i < 10; i++)
             {
                 await client.SendAsync(new SampleStorageBusMessage
                 {
                     Message = $"Hello from command {i}",
-                    Attachment = new MessageAttachment($"file{i}.txt", "text/plain", new MemoryStream(Encoding.UTF8.GetBytes($"this is a stream from Message {i}")))
+                    Attachment = new MessageAttachment($"file{i}.txt", "text/plain",
+                        new MemoryStream(Encoding.UTF8.GetBytes($"this is a stream from Message {i}")))
                 });
             }
 
-            await client.SendAsync(new SampleSagaStartMessage { Message = "This is a saga start message" });
+            await client.SendAsync(new SampleSagaStartMessage {Message = "This is a saga start message"});
             Console.ReadKey();
         }
 
@@ -79,6 +78,7 @@ namespace KnightBus.Examples.Azure.Storage
             public string Id { get; set; } = "c1e06984-d946-4c70-a8aa-e32e44c6407e";
             public string Message { get; set; }
         }
+
         class SampleSagaStartMessageMapping : IMessageMapping<SampleSagaStartMessage>
         {
             public string QueueName => "your-saga-start";
@@ -88,6 +88,7 @@ namespace KnightBus.Examples.Azure.Storage
         {
             public string Id { get; set; } = "c1e06984-d946-4c70-a8aa-e32e44c6407e";
         }
+
         class SampleSagaMessageMapping : IMessageMapping<SampleSagaMessage>
         {
             public string QueueName => "your-saga-message";
@@ -107,8 +108,8 @@ namespace KnightBus.Examples.Azure.Storage
             }
         }
 
-        class SampleSagaMessageProcessor: Saga<MySagaData>,
-            IProcessCommand<SampleSagaMessage, SomeProcessingSetting>, 
+        class SampleSagaMessageProcessor : Saga<MySagaData>,
+            IProcessCommand<SampleSagaMessage, SomeProcessingSetting>,
             IProcessCommand<SampleSagaStartMessage, SomeProcessingSetting>
         {
             private readonly IStorageBus _storageBus;
@@ -117,9 +118,10 @@ namespace KnightBus.Examples.Azure.Storage
             {
                 _storageBus = storageBus;
                 //Map the messages to the Saga
-                MessageMapper.MapStartMessage<SampleSagaStartMessage>(m=> m.Id);
-                MessageMapper.MapMessage<SampleSagaMessage>(m=> m.Id);
+                MessageMapper.MapStartMessage<SampleSagaStartMessage>(m => m.Id);
+                MessageMapper.MapMessage<SampleSagaMessage>(m => m.Id);
             }
+
             public override string PartitionKey => "sample-saga";
             public override TimeSpan TimeToLive => TimeSpan.FromHours(1);
 

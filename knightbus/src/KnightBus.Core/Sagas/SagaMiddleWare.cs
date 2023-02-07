@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core.Sagas.Exceptions;
 using KnightBus.Messages;
+using Microsoft.Extensions.Logging;
 
 namespace KnightBus.Core.Sagas
 {
@@ -27,7 +28,7 @@ namespace KnightBus.Core.Sagas
                 var sagaDataType = sagaType.GenericTypeArguments[0];
 
                 var sagaHandlerType = typeof(SagaHandler<,>).MakeGenericType(sagaDataType, typeof(T));
-                var message = await messageStateHandler.GetMessageAsync().ConfigureAwait(false);
+                var message = messageStateHandler.GetMessage();
                 var sagaHandler = (ISagaHandler)Activator.CreateInstance(sagaHandlerType, _sagaStore, processor, message);
                 try
                 {
@@ -42,7 +43,7 @@ namespace KnightBus.Core.Sagas
                     }
                     else
                     {
-                        pipelineInformation.HostConfiguration.Log.Information(e, "Saga already started");
+                        pipelineInformation.HostConfiguration.Log.LogInformation(e, "Saga already started");
                     }
 
                     await messageStateHandler.CompleteAsync().ConfigureAwait(false);

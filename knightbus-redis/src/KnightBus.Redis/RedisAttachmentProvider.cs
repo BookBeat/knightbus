@@ -11,12 +11,12 @@ namespace KnightBus.Redis
     public class RedisAttachmentProvider : IMessageAttachmentProvider
     {
         private readonly IConnectionMultiplexer _multiplexer;
-        private readonly RedisConfiguration _configuration;
+        private readonly IRedisConfiguration _configuration;
 
         private const string ContentType = "contenttype";
         private const string FileName = "filename";
 
-        public RedisAttachmentProvider(IConnectionMultiplexer multiplexer, RedisConfiguration configuration)
+        public RedisAttachmentProvider(IConnectionMultiplexer multiplexer, IRedisConfiguration configuration)
         {
             _multiplexer = multiplexer;
             _configuration = configuration;

@@ -6,17 +6,19 @@ namespace KnightBus.Nats.Tests.Integration;
 
 public class NatsBusTests
 {
-    private INatsBusConfiguration _configuration = null!;
+    private INatsConfiguration _configuration = null!;
+    private IConnectionFactory _connectionFactory = null!;
     private IConnection _connection = null!;
     private NatsBus _target = null!;
 
     [SetUp]
     public void Setup()
     {
-        _configuration = new NatsBusConfiguration("");
-        _connection = new ConnectionFactory().CreateConnection();
+        _configuration = new NatsConfiguration();
+        _connectionFactory = new ConnectionFactory();
+        _connection = _connectionFactory.CreateConnection();
         
-        _target = new NatsBus(_connection, _configuration);
+        _target = new NatsBus(_connectionFactory, _configuration);
     }
 
     [TearDown]

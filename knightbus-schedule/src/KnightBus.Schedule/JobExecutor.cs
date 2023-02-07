@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
 using KnightBus.Core.Singleton;
+using Microsoft.Extensions.Logging;
 using Quartz;
 
 namespace KnightBus.Schedule
@@ -12,9 +13,9 @@ namespace KnightBus.Schedule
         private readonly IDependencyInjection _dependencyInjection;
         private readonly ISingletonLockManager _lockManager;
 
-        private readonly ILog _logger;
+        private readonly ILogger _logger;
 
-        public JobExecutor(ILog logger, ISingletonLockManager lockManager, IDependencyInjection dependencyInjection)
+        public JobExecutor(ILogger logger, ISingletonLockManager lockManager, IDependencyInjection dependencyInjection)
         {
             _logger = logger;
             _lockManager = lockManager;
@@ -33,7 +34,7 @@ namespace KnightBus.Schedule
                     //someone else has locked this instance, do nothing
                     return;
 
-                _logger.Information("Executing schedule {Schedule}", schedule);
+                _logger.LogInformation("Executing schedule {Schedule}", schedule);
 
                 using (var linkedTokenSource = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken))
                 {
@@ -47,8 +48,7 @@ namespace KnightBus.Schedule
             }
             catch (Exception e)
             {
-                ConsoleWriter.WriteLine($"Error processing schedule {typeof(T)} {e.Message} {e.StackTrace}");
-                _logger.Error(e, "Error processing schedule {Schedule}", typeof(T));
+                _logger.LogError(e, "Error processing schedule {Schedule}", typeof(T));
             }
         }
     }

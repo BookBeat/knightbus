@@ -17,7 +17,7 @@ Features:
 * **Attachments**, attach large files to your messages, transport independent
 * **Singleton Processing**, make sure only one message is processed at a time regardless of number of instances running
 * **Throttling**, both global and per message
-* **IoC**, bring you own or use the default SimpleInjector
+* **IoC**, bring you own or use the default
 
 .. toctree::
    :maxdepth: 2
