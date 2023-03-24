@@ -20,6 +20,7 @@ before_test:
 
 test_script:
 - cmd: >-
+    dotnet format --verify-no-changes --no-restore --verbosity diagnostic
     dotnet test knightbus/tests/KnightBus.Core.Tests.Unit/KnightBus.Core.Tests.Unit.csproj --logger:Appveyor
 
     dotnet test knightbus/tests/KnightBus.Host.Tests.Unit/KnightBus.Host.Tests.Unit.csproj --logger:Appveyor
