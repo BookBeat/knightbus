@@ -42,9 +42,9 @@ namespace KnightBus.Schedule
                 foreach (var processorInterface in processorInterfaces)
                 {
                     var scheduleType = processorInterface.GenericTypeArguments[0];
-                    _logger.LogInformation("Found {ProcessorName}<{ProcessorType}>",processor.Name, scheduleType.Name);
+                    _logger.LogInformation("Found {ProcessorName}<{ProcessorType}>", processor.Name, scheduleType.Name);
                     var settings = (ISchedule)Activator.CreateInstance(scheduleType);
-                    
+
 
                     CronExpression.ValidateExpression(settings.CronExpression);
 
@@ -55,11 +55,11 @@ namespace KnightBus.Schedule
 
                     var trigger = TriggerBuilder.Create()
                         .ForJob(job)
-                        .WithCronSchedule(settings.CronExpression, builder=> builder.InTimeZone(settings.TimeZone))
+                        .WithCronSchedule(settings.CronExpression, builder => builder.InTimeZone(settings.TimeZone))
                         .WithIdentity(Guid.NewGuid().ToString())
                         .StartNow()
                         .Build();
-                    
+
                     jobFactory.AddJob(scheduleType, dependencyInjection, _logger, lockManager);
                     await _scheduler.ScheduleJob(job, trigger, cancellationToken).ConfigureAwait(false);
                 }

@@ -24,12 +24,12 @@ namespace KnightBus.Nats.Tests.Unit
         public void When_send_should_publish_message()
         {
             //arrange
-            
+
             var bus = new NatsBus(_factory.Object, new NatsConfiguration());
             //act 
             bus.Send(new TestNatsCommand());
             //assert
-            _connection.Verify(c=> c.Publish(It.Is<Msg>( m=> m.Subject == "queueName")), Times.Once);
+            _connection.Verify(c => c.Publish(It.Is<Msg>(m => m.Subject == "queueName")), Times.Once);
         }
 
         [Test]
@@ -48,11 +48,11 @@ namespace KnightBus.Nats.Tests.Unit
         {
             //arrange
             var config = new NatsConfiguration();
-            
+
             _connection.Setup(x =>
                     x.RequestAsync("requestName", It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(() => new Msg("reply", config.MessageSerializer.Serialize(new TestNatsResponse())));
-            var bus = new NatsBus(_factory.Object,config );
+            var bus = new NatsBus(_factory.Object, config);
             //act 
             var response = await bus.RequestAsync<TestNatsRequest, TestNatsResponse>(new TestNatsRequest());
             //assert
@@ -64,17 +64,17 @@ namespace KnightBus.Nats.Tests.Unit
         {
             //arrange
             var sub = new Mock<ISyncSubscription>();
-            var stopHeader = new MsgHeader {{MsgConstants.HeaderName, MsgConstants.Completed}};
+            var stopHeader = new MsgHeader { { MsgConstants.HeaderName, MsgConstants.Completed } };
             //10 results
             sub.SetupSequence(x => x.NextMessage())
                 .Returns(new Msg("inbox", Array.Empty<byte>()))
                 .Returns(new Msg("inbox", stopHeader, Array.Empty<byte>()));
-                
+
 
             _connection.Setup(x => x.SubscribeSync(It.IsAny<string>())).Returns(sub.Object);
             var bus = new NatsBus(_factory.Object, new NatsConfiguration());
             //act 
-            var response =  bus.RequestStream<TestNatsRequest, TestNatsResponse>(new TestNatsRequest());
+            var response = bus.RequestStream<TestNatsRequest, TestNatsResponse>(new TestNatsRequest());
 
             //assert
             response.Count().Should().Be(2);
@@ -91,7 +91,7 @@ namespace KnightBus.Nats.Tests.Unit
                 .Returns(new Msg("inbox", Array.Empty<byte>()))
                 .Returns(new Msg("inbox", errorHeader, Array.Empty<byte>()));
 
-            
+
             _connection.Setup(x => x.SubscribeSync(It.IsAny<string>())).Returns(sub.Object);
             var bus = new NatsBus(_factory.Object, new NatsConfiguration());
             //act 

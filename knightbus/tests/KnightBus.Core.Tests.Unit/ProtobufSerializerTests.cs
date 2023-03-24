@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using FluentAssertions;
 using KnightBus.Messages;
 using KnightBus.ProtobufNet;

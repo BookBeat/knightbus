@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -21,7 +21,7 @@ namespace KnightBus.Host.Tests.Unit
             var lockManager = new Mock<ISingletonLockManager>();
             lockManager.SetupSequence(x => x.TryLockAsync(It.IsAny<string>(), TimeSpan.FromSeconds(60), CancellationToken.None))
                 .ReturnsAsync(Mock.Of<ISingletonLockHandle>())
-                .ReturnsAsync((ISingletonLockHandle) null);
+                .ReturnsAsync((ISingletonLockHandle)null);
             var underlyingReceiver = new Mock<IChannelReceiver>();
             underlyingReceiver.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);
             var singletonChannelReceiver = new SingletonChannelReceiver(underlyingReceiver.Object, lockManager.Object, Mock.Of<ILogger>()) { TimerInterval = TimeSpan.FromSeconds(1) };
@@ -40,7 +40,7 @@ namespace KnightBus.Host.Tests.Unit
             var lockManager = new Mock<ISingletonLockManager>();
             lockManager.SetupSequence(x => x.TryLockAsync(It.IsAny<string>(), TimeSpan.FromSeconds(60), CancellationToken.None))
                 .ReturnsAsync(Mock.Of<ISingletonLockHandle>())
-                .ReturnsAsync((ISingletonLockHandle) null)
+                .ReturnsAsync((ISingletonLockHandle)null)
                 .ReturnsAsync(Mock.Of<ISingletonLockHandle>());
             var underlyingReceiver = new Mock<IChannelReceiver>();
             underlyingReceiver.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);
@@ -76,7 +76,7 @@ namespace KnightBus.Host.Tests.Unit
             };
             //act
             await singletonChannelReceiver.StartAsync(CancellationToken.None);
-            await Task.Delay(2100); 
+            await Task.Delay(2100);
             //assert
             underlyingReceiver.Verify(x => x.StartAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
         }

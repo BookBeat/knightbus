@@ -4,12 +4,12 @@ namespace KnightBus.Azure.Storage
 {
     public class StorageTransport : ITransport
     {
-        public StorageTransport(string connectionString):this(new StorageBusConfiguration(connectionString))
-        {}
+        public StorageTransport(string connectionString) : this(new StorageBusConfiguration(connectionString))
+        { }
 
         public StorageTransport(IStorageBusConfiguration configuration)
         {
-            TransportChannelFactories = new ITransportChannelFactory[]{new StorageQueueChannelFactory(configuration), };
+            TransportChannelFactories = new ITransportChannelFactory[] { new StorageQueueChannelFactory(configuration), };
         }
 
         public ITransportChannelFactory[] TransportChannelFactories { get; }

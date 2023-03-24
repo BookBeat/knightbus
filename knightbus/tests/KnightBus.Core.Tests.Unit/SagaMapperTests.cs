@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using KnightBus.Core.Sagas;
 using KnightBus.Messages;
 using NUnit.Framework;
@@ -13,13 +13,13 @@ namespace KnightBus.Core.Tests.Unit
         {
             //arrange
             var mapper = new SagaMessageMapper();
-            mapper.MapStartMessage<TestMessage>(m=> m.Id);
+            mapper.MapStartMessage<TestMessage>(m => m.Id);
             //act
             var mapping = mapper.GetMapping<TestMessage>();
             //assert
             mapping.Should().NotBeNull();
             mapper.IsStartMessage(typeof(TestMessage)).Should().BeTrue();
-            mapping.Invoke(new TestMessage {Id = "an_id"}).Should().Be("an_id");
+            mapping.Invoke(new TestMessage { Id = "an_id" }).Should().Be("an_id");
         }
 
         [Test]
@@ -42,10 +42,10 @@ namespace KnightBus.Core.Tests.Unit
             //arrange
             var mapper = new SagaMessageMapper();
             //act & assert
-            mapper.Invoking(x=> x.GetMapping<UnMappedMessage>()).Should().Throw<SagaMessageMappingNotFoundException>();
+            mapper.Invoking(x => x.GetMapping<UnMappedMessage>()).Should().Throw<SagaMessageMappingNotFoundException>();
         }
-        
-        internal class TestMessage :IMessage
+
+        internal class TestMessage : IMessage
         {
             public string Id { get; set; }
         }

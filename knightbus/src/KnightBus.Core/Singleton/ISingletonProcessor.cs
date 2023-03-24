@@ -1,4 +1,4 @@
-namespace KnightBus.Core.Singleton
+﻿namespace KnightBus.Core.Singleton
 {
     /// <summary>
     /// Message processors with this interface will only allow one simultaneous execution. 

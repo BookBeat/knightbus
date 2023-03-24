@@ -12,7 +12,7 @@ namespace KnightBus.Core.Sagas
             {
                 throw new ArgumentException("An instance of ISagaStore is already registered");
             }
-            
+
             services.AddSingleton<ISagaStore, T>();
             services.AddMiddleware<SagaMiddleware>();
             return services;
@@ -23,7 +23,7 @@ namespace KnightBus.Core.Sagas
             {
                 throw new ArgumentException("An instance of ISagaStore is already registered");
             }
-                
+
             services.AddSingleton(store);
             services.AddMiddleware<SagaMiddleware>();
             return services;

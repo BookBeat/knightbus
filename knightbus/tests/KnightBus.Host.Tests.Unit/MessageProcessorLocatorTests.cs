@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using FluentAssertions;
 using KnightBus.Core;
@@ -36,13 +36,13 @@ namespace KnightBus.Host.Tests.Unit
             var collection = new ServiceCollection();
             collection.RegisterProcessor<SingleCommandProcessor>();
             collection.AddScoped((_) => Mock.Of<ICountable>());
-            
+
             var locator = new MessageProcessorLocator(new HostConfiguration
             {
                 DependencyInjection = new MicrosoftDependencyInjection(collection.BuildServiceProvider()),
                 Log = Mock.Of<ILogger>()
-                
-            }, new[]{ _queueStarterFactory.Object });
+
+            }, new[] { _queueStarterFactory.Object });
             _queueStarterFactory.Setup(x => x.CanCreate(typeof(TestCommand))).Returns(true);
             _queueStarterFactory.Setup(x => x.Create(typeof(TestCommand), null, It.IsAny<TestTopicSettings>(), It.IsAny<IMessageSerializer>(), It.IsAny<HostConfiguration>(), It.IsAny<IMessageProcessor>()))
                 .Returns(Mock.Of<IChannelReceiver>()).Verifiable();
@@ -52,7 +52,7 @@ namespace KnightBus.Host.Tests.Unit
             reader.Count.Should().Be(1);
             _queueStarterFactory.Verify();
         }
-        
+
         [Test]
         public void Should_locate_single_request_processor()
         {
@@ -60,13 +60,13 @@ namespace KnightBus.Host.Tests.Unit
             var collection = new ServiceCollection();
             collection.RegisterProcessor<SingleRequestProcessor>();
             collection.AddScoped((_) => Mock.Of<ICountable>());
-            
+
             var locator = new MessageProcessorLocator(new HostConfiguration
             {
                 DependencyInjection = new MicrosoftDependencyInjection(collection.BuildServiceProvider()),
                 Log = Mock.Of<ILogger>()
-                
-            }, new[]{ _queueStarterFactory.Object });
+
+            }, new[] { _queueStarterFactory.Object });
             _queueStarterFactory.Setup(x => x.CanCreate(typeof(TestRequest))).Returns(true);
             _queueStarterFactory.Setup(x => x.Create(typeof(TestRequest), null, It.IsAny<TestMessageSettings>(), It.IsAny<IMessageSerializer>(), It.IsAny<HostConfiguration>(), It.IsAny<IMessageProcessor>()))
                 .Returns(Mock.Of<IChannelReceiver>()).Verifiable();
@@ -84,14 +84,14 @@ namespace KnightBus.Host.Tests.Unit
             var collection = new ServiceCollection();
             collection.RegisterProcessor<StreamRequestProcessor>();
             collection.AddScoped((_) => Mock.Of<ICountable>());
-            
+
             var locator = new MessageProcessorLocator(new HostConfiguration
             {
                 DependencyInjection = new MicrosoftDependencyInjection(collection.BuildServiceProvider()),
                 Log = Mock.Of<ILogger>()
-                
-            }, new[]{ _queueStarterFactory.Object });
-            
+
+            }, new[] { _queueStarterFactory.Object });
+
             _queueStarterFactory.Setup(x => x.CanCreate(typeof(TestRequest))).Returns(true);
             _queueStarterFactory.Setup(x => x.Create(typeof(TestRequest), null, It.IsAny<TestMessageSettings>(), It.IsAny<IMessageSerializer>(), It.IsAny<HostConfiguration>(), It.IsAny<IMessageProcessor>()))
                 .Returns(Mock.Of<IChannelReceiver>()).Verifiable();
@@ -109,16 +109,16 @@ namespace KnightBus.Host.Tests.Unit
             var collection = new ServiceCollection();
             collection.RegisterProcessor<MultipleCommandProcessor>();
             collection.AddScoped((_) => Mock.Of<ICountable>());
-            
+
             var locator = new MessageProcessorLocator(new HostConfiguration
             {
                 DependencyInjection = new MicrosoftDependencyInjection(collection.BuildServiceProvider()),
                 Log = Mock.Of<ILogger>()
 
-            }, new[]{ _queueStarterFactory.Object });
+            }, new[] { _queueStarterFactory.Object });
             _queueStarterFactory.Setup(x => x.CanCreate(typeof(TestCommandOne))).Returns(true);
             _queueStarterFactory.Setup(x => x.CanCreate(typeof(TestCommandTwo))).Returns(true);
-            _queueStarterFactory.Setup(x => x.Create(typeof(TestCommandOne), null, It.IsAny<TestTopicSettings>(),It.IsAny<IMessageSerializer>(), It.IsAny<HostConfiguration>(), It.IsAny<IMessageProcessor>()))
+            _queueStarterFactory.Setup(x => x.Create(typeof(TestCommandOne), null, It.IsAny<TestTopicSettings>(), It.IsAny<IMessageSerializer>(), It.IsAny<HostConfiguration>(), It.IsAny<IMessageProcessor>()))
                 .Returns(Mock.Of<IChannelReceiver>()).Verifiable();
             _queueStarterFactory.Setup(x => x.Create(typeof(TestCommandTwo), null, It.IsAny<TestTopicSettings>(), It.IsAny<IMessageSerializer>(), It.IsAny<HostConfiguration>(), It.IsAny<IMessageProcessor>()))
                 .Returns(Mock.Of<IChannelReceiver>()).Verifiable();
@@ -136,13 +136,13 @@ namespace KnightBus.Host.Tests.Unit
             var collection = new ServiceCollection();
             collection.RegisterProcessor<SingleCommandProcessor>();
             collection.AddScoped((_) => Mock.Of<ICountable>());
-            
+
             var locator = new MessageProcessorLocator(new HostConfiguration
             {
                 DependencyInjection = new MicrosoftDependencyInjection(collection.BuildServiceProvider()),
                 Log = Mock.Of<ILogger>()
-                
-            }, new[]{ _queueStarterFactory.Object });
+
+            }, new[] { _queueStarterFactory.Object });
             _queueStarterFactory.Setup(x => x.CanCreate(typeof(TestCommand))).Returns(false);
             //act and assert
             locator.Invoking(x => x.CreateReceivers().ToList()).Should().Throw<TransportMissingException>();
@@ -160,9 +160,9 @@ namespace KnightBus.Host.Tests.Unit
             {
                 DependencyInjection = new MicrosoftDependencyInjection(collection.BuildServiceProvider()),
                 Log = Mock.Of<ILogger>()
-                
-            }, new[]{ _queueStarterFactory.Object });
-            
+
+            }, new[] { _queueStarterFactory.Object });
+
             _queueStarterFactory.Setup(x => x.CanCreate(typeof(TestEvent))).Returns(true);
             _queueStarterFactory.Setup(x => x.Create(typeof(TestEvent), It.IsAny<TestSubscription>(), It.IsAny<TestTopicSettings>(), It.IsAny<IMessageSerializer>(), It.IsAny<HostConfiguration>(), It.IsAny<IMessageProcessor>()))
                 .Returns(Mock.Of<IChannelReceiver>()).Verifiable();
@@ -185,8 +185,8 @@ namespace KnightBus.Host.Tests.Unit
                 DependencyInjection = new MicrosoftDependencyInjection(collection.BuildServiceProvider()),
                 Log = Mock.Of<ILogger>()
 
-            }, new[]{ _queueStarterFactory.Object });
-            
+            }, new[] { _queueStarterFactory.Object });
+
             var underlyingQueueStarter = new Mock<IChannelReceiver>();
             underlyingQueueStarter.Setup(x => x.Settings).Returns(new SingletonProcessingSettings
             {

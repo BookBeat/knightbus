@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,7 +22,7 @@ namespace KnightBus.Core.DependencyInjection
             }
             return services;
         }
-        
+
         /// <summary>
         /// Registers all <see cref="IProcessCommand{T,TSettings}"/>, <see cref="IProcessRequest{T,TResponse,TSettings}"/> and <see cref="IProcessEvent{TTopic,TTopicSubscription,TSettings}"/> found in the executing assembly
         /// </summary>
@@ -30,7 +30,7 @@ namespace KnightBus.Core.DependencyInjection
         {
             return services.RegisterProcessors(Assembly.GetCallingAssembly());
         }
-        
+
         public static IServiceCollection RegisterProcessor<T>(this IServiceCollection services)
         {
             foreach (var processorType in ValidProcessorInterfaces.Types)

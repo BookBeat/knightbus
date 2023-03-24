@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -63,11 +63,11 @@ namespace KnightBus.Core
         {
 
             return from type in types
-                from interfaceType in type.GetInterfaces()
-                where
-                    (targetInterface.IsAssignableFrom(interfaceType) &&
-                     type.IsClass && !type.IsAbstract)
-                select type;
+                   from interfaceType in type.GetInterfaces()
+                   where
+                       (targetInterface.IsAssignableFrom(interfaceType) &&
+                        type.IsClass && !type.IsAbstract)
+                   select type;
         }
     }
 }

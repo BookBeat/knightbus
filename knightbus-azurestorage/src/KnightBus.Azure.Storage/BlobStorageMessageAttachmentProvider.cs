@@ -17,7 +17,7 @@ namespace KnightBus.Azure.Storage
         {
             _connectionString = connectionString;
         }
-        
+
         public BlobStorageMessageAttachmentProvider(IStorageBusConfiguration configuration) : this(configuration.ConnectionString)
         {
         }

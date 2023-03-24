@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -39,7 +39,7 @@ namespace KnightBus.Host
             _configuration.Log.LogInformation("KnightBus starting");
 
             var transports = _configuration.DependencyInjection.GetInstances<ITransport>().ToArray();
-            
+
             if (transports.Any())
             {
                 _locator = new MessageProcessorLocator(_configuration,

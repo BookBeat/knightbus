@@ -21,7 +21,7 @@ namespace KnightBus.Azure.Storage.Singleton
         public BlobLockManager(string connectionString, IBlobLockScheme lockScheme = null)
         {
             _connectionString = connectionString;
-            _lockScheme =  lockScheme ?? new DefaultBlobLockScheme();
+            _lockScheme = lockScheme ?? new DefaultBlobLockScheme();
         }
 
         public BlobLockManager(IStorageBusConfiguration configuration, IBlobLockScheme lockScheme = null) : this(configuration.ConnectionString, lockScheme)
@@ -62,7 +62,7 @@ namespace KnightBus.Azure.Storage.Singleton
         private static async Task WriteLeaseBlobMetadata(BlobBaseClient blob, string leaseId, string functionInstanceId,
             CancellationToken cancellationToken)
         {
-            await blob.SetMetadataAsync(new Dictionary<string, string> {{"FunctionInstance", functionInstanceId}}, new BlobRequestConditions
+            await blob.SetMetadataAsync(new Dictionary<string, string> { { "FunctionInstance", functionInstanceId } }, new BlobRequestConditions
             {
                 LeaseId = leaseId
             }, cancellationToken);

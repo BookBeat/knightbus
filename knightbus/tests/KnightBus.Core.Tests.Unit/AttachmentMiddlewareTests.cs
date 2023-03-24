@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -24,7 +24,7 @@ namespace KnightBus.Core.Tests.Unit
             var attachment = new MessageAttachment("test.txt", "text/plain", stream);
             var stateHandler = new Mock<IMessageStateHandler<AttachmentCommand>>();
             stateHandler.Setup(x => x.GetMessage()).Returns(message);
-            stateHandler.Setup(x=> x.MessageProperties).Returns(new Dictionary<string, string>{ {AttachmentUtility.AttachmentKey, "89BDF3DB-896C-448D-A84E-872CBA8DBC9F" }});
+            stateHandler.Setup(x => x.MessageProperties).Returns(new Dictionary<string, string> { { AttachmentUtility.AttachmentKey, "89BDF3DB-896C-448D-A84E-872CBA8DBC9F" } });
             var attachmentProvider = new Mock<IMessageAttachmentProvider>();
             attachmentProvider.Setup(x => x.GetAttachmentAsync(AutoMessageMapper.GetQueueName<AttachmentCommand>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(attachment);
@@ -35,7 +35,7 @@ namespace KnightBus.Core.Tests.Unit
             stream.CanRead.Should().BeFalse("It should have been disposed");
             message.Attachment.Filename.Should().Be("test.txt");
             message.Attachment.ContentType.Should().Be("text/plain");
-            nextProcessor.Verify(x=> x.ProcessAsync(stateHandler.Object, CancellationToken.None), Times.Once);
+            nextProcessor.Verify(x => x.ProcessAsync(stateHandler.Object, CancellationToken.None), Times.Once);
         }
 
         [Test]
@@ -56,8 +56,8 @@ namespace KnightBus.Core.Tests.Unit
             //act
             await middleware.ProcessAsync(stateHandler.Object, Mock.Of<IPipelineInformation>(), nextProcessor.Object, CancellationToken.None);
             //assert
-            attachmentProvider.Verify(x=> x.DeleteAttachmentAsync(AutoMessageMapper.GetQueueName<AttachmentCommand>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
-            
+            attachmentProvider.Verify(x => x.DeleteAttachmentAsync(AutoMessageMapper.GetQueueName<AttachmentCommand>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+
         }
 
         [Test]
@@ -75,7 +75,7 @@ namespace KnightBus.Core.Tests.Unit
             //act
             await middleware.ProcessAsync(stateHandler.Object, Mock.Of<IPipelineInformation>(), nextProcessor.Object, CancellationToken.None);
             //assert
-            attachmentProvider.Verify(x=> x.GetAttachmentAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+            attachmentProvider.Verify(x => x.GetAttachmentAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
             nextProcessor.Verify(x => x.ProcessAsync(stateHandler.Object, CancellationToken.None), Times.Once);
         }
     }

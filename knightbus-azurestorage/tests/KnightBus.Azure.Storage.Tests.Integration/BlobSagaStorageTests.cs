@@ -1,4 +1,4 @@
-using KnightBus.Azure.Storage.Sagas;
+﻿using KnightBus.Azure.Storage.Sagas;
 using KnightBus.Shared.Tests.Integration;
 using NUnit.Framework;
 

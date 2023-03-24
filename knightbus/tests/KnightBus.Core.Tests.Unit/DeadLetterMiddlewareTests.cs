@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core.DefaultMiddlewares;
@@ -95,7 +95,7 @@ namespace KnightBus.Core.Tests.Unit
             //act
             await middleware.ProcessAsync(messageStateHandler.Object, pipeline.Object, nextProcessor.Object, CancellationToken.None);
             //assert
-            countable.Verify(x=> x.Count(), Times.Once);
+            countable.Verify(x => x.Count(), Times.Once);
             messageStateHandler.Verify(x => x.DeadLetterAsync(1), Times.Once);
         }
 

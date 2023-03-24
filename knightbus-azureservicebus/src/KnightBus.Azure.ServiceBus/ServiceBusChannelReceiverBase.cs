@@ -72,7 +72,7 @@ namespace KnightBus.Azure.ServiceBus
             _client.ProcessErrorAsync += ClientOnProcessErrorAsync;
             await _client.StartProcessingAsync(_cancellationToken).ConfigureAwait(false);
         }
-        
+
         private async Task ClientOnProcessErrorAsync(ProcessErrorEventArgs arg)
         {
             if (arg.Exception is ServiceBusException { Reason: ServiceBusFailureReason.MessagingEntityNotFound })

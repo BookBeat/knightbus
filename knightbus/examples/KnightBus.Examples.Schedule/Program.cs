@@ -30,12 +30,12 @@ public class Program
                 services.UseBlobStorage(blobConnection)
                 .UseScheduling()
                 .UseTcpAliveListener(13000)
-                .RegisterSchedules() 
+                .RegisterSchedules()
                 .UseBlobStorageLockManager();
             })
             .UseKnightBus().Build();
-            
-        
+
+
         await knightBus.RunAsync(CancellationToken.None);
     }
 }

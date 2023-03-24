@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -45,7 +45,7 @@ namespace KnightBus.Examples.Azure.Storage
 
             var client = knightBus.Services.GetRequiredService<IStorageBus>();
             await Task.Delay(TimeSpan.FromSeconds(10));
-            
+
 
             //Send some Messages and watch them print in the console
             for (var i = 0; i < 10; i++)
@@ -58,7 +58,7 @@ namespace KnightBus.Examples.Azure.Storage
                 });
             }
 
-            await client.SendAsync(new SampleSagaStartMessage {Message = "This is a saga start message"});
+            await client.SendAsync(new SampleSagaStartMessage { Message = "This is a saga start message" });
             Console.ReadKey();
         }
 

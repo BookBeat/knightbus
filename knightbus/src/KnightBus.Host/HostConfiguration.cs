@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using KnightBus.Core;
 using Microsoft.Extensions.Logging;
 
