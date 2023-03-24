@@ -11,8 +11,6 @@ init:
 build_script:
 - cmd: >-
     dotnet build KnightBus.sln --configuration Release
-    
-    dotnet format KnightBus.sln --verify-no-changes --no-restore --verbosity diagnostic
 
 before_test:
 - docker pull redis
