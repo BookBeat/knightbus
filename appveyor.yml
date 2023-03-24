@@ -11,6 +11,8 @@ init:
 build_script:
 - cmd: >-
     dotnet build KnightBus.sln --configuration Release
+    
+    dotnet format KnightBus.sln --verify-no-changes --no-restore --verbosity diagnostic
 
 before_test:
 - docker pull redis
@@ -19,9 +21,7 @@ before_test:
 - docker run -d -p 10000:10000 -p 10001:10001 mcr.microsoft.com/azure-storage/azurite
 
 test_script:
-- cmd: >-
-    dotnet format --verify-no-changes --verbosity diagnostic
-    
+- cmd: >-    
     dotnet test knightbus/tests/KnightBus.Core.Tests.Unit/KnightBus.Core.Tests.Unit.csproj --logger:Appveyor
 
     dotnet test knightbus/tests/KnightBus.Host.Tests.Unit/KnightBus.Host.Tests.Unit.csproj --logger:Appveyor
