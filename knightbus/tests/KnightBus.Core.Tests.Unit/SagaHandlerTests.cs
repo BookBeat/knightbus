@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading.Tasks;
 using FluentAssertions;
 using KnightBus.Core.Sagas;
@@ -60,7 +60,7 @@ namespace KnightBus.Core.Tests.Unit
 
         internal class TestSagaData
         {
-            
+
         }
         internal class TestSaga : Saga<TestSagaData>
         {

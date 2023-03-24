@@ -1,8 +1,8 @@
-namespace KnightBus.Core.Exceptions
+﻿namespace KnightBus.Core.Exceptions
 {
     public sealed class AttachmentProviderMissingException : KnightBusException
     {
-        public AttachmentProviderMissingException():base("No IAttachmentProvider found, did you forget to configure it?")
-        {}
+        public AttachmentProviderMissingException() : base("No IAttachmentProvider found, did you forget to configure it?")
+        { }
     }
 }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using KnightBus.Azure.ServiceBus.Messages;
 using KnightBus.Core;
 using KnightBus.Messages;

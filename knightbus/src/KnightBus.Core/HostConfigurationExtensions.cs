@@ -1,4 +1,4 @@
-using KnightBus.Core.Singleton;
+﻿using KnightBus.Core.Singleton;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace KnightBus.Core
@@ -6,12 +6,12 @@ namespace KnightBus.Core
     public static class HostConfigurationExtensions
     {
 
-        public static IServiceCollection UseTransport<T>(this IServiceCollection services) where T: class, ITransport
+        public static IServiceCollection UseTransport<T>(this IServiceCollection services) where T : class, ITransport
         {
             services.AddSingleton<ITransport, T>();
             return services;
         }
-        public static IServiceCollection AddMiddleware<T>(this IServiceCollection services) where T: class, IMessageProcessorMiddleware
+        public static IServiceCollection AddMiddleware<T>(this IServiceCollection services) where T : class, IMessageProcessorMiddleware
         {
             services.AddSingleton<IMessageProcessorMiddleware, T>();
             return services;
@@ -27,7 +27,7 @@ namespace KnightBus.Core
             services.AddSingleton<IPlugin, T>();
             return services;
         }
-        
+
         public static IServiceCollection AddPlugin<T>(this IServiceCollection services, T plugin) where T : class, IPlugin
         {
             services.AddSingleton<IPlugin>(plugin);

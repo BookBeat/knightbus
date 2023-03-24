@@ -9,11 +9,11 @@ namespace KnightBus.Redis.Messages
 
     public interface IRedisCommand : ICommand, IRedisMessage
     {
-        
+
     }
 
     public interface IRedisEvent : IEvent, IRedisMessage
     {
-        
+
     }
 }

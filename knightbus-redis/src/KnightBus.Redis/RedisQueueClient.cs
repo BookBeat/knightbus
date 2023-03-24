@@ -147,7 +147,7 @@ namespace KnightBus.Redis
 
             foreach (byte[] value in values)
             {
-                var deadletter = new RedisDeadletter<T> {Message = _serializer.Deserialize<RedisListItem<T>>(value.AsSpan())};
+                var deadletter = new RedisDeadletter<T> { Message = _serializer.Deserialize<RedisListItem<T>>(value.AsSpan()) };
                 var hash = RedisQueueConventions.GetMessageHashKey(_queueName, deadletter.Message.Id);
                 var hashes = await _db.HashGetAllAsync(hash).ConfigureAwait(false);
                 deadletter.HashEntries = hashes.ToStringDictionary();

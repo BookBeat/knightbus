@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -27,6 +27,6 @@ namespace KnightBus.Host.MessageProcessing.Processors
 
             await messageHandler.ProcessAsync(typedMessage, cancellationToken).ConfigureAwait(false);
             await messageStateHandler.CompleteAsync().ConfigureAwait(false);
-        }   
+        }
     }
 }

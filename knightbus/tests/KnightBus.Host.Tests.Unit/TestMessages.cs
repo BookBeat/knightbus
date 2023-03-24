@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using KnightBus.Core;
 using KnightBus.Messages;
 
@@ -8,7 +8,7 @@ namespace KnightBus.Host.Tests.Unit
     {
 
     }
-    public class TestRequestMapping:IMessageMapping<TestRequest>
+    public class TestRequestMapping : IMessageMapping<TestRequest>
     {
         public string QueueName => "testreq";
     }
@@ -67,7 +67,7 @@ namespace KnightBus.Host.Tests.Unit
     {
         public string QueueName => "singletoncommand";
     }
-    
+
     public class TestTopicSettings : IProcessingSettings
     {
         public int MaxConcurrentCalls => 2;

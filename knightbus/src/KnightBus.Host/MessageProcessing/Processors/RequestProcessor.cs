@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
@@ -21,11 +21,11 @@ namespace KnightBus.Host.MessageProcessing.Processors
         public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, CancellationToken cancellationToken) where T : class, IMessage
         {
             var typedMessage = messageStateHandler.GetMessage();
-            var messageHandler = messageStateHandler.MessageScope.GetInstance<IProcessMessage<T,Task<TResponse>>>(_messageHandlerType);
+            var messageHandler = messageStateHandler.MessageScope.GetInstance<IProcessMessage<T, Task<TResponse>>>(_messageHandlerType);
 
             var response = await messageHandler.ProcessAsync(typedMessage, cancellationToken).ConfigureAwait(false);
             await messageStateHandler.CompleteAsync().ConfigureAwait(false);
             await messageStateHandler.ReplyAsync(response).ConfigureAwait(false);
-        }   
+        }
     }
 }

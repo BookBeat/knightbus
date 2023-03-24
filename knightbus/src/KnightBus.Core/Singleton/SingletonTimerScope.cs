@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -14,7 +14,7 @@ namespace KnightBus.Core.Singleton
         private readonly CancellationTokenSource _cts;
         private Task _runningTask;
 
-        public SingletonTimerScope(ILogger log, ISingletonLockHandle lockHandle, bool autoRelease, TimeSpan renewalInterval, CancellationTokenSource  cancellationTokenSource)
+        public SingletonTimerScope(ILogger log, ISingletonLockHandle lockHandle, bool autoRelease, TimeSpan renewalInterval, CancellationTokenSource cancellationTokenSource)
         {
             _log = log;
             _lockHandle = lockHandle;
@@ -58,7 +58,7 @@ namespace KnightBus.Core.Singleton
                 retries -= 1;
             }
         }
-        
+
 
         public void Dispose()
         {

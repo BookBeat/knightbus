@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using KnightBus.Core;
 using KnightBus.Core.Singleton;

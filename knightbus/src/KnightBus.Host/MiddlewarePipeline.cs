@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using KnightBus.Core;
 using KnightBus.Core.DefaultMiddlewares;
@@ -31,7 +31,7 @@ namespace KnightBus.Host
             {
                 _middlewares.Add(new MicrosoftDependencyInjectionScopedLifeStyleMiddleware());
             }
-            
+
             _middlewares.Add(new DeadLetterMiddleware());
             //Add host-global middlewares
             _middlewares.AddRange(processorMiddlewares);

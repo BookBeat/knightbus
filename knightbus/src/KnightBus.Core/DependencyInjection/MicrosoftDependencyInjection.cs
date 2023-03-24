@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,7 +16,7 @@ namespace KnightBus.Core.DependencyInjection
             _scope = scope;
         }
 
-        
+
         public IDependencyInjection GetScope()
         {
             var scope = _provider.CreateScope();
@@ -41,7 +41,7 @@ namespace KnightBus.Core.DependencyInjection
         public IEnumerable<Type> GetOpenGenericRegistrations(Type openGeneric)
         {
             using var scope = GetScope();
-            var allTypes = scope.GetInstances<IGenericProcessor>().Distinct().Select(o=> o.GetType());
+            var allTypes = scope.GetInstances<IGenericProcessor>().Distinct().Select(o => o.GetType());
             return ReflectionHelper.GetAllTypesImplementingOpenGenericInterface(openGeneric, allTypes).Distinct();
         }
 

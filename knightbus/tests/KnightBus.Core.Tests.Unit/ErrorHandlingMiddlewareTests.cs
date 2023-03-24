@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -23,8 +23,8 @@ namespace KnightBus.Core.Tests.Unit
             var logger = new Mock<ILogger>();
             var middleware = new ErrorHandlingMiddleware(logger.Object);
             //act & assert
-            middleware.Invoking(async x=> await x.ProcessAsync(messageStateHandler.Object, Mock.Of<IPipelineInformation>(), nextProcessor.Object, CancellationToken.None)).Should().NotThrowAsync();
-            
+            middleware.Invoking(async x => await x.ProcessAsync(messageStateHandler.Object, Mock.Of<IPipelineInformation>(), nextProcessor.Object, CancellationToken.None)).Should().NotThrowAsync();
+
         }
 
         [Test]
@@ -62,7 +62,7 @@ namespace KnightBus.Core.Tests.Unit
             //act
             await middleware.ProcessAsync(messageStateHandler.Object, Mock.Of<IPipelineInformation>(), nextProcessor.Object, CancellationToken.None);
             //assert
-            messageStateHandler.Verify(x=> x.AbandonByErrorAsync(It.IsAny<Exception>()), Times.Once);
+            messageStateHandler.Verify(x => x.AbandonByErrorAsync(It.IsAny<Exception>()), Times.Once);
         }
         [Test]
         public void Should_not_throw_when_abandon_message_on_errors_fails()

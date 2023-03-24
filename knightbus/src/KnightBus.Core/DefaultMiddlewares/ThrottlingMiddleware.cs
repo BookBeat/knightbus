@@ -1,4 +1,4 @@
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Messages;
 using Microsoft.Extensions.Logging;

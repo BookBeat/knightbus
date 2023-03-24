@@ -28,7 +28,7 @@ namespace KnightBus.Azure.ServiceBus
             _serviceBusClient = new ServiceBusClient(connectionString);
         }
 
-        public ClientFactory(IServiceBusConfiguration configuration):this(configuration.ConnectionString)
+        public ClientFactory(IServiceBusConfiguration configuration) : this(configuration.ConnectionString)
         {
         }
 

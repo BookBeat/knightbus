@@ -37,11 +37,11 @@ namespace KnightBus.Redis
 
             var hash = new HashEntry[]
             {
-                new HashEntry(FileName, attachment.Filename), 
-                new HashEntry(ContentType, attachment.ContentType), 
+                new HashEntry(FileName, attachment.Filename),
+                new HashEntry(ContentType, attachment.ContentType),
             };
 
-            
+
 
             using (var memoryStream = new MemoryStream())
             {

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using KnightBus.Azure.Storage.Sagas;
 using KnightBus.Azure.Storage.Singleton;
 using KnightBus.Core;
@@ -18,7 +18,7 @@ namespace KnightBus.Azure.Storage
             services.AddMiddleware<AttachmentMiddleware>();
             return services;
         }
-        
+
         public static IServiceCollection UseBlobStorage(this IServiceCollection services, Action<IStorageBusConfiguration> config = null)
         {
             var storageConfig = new StorageBusConfiguration();
@@ -40,13 +40,13 @@ namespace KnightBus.Azure.Storage
             services.AddSingleton(lockScheme);
             return services.UseBlobStorageLockManager();
         }
-        
+
         public static IServiceCollection UseBlobStorageLockManager(this IServiceCollection services)
         {
             services.AddSingleton<ISingletonLockManager, BlobLockManager>();
             return services;
         }
-        
+
         public static IServiceCollection UseBlobStorageSagas(this IServiceCollection services)
         {
             services.EnableSagas<BlobSagaStore>();

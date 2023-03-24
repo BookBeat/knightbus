@@ -63,8 +63,8 @@ class Program
         sw.Start();
         await client.SendAsync<SampleRedisCommand>(commands);
         Console.WriteLine($"Elapsed {sw.Elapsed}");
-        
-        
+
+
         Console.ReadKey();
     }
 

@@ -1,4 +1,4 @@
-using KnightBus.Core;
+﻿using KnightBus.Core;
 
 namespace KnightBus.Azure.ServiceBus
 {

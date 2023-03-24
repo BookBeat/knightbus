@@ -8,7 +8,7 @@ namespace KnightBus.Redis
     {
         int DatabaseId { get; set; }
     }
-    
+
     public class RedisConfiguration : IRedisConfiguration
     {
         public RedisConfiguration()

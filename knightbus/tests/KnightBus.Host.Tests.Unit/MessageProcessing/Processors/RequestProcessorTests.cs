@@ -107,7 +107,7 @@ namespace KnightBus.Host.Tests.Unit.MessageProcessing.Processors
                 .Returns(commandHandler.Object);
             messageStateHandler.Setup(x => x.GetMessage()).Returns(request);
             //act
-            requestProcessor.Awaiting(x=> x.ProcessAsync(messageStateHandler.Object, CancellationToken.None))
+            requestProcessor.Awaiting(x => x.ProcessAsync(messageStateHandler.Object, CancellationToken.None))
                 .Should().ThrowAsync<Exception>();
             //assert
             messageStateHandler.Verify(x => x.ReplyAsync(response), Times.Never);

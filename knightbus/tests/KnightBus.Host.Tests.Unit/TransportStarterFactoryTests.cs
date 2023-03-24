@@ -1,4 +1,4 @@
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
 using KnightBus.Core.DependencyInjection;
@@ -23,12 +23,12 @@ namespace KnightBus.Host.Tests.Unit
             var channel = new Mock<ITransportChannelFactory>();
             channel.Setup(x => x.CanCreate(typeof(TestCommand))).Returns(true);
             channel.Setup(x => x.Configuration).Returns(config.Object);
-            var starter = new TransportStarterFactory(new[] {channel.Object}, new HostConfiguration{DependencyInjection = new MicrosoftDependencyInjection(new ServiceCollection().BuildServiceProvider())});
+            var starter = new TransportStarterFactory(new[] { channel.Object }, new HostConfiguration { DependencyInjection = new MicrosoftDependencyInjection(new ServiceCollection().BuildServiceProvider()) });
             var factory = new CommandProcessorFactory();
             //act
             starter.CreateChannelReceiver(factory, typeof(IProcessCommand<TestCommand, TestMessageSettings>), typeof(JsonProcessor));
             //assert
-            channel.Verify(x=> x.Create(typeof(TestCommand), null, It.IsAny<IProcessingSettings>(), It.IsAny<MicrosoftJsonSerializer>(), It.IsAny<IHostConfiguration>(), It.IsAny<IMessageProcessor>()), 
+            channel.Verify(x => x.Create(typeof(TestCommand), null, It.IsAny<IProcessingSettings>(), It.IsAny<MicrosoftJsonSerializer>(), It.IsAny<IHostConfiguration>(), It.IsAny<IMessageProcessor>()),
                 Times.Once);
         }
 
@@ -41,24 +41,24 @@ namespace KnightBus.Host.Tests.Unit
             var channel = new Mock<ITransportChannelFactory>();
             channel.Setup(x => x.CanCreate(typeof(ProtobufCommand))).Returns(true);
             channel.Setup(x => x.Configuration).Returns(config.Object);
-            var starter = new TransportStarterFactory(new[] {channel.Object}, new HostConfiguration{DependencyInjection = new MicrosoftDependencyInjection(new ServiceCollection().BuildServiceProvider())});
+            var starter = new TransportStarterFactory(new[] { channel.Object }, new HostConfiguration { DependencyInjection = new MicrosoftDependencyInjection(new ServiceCollection().BuildServiceProvider()) });
             var factory = new CommandProcessorFactory();
             //act
             starter.CreateChannelReceiver(factory, typeof(IProcessCommand<ProtobufCommand, TestMessageSettings>), typeof(ProtobufProcessor));
             //assert
-            channel.Verify(x=> x.Create(typeof(ProtobufCommand), null, It.IsAny<IProcessingSettings>(), It.IsAny<ProtobufNetSerializer>(), It.IsAny<IHostConfiguration>(), It.IsAny<IMessageProcessor>()), 
+            channel.Verify(x => x.Create(typeof(ProtobufCommand), null, It.IsAny<IProcessingSettings>(), It.IsAny<ProtobufNetSerializer>(), It.IsAny<IHostConfiguration>(), It.IsAny<IMessageProcessor>()),
                 Times.Once);
         }
     }
-    
-    public class JsonProcessor:IProcessCommand<TestCommand, TestMessageSettings>
+
+    public class JsonProcessor : IProcessCommand<TestCommand, TestMessageSettings>
     {
         public Task ProcessAsync(TestCommand message, CancellationToken cancellationToken)
         {
             throw new System.NotImplementedException();
         }
     }
-    public class ProtobufProcessor:IProcessCommand<ProtobufCommand, TestMessageSettings>
+    public class ProtobufProcessor : IProcessCommand<ProtobufCommand, TestMessageSettings>
     {
         public Task ProcessAsync(ProtobufCommand message, CancellationToken cancellationToken)
         {
@@ -69,7 +69,7 @@ namespace KnightBus.Host.Tests.Unit
     public class ProtobufCommand : ICommand
     {
     }
-    
+
     public class ProtobufCommandMapping : IMessageMapping<ProtobufCommand>, ICustomMessageSerializer
     {
         public string QueueName => "testcommand";

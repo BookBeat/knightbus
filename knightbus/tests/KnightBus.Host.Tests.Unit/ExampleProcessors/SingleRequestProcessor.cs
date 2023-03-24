@@ -1,10 +1,10 @@
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
 
 namespace KnightBus.Host.Tests.Unit.ExampleProcessors
 {
-    public class SingleRequestProcessor: IProcessRequest<TestRequest, TestResponse, TestMessageSettings>
+    public class SingleRequestProcessor : IProcessRequest<TestRequest, TestResponse, TestMessageSettings>
     {
         private readonly ICountable _countable;
 

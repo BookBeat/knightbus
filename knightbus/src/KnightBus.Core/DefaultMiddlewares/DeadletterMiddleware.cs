@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Messages;
@@ -12,7 +12,7 @@ namespace KnightBus.Core.DefaultMiddlewares
         {
             if (messageStateHandler.DeliveryCount > messageStateHandler.DeadLetterDeliveryLimit)
             {
-                var processor = messageStateHandler.MessageScope.GetInstance<object>(pipelineInformation.ProcessorInterfaceType); 
+                var processor = messageStateHandler.MessageScope.GetInstance<object>(pipelineInformation.ProcessorInterfaceType);
 
                 if (processor is IProcessBeforeDeadLetter<T> deadletterProcessor)
                 {

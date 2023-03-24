@@ -1,12 +1,12 @@
-using System;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Azure;
 using FluentAssertions;
-using NUnit.Framework;
 using KnightBus.Azure.Storage.Singleton;
 using Microsoft.Extensions.Logging;
 using Moq;
+using NUnit.Framework;
 
 namespace KnightBus.Azure.Storage.Tests.Integration
 {
@@ -14,7 +14,7 @@ namespace KnightBus.Azure.Storage.Tests.Integration
     public class BlobLockManagerTests
     {
         ///Azurite docker connection
-        private string _connection ="UseDevelopmentStorage=true";
+        private string _connection = "UseDevelopmentStorage=true";
 
         [Test]
         [Parallelizable]
@@ -31,7 +31,7 @@ namespace KnightBus.Azure.Storage.Tests.Integration
             handle.LeaseId.Should().NotBeNullOrWhiteSpace();
             handle.LockId.Should().NotBeNullOrWhiteSpace();
         }
-        
+
         [Test]
         [Parallelizable]
         public async Task Should_not_get_lease_when_already_locked()
@@ -46,7 +46,7 @@ namespace KnightBus.Azure.Storage.Tests.Integration
             //assert
             secondHandle.Should().BeNull("Already locked");
         }
-        
+
         [Test]
         [Parallelizable]
         public async Task Should_release_lease()
@@ -62,7 +62,7 @@ namespace KnightBus.Azure.Storage.Tests.Integration
             //assert
             secondHandle.Should().NotBeNull();
         }
-        
+
         [Test]
         [Parallelizable]
         public async Task Should_renew_lease()
@@ -78,7 +78,7 @@ namespace KnightBus.Azure.Storage.Tests.Integration
             //assert
             renewed.Should().BeTrue();
         }
-        
+
         [Test]
         [Parallelizable]
         public async Task Should_not_renew_expired_lease()
@@ -93,7 +93,7 @@ namespace KnightBus.Azure.Storage.Tests.Integration
             //steal lock
             await lockManager.TryLockAsync(lockId, TimeSpan.FromSeconds(15), CancellationToken.None);
             await handle
-                .Awaiting(x=> x.RenewAsync(Mock.Of<ILogger>(), CancellationToken.None))
+                .Awaiting(x => x.RenewAsync(Mock.Of<ILogger>(), CancellationToken.None))
                 .Should()
                 .ThrowAsync<RequestFailedException>();
         }

@@ -13,7 +13,7 @@ namespace KnightBus.Redis
             TransportChannelFactories = new ITransportChannelFactory[]
             {
                 new RedisCommandChannelFactory(configuration, multiplexer),
-                new RedisEventChannelFactory(configuration, multiplexer), 
+                new RedisEventChannelFactory(configuration, multiplexer),
             };
         }
 

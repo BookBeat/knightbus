@@ -1,4 +1,4 @@
-using Azure;
+﻿using Azure;
 
 namespace KnightBus.Azure.Storage.Singleton
 {

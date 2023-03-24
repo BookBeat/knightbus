@@ -11,7 +11,7 @@ namespace KnightBus.Nats
         {
             Configuration = configuration;
         }
-        
+
         public ITransportConfiguration Configuration { get; set; }
 
         public IChannelReceiver Create(Type messageType, IEventSubscription subscription, IProcessingSettings processingSettings,
@@ -19,7 +19,7 @@ namespace KnightBus.Nats
         {
 
             var readerType = typeof(NatsQueueChannelReceiver<>).MakeGenericType(messageType);
-            var reader = (IChannelReceiver) Activator.CreateInstance(readerType, processingSettings, serializer, configuration, processor, Configuration, subscription);
+            var reader = (IChannelReceiver)Activator.CreateInstance(readerType, processingSettings, serializer, configuration, processor, Configuration, subscription);
 
             return reader;
         }

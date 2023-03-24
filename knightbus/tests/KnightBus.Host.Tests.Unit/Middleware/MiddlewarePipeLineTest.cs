@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Threading;
@@ -18,7 +18,7 @@ namespace KnightBus.Host.Tests.Unit.Middleware
     [TestFixture]
     public class MiddlewarePipelineTest
     {
-        
+
         [Test]
         public async Task Should_execute_ordered_pipeline_from_microsoft_di()
         {
@@ -45,7 +45,7 @@ namespace KnightBus.Host.Tests.Unit.Middleware
             }
             finalProcessor.Verify(x => x.ProcessAsync(It.IsAny<IMessageStateHandler<TestCommand>>(), CancellationToken.None), Times.Once);
         }
-        
+
         [Test]
         public async Task Should_move_message_scope_provider_right_after_error_middleware()
         {
@@ -102,8 +102,8 @@ namespace KnightBus.Host.Tests.Unit.Middleware
             container.AddSingleton(countableMock.Object);
 
             container.RegisterProcessors(Assembly.GetExecutingAssembly());
-            var hostConfiguration = new HostConfiguration{DependencyInjection = new MicrosoftDependencyInjection(container.BuildServiceProvider(new ServiceProviderOptions {ValidateScopes = true, ValidateOnBuild = true}))};
-            
+            var hostConfiguration = new HostConfiguration { DependencyInjection = new MicrosoftDependencyInjection(container.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true })) };
+
             var pipelineInformation = new Mock<IPipelineInformation>();
             pipelineInformation.Setup(x => x.HostConfiguration).Returns(hostConfiguration);
 
