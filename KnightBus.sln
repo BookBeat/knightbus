@@ -89,6 +89,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Nats.Messages", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.Nats.Tests.Unit", "knightbus-nats\tests\KnightBus.Nats.Tests.Unit\KnightBus.Nats.Tests.Unit.csproj", "{4E160CA8-3B3F-404B-ACE5-FA9B696BC921}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.UI.Console", "knightbus-ui-console\KnightBus.UI.Console\KnightBus.UI.Console.csproj", "{1A5F6B02-6026-4B22-8DE5-78667A7E9591}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -227,6 +229,10 @@ Global
 		{4E160CA8-3B3F-404B-ACE5-FA9B696BC921}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4E160CA8-3B3F-404B-ACE5-FA9B696BC921}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4E160CA8-3B3F-404B-ACE5-FA9B696BC921}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1A5F6B02-6026-4B22-8DE5-78667A7E9591}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1A5F6B02-6026-4B22-8DE5-78667A7E9591}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1A5F6B02-6026-4B22-8DE5-78667A7E9591}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1A5F6B02-6026-4B22-8DE5-78667A7E9591}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
