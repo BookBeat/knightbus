@@ -28,7 +28,14 @@ public sealed class ExampleWindow : Window
             new MenuBarItem("_File",
                 new MenuItem[]
                 {
-                    new MenuItem("_Quit", "Quit KnightBus Explorer", RequestStop, null, null, Key.Q | Key.CtrlMask)
+                    new MenuItem("_Quit", "Quit KnightBus Explorer", RequestStop, null, null, Key.Q | Key.CtrlMask),
+                    new MenuItem("_Refresh", "Refresh Queues", LoadQueues, null, null, Key.R | Key.CtrlMask)
+                }),
+            new MenuBarItem("_Queue",
+                new MenuItem[]
+                {
+                    new MenuItem("_Refresh", "Refresh Queue", LoadQueues, () => _currentQueue != null, null),
+                    new MenuItem("_Delete", "Delete Queue", LoadQueues, () => _currentQueue != null, null)
                 }),
         });
         Add(MenuBar);
