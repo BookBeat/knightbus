@@ -13,7 +13,6 @@ public sealed class MainWindow : Window
     public QueueTreeView QueueListView;
     public FrameView RightPane;
     private readonly ServiceBusQueueManager _queueManager;
-    private int _messagesToMove;
 
     public MainWindow()
     {
@@ -42,17 +41,9 @@ public sealed class MainWindow : Window
             new MenuBarItem("_Queue",
                 new[]
                 {
-                    new MenuItem("_Refresh", "Refresh Queue", () =>
-                    {
-                        QueueListView.RefreshQueue(QueueListView.SelectedObject);
-                    }, () => QueueListView.SelectedObject != null, null),
-                    new MenuItem("_Delete", "Delete Queue", () =>
-                    {
-                        if (MessageBox.Query($"Delete {QueueListView.SelectedObject.Properties.Name}", "Are you sure?", "No", "Yes") == 1)
-                        {
-                            QueueListView.DeleteQueue(QueueListView.SelectedObject);
-                        }
-                    }, () => QueueListView.SelectedObject != null, null)
+                    new MenuItem("_Refresh", "Refresh Queue", () => { QueueListView.RefreshQueue(QueueListView.SelectedObject); }, () => QueueListView.SelectedObject?.IsQueue == true),
+                    new MenuItem("_Move Deadletters", "Move Deadletter Messages", MoveDeadletterMessages, () => QueueListView.SelectedObject?.IsQueue == true, null, Key.M | Key.CtrlMask),
+                    new MenuItem("_Delete", "Delete Queue", () => { QueueListView.DeleteQueue(QueueListView.SelectedObject); }, () => QueueListView.SelectedObject?.IsQueue == true)
                 }),
         });
         Add(MenuBar);
@@ -120,7 +111,7 @@ public sealed class MainWindow : Window
             X = 1,
             Y = Pos.Bottom(deadletterLabel) + 1,
         };
-        moveButton.Clicked += MoveButtonOnClicked;
+        moveButton.Clicked += MoveDeadletterMessages;
         RightPane.Add(moveButton);
         var deadLetterTableView = new TableView(CreateTable(deadletter))
         {
@@ -133,9 +124,9 @@ public sealed class MainWindow : Window
         RightPane.Add(deadLetterTableView);
     }
 
-    private void MoveButtonOnClicked()
+    private void MoveDeadletterMessages()
     {
-        if (QueueListView.SelectedObject.Properties is null) return;
+        if (QueueListView.SelectedObject?.IsQueue != true) return;
 
         var cancel = new Button("Cancel", true);
         var move = new Button("Move");
@@ -156,12 +147,12 @@ public sealed class MainWindow : Window
         };
         var input = new TextField(QueueListView.SelectedObject.Properties.DeadLetterMessageCount.ToString()) { X = label.X, Y = label.Y + 1, Width = Dim.Width(label) };
 
-        _messagesToMove = (int)QueueListView.SelectedObject.Properties.DeadLetterMessageCount;
+        var messagesToMove = (int)QueueListView.SelectedObject.Properties.DeadLetterMessageCount;
         input.TextChanging += args =>
         {
             if (int.TryParse(args.NewText.ToString(), out var count))
             {
-                _messagesToMove = count;
+                messagesToMove = count;
             }
             else
             {
@@ -171,10 +162,10 @@ public sealed class MainWindow : Window
 
         move.Clicked += () =>
         {
-            var result = MessageBox.Query($"Move {_messagesToMove} messages", "Are you sure?", "Yes", "No");
+            var result = MessageBox.Query($"Move {messagesToMove} messages", "Are you sure?", "Yes", "No");
             if (result == 1) return;
 
-            var count = _queueManager.MoveDeadLetters(QueueListView.SelectedObject.Properties.Name, _messagesToMove, CancellationToken.None).GetAwaiter().GetResult();
+            var count = _queueManager.MoveDeadLetters(QueueListView.SelectedObject.Properties.Name, messagesToMove, CancellationToken.None).GetAwaiter().GetResult();
 
             MessageBox.Query("Complete", $"Moved {count} messages", "Ok");
             QueueListView.RefreshQueue(QueueListView.SelectedObject);

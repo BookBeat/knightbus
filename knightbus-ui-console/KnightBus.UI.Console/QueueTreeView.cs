@@ -56,7 +56,23 @@ public sealed class QueueTreeView : TreeView<QueueNode>
     {
         _queueManager = queueManager;
         TreeBuilder = new QueueTreeBuilder();
+        this.KeyPress += OnKeyPress;
     }
+
+    private void OnKeyPress(KeyEventEventArgs obj)
+    {
+        if (obj.KeyEvent.Key == Key.DeleteChar && SelectedObject?.IsQueue == true)
+        {
+            DeleteQueue(SelectedObject);
+            obj.Handled = true;
+        }
+        else if (obj.KeyEvent.Key == Key.F5 && SelectedObject?.IsQueue == true)
+        {
+            RefreshQueue(SelectedObject);
+            obj.Handled = true;
+        }
+    }
+
     public void LoadQueues()
     {
         ClearObjects();
@@ -106,8 +122,11 @@ public sealed class QueueTreeView : TreeView<QueueNode>
 
     public void DeleteQueue(QueueNode node)
     {
-        var name = node.Properties.Name;
-        _queueManager.Delete(name, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
-        LoadQueues();
+        if (MessageBox.Query($"Delete {node.Properties.Name}", "Are you sure?", "No", "Yes") == 1)
+        {
+            var name = node.Properties.Name;
+            _queueManager.Delete(name, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
+            LoadQueues();
+        }
     }
 }
