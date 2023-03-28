@@ -4,6 +4,21 @@ using Terminal.Gui.Trees;
 
 namespace KnightBus.UI.Console;
 
+public class QueueTreeBuilder : ITreeBuilder<QueueNode>
+{
+    public bool CanExpand(QueueNode toExpand)
+    {
+        return !toExpand.IsQueue;
+    }
+
+    public IEnumerable<QueueNode> GetChildren(QueueNode forObject)
+    {
+        return forObject.QueueNodes;
+    }
+
+    public bool SupportsCanExpand => true;
+}
+
 public class QueueNode : TreeNode
 {
     public List<QueueNode> QueueNodes = new();
@@ -15,7 +30,7 @@ public class QueueNode : TreeNode
     public QueueNode(QueueRuntimeProperties properties)
     {
         Properties = properties;
-        Text = properties.Name;
+        Text = CreateQueueLabel(properties);
         IsQueue = true;
     }
     public bool IsQueue { get; }
@@ -23,6 +38,14 @@ public class QueueNode : TreeNode
 
     public override IList<ITreeNode> Children => QueueNodes.Cast<ITreeNode>().ToList();
     public sealed override string Text { get; set; }
+
+    public static string CreateQueueLabel(QueueRuntimeProperties q)
+    {
+        var index = q.Name.IndexOf('-');
+        var queueName = index == -1 ? q.Name : q.Name[(index + 1)..];
+        var label = $"{queueName} [{q.ActiveMessageCount},{q.DeadLetterMessageCount},{q.ScheduledMessageCount}]";
+        return label;
+    }
 }
 
 public sealed class QueueTreeView : TreeView<QueueNode>
@@ -32,6 +55,7 @@ public sealed class QueueTreeView : TreeView<QueueNode>
     public QueueTreeView(ServiceBusQueueManager queueManager)
     {
         _queueManager = queueManager;
+        TreeBuilder = new QueueTreeBuilder();
     }
     public void LoadQueues()
     {
@@ -58,7 +82,7 @@ public sealed class QueueTreeView : TreeView<QueueNode>
             foreach (var q in queueGroup.Value)
             {
                 var queueNode = CreateQueueNode(q);
-                node.Children.Add(queueNode);
+                node.QueueNodes.Add(queueNode);
             }
 
             AddObject(node);
@@ -72,17 +96,9 @@ public sealed class QueueTreeView : TreeView<QueueNode>
         return queueNode;
     }
 
-    private static string CreateQueueLabel(QueueRuntimeProperties q)
-    {
-        var index = q.Name.IndexOf('-');
-        var queueName = index == -1 ? q.Name : q.Name[(index + 1)..];
-        var label = $"{queueName} [{q.ActiveMessageCount},{q.DeadLetterMessageCount},{q.ScheduledMessageCount}]";
-        return label;
-    }
-
     private void UpdateQueueNode(QueueNode node, QueueRuntimeProperties q)
     {
-        var label = CreateQueueLabel(q);
+        var label = QueueNode.CreateQueueLabel(q);
         node.Text = label;
         RefreshObject(node);
     }

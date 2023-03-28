@@ -18,8 +18,19 @@ public sealed class MainWindow : Window
     public MainWindow()
     {
         Title = "KnightBus Explorer (Ctrl+Q to quit)";
-
         ColorScheme = Colors.Base;
+
+        const string connection = "";
+        _queueManager = new ServiceBusQueueManager(connection);
+        QueueListView = new QueueTreeView(_queueManager)
+        {
+            X = 0,
+            Y = 0,
+            Width = Dim.Fill(0),
+            Height = Dim.Fill(0),
+            CanFocus = true,
+        };
+
         MenuBar = new MenuBar(new[]
         {
             new MenuBarItem("_File",
@@ -72,23 +83,6 @@ public sealed class MainWindow : Window
         RightPane.ShortcutAction = () => RightPane.SetFocus();
 
         Add(RightPane);
-
-        const string connection = "";
-        _queueManager = new ServiceBusQueueManager(connection);
-
-        QueueListView = new QueueTreeView(_queueManager)
-        {
-            X = 0,
-            Y = 0,
-            Width = Dim.Fill(0),
-            Height = Dim.Fill(0),
-            CanFocus = true,
-
-        };
-
-
-
-
         QueueListView.LoadQueues();
 
         LeftPane.Add(QueueListView);
