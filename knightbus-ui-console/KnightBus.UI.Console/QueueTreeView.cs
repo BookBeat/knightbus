@@ -4,7 +4,28 @@ using Terminal.Gui.Trees;
 
 namespace KnightBus.UI.Console;
 
-public sealed class QueueTreeView : TreeView
+public class QueueNode : TreeNode
+{
+    public List<QueueNode> QueueNodes = new();
+    public QueueNode(string label)
+    {
+        IsQueue = false;
+        Text = label;
+    }
+    public QueueNode(QueueRuntimeProperties properties)
+    {
+        Properties = properties;
+        Text = properties.Name;
+        IsQueue = true;
+    }
+    public bool IsQueue { get; }
+    public QueueRuntimeProperties Properties { get; }
+
+    public override IList<ITreeNode> Children => QueueNodes.Cast<ITreeNode>().ToList();
+    public sealed override string Text { get; set; }
+}
+
+public sealed class QueueTreeView : TreeView<QueueNode>
 {
     private readonly ServiceBusQueueManager _queueManager;
 
@@ -33,7 +54,7 @@ public sealed class QueueTreeView : TreeView
 
         foreach (var queueGroup in queueGroups)
         {
-            var node = new TreeNode(queueGroup.Key);
+            var node = new QueueNode(queueGroup.Key);
             foreach (var q in queueGroup.Value)
             {
                 var queueNode = CreateQueueNode(q);
@@ -45,10 +66,9 @@ public sealed class QueueTreeView : TreeView
     }
 
 
-    private static TreeNode CreateQueueNode(QueueRuntimeProperties q)
+    private static QueueNode CreateQueueNode(QueueRuntimeProperties q)
     {
-        var label = CreateQueueLabel(q);
-        var queueNode = new TreeNode(label) { Tag = q };
+        var queueNode = new QueueNode(q);
         return queueNode;
     }
 
@@ -60,24 +80,23 @@ public sealed class QueueTreeView : TreeView
         return label;
     }
 
-    private static void UpdateQueueNode(TreeView view, ITreeNode node, QueueRuntimeProperties q)
+    private void UpdateQueueNode(QueueNode node, QueueRuntimeProperties q)
     {
         var label = CreateQueueLabel(q);
-        node.Tag = q;
         node.Text = label;
-        view.RefreshObject(node);
+        RefreshObject(node);
     }
 
-    public void RefreshQueue(TreeView view, ITreeNode node)
+    public void RefreshQueue(QueueNode node)
     {
-        var name = ((QueueRuntimeProperties)node.Tag).Name;
+        var name = node.Properties.Name;
         var q = _queueManager.Get(name, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
-        UpdateQueueNode(view, node, q);
+        UpdateQueueNode(node, q);
     }
 
-    public void DeleteQueue(TreeView view, ITreeNode node)
+    public void DeleteQueue(QueueNode node)
     {
-        var name = ((QueueRuntimeProperties)node.Tag).Name;
+        var name = node.Properties.Name;
         _queueManager.Delete(name, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
         LoadQueues();
     }
