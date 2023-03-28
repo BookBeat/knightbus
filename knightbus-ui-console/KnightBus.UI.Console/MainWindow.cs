@@ -10,11 +10,9 @@ namespace KnightBus.UI.Console;
 public sealed class MainWindow : Window
 {
     public FrameView LeftPane;
-    public TreeView QueueListView;
+    public QueueTreeView QueueListView;
     public FrameView RightPane;
-    public ListView ScenarioListView;
     private readonly ServiceBusQueueManager _queueManager;
-    private List<QueueRuntimeProperties> _queues = new();
     private QueueRuntimeProperties _currentQueue;
     private int _messagesToMove;
 
@@ -29,20 +27,20 @@ public sealed class MainWindow : Window
                 new[]
                 {
                     new MenuItem("_Quit", "Quit KnightBus Explorer", RequestStop, null, null, Key.Q | Key.CtrlMask),
-                    new MenuItem("_Refresh", "Refresh Queues", LoadQueues, null, null, Key.R | Key.CtrlMask)
+                    new MenuItem("_Refresh", "Refresh Queues", QueueListView.LoadQueues, null, null, Key.R | Key.CtrlMask)
                 }),
             new MenuBarItem("_Queue",
                 new[]
                 {
                     new MenuItem("_Refresh", "Refresh Queue", () =>
                     {
-                        RefreshQueue(QueueListView, QueueListView.SelectedObject);
+                        QueueListView.RefreshQueue(QueueListView, QueueListView.SelectedObject);
                     }, () => _currentQueue != null, null),
                     new MenuItem("_Delete", "Delete Queue", () =>
                     {
                         if (MessageBox.Query($"Delete {_currentQueue.Name}", "Are you sure?", "No", "Yes") == 1)
                         {
-                            DeleteQueue(QueueListView, QueueListView.SelectedObject);    
+                            QueueListView.DeleteQueue(QueueListView, QueueListView.SelectedObject);
                         }
                     }, () => _currentQueue != null, null)
                 }),
@@ -76,8 +74,10 @@ public sealed class MainWindow : Window
 
         Add(RightPane);
 
+        const string connection = "";
+        _queueManager = new ServiceBusQueueManager(connection);
 
-        QueueListView = new TreeView()
+        QueueListView = new QueueTreeView(_queueManager)
         {
             X = 0,
             Y = 0,
@@ -88,85 +88,14 @@ public sealed class MainWindow : Window
         };
 
 
-        const string connection = "";
 
-        _queueManager = new ServiceBusQueueManager(connection);
 
-        LoadQueues();
+        QueueListView.LoadQueues();
 
         LeftPane.Add(QueueListView);
         QueueListView.SelectionChanged += QueueListViewOnSelectionChanged;
     }
 
-    private void LoadQueues()
-    {
-        QueueListView.ClearObjects();
-        _queues = _queueManager.List(CancellationToken.None).ToList();
-        var queueGroups = new Dictionary<string, List<QueueRuntimeProperties>>();
-
-        foreach (var q in _queues)
-        {
-            var index = q.Name.IndexOf('-');
-            var prefix = index == -1 ? q.Name : q.Name[..index];
-
-            if (!queueGroups.ContainsKey(prefix))
-            {
-                queueGroups[prefix] = new List<QueueRuntimeProperties>();
-            }
-
-            queueGroups[prefix].Add(q);
-        }
-
-        foreach (var queueGroup in queueGroups)
-        {
-            var node = new TreeNode(queueGroup.Key);
-            foreach (var q in queueGroup.Value)
-            {
-                var queueNode = CreateQueueNode(q);
-                node.Children.Add(queueNode);
-            }
-
-            QueueListView.AddObject(node);
-        }
-    }
-
-    private static TreeNode CreateQueueNode(QueueRuntimeProperties q)
-    {
-        var label = CreateQueueLabel(q);
-        var queueNode = new TreeNode(label) { Tag = q };
-        return queueNode;
-    }
-
-    private static string CreateQueueLabel(QueueRuntimeProperties q)
-    {
-        var index = q.Name.IndexOf('-');
-        var queueName = index == -1 ? q.Name : q.Name[(index + 1)..];
-        var label = $"{queueName} [{q.ActiveMessageCount},{q.DeadLetterMessageCount},{q.ScheduledMessageCount}]";
-        return label;
-    }
-
-    private static void UpdateQueueNode(TreeView view, ITreeNode node,  QueueRuntimeProperties q)
-    {
-        var label = CreateQueueLabel(q);
-        node.Tag = q;
-        node.Text = label;
-        view.RefreshObject(node);
-    }
-    
-    private void RefreshQueue(TreeView view, ITreeNode node)
-    {
-        var name = ((QueueRuntimeProperties)node.Tag).Name;
-        var q = _queueManager.Get(name, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
-        UpdateQueueNode(view, node, q);
-    }
-
-    private void DeleteQueue(TreeView view, ITreeNode node)
-    {
-        var name = ((QueueRuntimeProperties)node.Tag).Name;
-        _queueManager.Delete(name, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
-        LoadQueues();
-    }
-    
 
     private void QueueListViewOnSelectionChanged(object sender, SelectionChangedEventArgs<ITreeNode> e)
     {
@@ -258,7 +187,7 @@ public sealed class MainWindow : Window
             var count = _queueManager.MoveDeadLetters(_currentQueue.Name, _messagesToMove, CancellationToken.None).GetAwaiter().GetResult();
 
             MessageBox.Query("Complete", $"Moved {count} messages", "Ok");
-            RefreshQueue(QueueListView, QueueListView.SelectedObject);
+            QueueListView.RefreshQueue(QueueListView, QueueListView.SelectedObject);
             Application.RequestStop();
         };
 
