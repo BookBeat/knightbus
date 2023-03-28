@@ -11,13 +11,11 @@ public class MessagesMovedEventArgs : EventArgs
 
 public class ServiceBusQueueManager
 {
-    private readonly string _connectionString;
     private readonly ServiceBusAdministrationClient _adminClient;
     private readonly ServiceBusClient _client;
 
     public ServiceBusQueueManager(string connectionString)
     {
-        _connectionString = connectionString;
         _adminClient = new ServiceBusAdministrationClient(connectionString);
         _client = new ServiceBusClient(connectionString);
 

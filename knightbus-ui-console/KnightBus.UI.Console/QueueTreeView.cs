@@ -33,13 +33,20 @@ public class QueueNode : TreeNode
         Text = CreateQueueLabel(properties);
         IsQueue = true;
     }
-    public bool IsQueue { get; }
-    public QueueRuntimeProperties Properties { get; }
+    public bool IsQueue { get; private set; }
+    public QueueRuntimeProperties Properties { get; set; }
 
     public override IList<ITreeNode> Children => QueueNodes.Cast<ITreeNode>().ToList();
     public sealed override string Text { get; set; }
 
-    public static string CreateQueueLabel(QueueRuntimeProperties q)
+    public void Update(QueueRuntimeProperties properties)
+    {
+        Properties = properties;
+        Text = CreateQueueLabel(properties);
+        IsQueue = true;
+    }
+
+    private static string CreateQueueLabel(QueueRuntimeProperties q)
     {
         var index = q.Name.IndexOf('-');
         var queueName = index == -1 ? q.Name : q.Name[(index + 1)..];
@@ -108,9 +115,9 @@ public sealed class QueueTreeView : TreeView<QueueNode>
 
     private void UpdateQueueNode(QueueNode node, QueueRuntimeProperties q)
     {
-        var label = QueueNode.CreateQueueLabel(q);
-        node.Text = label;
+        node.Update(q);
         RefreshObject(node);
+        OnSelectionChanged(new SelectionChangedEventArgs<QueueNode>(this, node, node));
     }
 
     public void RefreshQueue(QueueNode node)

@@ -27,6 +27,7 @@ public sealed class MainWindow : Window
             Width = Dim.Fill(0),
             Height = Dim.Fill(0),
             CanFocus = true,
+            AutoSize = true
         };
 
         MenuBar = new MenuBar(new[]
@@ -50,10 +51,12 @@ public sealed class MainWindow : Window
         {
             X = 0,
             Y = 1, // for menu
-            Width = 35,
+            Width = Dim.Percent(30),
             Height = Dim.Fill(1),
             CanFocus = true,
-            Shortcut = Key.CtrlMask | Key.C
+            Shortcut = Key.CtrlMask | Key.C,
+            AutoSize = true,
+            LayoutStyle = LayoutStyle.Computed
         };
         LeftPane.Title = $"{LeftPane.Title} ({LeftPane.ShortcutTag})";
         LeftPane.ShortcutAction = () => LeftPane.SetFocus();
@@ -62,7 +65,7 @@ public sealed class MainWindow : Window
 
         RightPane = new FrameView("Details")
         {
-            X = 35,
+            X = Pos.Right(LeftPane) + 1,
             Y = 1, // for menu
             Width = Dim.Fill(),
             Height = Dim.Fill(1),
@@ -83,7 +86,7 @@ public sealed class MainWindow : Window
     private void QueueListViewOnSelectionChanged(object sender, SelectionChangedEventArgs<QueueNode> e)
     {
         RightPane.RemoveAll();
-        if (e.NewValue?.Properties == null) return;
+        if (e.NewValue?.IsQueue != true) return;
         //Show queue details
 
         var queueTableView = new TableView(CreateTable(QueueListView.SelectedObject.Properties))
@@ -181,12 +184,18 @@ public sealed class MainWindow : Window
     {
         var ok = new Button("Ok", true);
         ok.Clicked += () => { Application.RequestStop(); };
-        var dialog = new Dialog("Message Details", ok);
-        var details = new TextView { X = 0, Y = 0, Width = Dim.Fill(1), Height = Dim.Fill(1) };
+        using var dialog = new Dialog("Message Details", ok);
+        var messageBody = new TextView { X = 0, Y = 0, Width = Dim.Fill(1), Height = Dim.Percent(50), WordWrap = true };
+        var messageError = new TextView { X = 0, Y = Pos.Bottom(messageBody) + 1, Width = Dim.Fill(1), Height = Dim.Fill(1), WordWrap = true };
 
-        var text = (string)obj.Table.Rows[obj.Row][1];
-        details.Text = text;
-        dialog.Add(details);
+        var bodyText = (string)obj.Table.Rows[obj.Row][1];
+        messageBody.Text = bodyText;
+        dialog.Add(messageBody);
+
+        var errorText = (string)obj.Table.Rows[obj.Row][2];
+        messageError.Text = errorText;
+        dialog.Add(messageError);
+
         Application.Run(dialog);
     }
 
@@ -212,10 +221,11 @@ public sealed class MainWindow : Window
         var table = new DataTable();
         table.Columns.Add("Time");
         table.Columns.Add("Data");
+        table.Columns.Add("Error");
 
         foreach (var message in messages)
         {
-            table.Rows.Add(message.EnqueuedTime.ToString("s"), Encoding.UTF8.GetString(message.Body));
+            table.Rows.Add(message.EnqueuedTime.ToString("s"), Encoding.UTF8.GetString(message.Body), message.ApplicationProperties["Exception"]);
         }
 
         return table;
