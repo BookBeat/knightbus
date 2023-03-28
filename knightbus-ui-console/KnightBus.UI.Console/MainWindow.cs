@@ -14,13 +14,12 @@ public sealed class MainWindow : Window
     public FrameView RightPane;
     private readonly ServiceBusQueueManager _queueManager;
 
-    public MainWindow()
+    public MainWindow(ServiceBusQueueManager queueManager)
     {
         Title = "KnightBus Explorer (Ctrl+Q to quit)";
         ColorScheme = Colors.Base;
 
-        const string connection = "";
-        _queueManager = new ServiceBusQueueManager(connection);
+        _queueManager = queueManager;
         QueueListView = new QueueTreeView(_queueManager)
         {
             X = 0,
