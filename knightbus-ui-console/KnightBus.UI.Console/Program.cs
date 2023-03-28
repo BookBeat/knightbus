@@ -1,9 +1,10 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
 using Azure.Messaging.ServiceBus;
+using KnightBus.UI.Console;
 using Terminal.Gui;
 
-Application.Run<ExampleWindow>();
+Application.Run<MainWindow>();
 
 
 

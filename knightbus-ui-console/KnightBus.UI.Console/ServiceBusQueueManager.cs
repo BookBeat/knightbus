@@ -37,6 +37,11 @@ public class ServiceBusQueueManager
         return _adminClient.GetQueueRuntimePropertiesAsync(path, ct);
     }
 
+    public Task Delete(string path, CancellationToken ct)
+    {
+        return _adminClient.DeleteQueueAsync(path, ct);
+    }
+
     public Task<IReadOnlyList<ServiceBusReceivedMessage>> PeekDeadLetter(string name, int count, CancellationToken ct)
     {
         var receiver = _client.CreateReceiver(name, new ServiceBusReceiverOptions { SubQueue = SubQueue.DeadLetter });
@@ -53,6 +58,7 @@ public class ServiceBusQueueManager
 
     private async Task<int> MoveMessages(ServiceBusSender sender, ServiceBusReceiver receiver, int receiveLimit, int batchSize)
     {
+        batchSize = receiveLimit < batchSize ? receiveLimit : batchSize;
         // Receive messages
         var movedMessages = 0;
         while (movedMessages < receiveLimit)

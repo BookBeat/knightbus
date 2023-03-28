@@ -2,12 +2,12 @@
 using System.Text;
 using Azure.Messaging.ServiceBus;
 using Azure.Messaging.ServiceBus.Administration;
-using KnightBus.UI.Console;
 using Terminal.Gui;
 using Terminal.Gui.Trees;
-using Attribute = Terminal.Gui.Attribute;
 
-public sealed class ExampleWindow : Window
+namespace KnightBus.UI.Console;
+
+public sealed class MainWindow : Window
 {
     public FrameView LeftPane;
     public TreeView QueueListView;
@@ -18,24 +18,33 @@ public sealed class ExampleWindow : Window
     private QueueRuntimeProperties _currentQueue;
     private int _messagesToMove;
 
-    public ExampleWindow()
+    public MainWindow()
     {
         Title = "KnightBus Explorer (Ctrl+Q to quit)";
 
         ColorScheme = Colors.Base;
-        MenuBar = new MenuBar(new MenuBarItem[]
+        MenuBar = new MenuBar(new[]
         {
             new MenuBarItem("_File",
-                new MenuItem[]
+                new[]
                 {
                     new MenuItem("_Quit", "Quit KnightBus Explorer", RequestStop, null, null, Key.Q | Key.CtrlMask),
                     new MenuItem("_Refresh", "Refresh Queues", LoadQueues, null, null, Key.R | Key.CtrlMask)
                 }),
             new MenuBarItem("_Queue",
-                new MenuItem[]
+                new[]
                 {
-                    new MenuItem("_Refresh", "Refresh Queue", LoadQueues, () => _currentQueue != null, null),
-                    new MenuItem("_Delete", "Delete Queue", LoadQueues, () => _currentQueue != null, null)
+                    new MenuItem("_Refresh", "Refresh Queue", () =>
+                    {
+                        RefreshQueue(QueueListView, QueueListView.SelectedObject);
+                    }, () => _currentQueue != null, null),
+                    new MenuItem("_Delete", "Delete Queue", () =>
+                    {
+                        if (MessageBox.Query($"Delete {_currentQueue.Name}", "Are you sure?", "No", "Yes") == 1)
+                        {
+                            DeleteQueue(QueueListView, QueueListView.SelectedObject);    
+                        }
+                    }, () => _currentQueue != null, null)
                 }),
         });
         Add(MenuBar);
@@ -123,12 +132,41 @@ public sealed class ExampleWindow : Window
 
     private static TreeNode CreateQueueNode(QueueRuntimeProperties q)
     {
-        var index = q.Name.IndexOf('-');
-        var queueName = index == -1 ? q.Name : q.Name[(index + 1)..];
-        var label = $"{queueName} [{q.ActiveMessageCount},{q.DeadLetterMessageCount},{q.ScheduledMessageCount}]";
+        var label = CreateQueueLabel(q);
         var queueNode = new TreeNode(label) { Tag = q };
         return queueNode;
     }
+
+    private static string CreateQueueLabel(QueueRuntimeProperties q)
+    {
+        var index = q.Name.IndexOf('-');
+        var queueName = index == -1 ? q.Name : q.Name[(index + 1)..];
+        var label = $"{queueName} [{q.ActiveMessageCount},{q.DeadLetterMessageCount},{q.ScheduledMessageCount}]";
+        return label;
+    }
+
+    private static void UpdateQueueNode(TreeView view, ITreeNode node,  QueueRuntimeProperties q)
+    {
+        var label = CreateQueueLabel(q);
+        node.Tag = q;
+        node.Text = label;
+        view.RefreshObject(node);
+    }
+    
+    private void RefreshQueue(TreeView view, ITreeNode node)
+    {
+        var name = ((QueueRuntimeProperties)node.Tag).Name;
+        var q = _queueManager.Get(name, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
+        UpdateQueueNode(view, node, q);
+    }
+
+    private void DeleteQueue(TreeView view, ITreeNode node)
+    {
+        var name = ((QueueRuntimeProperties)node.Tag).Name;
+        _queueManager.Delete(name, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
+        LoadQueues();
+    }
+    
 
     private void QueueListViewOnSelectionChanged(object sender, SelectionChangedEventArgs<ITreeNode> e)
     {
@@ -220,7 +258,7 @@ public sealed class ExampleWindow : Window
             var count = _queueManager.MoveDeadLetters(_currentQueue.Name, _messagesToMove, CancellationToken.None).GetAwaiter().GetResult();
 
             MessageBox.Query("Complete", $"Moved {count} messages", "Ok");
-            LoadQueues();
+            RefreshQueue(QueueListView, QueueListView.SelectedObject);
             Application.RequestStop();
         };
 
