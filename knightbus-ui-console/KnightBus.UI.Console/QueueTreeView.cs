@@ -21,7 +21,14 @@ public class QueueTreeBuilder : ITreeBuilder<QueueNode>
 
 public class TopicNode : QueueNode
 {
-    public TopicNode(string label) : base(label)
+    public TopicNode(string label) : base("Topic " + label)
+    {
+    }
+}
+
+public class SubscriptionNode : QueueNode
+{
+    public SubscriptionNode(QueueProperties q) : base(q)
     {
     }
 }
@@ -94,9 +101,23 @@ public sealed class QueueTreeView : TreeView<QueueNode>
     {
         ClearObjects();
         var queues = _queueManager.List(CancellationToken.None).ToList();
+        var topics = _queueManager.ListTopics(CancellationToken.None).ToList();
         var queueGroups = new Dictionary<string, List<QueueProperties>>();
 
         foreach (var q in queues)
+        {
+            var index = q.Name.IndexOf('-');
+            var prefix = index == -1 ? q.Name : q.Name[..index];
+
+            if (!queueGroups.ContainsKey(prefix))
+            {
+                queueGroups[prefix] = new List<QueueProperties>();
+            }
+
+            queueGroups[prefix].Add(q);
+        }
+
+        foreach (var q in topics)
         {
             var index = q.Name.IndexOf('-');
             var prefix = index == -1 ? q.Name : q.Name[..index];
@@ -114,7 +135,22 @@ public sealed class QueueTreeView : TreeView<QueueNode>
             var node = new QueueNode(queueGroup.Key);
             foreach (var q in queueGroup.Value)
             {
-                var queueNode = new QueueNode(q);
+                QueueNode queueNode;
+                switch (q.Type)
+                {
+                    case QueueType.Queue:
+                        queueNode = new QueueNode(q);
+                        break;
+                    case QueueType.Topic:
+                        queueNode = new TopicNode(q.Name);
+                        break;
+                    case QueueType.Subscription:
+                        queueNode = new SubscriptionNode(q);
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+
                 node.QueueNodes.Add(queueNode);
             }
 

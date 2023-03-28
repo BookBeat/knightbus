@@ -4,27 +4,6 @@ using Azure.Messaging.ServiceBus.Administration;
 
 namespace KnightBus.UI.Console;
 
-
-public static class ServiceBusQueueExtensions
-{
-    public static QueueProperties ToQueueProperties(this QueueRuntimeProperties properties)
-    {
-        return new QueueProperties(properties.Name)
-        {
-            ActiveMessageCount = properties.ActiveMessageCount,
-            TotalMessageCount = properties.TotalMessageCount,
-            SizeInBytes = properties.SizeInBytes,
-            TransferMessageCount = properties.TransferMessageCount,
-            DeadLetterMessageCount = properties.DeadLetterMessageCount,
-            TransferDeadLetterMessageCount = properties.TransferDeadLetterMessageCount,
-            ScheduledMessageCount = properties.ScheduledMessageCount,
-            AccessedAt = properties.AccessedAt,
-            CreatedAt = properties.CreatedAt,
-            UpdatedAt = properties.UpdatedAt
-        };
-    }
-}
-
 public class ServiceBusQueueManager
 {
     private readonly ServiceBusAdministrationClient _adminClient;
@@ -40,6 +19,15 @@ public class ServiceBusQueueManager
     public IEnumerable<QueueProperties> List(CancellationToken ct)
     {
         var queues = _adminClient.GetQueuesRuntimePropertiesAsync((ct)).ToBlockingEnumerable(ct);
+        foreach (var q in queues)
+        {
+            yield return q.ToQueueProperties();
+        }
+    }
+
+    public IEnumerable<QueueProperties> ListTopics(CancellationToken ct)
+    {
+        var queues = _adminClient.GetTopicsRuntimePropertiesAsync((ct)).ToBlockingEnumerable(ct);
         foreach (var q in queues)
         {
             yield return q.ToQueueProperties();
