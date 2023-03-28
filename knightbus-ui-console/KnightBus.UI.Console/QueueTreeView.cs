@@ -81,7 +81,7 @@ public sealed class QueueTreeView : TreeView<QueueNode>
             var node = new QueueNode(queueGroup.Key);
             foreach (var q in queueGroup.Value)
             {
-                var queueNode = CreateQueueNode(q);
+                var queueNode = new QueueNode(q);
                 node.QueueNodes.Add(queueNode);
             }
 
@@ -89,12 +89,6 @@ public sealed class QueueTreeView : TreeView<QueueNode>
         }
     }
 
-
-    private static QueueNode CreateQueueNode(QueueRuntimeProperties q)
-    {
-        var queueNode = new QueueNode(q);
-        return queueNode;
-    }
 
     private void UpdateQueueNode(QueueNode node, QueueRuntimeProperties q)
     {
