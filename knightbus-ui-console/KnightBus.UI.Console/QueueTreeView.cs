@@ -19,34 +19,44 @@ public class QueueTreeBuilder : ITreeBuilder<QueueNode>
     public bool SupportsCanExpand => true;
 }
 
+public class TopicNode : QueueNode
+{
+    public TopicNode(string label) : base(label)
+    {
+    }
+}
+
 public class QueueNode : TreeNode
 {
-    public List<QueueNode> QueueNodes = new();
+    public readonly List<QueueNode> QueueNodes = new();
+
     public QueueNode(string label)
     {
         IsQueue = false;
         Text = label;
     }
-    public QueueNode(QueueRuntimeProperties properties)
+
+    public QueueNode(QueueProperties properties)
     {
         Properties = properties;
         Text = CreateQueueLabel(properties);
         IsQueue = true;
     }
+
     public bool IsQueue { get; private set; }
-    public QueueRuntimeProperties Properties { get; set; }
+    public QueueProperties Properties { get; set; }
 
     public override IList<ITreeNode> Children => QueueNodes.Cast<ITreeNode>().ToList();
     public sealed override string Text { get; set; }
 
-    public void Update(QueueRuntimeProperties properties)
+    public void Update(QueueProperties properties)
     {
         Properties = properties;
         Text = CreateQueueLabel(properties);
         IsQueue = true;
     }
 
-    private static string CreateQueueLabel(QueueRuntimeProperties q)
+    private static string CreateQueueLabel(QueueProperties q)
     {
         var index = q.Name.IndexOf('-');
         var queueName = index == -1 ? q.Name : q.Name[(index + 1)..];
@@ -84,7 +94,7 @@ public sealed class QueueTreeView : TreeView<QueueNode>
     {
         ClearObjects();
         var queues = _queueManager.List(CancellationToken.None).ToList();
-        var queueGroups = new Dictionary<string, List<QueueRuntimeProperties>>();
+        var queueGroups = new Dictionary<string, List<QueueProperties>>();
 
         foreach (var q in queues)
         {
@@ -93,7 +103,7 @@ public sealed class QueueTreeView : TreeView<QueueNode>
 
             if (!queueGroups.ContainsKey(prefix))
             {
-                queueGroups[prefix] = new List<QueueRuntimeProperties>();
+                queueGroups[prefix] = new List<QueueProperties>();
             }
 
             queueGroups[prefix].Add(q);
@@ -113,7 +123,7 @@ public sealed class QueueTreeView : TreeView<QueueNode>
     }
 
 
-    private void UpdateQueueNode(QueueNode node, QueueRuntimeProperties q)
+    private void UpdateQueueNode(QueueNode node, QueueProperties q)
     {
         node.Update(q);
         RefreshObject(node);

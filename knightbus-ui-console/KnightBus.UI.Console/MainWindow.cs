@@ -199,7 +199,7 @@ public sealed class MainWindow : Window
         Application.Run(dialog);
     }
 
-    private DataTable CreateTable(QueueRuntimeProperties q)
+    private DataTable CreateTable(QueueProperties q)
     {
         var table = new DataTable();
         table.Columns.Add(q.Name);

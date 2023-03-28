@@ -4,9 +4,25 @@ using Azure.Messaging.ServiceBus.Administration;
 
 namespace KnightBus.UI.Console;
 
-public class MessagesMovedEventArgs : EventArgs
+
+public static class ServiceBusQueueExtensions
 {
-    public int Count { get; set; }
+    public static QueueProperties ToQueueProperties(this QueueRuntimeProperties properties)
+    {
+        return new QueueProperties(properties.Name)
+        {
+            ActiveMessageCount = properties.ActiveMessageCount,
+            TotalMessageCount = properties.TotalMessageCount,
+            SizeInBytes = properties.SizeInBytes,
+            TransferMessageCount = properties.TransferMessageCount,
+            DeadLetterMessageCount = properties.DeadLetterMessageCount,
+            TransferDeadLetterMessageCount = properties.TransferDeadLetterMessageCount,
+            ScheduledMessageCount = properties.ScheduledMessageCount,
+            AccessedAt = properties.AccessedAt,
+            CreatedAt = properties.CreatedAt,
+            UpdatedAt = properties.UpdatedAt
+        };
+    }
 }
 
 public class ServiceBusQueueManager
@@ -21,18 +37,19 @@ public class ServiceBusQueueManager
 
     }
 
-    public IEnumerable<QueueRuntimeProperties> List(CancellationToken ct)
+    public IEnumerable<QueueProperties> List(CancellationToken ct)
     {
         var queues = _adminClient.GetQueuesRuntimePropertiesAsync((ct)).ToBlockingEnumerable(ct);
         foreach (var q in queues)
         {
-            yield return q;
+            yield return q.ToQueueProperties();
         }
     }
 
-    public Task<Response<QueueRuntimeProperties>> Get(string path, CancellationToken ct)
+    public async Task<QueueProperties> Get(string path, CancellationToken ct)
     {
-        return _adminClient.GetQueueRuntimePropertiesAsync(path, ct);
+        var props = await _adminClient.GetQueueRuntimePropertiesAsync(path, ct).ConfigureAwait(false);
+        return props.Value.ToQueueProperties();
     }
 
     public Task Delete(string path, CancellationToken ct)
