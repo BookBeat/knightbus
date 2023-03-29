@@ -14,15 +14,13 @@ public sealed class MainWindow : Window
     public FrameView LeftPane;
     public QueueTreeView QueueListView;
     public FrameView RightPane;
-    private readonly ServiceBusQueueManager _queueManager;
 
-    public MainWindow(ServiceBusQueueManager queueManager)
+    public MainWindow(IQueueManager[] queueManagers)
     {
         Title = "KnightBus Explorer (Ctrl+Q to quit)";
         ColorScheme = Colors.Base;
 
-        _queueManager = queueManager;
-        QueueListView = new QueueTreeView(_queueManager)
+        QueueListView = new QueueTreeView(queueManagers)
         {
             X = 0,
             Y = 0,
@@ -102,7 +100,7 @@ public sealed class MainWindow : Window
         RightPane.Add(queueTableView);
 
         if (QueueListView.SelectedObject.Properties.DeadLetterMessageCount < 1) return;
-        var deadletter = _queueManager.PeekDeadLetter(QueueListView.SelectedObject.Properties.Name, 10, CancellationToken.None).GetAwaiter().GetResult();
+        var deadletter = QueueListView.SelectedObject.Properties.Manager.PeekDeadLetter(QueueListView.SelectedObject.Properties.Name, 10, CancellationToken.None).GetAwaiter().GetResult();
         var deadletterLabel = new Label("Deadletters:")
         {
             X = 1,
@@ -169,7 +167,7 @@ public sealed class MainWindow : Window
             var result = MessageBox.Query($"Move {messagesToMove} messages", "Are you sure?", "Yes", "No");
             if (result == 1) return;
 
-            var count = _queueManager.MoveDeadLetters(QueueListView.SelectedObject.Properties.Name, messagesToMove, CancellationToken.None).GetAwaiter().GetResult();
+            var count = QueueListView.SelectedObject.Properties.Manager.MoveDeadLetters(QueueListView.SelectedObject.Properties.Name, messagesToMove, CancellationToken.None).GetAwaiter().GetResult();
 
             MessageBox.Query("Complete", $"Moved {count} messages", "Ok");
             QueueListView.RefreshQueue(QueueListView.SelectedObject);

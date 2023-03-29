@@ -5,7 +5,7 @@ using Terminal.Gui;
 var connection = "";
 
 Application.Init();
-Application.Run(new MainWindow(new ServiceBusQueueManager(connection)));
+Application.Run(new MainWindow(new IQueueManager[] { new ServiceBusQueueManager(connection), new ServiceBusTopicManager(connection) }));
 
 
 

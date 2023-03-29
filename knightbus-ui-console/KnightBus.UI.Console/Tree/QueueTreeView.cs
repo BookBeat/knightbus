@@ -6,9 +6,9 @@ namespace KnightBus.UI.Console.Tree;
 
 public sealed class QueueTreeView : TreeView<QueueNode>
 {
-    private readonly ServiceBusQueueManager _queueManager;
+    private readonly IQueueManager[] _queueManager;
 
-    public QueueTreeView(ServiceBusQueueManager queueManager)
+    public QueueTreeView(IQueueManager[] queueManager)
     {
         _queueManager = queueManager;
         TreeBuilder = new QueueTreeBuilder();
@@ -18,10 +18,10 @@ public sealed class QueueTreeView : TreeView<QueueNode>
 
     private void GetSubQueues(object sender, SelectionChangedEventArgs<QueueNode> e)
     {
-        if(e.NewValue == null) return;
-        if(e.NewValue.Properties?.Type != QueueType.Topic) return;
+        if (e.NewValue == null) return;
+        if (e.NewValue.Properties?.HasSubQueues != true) return;
 
-        var queues = _queueManager.ListSubscriptions(e.NewValue.Properties.Name, CancellationToken.None);
+        var queues = e.NewValue.Properties.GetSubQueues.Invoke();
 
         foreach (var queue in queues)
         {
@@ -46,34 +46,10 @@ public sealed class QueueTreeView : TreeView<QueueNode>
     public void LoadQueues()
     {
         ClearObjects();
-        var queues = _queueManager.List(CancellationToken.None).ToList();
-        var topics = _queueManager.ListTopics(CancellationToken.None).ToList();
         var queueGroups = new Dictionary<string, List<QueueProperties>>();
-
-        foreach (var q in queues)
+        foreach (var manager in _queueManager)
         {
-            var index = q.Name.IndexOf('-');
-            var prefix = index == -1 ? q.Name : q.Name[..index];
-
-            if (!queueGroups.ContainsKey(prefix))
-            {
-                queueGroups[prefix] = new List<QueueProperties>();
-            }
-
-            queueGroups[prefix].Add(q);
-        }
-
-        foreach (var q in topics)
-        {
-            var index = q.Name.IndexOf('-');
-            var prefix = index == -1 ? q.Name : q.Name[..index];
-
-            if (!queueGroups.ContainsKey(prefix))
-            {
-                queueGroups[prefix] = new List<QueueProperties>();
-            }
-
-            queueGroups[prefix].Add(q);
+            LoadQueues(manager, queueGroups);
         }
 
         foreach (var queueGroup in queueGroups)
@@ -100,13 +76,29 @@ public sealed class QueueTreeView : TreeView<QueueNode>
                         throw new ArgumentOutOfRangeException();
                 }
             }
-            
-            if(queueGroupNode.QueueNodes.Any())
+
+            if (queueGroupNode.QueueNodes.Any())
                 serviceNode.QueueNodes.Add(queueGroupNode);
-            if(topicGroupNode.QueueNodes.Any())
+            if (topicGroupNode.QueueNodes.Any())
                 serviceNode.QueueNodes.Add(topicGroupNode);
 
             AddObject(serviceNode);
+        }
+    }
+    private void LoadQueues(IQueueManager manager, Dictionary<string, List<QueueProperties>> queueGroups)
+    {
+        var queues = manager.List(CancellationToken.None);
+        foreach (var q in queues)
+        {
+            var index = q.Name.IndexOf('-');
+            var prefix = index == -1 ? q.Name : q.Name[..index];
+
+            if (!queueGroups.ContainsKey(prefix))
+            {
+                queueGroups[prefix] = new List<QueueProperties>();
+            }
+
+            queueGroups[prefix].Add(q);
         }
     }
 
@@ -121,7 +113,7 @@ public sealed class QueueTreeView : TreeView<QueueNode>
     public void RefreshQueue(QueueNode node)
     {
         var name = node.Properties.Name;
-        var q = _queueManager.Get(name, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
+        var q = node.Properties.Manager.Get(name, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
         UpdateQueueNode(node, q);
     }
 
@@ -130,7 +122,7 @@ public sealed class QueueTreeView : TreeView<QueueNode>
         if (MessageBox.Query($"Delete {node.Properties.Name}", "Are you sure?", "No", "Yes") == 1)
         {
             var name = node.Properties.Name;
-            _queueManager.Delete(name, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
+            node.Properties.Manager.Delete(name, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
             LoadQueues();
         }
     }
