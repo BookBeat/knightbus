@@ -1,76 +1,8 @@
-﻿using Azure.Messaging.ServiceBus.Administration;
+﻿using KnightBus.UI.Console.Tree.Nodes;
 using Terminal.Gui;
 using Terminal.Gui.Trees;
 
-namespace KnightBus.UI.Console;
-
-public class QueueTreeBuilder : ITreeBuilder<QueueNode>
-{
-    public bool CanExpand(QueueNode toExpand)
-    {
-        return !toExpand.IsQueue;
-    }
-
-    public IEnumerable<QueueNode> GetChildren(QueueNode forObject)
-    {
-        return forObject.QueueNodes;
-    }
-
-    public bool SupportsCanExpand => true;
-}
-
-public class TopicNode : QueueNode
-{
-    public TopicNode(string label) : base("Topic " + label)
-    {
-    }
-}
-
-public class SubscriptionNode : QueueNode
-{
-    public SubscriptionNode(QueueProperties q) : base(q)
-    {
-    }
-}
-
-public class QueueNode : TreeNode
-{
-    public readonly List<QueueNode> QueueNodes = new();
-
-    public QueueNode(string label)
-    {
-        IsQueue = false;
-        Text = label;
-    }
-
-    public QueueNode(QueueProperties properties)
-    {
-        Properties = properties;
-        Text = CreateQueueLabel(properties);
-        IsQueue = true;
-    }
-
-    public bool IsQueue { get; private set; }
-    public QueueProperties Properties { get; set; }
-
-    public override IList<ITreeNode> Children => QueueNodes.Cast<ITreeNode>().ToList();
-    public sealed override string Text { get; set; }
-
-    public void Update(QueueProperties properties)
-    {
-        Properties = properties;
-        Text = CreateQueueLabel(properties);
-        IsQueue = true;
-    }
-
-    private static string CreateQueueLabel(QueueProperties q)
-    {
-        var index = q.Name.IndexOf('-');
-        var queueName = index == -1 ? q.Name : q.Name[(index + 1)..];
-        var label = $"{queueName} [{q.ActiveMessageCount},{q.DeadLetterMessageCount},{q.ScheduledMessageCount}]";
-        return label;
-    }
-}
+namespace KnightBus.UI.Console.Tree;
 
 public sealed class QueueTreeView : TreeView<QueueNode>
 {
@@ -81,6 +13,20 @@ public sealed class QueueTreeView : TreeView<QueueNode>
         _queueManager = queueManager;
         TreeBuilder = new QueueTreeBuilder();
         this.KeyPress += OnKeyPress;
+        this.SelectionChanged += GetSubQueues;
+    }
+
+    private void GetSubQueues(object sender, SelectionChangedEventArgs<QueueNode> e)
+    {
+        if(e.NewValue == null) return;
+        if(e.NewValue.Properties?.Type != QueueType.Topic) return;
+
+        var queues = _queueManager.ListSubscriptions(e.NewValue.Properties.Name, CancellationToken.None);
+
+        foreach (var queue in queues)
+        {
+            e.NewValue.QueueNodes.Add(new SubscriptionNode(queue));
+        }
     }
 
     private void OnKeyPress(KeyEventEventArgs obj)
@@ -132,7 +78,9 @@ public sealed class QueueTreeView : TreeView<QueueNode>
 
         foreach (var queueGroup in queueGroups)
         {
-            var node = new QueueNode(queueGroup.Key);
+            var serviceNode = new QueueNode(queueGroup.Key);
+            var queueGroupNode = new QueueNode("Queues");
+            var topicGroupNode = new QueueNode("Topics");
             foreach (var q in queueGroup.Value)
             {
                 QueueNode queueNode;
@@ -140,21 +88,25 @@ public sealed class QueueTreeView : TreeView<QueueNode>
                 {
                     case QueueType.Queue:
                         queueNode = new QueueNode(q);
+                        queueGroupNode.QueueNodes.Add(queueNode);
                         break;
                     case QueueType.Topic:
-                        queueNode = new TopicNode(q.Name);
+                        queueNode = new TopicNode(q);
+                        topicGroupNode.QueueNodes.Add(queueNode);
                         break;
                     case QueueType.Subscription:
-                        queueNode = new SubscriptionNode(q);
                         break;
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
-
-                node.QueueNodes.Add(queueNode);
             }
+            
+            if(queueGroupNode.QueueNodes.Any())
+                serviceNode.QueueNodes.Add(queueGroupNode);
+            if(topicGroupNode.QueueNodes.Any())
+                serviceNode.QueueNodes.Add(topicGroupNode);
 
-            AddObject(node);
+            AddObject(serviceNode);
         }
     }
 

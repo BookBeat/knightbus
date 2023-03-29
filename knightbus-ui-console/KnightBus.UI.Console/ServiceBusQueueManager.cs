@@ -34,6 +34,15 @@ public class ServiceBusQueueManager
         }
     }
 
+    public IEnumerable<QueueProperties> ListSubscriptions(string topic, CancellationToken ct)
+    {
+        var queues = _adminClient.GetSubscriptionsRuntimePropertiesAsync(topic, ct).ToBlockingEnumerable(ct);
+        foreach (var q in queues)
+        {
+            yield return q.ToQueueProperties();
+        }
+    }
+
     public async Task<QueueProperties> Get(string path, CancellationToken ct)
     {
         var props = await _adminClient.GetQueueRuntimePropertiesAsync(path, ct).ConfigureAwait(false);
