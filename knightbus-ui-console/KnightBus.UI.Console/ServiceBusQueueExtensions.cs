@@ -6,7 +6,7 @@ public static class ServiceBusQueueExtensions
 {
     public static QueueProperties ToQueueProperties(this QueueRuntimeProperties properties, IQueueManager manager)
     {
-        return new QueueProperties(properties.Name, QueueType.Queue, manager)
+        return new QueueProperties(properties.Name, QueueType.Queue, manager, false)
         {
             ActiveMessageCount = properties.ActiveMessageCount,
             TotalMessageCount = properties.TotalMessageCount,
@@ -22,7 +22,7 @@ public static class ServiceBusQueueExtensions
     }
     public static QueueProperties ToQueueProperties(this SubscriptionRuntimeProperties properties, IQueueManager manager)
     {
-        return new QueueProperties(properties.SubscriptionName, QueueType.Subscription, manager)
+        return new QueueProperties(properties.SubscriptionName, QueueType.Subscription, manager, false)
         {
             ActiveMessageCount = properties.ActiveMessageCount,
             TotalMessageCount = properties.TotalMessageCount,
@@ -34,16 +34,15 @@ public static class ServiceBusQueueExtensions
             UpdatedAt = properties.UpdatedAt
         };
     }
-    public static QueueProperties ToQueueProperties(this TopicRuntimeProperties properties, IQueueManager manager, Func<IEnumerable<QueueProperties>> getSubQueues)
+    public static QueueProperties ToQueueProperties(this TopicRuntimeProperties properties, IQueueManager manager)
     {
-        return new QueueProperties(properties.Name, QueueType.Topic, manager)
+        return new QueueProperties(properties.Name, QueueType.Topic, manager, true)
         {
             SizeInBytes = properties.SizeInBytes,
             ScheduledMessageCount = properties.ScheduledMessageCount,
             AccessedAt = properties.AccessedAt,
             CreatedAt = properties.CreatedAt,
             UpdatedAt = properties.UpdatedAt,
-            GetSubQueues = getSubQueues
         };
     }
 }

@@ -21,7 +21,7 @@ public sealed class QueueTreeView : TreeView<QueueNode>
         if (e.NewValue == null) return;
         if (e.NewValue.Properties?.HasSubQueues != true) return;
 
-        var queues = e.NewValue.Properties.GetSubQueues.Invoke();
+        var queues = e.NewValue.Properties.Manager.List(CancellationToken.None);
 
         foreach (var queue in queues)
         {

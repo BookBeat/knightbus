@@ -12,6 +12,50 @@ public interface IQueueManager
     Task<int> MoveDeadLetters(string name, int count, CancellationToken ct);
 }
 
+public class ServiceBusSubscriptionManager : IQueueManager
+{
+    private readonly string _topic;
+    private readonly ServiceBusAdministrationClient _adminClient;
+    private readonly ServiceBusClient _client;
+
+    public ServiceBusSubscriptionManager(string topic, ServiceBusClient client, ServiceBusAdministrationClient adminClient)
+    {
+        _topic = topic;
+        _adminClient = adminClient;
+        _client = client;
+    }
+    public IEnumerable<QueueProperties> List(CancellationToken ct)
+    {
+        var subs = _adminClient.GetSubscriptionsRuntimePropertiesAsync(_topic, ct).ToBlockingEnumerable(ct); 
+        foreach (var sub in subs)
+        {
+            yield return sub.ToQueueProperties(this);
+        }
+    }
+
+    public async Task<QueueProperties> Get(string path, CancellationToken ct)
+    {
+        var sub = await _adminClient.GetSubscriptionRuntimePropertiesAsync(_topic, path, ct).ConfigureAwait(false);
+        return sub.Value.ToQueueProperties(this);
+    }
+
+    public Task Delete(string path, CancellationToken ct)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<IReadOnlyList<ServiceBusReceivedMessage>> PeekDeadLetter(string name, int count, CancellationToken ct)
+    {
+        var receiver = _client.CreateReceiver(_topic, name, new ServiceBusReceiverOptions { SubQueue = SubQueue.DeadLetter });
+        return receiver.PeekMessagesAsync(count, cancellationToken: ct);
+    }
+
+    public Task<int> MoveDeadLetters(string name, int count, CancellationToken ct)
+    {
+        throw new NotImplementedException();
+    }
+}
+
 public class ServiceBusTopicManager : IQueueManager
 {
     private readonly ServiceBusAdministrationClient _adminClient;
@@ -27,7 +71,7 @@ public class ServiceBusTopicManager : IQueueManager
         var queues = _adminClient.GetTopicsRuntimePropertiesAsync((ct)).ToBlockingEnumerable(ct);
         foreach (var q in queues)
         {
-            yield return q.ToQueueProperties(this, () => ListSubscriptions(q.Name, CancellationToken.None));
+            yield return q.ToQueueProperties(new ServiceBusSubscriptionManager(q.Name, _client, _adminClient));
         }
     }
 
@@ -43,7 +87,7 @@ public class ServiceBusTopicManager : IQueueManager
     public async Task<QueueProperties> Get(string path, CancellationToken ct)
     {
         var topic = await _adminClient.GetTopicRuntimePropertiesAsync(path, ct).ConfigureAwait(false);
-        return topic.Value.ToQueueProperties(this, () => ListSubscriptions(topic.Value.Name, CancellationToken.None));
+        return topic.Value.ToQueueProperties(this);
     }
 
     public Task Delete(string path, CancellationToken ct)
