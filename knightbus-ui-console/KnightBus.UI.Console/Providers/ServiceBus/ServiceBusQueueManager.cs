@@ -1,14 +1,15 @@
-﻿using Azure.Messaging.ServiceBus;
+﻿using System.Text;
+using Azure.Messaging.ServiceBus;
 using Azure.Messaging.ServiceBus.Administration;
 
 namespace KnightBus.UI.Console.Providers.ServiceBus;
 
-public class QueueManager : IQueueManager
+public class ServiceBusQueueManager : IQueueManager
 {
     private readonly ServiceBusAdministrationClient _adminClient;
     private readonly ServiceBusClient _client;
 
-    public QueueManager(string connectionString)
+    public ServiceBusQueueManager(string connectionString)
     {
         _adminClient = new ServiceBusAdministrationClient(connectionString);
         _client = new ServiceBusClient(connectionString);
@@ -35,10 +36,11 @@ public class QueueManager : IQueueManager
         return _adminClient.DeleteQueueAsync(path, ct);
     }
 
-    public Task<IReadOnlyList<ServiceBusReceivedMessage>> PeekDeadLetter(string name, int count, CancellationToken ct)
+    public async Task<IReadOnlyList<QueueMessage>> PeekDeadLetter(string name, int count, CancellationToken ct)
     {
         var receiver = _client.CreateReceiver(name, new ServiceBusReceiverOptions { SubQueue = SubQueue.DeadLetter });
-        return receiver.PeekMessagesAsync(count, cancellationToken: ct);
+        var messages = await receiver.PeekMessagesAsync(count, cancellationToken: ct).ConfigureAwait(false);
+        return messages.Select(m => new QueueMessage(Encoding.UTF8.GetString(m.Body), m.ApplicationProperties["Exception"], m.EnqueuedTime)).ToList();
     }
 
     public Task<int> MoveDeadLetters(string name, int count, CancellationToken ct)

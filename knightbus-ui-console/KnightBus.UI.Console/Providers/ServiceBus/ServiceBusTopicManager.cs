@@ -3,12 +3,12 @@ using Azure.Messaging.ServiceBus.Administration;
 
 namespace KnightBus.UI.Console.Providers.ServiceBus;
 
-public class TopicManager : IQueueManager
+public class ServiceBusTopicManager : IQueueManager
 {
     private readonly ServiceBusAdministrationClient _adminClient;
     private readonly ServiceBusClient _client;
 
-    public TopicManager(string connectionString)
+    public ServiceBusTopicManager(string connectionString)
     {
         _adminClient = new ServiceBusAdministrationClient(connectionString);
         _client = new ServiceBusClient(connectionString);
@@ -18,7 +18,7 @@ public class TopicManager : IQueueManager
         var queues = _adminClient.GetTopicsRuntimePropertiesAsync((ct)).ToBlockingEnumerable(ct);
         foreach (var q in queues)
         {
-            yield return q.ToQueueProperties(new SubscriptionManager(q.Name, _client, _adminClient));
+            yield return q.ToQueueProperties(new ServiceBusSubscriptionManager(q.Name, _client, _adminClient));
         }
     }
 
@@ -33,7 +33,7 @@ public class TopicManager : IQueueManager
         throw new NotImplementedException();
     }
 
-    public Task<IReadOnlyList<ServiceBusReceivedMessage>> PeekDeadLetter(string name, int count, CancellationToken ct)
+    public Task<IReadOnlyList<QueueMessage>> PeekDeadLetter(string name, int count, CancellationToken ct)
     {
         throw new NotImplementedException();
     }

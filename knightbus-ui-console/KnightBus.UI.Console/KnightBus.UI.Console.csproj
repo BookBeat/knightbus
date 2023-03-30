@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\knightbus-azureservicebus\src\KnightBus.Azure.ServiceBus\KnightBus.Azure.ServiceBus.csproj" />
+    <ProjectReference Include="..\..\knightbus-azurestorage\src\KnightBus.Azure.Storage\KnightBus.Azure.Storage.csproj" />
   </ItemGroup>
 
 </Project>

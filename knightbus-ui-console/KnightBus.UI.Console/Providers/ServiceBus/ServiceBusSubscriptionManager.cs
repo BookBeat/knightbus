@@ -1,15 +1,16 @@
-﻿using Azure.Messaging.ServiceBus;
+﻿using System.Text;
+using Azure.Messaging.ServiceBus;
 using Azure.Messaging.ServiceBus.Administration;
 
 namespace KnightBus.UI.Console.Providers.ServiceBus;
 
-public class SubscriptionManager : IQueueManager
+public class ServiceBusSubscriptionManager : IQueueManager
 {
     private readonly string _topic;
     private readonly ServiceBusAdministrationClient _adminClient;
     private readonly ServiceBusClient _client;
 
-    public SubscriptionManager(string topic, ServiceBusClient client, ServiceBusAdministrationClient adminClient)
+    public ServiceBusSubscriptionManager(string topic, ServiceBusClient client, ServiceBusAdministrationClient adminClient)
     {
         _topic = topic;
         _adminClient = adminClient;
@@ -35,10 +36,11 @@ public class SubscriptionManager : IQueueManager
         return _adminClient.DeleteSubscriptionAsync(_topic, path, ct);
     }
 
-    public Task<IReadOnlyList<ServiceBusReceivedMessage>> PeekDeadLetter(string name, int count, CancellationToken ct)
+    public async Task<IReadOnlyList<QueueMessage>> PeekDeadLetter(string name, int count, CancellationToken ct)
     {
         var receiver = _client.CreateReceiver(_topic, name, new ServiceBusReceiverOptions { SubQueue = SubQueue.DeadLetter });
-        return receiver.PeekMessagesAsync(count, cancellationToken: ct);
+        var messages = await receiver.PeekMessagesAsync(count, cancellationToken: ct).ConfigureAwait(false);
+        return messages.Select(m => new QueueMessage(Encoding.UTF8.GetString(m.Body), m.ApplicationProperties["Exception"], m.EnqueuedTime)).ToList();
     }
 
     public Task<int> MoveDeadLetters(string name, int count, CancellationToken ct)
@@ -46,6 +48,6 @@ public class SubscriptionManager : IQueueManager
         var receiver = _client.CreateReceiver(_topic, name, new ServiceBusReceiverOptions { SubQueue = SubQueue.DeadLetter });
         var sender = _client.CreateSender(_topic);
 
-        return QueueManager.MoveMessages(sender, receiver, count, 10);
+        return ServiceBusQueueManager.MoveMessages(sender, receiver, count, 10);
     }
 }

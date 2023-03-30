@@ -2,12 +2,14 @@
 using KnightBus.UI.Console;
 using KnightBus.UI.Console.Providers;
 using KnightBus.UI.Console.Providers.ServiceBus;
+using KnightBus.UI.Console.Providers.StorageBus;
 using Terminal.Gui;
 
 var connection = "";
+var storage = "";
 
 Application.Init();
-Application.Run(new MainWindow(new IQueueManager[] { new QueueManager(connection), new TopicManager(connection) }));
+Application.Run(new MainWindow(new IQueueManager[] { new ServiceBusQueueManager(connection), new ServiceBusTopicManager(connection), new StorageQueueManager(storage) }));
 
 
 

@@ -216,7 +216,7 @@ public sealed class MainWindow : Window
         table.Rows.Add("AccessedAt", q.AccessedAt);
         return table;
     }
-    private DataTable CreateTable(IEnumerable<ServiceBusReceivedMessage> messages)
+    private DataTable CreateTable(IEnumerable<QueueMessage> messages)
     {
         var table = new DataTable();
         table.Columns.Add("Time");
@@ -225,7 +225,7 @@ public sealed class MainWindow : Window
 
         foreach (var message in messages)
         {
-            table.Rows.Add(message.EnqueuedTime.ToString("s"), Encoding.UTF8.GetString(message.Body), message.ApplicationProperties["Exception"]);
+            table.Rows.Add(message.Time.ToString("s"), message.Body, message.Error);
         }
 
         return table;
