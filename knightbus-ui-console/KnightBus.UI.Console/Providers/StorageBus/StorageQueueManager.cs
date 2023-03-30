@@ -1,6 +1,5 @@
-﻿using Azure.Messaging.ServiceBus;
+﻿using System.Text;
 using Azure.Storage.Queues;
-using Azure.Storage.Queues.Models;
 using KnightBus.Azure.Storage;
 using KnightBus.Newtonsoft;
 
@@ -21,7 +20,7 @@ public class StorageQueueManager : IQueueManager
         var queues = _client.GetQueues(cancellationToken: ct);
         foreach (var queue in queues.Where(q => !q.Name.EndsWith("-dl")))
         {
-            yield return new QueueProperties(queue.Name, QueueType.Queue, this, false);
+            yield return new QueueProperties(queue.Name, QueueType.Queue, this, false, false);
         }
     }
 
@@ -33,17 +32,16 @@ public class StorageQueueManager : IQueueManager
         var dlCount = 0;
 
         await Task.WhenAll(
-            qc.GetQueueCountAsync().ContinueWith(task => queueCount = task.Result, TaskContinuationOptions.NotOnFaulted),
-            qc.GetDeadLetterCountAsync().ContinueWith(task => dlCount = task.Result, TaskContinuationOptions.NotOnFaulted)
+            qc.GetQueueCountAsync().ContinueWith(task => queueCount = task.Result, TaskContinuationOptions.OnlyOnRanToCompletion),
+            qc.GetDeadLetterCountAsync().ContinueWith(task => dlCount = task.Result, TaskContinuationOptions.OnlyOnRanToCompletion)
         ).ConfigureAwait(false);
 
 
-        return new QueueProperties(path, QueueType.Queue, this, false)
+        return new QueueProperties(path, QueueType.Queue, this, false, true)
         {
             ActiveMessageCount = queueCount,
             DeadLetterMessageCount = dlCount
         };
-
     }
 
     public Task Delete(string path, CancellationToken ct)
@@ -51,9 +49,20 @@ public class StorageQueueManager : IQueueManager
         throw new NotImplementedException();
     }
 
-    public Task<IReadOnlyList<QueueMessage>> PeekDeadLetter(string name, int count, CancellationToken ct)
+    public async Task<IReadOnlyList<QueueMessage>> PeekDeadLetter(string name, int count, CancellationToken ct)
     {
-        throw new NotImplementedException();
+        var config = new StorageBusConfiguration(_connectionString) { MessageEncoding = QueueMessageEncoding.Base64 };
+        var serializer = new NewtonsoftSerializer();
+        var qc = new StorageQueueClient(config, serializer, new BlobStorageMessageAttachmentProvider(config), name);
+
+        var messages = await qc.PeekDeadLettersAsync<FakeMessage>(10).ConfigureAwait(false);
+
+        return messages.Select(m =>
+        {
+            m.Properties.TryGetValue("Error", out var error);
+            return new QueueMessage(Encoding.UTF8.GetString(serializer.Serialize(m.Message)),
+                error ?? string.Empty, m.InsertedOn);
+        }).ToList();
     }
 
     public Task<int> MoveDeadLetters(string name, int count, CancellationToken ct)

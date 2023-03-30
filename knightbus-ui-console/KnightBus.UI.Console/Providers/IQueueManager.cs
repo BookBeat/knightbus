@@ -11,4 +11,4 @@ public interface IQueueManager
     Task<int> MoveDeadLetters(string name, int count, CancellationToken ct);
 }
 
-public record QueueMessage(string Body, object Error, DateTimeOffset Time);
+public record QueueMessage(string Body, object Error, DateTimeOffset? Time);

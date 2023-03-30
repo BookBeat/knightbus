@@ -223,6 +223,7 @@ namespace KnightBus.Azure.Storage
                         QueueMessageId = queueMessage.MessageId,
                         DequeueCount = (int)queueMessage.DequeueCount,
                         PopReceipt = queueMessage.PopReceipt,
+                        InsertedOn = queueMessage.InsertedOn,
                         Properties = TryDeserializeProperties(queueMessage.Body)
                     };
                     using (var stream = new MemoryStream())

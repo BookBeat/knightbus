@@ -7,6 +7,7 @@ namespace KnightBus.UI.Console.Tree;
 
 public sealed class QueueTreeView : TreeView<QueueNode>
 {
+    private const string Unknown = "Unknown";
     private readonly IQueueManager[] _queueManager;
 
     public QueueTreeView(IQueueManager[] queueManager)
@@ -15,6 +16,20 @@ public sealed class QueueTreeView : TreeView<QueueNode>
         TreeBuilder = new QueueTreeBuilder();
         this.KeyPress += OnKeyPress;
         this.SelectionChanged += GetSubQueues;
+        this.SelectionChanged += LoadChildQueueProperties;
+    }
+
+    private void LoadChildQueueProperties(object sender, SelectionChangedEventArgs<QueueNode> e)
+    {
+        if (e.NewValue == null) return;
+        if (e.NewValue.IsQueue) return;
+
+        foreach (var childNode in e.NewValue.QueueNodes.Where(n => n.IsQueue && n.Properties?.IsLoaded == false))
+        {
+            var updated = childNode.Properties.Manager.Get(childNode.Properties.Name, CancellationToken.None)
+                .ConfigureAwait(false).GetAwaiter().GetResult();
+            childNode.Update(updated);
+        }
     }
 
     private void GetSubQueues(object sender, SelectionChangedEventArgs<QueueNode> e)
@@ -51,6 +66,23 @@ public sealed class QueueTreeView : TreeView<QueueNode>
         foreach (var manager in _queueManager)
         {
             LoadQueues(manager, queueGroups);
+        }
+
+        var found = new List<QueueProperties>();
+        foreach (var queueProp in queueGroups.Single(g => g.Key == Unknown).Value)
+        {
+            foreach (var queueGroup in queueGroups.Where(queueGroup => queueProp.Name.StartsWith(queueGroup.Key, StringComparison.OrdinalIgnoreCase)))
+            {
+                queueGroup.Value.Add(queueProp);
+                found.Add(queueProp);
+            }
+        }
+
+        foreach (var foundProp in found)
+        {
+            queueGroups[Unknown].Remove(foundProp);
+            if (!queueGroups[Unknown].Any())
+                queueGroups.Remove(Unknown);
         }
 
         foreach (var queueGroup in queueGroups)
@@ -92,7 +124,7 @@ public sealed class QueueTreeView : TreeView<QueueNode>
         foreach (var q in queues)
         {
             var index = q.Name.IndexOf('-');
-            var prefix = index == -1 ? q.Name : q.Name[..index];
+            var prefix = index == -1 ? Unknown : q.Name[..index];
 
             if (!queueGroups.ContainsKey(prefix))
             {

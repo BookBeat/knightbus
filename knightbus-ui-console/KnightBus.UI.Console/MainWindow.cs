@@ -225,7 +225,7 @@ public sealed class MainWindow : Window
 
         foreach (var message in messages)
         {
-            table.Rows.Add(message.Time.ToString("s"), message.Body, message.Error);
+            table.Rows.Add(message.Time, message.Body, message.Error);
         }
 
         return table;

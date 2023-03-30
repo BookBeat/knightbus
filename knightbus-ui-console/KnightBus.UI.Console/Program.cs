@@ -9,7 +9,7 @@ var connection = "";
 var storage = "";
 
 Application.Init();
-Application.Run(new MainWindow(new IQueueManager[] { new ServiceBusQueueManager(connection), new ServiceBusTopicManager(connection), new StorageQueueManager(storage) }));
+Application.Run(new MainWindow(new IQueueManager[] { new ServiceBusQueueManager(connection), new ServiceBusTopicManager(connection), new StorageQueueManager(storage) }), exception => MessageBox.ErrorQuery("Error", $"{exception.Message}\n\n{exception.StackTrace}", "Ok") == 0);
 
 
 

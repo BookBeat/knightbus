@@ -7,7 +7,7 @@ public static class ServiceBusQueueExtensions
 {
     public static QueueProperties ToQueueProperties(this QueueRuntimeProperties properties, IQueueManager manager)
     {
-        return new QueueProperties(properties.Name, QueueType.Queue, manager, false)
+        return new QueueProperties(properties.Name, QueueType.Queue, manager, false, true)
         {
             ActiveMessageCount = properties.ActiveMessageCount,
             TotalMessageCount = properties.TotalMessageCount,
@@ -23,7 +23,7 @@ public static class ServiceBusQueueExtensions
     }
     public static QueueProperties ToQueueProperties(this SubscriptionRuntimeProperties properties, IQueueManager manager)
     {
-        return new QueueProperties(properties.SubscriptionName, QueueType.Subscription, manager, false)
+        return new QueueProperties(properties.SubscriptionName, QueueType.Subscription, manager, false, true)
         {
             ActiveMessageCount = properties.ActiveMessageCount,
             TotalMessageCount = properties.TotalMessageCount,
@@ -37,7 +37,7 @@ public static class ServiceBusQueueExtensions
     }
     public static QueueProperties ToQueueProperties(this TopicRuntimeProperties properties, IQueueManager manager)
     {
-        return new QueueProperties(properties.Name, QueueType.Topic, manager, true)
+        return new QueueProperties(properties.Name, QueueType.Topic, manager, true, true)
         {
             SizeInBytes = properties.SizeInBytes,
             ScheduledMessageCount = properties.ScheduledMessageCount,
