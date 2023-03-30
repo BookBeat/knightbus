@@ -1,4 +1,5 @@
 ﻿using Azure.Messaging.ServiceBus.Administration;
+using KnightBus.UI.Console.Providers;
 
 namespace KnightBus.UI.Console;
 

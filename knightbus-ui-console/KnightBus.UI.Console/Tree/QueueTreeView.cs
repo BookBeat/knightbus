@@ -1,4 +1,5 @@
-﻿using KnightBus.UI.Console.Tree.Nodes;
+﻿using KnightBus.UI.Console.Providers;
+using KnightBus.UI.Console.Tree.Nodes;
 using Terminal.Gui;
 using Terminal.Gui.Trees;
 

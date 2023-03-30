@@ -12,11 +12,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Terminal.Gui" Version="1.10.0"/>
+    <PackageReference Include="Terminal.Gui" Version="1.10.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\knightbus-azureservicebus\src\KnightBus.Azure.ServiceBus\KnightBus.Azure.ServiceBus.csproj"/>
+    <ProjectReference Include="..\..\knightbus-azureservicebus\src\KnightBus.Azure.ServiceBus\KnightBus.Azure.ServiceBus.csproj" />
   </ItemGroup>
 
 </Project>

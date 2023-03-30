@@ -1,4 +1,6 @@
-﻿namespace KnightBus.UI.Console;
+﻿using KnightBus.UI.Console.Providers;
+
+namespace KnightBus.UI.Console;
 
 public enum QueueType
 {

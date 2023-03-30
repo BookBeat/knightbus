@@ -1,6 +1,7 @@
 ﻿using System.Data;
 using System.Text;
 using Azure.Messaging.ServiceBus;
+using KnightBus.UI.Console.Providers;
 using KnightBus.UI.Console.Tree;
 using KnightBus.UI.Console.Tree.Nodes;
 using Terminal.Gui;
