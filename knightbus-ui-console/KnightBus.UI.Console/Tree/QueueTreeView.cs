@@ -39,6 +39,8 @@ public sealed class QueueTreeView : TreeView<QueueNode>
 
         var queues = e.NewValue.Properties.Manager.List(CancellationToken.None);
 
+        e.NewValue.QueueNodes.Clear();
+
         foreach (var queue in queues)
         {
             e.NewValue.QueueNodes.Add(new SubscriptionNode(queue));
