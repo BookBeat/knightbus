@@ -29,7 +29,6 @@ public class QueueNode : TreeNode
     {
         Properties = properties;
         Text = CreateQueueLabel(properties);
-        IsQueue = true;
     }
 
     protected static string CreateQueueLabel(QueueProperties q)
