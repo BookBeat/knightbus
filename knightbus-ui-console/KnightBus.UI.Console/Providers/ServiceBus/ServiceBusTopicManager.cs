@@ -1,5 +1,6 @@
 ﻿using Azure.Messaging.ServiceBus;
 using Azure.Messaging.ServiceBus.Administration;
+using KnightBus.Azure.ServiceBus;
 
 namespace KnightBus.UI.Console.Providers.ServiceBus;
 
@@ -8,10 +9,10 @@ public class ServiceBusTopicManager : IQueueManager
     private readonly ServiceBusAdministrationClient _adminClient;
     private readonly ServiceBusClient _client;
 
-    public ServiceBusTopicManager(string connectionString)
+    public ServiceBusTopicManager(IServiceBusConfiguration configuration)
     {
-        _adminClient = new ServiceBusAdministrationClient(connectionString);
-        _client = new ServiceBusClient(connectionString);
+        _adminClient = new ServiceBusAdministrationClient(configuration.ConnectionString);
+        _client = new ServiceBusClient(configuration.ConnectionString);
     }
     public IEnumerable<QueueProperties> List(CancellationToken ct)
     {

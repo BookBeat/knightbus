@@ -4,6 +4,7 @@ using Azure.Messaging.ServiceBus;
 using KnightBus.UI.Console.Providers;
 using KnightBus.UI.Console.Tree;
 using KnightBus.UI.Console.Tree.Nodes;
+using Microsoft.Extensions.DependencyInjection;
 using Terminal.Gui;
 using Terminal.Gui.Trees;
 
@@ -11,16 +12,20 @@ namespace KnightBus.UI.Console;
 
 public sealed class MainWindow : Window
 {
+    private readonly IServiceProvider _provider;
     public FrameView LeftPane;
     public QueueTreeView QueueListView;
     public FrameView RightPane;
 
-    public MainWindow(IQueueManager[] queueManagers)
+    public MainWindow(IServiceProvider provider)
     {
+        _provider = provider;
         Title = "KnightBus Explorer (Ctrl+Q to quit)";
         ColorScheme = Colors.Base;
 
-        QueueListView = new QueueTreeView(queueManagers)
+        var managers = provider.GetServices<IQueueManager>();
+
+        QueueListView = new QueueTreeView(managers.ToArray())
         {
             X = 0,
             Y = 0,
