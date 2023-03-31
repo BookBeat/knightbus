@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using Azure;
 using Azure.Storage.Queues;
 using KnightBus.Azure.Storage;
 using KnightBus.Core;
@@ -33,8 +34,8 @@ public class StorageQueueManager : IQueueManager
         var dlCount = 0;
 
         await Task.WhenAll(
-            qc.GetQueueCountAsync().ContinueWith(task => queueCount = task.Result, TaskContinuationOptions.OnlyOnRanToCompletion),
-            qc.GetDeadLetterCountAsync().ContinueWith(task => dlCount = task.Result, TaskContinuationOptions.OnlyOnRanToCompletion)
+            qc.GetQueueCountAsync().ContinueWith(task => queueCount = task.Result, ct),
+            SafeGetDeadLetterCount(qc).ContinueWith(task => dlCount = task.Result, ct)
         ).ConfigureAwait(false);
 
 
@@ -43,6 +44,20 @@ public class StorageQueueManager : IQueueManager
             ActiveMessageCount = queueCount,
             DeadLetterMessageCount = dlCount
         };
+    }
+
+    private static async Task<int> SafeGetDeadLetterCount(IStorageQueueClient qc)
+    {
+        try
+        {
+            var count = await qc.GetDeadLetterCountAsync().ConfigureAwait(false);
+            return count;
+        }
+        catch (RequestFailedException e) when (e.Status == 404)
+        {
+            return 0;
+        }
+
     }
 
     public async Task Delete(string path, CancellationToken ct)
@@ -56,7 +71,7 @@ public class StorageQueueManager : IQueueManager
     {
         var qc = new StorageQueueClient(_configuration, _configuration.MessageSerializer, _attachmentProvider, name);
 
-        var messages = await qc.PeekDeadLettersAsync<FakeMessage>(10).ConfigureAwait(false);
+        var messages = await qc.PeekDeadLettersAsync<FakeMessage>(count).ConfigureAwait(false);
 
         return messages.Select(m =>
         {
@@ -66,8 +81,10 @@ public class StorageQueueManager : IQueueManager
         }).ToList();
     }
 
-    public Task<int> MoveDeadLetters(string name, int count, CancellationToken ct)
+    public async Task<int> MoveDeadLetters(string name, int count, CancellationToken ct)
     {
-        throw new NotImplementedException();
+        var qc = new StorageQueueClient(_configuration, _configuration.MessageSerializer, _attachmentProvider, name);
+        await qc.RequeueDeadLettersAsync<FakeMessage>(count, null).ConfigureAwait(false);
+        return count;
     }
 }

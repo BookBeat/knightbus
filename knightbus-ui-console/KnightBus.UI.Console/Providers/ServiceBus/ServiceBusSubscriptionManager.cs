@@ -40,7 +40,11 @@ public class ServiceBusSubscriptionManager : IQueueManager
     {
         var receiver = _client.CreateReceiver(_topic, name, new ServiceBusReceiverOptions { SubQueue = SubQueue.DeadLetter });
         var messages = await receiver.PeekMessagesAsync(count, cancellationToken: ct).ConfigureAwait(false);
-        return messages.Select(m => new QueueMessage(Encoding.UTF8.GetString(m.Body), m.ApplicationProperties["Exception"], m.EnqueuedTime)).ToList();
+        return messages.Select(m =>
+        {
+            m.ApplicationProperties.TryGetValue("Exception", out var error);
+            return new QueueMessage(Encoding.UTF8.GetString(m.Body), error ?? string.Empty, m.EnqueuedTime);
+        }).ToList();
     }
 
     public Task<int> MoveDeadLetters(string name, int count, CancellationToken ct)
