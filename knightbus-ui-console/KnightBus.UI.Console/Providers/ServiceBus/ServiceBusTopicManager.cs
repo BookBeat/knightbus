@@ -48,4 +48,6 @@ public class ServiceBusTopicManager : IQueueManager
     {
         throw new NotImplementedException();
     }
+
+    public string DisplayName => "ServiceBus Topic";
 }

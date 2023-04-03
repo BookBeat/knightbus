@@ -101,4 +101,6 @@ public class StorageQueueManager : IQueueManager
         await qc.RequeueDeadLettersAsync<FakeMessage>(count, null).ConfigureAwait(false);
         return count;
     }
+
+    public string DisplayName => "Storage Queue";
 }

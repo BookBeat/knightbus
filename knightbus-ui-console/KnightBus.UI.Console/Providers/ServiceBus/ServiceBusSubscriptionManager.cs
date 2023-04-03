@@ -65,4 +65,6 @@ public class ServiceBusSubscriptionManager : IQueueManager
 
         return ServiceBusQueueManager.MoveMessages(sender, receiver, count, 10);
     }
+
+    public string DisplayName => "ServiceBus Topic Subscription";
 }

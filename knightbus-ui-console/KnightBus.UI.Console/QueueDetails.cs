@@ -158,7 +158,7 @@ public sealed class QueueDetails : FrameView
     {
         var table = new DataTable();
         table.Columns.Add(q.Name);
-        table.Columns.Add("Value");
+        table.Columns.Add(q.Manager.DisplayName);
         table.Rows.Add("ActiveMessageCount", q.ActiveMessageCount);
         table.Rows.Add("ScheduledMessageCount", q.ScheduledMessageCount);
         table.Rows.Add("DeadLetterMessageCount", q.DeadLetterMessageCount);

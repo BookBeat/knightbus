@@ -10,6 +10,7 @@ public interface IQueueManager
     Task<IReadOnlyList<QueueMessage>> Peek(string name, int count, CancellationToken ct);
     Task<IReadOnlyList<QueueMessage>> PeekDeadLetter(string name, int count, CancellationToken ct);
     Task<int> MoveDeadLetters(string name, int count, CancellationToken ct);
+    string DisplayName { get; }
 }
 
 public record QueueMessage(string Body, object Error, DateTimeOffset? Time);

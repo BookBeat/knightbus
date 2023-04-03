@@ -14,6 +14,7 @@ public class QueueProperties
     {
         Name = name;
         Type = type;
+        ProviderName = manager.DisplayName;
         Manager = manager;
         HasSubQueues = hasSubQueues;
         IsLoaded = isLoaded;
@@ -22,6 +23,7 @@ public class QueueProperties
     public string Name { get; internal set; }
 
     public QueueType Type { get; }
+    public string ProviderName { get; }
     public IQueueManager Manager { get; }
     public bool HasSubQueues { get; }
     public bool IsLoaded { get; }
