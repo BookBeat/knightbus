@@ -67,6 +67,20 @@ public class StorageQueueManager : IQueueManager
         await qc.DeleteIfExistsAsync().ConfigureAwait(false);
     }
 
+    public async Task<IReadOnlyList<QueueMessage>> Peek(string name, int count, CancellationToken ct)
+    {
+        var qc = new StorageQueueClient(_configuration, _configuration.MessageSerializer, _attachmentProvider, name);
+
+        var messages = await qc.GetMessagesAsync<FakeMessage>(count, null).ConfigureAwait(false);
+
+        return messages.Select(m =>
+        {
+            m.Properties.TryGetValue("Error", out var error);
+            return new QueueMessage(Encoding.UTF8.GetString(_configuration.MessageSerializer.Serialize(m.Message)),
+                error ?? string.Empty, m.InsertedOn);
+        }).ToList();
+    }
+
     public async Task<IReadOnlyList<QueueMessage>> PeekDeadLetter(string name, int count, CancellationToken ct)
     {
         var qc = new StorageQueueClient(_configuration, _configuration.MessageSerializer, _attachmentProvider, name);

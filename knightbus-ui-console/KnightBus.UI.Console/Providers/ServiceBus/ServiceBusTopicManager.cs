@@ -34,6 +34,11 @@ public class ServiceBusTopicManager : IQueueManager
         throw new NotImplementedException();
     }
 
+    public Task<IReadOnlyList<QueueMessage>> Peek(string name, int count, CancellationToken ct)
+    {
+        throw new NotImplementedException();
+    }
+
     public Task<IReadOnlyList<QueueMessage>> PeekDeadLetter(string name, int count, CancellationToken ct)
     {
         throw new NotImplementedException();

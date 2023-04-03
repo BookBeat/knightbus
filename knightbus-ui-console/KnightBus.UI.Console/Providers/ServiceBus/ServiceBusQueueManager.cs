@@ -36,6 +36,17 @@ public class ServiceBusQueueManager : IQueueManager
         return _adminClient.DeleteQueueAsync(path, ct);
     }
 
+    public async Task<IReadOnlyList<QueueMessage>> Peek(string name, int count, CancellationToken ct)
+    {
+        var receiver = _client.CreateReceiver(name);
+        var messages = await receiver.PeekMessagesAsync(count, cancellationToken: ct).ConfigureAwait(false);
+        return messages.Select(m =>
+        {
+            m.ApplicationProperties.TryGetValue("Exception", out var error);
+            return new QueueMessage(Encoding.UTF8.GetString(m.Body), error ?? string.Empty, m.EnqueuedTime);
+        }).ToList();
+    }
+
     public async Task<IReadOnlyList<QueueMessage>> PeekDeadLetter(string name, int count, CancellationToken ct)
     {
         var receiver = _client.CreateReceiver(name, new ServiceBusReceiverOptions { SubQueue = SubQueue.DeadLetter });

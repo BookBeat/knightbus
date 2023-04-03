@@ -36,6 +36,17 @@ public class ServiceBusSubscriptionManager : IQueueManager
         return _adminClient.DeleteSubscriptionAsync(_topic, path, ct);
     }
 
+    public async Task<IReadOnlyList<QueueMessage>> Peek(string name, int count, CancellationToken ct)
+    {
+        var receiver = _client.CreateReceiver(_topic, name);
+        var messages = await receiver.PeekMessagesAsync(count, cancellationToken: ct).ConfigureAwait(false);
+        return messages.Select(m =>
+        {
+            m.ApplicationProperties.TryGetValue("Exception", out var error);
+            return new QueueMessage(Encoding.UTF8.GetString(m.Body), error ?? string.Empty, m.EnqueuedTime);
+        }).ToList();
+    }
+
     public async Task<IReadOnlyList<QueueMessage>> PeekDeadLetter(string name, int count, CancellationToken ct)
     {
         var receiver = _client.CreateReceiver(_topic, name, new ServiceBusReceiverOptions { SubQueue = SubQueue.DeadLetter });
