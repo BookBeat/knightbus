@@ -104,32 +104,37 @@ public sealed class MainWindow : Window
 
         RightPane.Add(queueTableView);
 
-        if (QueueListView.SelectedObject.Properties.DeadLetterMessageCount < 1) return;
-        var deadletter = QueueListView.SelectedObject.Properties.Manager.PeekDeadLetter(QueueListView.SelectedObject.Properties.Name, 10, CancellationToken.None).GetAwaiter().GetResult();
-        var deadletterLabel = new Label("Deadletters:")
+        var peekButton = new Button("Peek Deadletter Messages")
         {
             X = 1,
             Y = Pos.Bottom(queueTableView) + 1,
         };
+        RightPane.Add(peekButton);
+        peekButton.Clicked += async delegate
+        {
+            var deadletters = await QueueListView.SelectedObject.Properties.Manager.PeekDeadLetter(QueueListView.SelectedObject.Properties.Name, 10, CancellationToken.None);
+            var deadLetterTableView = new TableView(CreateTable(deadletters))
+            {
+                Y = Pos.Bottom(peekButton),
+                Width = Dim.Fill(),
+                Height = Dim.Percent(50),
+            };
 
-        RightPane.Add(deadletterLabel);
+            deadLetterTableView.CellActivated += DeadLetterTableViewOnCellActivated;
+            RightPane.Add(deadLetterTableView);
+        };
+
+
         var moveButton = new Button("Move Deadletter Messages")
         {
-            X = 1,
-            Y = Pos.Bottom(deadletterLabel) + 1,
+            X = Pos.Right(peekButton) + 1,
+            Y = Pos.Bottom(queueTableView) + 1,
         };
         moveButton.Clicked += MoveDeadletterMessages;
         RightPane.Add(moveButton);
-        var deadLetterTableView = new TableView(CreateTable(deadletter))
-        {
-            Y = Pos.Bottom(moveButton),
-            Width = Dim.Fill(),
-            Height = Dim.Percent(50),
-        };
-
-        deadLetterTableView.CellActivated += DeadLetterTableViewOnCellActivated;
-        RightPane.Add(deadLetterTableView);
     }
+
+
 
     private void MoveDeadletterMessages()
     {
