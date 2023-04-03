@@ -67,4 +67,5 @@ public class ServiceBusSubscriptionManager : IQueueManager
     }
 
     public string DisplayName => "ServiceBus Topic Subscription";
+    public QueueType QueueType => QueueType.Subscription;
 }

@@ -67,6 +67,7 @@ public class ServiceBusQueueManager : IQueueManager
     }
 
     public string DisplayName => "ServiceBus Queue";
+    public QueueType QueueType => QueueType.Queue;
 
     internal static async Task<int> MoveMessages(ServiceBusSender sender, ServiceBusReceiver receiver, int receiveLimit, int batchSize)
     {

@@ -10,13 +10,13 @@ public enum QueueType
 }
 public class QueueProperties
 {
-    public QueueProperties(string name, QueueType type, IQueueManager manager, bool hasSubQueues, bool isLoaded)
+    public QueueProperties(string name, IQueueManager manager, bool isLoaded)
     {
         Name = name;
-        Type = type;
+        Type = manager.QueueType;
         ProviderName = manager.DisplayName;
         Manager = manager;
-        HasSubQueues = hasSubQueues;
+        HasSubQueues = manager.QueueType == QueueType.Topic;
         IsLoaded = isLoaded;
     }
 

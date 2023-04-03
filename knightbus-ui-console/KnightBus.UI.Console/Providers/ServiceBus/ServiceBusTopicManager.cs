@@ -50,4 +50,5 @@ public class ServiceBusTopicManager : IQueueManager
     }
 
     public string DisplayName => "ServiceBus Topic";
+    public QueueType QueueType => QueueType.Topic;
 }

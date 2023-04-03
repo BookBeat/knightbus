@@ -1,6 +1,4 @@
-﻿using Azure.Messaging.ServiceBus;
-
-namespace KnightBus.UI.Console.Providers;
+﻿namespace KnightBus.UI.Console.Providers;
 
 public interface IQueueManager
 {
@@ -11,6 +9,7 @@ public interface IQueueManager
     Task<IReadOnlyList<QueueMessage>> PeekDeadLetter(string name, int count, CancellationToken ct);
     Task<int> MoveDeadLetters(string name, int count, CancellationToken ct);
     string DisplayName { get; }
+    QueueType QueueType { get; }
 }
 
 public record QueueMessage(string Body, object Error, DateTimeOffset? Time);

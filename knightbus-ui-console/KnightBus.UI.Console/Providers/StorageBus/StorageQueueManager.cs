@@ -23,7 +23,7 @@ public class StorageQueueManager : IQueueManager
         var queues = _client.GetQueues(cancellationToken: ct);
         foreach (var queue in queues.Where(q => !q.Name.EndsWith("-dl")))
         {
-            yield return new QueueProperties(queue.Name, QueueType.Queue, this, false, false);
+            yield return new QueueProperties(queue.Name, this, false);
         }
     }
 
@@ -39,7 +39,7 @@ public class StorageQueueManager : IQueueManager
         ).ConfigureAwait(false);
 
 
-        return new QueueProperties(path, QueueType.Queue, this, false, true)
+        return new QueueProperties(path, this, true)
         {
             ActiveMessageCount = queueCount,
             DeadLetterMessageCount = dlCount
@@ -103,4 +103,5 @@ public class StorageQueueManager : IQueueManager
     }
 
     public string DisplayName => "Storage Queue";
+    public QueueType QueueType => QueueType.Queue;
 }
