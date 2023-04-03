@@ -6,15 +6,17 @@ using KnightBus.UI.Console;
 using KnightBus.UI.Console.Providers;
 using KnightBus.UI.Console.Providers.ServiceBus;
 using KnightBus.UI.Console.Providers.StorageBus;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Terminal.Gui;
 
-var connection = "";
-var storage = "";
+var config = Config.LoadConfig();
 
 IServiceCollection collection = new ServiceCollection();
-collection.UseServiceBus(configuration => configuration.ConnectionString = connection);
-collection.UseBlobStorage(configuration => configuration.ConnectionString = storage);
+collection.UseServiceBus(configuration =>
+    configuration.ConnectionString = config.GetValue<string>(Config.ServiceBusConnectionKey));
+collection.UseBlobStorage(configuration =>
+    configuration.ConnectionString = config.GetValue<string>(Config.StorageConnectionKey));
 collection.AddSingleton<IQueueManager, ServiceBusQueueManager>();
 collection.AddSingleton<IQueueManager, ServiceBusTopicManager>();
 collection.AddSingleton<IQueueManager, StorageQueueManager>();
