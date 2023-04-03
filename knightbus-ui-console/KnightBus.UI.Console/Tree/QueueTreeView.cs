@@ -145,6 +145,11 @@ public sealed class QueueTreeView : TreeView<QueueNode>
         OnSelectionChanged(new SelectionChangedEventArgs<QueueNode>(this, node, node));
     }
 
+    public void OnQueuePropertiesChanged(QueuePropertiesChangedEventArgs obj)
+    {
+        RefreshQueue(obj.Node);
+    }
+
     public void RefreshQueue(QueueNode node)
     {
         var name = node.Properties.Name;
