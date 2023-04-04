@@ -10,13 +10,15 @@ public enum QueueType
 }
 public class QueueProperties
 {
-    public QueueProperties(string name, IQueueManager manager, bool isLoaded)
+    public QueueProperties(string name, IQueueManager manager, bool isLoaded, QueueType? queueType = null)
     {
+        queueType ??= manager.QueueType;
+
         Name = name;
-        Type = manager.QueueType;
+        Type = queueType.Value;
         ProviderName = manager.DisplayName;
         Manager = manager;
-        HasSubQueues = manager.QueueType == QueueType.Topic;
+        HasSubQueues = queueType == QueueType.Topic;
         IsLoaded = isLoaded;
     }
 
@@ -26,7 +28,7 @@ public class QueueProperties
     public string ProviderName { get; }
     public IQueueManager Manager { get; }
     public bool HasSubQueues { get; }
-    public bool IsLoaded { get; }
+    public bool IsLoaded { get; set; }
 
     public long TotalMessageCount { get; internal set; }
     public long ActiveMessageCount { get; internal init; }

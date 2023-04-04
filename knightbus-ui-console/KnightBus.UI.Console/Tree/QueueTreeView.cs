@@ -36,6 +36,7 @@ public sealed class QueueTreeView : TreeView<QueueNode>
     {
         if (e.NewValue == null) return;
         if (e.NewValue.Properties?.HasSubQueues != true) return;
+        if (e.NewValue.Properties?.IsLoaded != false) return;
 
         var queues = e.NewValue.Properties.Manager.List(CancellationToken.None);
 
@@ -43,6 +44,7 @@ public sealed class QueueTreeView : TreeView<QueueNode>
 
         foreach (var queue in queues)
         {
+            queue.IsLoaded = true;
             e.NewValue.QueueNodes.Add(new SubscriptionNode(queue));
         }
     }
