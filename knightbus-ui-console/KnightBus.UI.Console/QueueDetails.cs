@@ -10,6 +10,7 @@ namespace KnightBus.UI.Console;
 public sealed class QueueDetails : FrameView
 {
     private QueueNode _selectedNode;
+    private TableView _messagesTableView;
 
     public event Action<QueuePropertiesChangedEventArgs> QueuePropertiesChanged;
 
@@ -39,21 +40,19 @@ public sealed class QueueDetails : FrameView
             Y = Pos.Bottom(queueTableView) + 1,
         };
         Add(peekMessagesButton);
-        var messagesTableView = new TableView
+        _messagesTableView = new TableView
         {
             Y = Pos.Bottom(peekMessagesButton),
             Width = Dim.Fill(),
             Height = Dim.Percent(50),
             Visible = false
         };
-        messagesTableView.CellActivated += DeadLetterTableViewOnCellActivated;
-        Add(messagesTableView);
+        _messagesTableView.CellActivated += DeadLetterTableViewOnCellActivated;
+        Add(_messagesTableView);
 
         peekMessagesButton.Clicked += async delegate
         {
-            var messages = await _selectedNode.Properties.Manager.Peek(_selectedNode.Properties.Name, 10, CancellationToken.None);
-            messagesTableView.Table = CreateTable(messages);
-            messagesTableView.Visible = true;
+            await Peek().ConfigureAwait(false);
         };
 
         var peekDeadletterButton = new Button("Peek Deadletters")
@@ -64,9 +63,7 @@ public sealed class QueueDetails : FrameView
         Add(peekDeadletterButton);
         peekDeadletterButton.Clicked += async delegate
         {
-            var deadletters = await _selectedNode.Properties.Manager.PeekDeadLetter(_selectedNode.Properties.Name, 10, CancellationToken.None);
-            messagesTableView.Table = CreateTable(deadletters);
-            messagesTableView.Visible = true;
+            await PeekDeadletters().ConfigureAwait(false);
         };
 
 
@@ -79,7 +76,21 @@ public sealed class QueueDetails : FrameView
         Add(moveButton);
     }
 
+    public async Task Peek()
+    {
+        var messages = await _selectedNode.Properties.Manager.Peek(_selectedNode.Properties.Name, 10, CancellationToken.None)
+            .ConfigureAwait(false);
+        _messagesTableView.Table = CreateTable(messages);
+        _messagesTableView.Visible = true;
+    }
 
+    public async Task PeekDeadletters()
+    {
+        var deadletters = await _selectedNode.Properties.Manager.PeekDeadLetter(_selectedNode.Properties.Name, 10, CancellationToken.None)
+            .ConfigureAwait(false);
+        _messagesTableView.Table = CreateTable(deadletters);
+        _messagesTableView.Visible = true;
+    }
 
     public void MoveDeadletterMessages()
     {

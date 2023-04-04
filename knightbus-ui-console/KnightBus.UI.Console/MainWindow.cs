@@ -74,9 +74,11 @@ public sealed class MainWindow : Window
                 new[]
                 {
                     new MenuItem("_Refresh", "Refresh Queue", () => { QueueListView.RefreshQueue(QueueListView.SelectedObject); }, () => QueueListView.SelectedObject?.IsQueue == true),
+                    new MenuItem("_Peek Messages", "Peek Messages", () => {  RightPane.Peek().ConfigureAwait(false).GetAwaiter().GetResult(); }, () => QueueListView.SelectedObject?.IsQueue == true, null, Key.P | Key.CtrlMask),
+                    new MenuItem("_Peek _Deadletters", "Peek Deadletters", () => {  RightPane.PeekDeadletters().ConfigureAwait(false).GetAwaiter().GetResult(); }, () => QueueListView.SelectedObject?.IsQueue == true, null, Key.P | Key.CtrlMask),
                     new MenuItem("_Move Deadletters", "Move Deadletter Messages", RightPane.MoveDeadletterMessages, () => QueueListView.SelectedObject?.IsQueue == true, null, Key.M | Key.CtrlMask),
                     new MenuItem("_Delete", "Delete Queue", () => { QueueListView.DeleteQueue(QueueListView.SelectedObject); }, () => QueueListView.SelectedObject?.IsQueue == true)
-                }),
+                })
         });
         Add(MenuBar);
     }
