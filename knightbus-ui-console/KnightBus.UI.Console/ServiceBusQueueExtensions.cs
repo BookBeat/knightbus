@@ -1,5 +1,9 @@
 ﻿using Azure.Messaging.ServiceBus.Administration;
+using KnightBus.Azure.ServiceBus;
 using KnightBus.UI.Console.Providers;
+using KnightBus.UI.Console.Providers.ServiceBus;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace KnightBus.UI.Console;
 
@@ -45,5 +49,16 @@ public static class ServiceBusQueueExtensions
             CreatedAt = properties.CreatedAt,
             UpdatedAt = properties.UpdatedAt,
         };
+    }
+
+    public static IServiceCollection UseServiceBus(this IServiceCollection collection, IConfiguration configuration)
+    {
+        var config = configuration.GetSection(ServiceBusConnectionConfig.SectionName).Get<ServiceBusConnectionConfig>();
+        if (string.IsNullOrEmpty(config?.ConnectionString))
+            return collection;
+
+        collection.AddSingleton<IQueueManager, ServiceBusQueueManager>();
+        collection.AddSingleton<IQueueManager, ServiceBusTopicManager>();
+        return collection.UseServiceBus(c => c.ConnectionString = config.ConnectionString);
     }
 }

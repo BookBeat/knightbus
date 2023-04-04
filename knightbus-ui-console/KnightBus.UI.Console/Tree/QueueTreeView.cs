@@ -73,12 +73,15 @@ public sealed class QueueTreeView : TreeView<QueueNode>
         }
 
         var found = new List<QueueProperties>();
-        foreach (var queueProp in queueGroups.Single(g => g.Key == Unknown).Value)
+        if (queueGroups.ContainsKey(Unknown))
         {
-            foreach (var queueGroup in queueGroups.Where(queueGroup => queueProp.Name.StartsWith(queueGroup.Key, StringComparison.OrdinalIgnoreCase)))
+            foreach (var queueProp in queueGroups.Single(g => g.Key == Unknown).Value)
             {
-                queueGroup.Value.Add(queueProp);
-                found.Add(queueProp);
+                foreach (var queueGroup in queueGroups.Where(queueGroup => queueProp.Name.StartsWith(queueGroup.Key, StringComparison.OrdinalIgnoreCase)))
+                {
+                    queueGroup.Value.Add(queueProp);
+                    found.Add(queueProp);
+                }
             }
         }
 
