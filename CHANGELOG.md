@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## 2023-04-24
+
+### KnightBus.Azure.ServiceBus 18.1.0
+### KnightBus.Azure.Storage 13.1.0
+### KnightBus.Azure.Redis 9.1.0
+### KnightBus.MessagePack 3.1.0
+### KnightBus.Newtonsoft 3.1.0
+### KnightBus.ProtoBufNet 4.1.0
+### KnightBus.Schedule 11.1.0
+### KnightBus.SqlServer 13.1.0
+* Bump packages
+
 ## 2022-12-05
 
 ### KnightBus.Core 14.0.0
