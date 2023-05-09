@@ -39,17 +39,17 @@ namespace KnightBus.Examples.Azure.ServiceBus
 
             //Initiate the client
             var protoClient = new KnightBus.Azure.ServiceBus.ServiceBus(new ServiceBusConfiguration(serviceBusConnection)
-                {MessageSerializer = new ProtobufNetSerializer()});
+            { MessageSerializer = new ProtobufNetSerializer() });
             var jsonClient = new KnightBus.Azure.ServiceBus.ServiceBus(new ServiceBusConfiguration(serviceBusConnection));
             //Send some Messages and watch them print in the console
             for (var i = 0; i < 10; i++)
             {
-                await protoClient.SendAsync(new SampleServiceBusMessage {Message = $"Hello from command {i}"});
+                await protoClient.SendAsync(new SampleServiceBusMessage { Message = $"Hello from command {i}" });
             }
 
             for (var i = 0; i < 10; i++)
             {
-                await jsonClient.PublishEventAsync(new SampleServiceBusEvent {Message = $"Hello from event {i}"});
+                await jsonClient.PublishEventAsync(new SampleServiceBusEvent { Message = $"Hello from event {i}" });
             }
 
 

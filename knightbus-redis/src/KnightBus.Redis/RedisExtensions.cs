@@ -15,7 +15,7 @@ namespace KnightBus.Redis
             services.AddMiddleware<AttachmentMiddleware>();
             return services;
         }
-        
+
         public static IServiceCollection UseRedis(this IServiceCollection services, Action<IRedisConfiguration> configuration = null)
         {
             var redisConfiguration = new RedisConfiguration();

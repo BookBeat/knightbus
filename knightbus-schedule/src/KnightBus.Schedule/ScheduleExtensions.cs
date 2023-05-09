@@ -12,7 +12,7 @@ namespace KnightBus.Schedule
             collection.AddPlugin<SchedulingPlugin>();
             return collection;
         }
-        
+
         public static IServiceCollection RegisterSchedules(this IServiceCollection collection, Assembly assembly)
         {
             collection.RegisterGenericProcessor(typeof(IProcessSchedule<>), assembly);

@@ -74,7 +74,7 @@ namespace KnightBus.Schedule.Tests.Unit
             //arrange
             var lockManager = new Mock<ISingletonLockManager>();
             lockManager.Setup(x => x.TryLockAsync(typeof(DummySchedule).FullName, TimeSpan.FromSeconds(60), It.IsAny<CancellationToken>()))
-                .ReturnsAsync((ISingletonLockHandle) null);
+                .ReturnsAsync((ISingletonLockHandle)null);
             var processor = new Mock<IProcessSchedule<DummySchedule>>();
             var di = new Mock<IDependencyInjection>();
             di.Setup(x => x.GetScope()).Returns(di.Object);

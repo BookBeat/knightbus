@@ -51,7 +51,7 @@ namespace KnightBus.Nats
         {
             return Task.CompletedTask;
         }
-        
+
         public T GetMessage()
         {
             return _message;

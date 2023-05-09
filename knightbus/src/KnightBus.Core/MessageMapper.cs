@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,7 +24,7 @@ namespace KnightBus.Core
                 IMessageMapping mappingInstance;
                 if (typeof(IMessageMapping).IsAssignableFrom(mapping))
                 {
-                    mappingInstance = (IMessageMapping) Activator.CreateInstance(mapping);
+                    mappingInstance = (IMessageMapping)Activator.CreateInstance(mapping);
                 }
                 else
                 {

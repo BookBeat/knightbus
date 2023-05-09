@@ -7,7 +7,7 @@
     {
         string QueueName { get; }
     }
-    
+
     /// <summary>
     /// Maps a specific <see cref="IMessage"/> to a queue.
     /// </summary>

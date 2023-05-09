@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -72,7 +72,7 @@ namespace KnightBus.Core.Tests.Unit
             //act
             await middleware.ProcessAsync(messageStateHandler.Object, pipelineInformation.Object, null, CancellationToken.None);
             //assert
-            countable.Verify(x=> x.Count(), Times.Once);
+            countable.Verify(x => x.Count(), Times.Once);
             messageStateHandler.Verify(x => x.CompleteAsync(), Times.Once);
         }
 
@@ -103,11 +103,11 @@ namespace KnightBus.Core.Tests.Unit
 
             //act
             await middleware
-                .Awaiting(x=> x.ProcessAsync(messageStateHandler.Object, pipelineInformation.Object, null, CancellationToken.None))
+                .Awaiting(x => x.ProcessAsync(messageStateHandler.Object, pipelineInformation.Object, null, CancellationToken.None))
                 .Should()
                 .ThrowAsync<ApplicationException>();
             //assert
-            countable.Verify(x=> x.Count(), Times.Once);
+            countable.Verify(x => x.Count(), Times.Once);
             messageStateHandler.Verify(x => x.CompleteAsync(), Times.Never);
         }
 
@@ -118,7 +118,7 @@ namespace KnightBus.Core.Tests.Unit
             var partitionKey = "a";
             var id = "b";
             var sagaStore = new Mock<ISagaStore>();
-            sagaStore.Setup(x => x.Create(partitionKey, id, It.IsAny<SagaData>(), TimeSpan.FromHours(1))).ReturnsAsync(new SagaData{Data = "loaded"});
+            sagaStore.Setup(x => x.Create(partitionKey, id, It.IsAny<SagaData>(), TimeSpan.FromHours(1))).ReturnsAsync(new SagaData { Data = "loaded" });
 
             var saga = new Saga();
 
@@ -142,7 +142,7 @@ namespace KnightBus.Core.Tests.Unit
             //act
             await middleware.ProcessAsync(messageStateHandler.Object, pipelineInformation.Object, next.Object, CancellationToken.None);
             //assert
-            next.Verify(x=> x.ProcessAsync(messageStateHandler.Object, CancellationToken.None), Times.Once);
+            next.Verify(x => x.ProcessAsync(messageStateHandler.Object, CancellationToken.None), Times.Once);
             saga.Data.Data.Should().Be("loaded");
         }
 
@@ -199,7 +199,7 @@ namespace KnightBus.Core.Tests.Unit
 
         public class SagaStartMessage : ICommand { }
 
-        public class Settings:IProcessingSettings
+        public class Settings : IProcessingSettings
         {
             public int MaxConcurrentCalls { get; }
             public int PrefetchCount { get; }

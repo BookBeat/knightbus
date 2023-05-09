@@ -32,7 +32,7 @@ namespace KnightBus.Nats
             _attachmentProvider = attachmentProvider;
         }
 
-        public  Task Send(INatsCommand message, CancellationToken cancellationToken = default)
+        public Task Send(INatsCommand message, CancellationToken cancellationToken = default)
         {
             return SendInternal(message, cancellationToken);
         }

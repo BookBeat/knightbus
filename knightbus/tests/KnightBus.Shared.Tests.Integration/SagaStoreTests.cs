@@ -75,7 +75,7 @@ namespace KnightBus.Shared.Tests.Integration
             await SagaStore.Create(partitionKey, id, new SagaData { Message = "yo" }, TimeSpan.FromMilliseconds(1));
             await Task.Delay(2);
             //act
-            var sagaData = await SagaStore.Create(partitionKey, id, new SagaData {Message = "yo"}, TimeSpan.FromMinutes(1));
+            var sagaData = await SagaStore.Create(partitionKey, id, new SagaData { Message = "yo" }, TimeSpan.FromMinutes(1));
             //assert
             sagaData.Should().NotBe(null);
 

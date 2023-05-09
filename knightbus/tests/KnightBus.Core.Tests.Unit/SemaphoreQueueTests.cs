@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -59,13 +59,13 @@ namespace KnightBus.Core.Tests.Unit
             //arrange
             var tokenSource = new CancellationTokenSource();
             var token = tokenSource.Token;
-            
+
             var semaphore = new SemaphoreQueue(1);
 
             tokenSource.Cancel();
 
             await semaphore
-                .Awaiting(x=>  x.WaitAsync(token))
+                .Awaiting(x => x.WaitAsync(token))
                 .Should()
                 .ThrowAsync<OperationCanceledException>();
 

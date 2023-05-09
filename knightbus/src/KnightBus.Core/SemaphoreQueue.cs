@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -27,12 +27,12 @@ namespace KnightBus.Core
             {
                 if (_queue.TryDequeue(out var popped))
                 {
-                    if(t.IsCanceled)
+                    if (t.IsCanceled)
                         popped.SetCanceled();
                     else
                         popped.SetResult(true);
                 }
-                    
+
             });
             return tcs.Task;
         }

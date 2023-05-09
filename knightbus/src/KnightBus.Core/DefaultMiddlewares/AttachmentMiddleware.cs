@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Messages;
@@ -26,7 +26,7 @@ namespace KnightBus.Core.DefaultMiddlewares
                     if (!string.IsNullOrEmpty(attachmentId))
                     {
                         attachment = await _attachmentProvider.GetAttachmentAsync(queueName, attachmentId, cancellationToken).ConfigureAwait(false);
-                        var message = (ICommandWithAttachment) messageStateHandler.GetMessage();
+                        var message = (ICommandWithAttachment)messageStateHandler.GetMessage();
                         message.Attachment = attachment;
                     }
                 }

@@ -78,7 +78,7 @@ namespace KnightBus.Redis
             var db = _multiplexer.GetDatabase(_configuration.DatabaseId);
             var queueName = AutoMessageMapper.GetQueueName<T>();
             var subscriptions = await db.SetMembersAsync(RedisQueueConventions.GetSubscriptionKey(queueName)).ConfigureAwait(false);
-            if(subscriptions == null) return;
+            if (subscriptions == null) return;
             await Task.WhenAll(subscriptions.Select(sub => SendAsync(message, RedisQueueConventions.GetSubscriptionQueueName(queueName, sub)))).ConfigureAwait(false);
         }
 

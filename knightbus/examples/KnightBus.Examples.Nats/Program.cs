@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -42,20 +42,20 @@ namespace KnightBus.Examples.Nats
                         .RegisterProcessors(typeof(NatsBusCommandProcessor).Assembly)
                         //Enable the Nats Transport
                         .UseTransport<NatsTransport>();
-                    
+
                 })
                 .UseKnightBus()
                 .Build();
             //Start the KnightBus Host, it will now connect to the StorageBus and listen to the SampleStorageBusMessageMapping.QueueName
             await knightBus.StartAsync(CancellationToken.None);
 
-            var client = (NatsBus) knightBus.Services.CreateScope().ServiceProvider.GetRequiredService<INatsBus>();
+            var client = (NatsBus)knightBus.Services.CreateScope().ServiceProvider.GetRequiredService<INatsBus>();
 
             //Send some Messages and watch them print in the console
             for (var i = 0; i < 1; i++)
             {
                 var response =
-                    client.RequestStream<SampleNatsMessage, SampleNatsReply>(new SampleNatsMessage {Message = $"Hello from command {i}"});
+                    client.RequestStream<SampleNatsMessage, SampleNatsReply>(new SampleNatsMessage { Message = $"Hello from command {i}" });
                 foreach (var reply in response)
                 {
                     Console.WriteLine(reply.Reply);
@@ -65,7 +65,7 @@ namespace KnightBus.Examples.Nats
             await client.Publish(new SampleNatsEvent(), CancellationToken.None);
             var stream = new MemoryStream(Encoding.UTF8.GetBytes("Hello"));
             stream.Position = 0;
-            await client.Send(new SampleNatsCommand {Attachment = new MessageAttachment("file.txt", "txt", stream)});
+            await client.Send(new SampleNatsCommand { Attachment = new MessageAttachment("file.txt", "txt", stream) });
             Console.ReadKey();
         }
 
@@ -122,7 +122,7 @@ namespace KnightBus.Examples.Nats
             {
                 for (int i = 0; i < 20; i++)
                 {
-                    yield return new SampleNatsReply {Reply = $"Async Reply {i}:\t {message.Message}"};
+                    yield return new SampleNatsReply { Reply = $"Async Reply {i}:\t {message.Message}" };
                 }
             }
         }

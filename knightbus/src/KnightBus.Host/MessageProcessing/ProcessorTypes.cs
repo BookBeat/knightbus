@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace KnightBus.Host.MessageProcessing
 {
@@ -19,7 +19,7 @@ namespace KnightBus.Host.MessageProcessing
 
         public override string ToString()
         {
-            if(SubscriptionType == null && ResponseType == null)
+            if (SubscriptionType == null && ResponseType == null)
                 return $"<{MessageType.Name}, {SettingsType.Name}>";
 
             return $"<{MessageType.Name}, {ResponseType?.Name ?? SubscriptionType?.Name}, {SettingsType.Name}>";

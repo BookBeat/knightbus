@@ -1,4 +1,4 @@
-using Azure.Storage.Queues;
+﻿using Azure.Storage.Queues;
 using KnightBus.Core;
 using KnightBus.Messages;
 using KnightBus.Newtonsoft;

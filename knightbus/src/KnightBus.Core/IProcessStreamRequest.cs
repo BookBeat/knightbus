@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using KnightBus.Messages;
 
 namespace KnightBus.Core

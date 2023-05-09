@@ -1,4 +1,4 @@
-using KnightBus.Messages;
+﻿using KnightBus.Messages;
 
 namespace KnightBus.Core.Tests.Unit
 {
@@ -9,7 +9,7 @@ namespace KnightBus.Core.Tests.Unit
         public IMessageAttachment Attachment { get; set; }
     }
 
-    public class AttachmentCommandMapping:IMessageMapping<AttachmentCommand>
+    public class AttachmentCommandMapping : IMessageMapping<AttachmentCommand>
     {
         public string QueueName => "attachment-queue";
     }

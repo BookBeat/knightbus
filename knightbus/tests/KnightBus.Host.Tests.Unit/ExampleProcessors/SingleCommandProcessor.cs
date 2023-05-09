@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
@@ -14,7 +14,7 @@ namespace KnightBus.Host.Tests.Unit.ExampleProcessors
         {
             _countable = countable;
         }
-        
+
         public Task ProcessAsync(TestCommand message, CancellationToken cancellationToken)
         {
             _countable.Count();

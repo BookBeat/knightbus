@@ -1,4 +1,4 @@
-using KnightBus.Messages;
+﻿using KnightBus.Messages;
 
 namespace KnightBus.Core.Tests.Unit
 {

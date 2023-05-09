@@ -8,11 +8,11 @@ using KnightBus.Messages;
 
 namespace KnightBus.Core
 {
-    internal class AttachmentTypeMapping: JsonConverter<IMessageAttachment>
+    internal class AttachmentTypeMapping : JsonConverter<IMessageAttachment>
     {
         public override IMessageAttachment Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
-           return null;
+            return null;
         }
 
         public override void Write(Utf8JsonWriter writer, IMessageAttachment value, JsonSerializerOptions options)
@@ -29,7 +29,7 @@ namespace KnightBus.Core
         {
             _options = options ?? new JsonSerializerOptions();
             _options.Converters.Add(new AttachmentTypeMapping());
-        }   
+        }
         public byte[] Serialize<T>(T message)
         {
             var s = JsonSerializer.Serialize(message, _options);
@@ -46,7 +46,7 @@ namespace KnightBus.Core
             return JsonSerializer.Deserialize<T>(serialized.Span, _options);
         }
 
-        public Task<T>  Deserialize<T>(Stream serialized)
+        public Task<T> Deserialize<T>(Stream serialized)
         {
             return JsonSerializer.DeserializeAsync<T>(serialized, _options).AsTask();
         }

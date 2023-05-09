@@ -1,4 +1,4 @@
-using KnightBus.Messages;
+﻿using KnightBus.Messages;
 using KnightBus.Newtonsoft;
 
 namespace KnightBus.Azure.ServiceBus

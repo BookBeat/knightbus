@@ -1,4 +1,5 @@
-﻿using System.Net.Sockets;
+﻿using System;
+using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -15,8 +16,9 @@ namespace KnightBus.Host.Tests.Unit
         public async Task Should_RespondToPing()
         {
             //Arrange
-            var target = new TcpAliveListenerPlugin(new TcpAliveListenerConfiguration(13000),Mock.Of<ILogger<TcpAliveListenerPlugin>>());
+            var target = new TcpAliveListenerPlugin(new TcpAliveListenerConfiguration(13000), Mock.Of<ILogger<TcpAliveListenerPlugin>>());
             await target.StartAsync(CancellationToken.None);
+            await Task.Delay(TimeSpan.FromSeconds(1));
 
             //Act
             var result = TestTcpClient.Ping("127.0.0.1", 13000);

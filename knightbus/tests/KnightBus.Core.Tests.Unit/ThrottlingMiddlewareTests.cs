@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -20,7 +20,7 @@ namespace KnightBus.Core.Tests.Unit
             nextProcessor
                 .Setup(x => x.ProcessAsync(messageStateHandler.Object, It.IsAny<CancellationToken>()))
                 .Throws<Exception>();
-            
+
             var middleware = new ThrottlingMiddleware(1);
 
             //act 
@@ -46,16 +46,16 @@ namespace KnightBus.Core.Tests.Unit
             var middleware = new ThrottlingMiddleware(1);
             //act 
             await middleware
-                .Awaiting(x=> x.ProcessAsync(messageStateHandler.Object, Mock.Of<IPipelineInformation>(), nextProcessor.Object, cts.Token))
+                .Awaiting(x => x.ProcessAsync(messageStateHandler.Object, Mock.Of<IPipelineInformation>(), nextProcessor.Object, cts.Token))
                 .Should()
                 .ThrowAsync<OperationCanceledException>();
-            
+
             //assert
             middleware.CurrentCount.Should().Be(1);
         }
 
         [Test]
-        public async  Task Should_throttle()
+        public async Task Should_throttle()
         {
             //arrange
             var nextProcessor = new Mock<IMessageProcessor>();
@@ -74,7 +74,7 @@ namespace KnightBus.Core.Tests.Unit
             await Task.Delay(100);
             //assert
             middleware.CurrentCount.Should().Be(0);
-            nextProcessor.Verify(x=> x.ProcessAsync(messageStateHandler.Object, CancellationToken.None), Times.Exactly(2));
+            nextProcessor.Verify(x => x.ProcessAsync(messageStateHandler.Object, CancellationToken.None), Times.Exactly(2));
         }
     }
 }

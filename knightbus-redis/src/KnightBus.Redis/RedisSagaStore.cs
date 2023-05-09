@@ -13,7 +13,7 @@ namespace KnightBus.Redis
         private readonly IConnectionMultiplexer _connectionMultiplexer;
         private readonly IRedisConfiguration _configuration;
         private readonly IMessageSerializer _serializer;
-        
+
         private string GetKey(string partitionKey, string id) => $"sagas:{partitionKey}:{id}";
 
         public RedisSagaStore(IConnectionMultiplexer connectionMultiplexer, IRedisConfiguration configuration)
@@ -32,7 +32,7 @@ namespace KnightBus.Redis
         public async Task<T> Create<T>(string partitionKey, string id, T sagaData, TimeSpan ttl)
         {
             var saga = _serializer.Serialize(sagaData);
-            var sagaSaved = await  _connectionMultiplexer.GetDatabase(_configuration.DatabaseId).StringSetAsync(GetKey(partitionKey, id), saga, ttl, When.NotExists).ConfigureAwait(false);
+            var sagaSaved = await _connectionMultiplexer.GetDatabase(_configuration.DatabaseId).StringSetAsync(GetKey(partitionKey, id), saga, ttl, When.NotExists).ConfigureAwait(false);
             if (!sagaSaved) throw new SagaAlreadyStartedException(partitionKey, id);
             return sagaData;
         }
@@ -40,7 +40,7 @@ namespace KnightBus.Redis
         public async Task Update<T>(string partitionKey, string id, T sagaData)
         {
             var saga = _serializer.Serialize(sagaData);
-            var sagaSaved = await  _connectionMultiplexer.GetDatabase(_configuration.DatabaseId).StringSetAsync(GetKey(partitionKey, id), saga, null, When.Exists).ConfigureAwait(false);
+            var sagaSaved = await _connectionMultiplexer.GetDatabase(_configuration.DatabaseId).StringSetAsync(GetKey(partitionKey, id), saga, null, When.Exists).ConfigureAwait(false);
             if (!sagaSaved) throw new SagaNotFoundException(partitionKey, id);
         }
 

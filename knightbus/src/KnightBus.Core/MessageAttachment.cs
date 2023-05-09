@@ -16,8 +16,8 @@ namespace KnightBus.Core
                 Length = stream?.Length ?? 0;
             }
             catch (NotSupportedException)
-            {}
-            
+            { }
+
         }
         public string Filename { get; protected set; }
         public string ContentType { get; protected set; }

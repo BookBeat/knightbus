@@ -1,13 +1,13 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Azure;
-using KnightBus.Core.Sagas;
-using KnightBus.Core.Sagas.Exceptions;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
+using KnightBus.Core.Sagas;
+using KnightBus.Core.Sagas.Exceptions;
 
 namespace KnightBus.Azure.Storage.Sagas
 {

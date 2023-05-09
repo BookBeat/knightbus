@@ -30,7 +30,7 @@ namespace KnightBus.ApplicationInsights
                     // Add the message properties to the telemetry log
                     foreach (var property in messageStateHandler.MessageProperties)
                         operation.Telemetry.Properties[property.Key] = property.Value;
-                    
+
                     operation.Telemetry.Success = true;
                 }
                 catch (Exception e)

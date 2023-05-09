@@ -1,4 +1,4 @@
-namespace KnightBus.Host.Tests.Unit
+﻿namespace KnightBus.Host.Tests.Unit
 {
     public interface ICountable
     {

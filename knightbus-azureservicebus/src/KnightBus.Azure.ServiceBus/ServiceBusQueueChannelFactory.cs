@@ -21,7 +21,7 @@ namespace KnightBus.Azure.ServiceBus
             return queueReader;
         }
 
-        
+
         public bool CanCreate(Type messageType)
         {
             return typeof(IServiceBusCommand).IsAssignableFrom(messageType);

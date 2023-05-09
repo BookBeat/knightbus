@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using FluentAssertions;
 using KnightBus.Core.Exceptions;
 using KnightBus.Messages;
@@ -58,7 +58,7 @@ namespace KnightBus.Core.Tests.Unit
             name.Should().Be("awesome-queue");
             mapping.GetType().Should().Be(typeof(TestCommandMapping));
         }
-        
+
     }
 
     public class MessageMapperRegisteredCommand : ICommand

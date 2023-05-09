@@ -1,4 +1,4 @@
-using System.Threading;
+﻿using System.Threading;
 using KnightBus.Messages;
 
 namespace KnightBus.Core

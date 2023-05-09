@@ -101,7 +101,7 @@ namespace KnightBus.Redis
             }
             else
             {
-                await _db.StringSetAsync(lastProcessedKey, DateTimeOffset.Now.Add(-_messageTimeout).ToUnixTimeMilliseconds(), GetDelay()+GetDelay()).ConfigureAwait(false);
+                await _db.StringSetAsync(lastProcessedKey, DateTimeOffset.Now.Add(-_messageTimeout).ToUnixTimeMilliseconds(), GetDelay() + GetDelay()).ConfigureAwait(false);
             }
 
             return (false, default, listItem);
@@ -113,7 +113,7 @@ namespace KnightBus.Redis
 #pragma warning disable 4014
             var tran = _db.CreateTransaction();
             tran.AddCondition(Condition.KeyExists(lastProcessedKey));
-            tran.ListRemoveAsync(RedisQueueConventions.GetProcessingQueueName(queueName), redisMessage,-1);
+            tran.ListRemoveAsync(RedisQueueConventions.GetProcessingQueueName(queueName), redisMessage, -1);
             tran.ListLeftPushAsync(queueName, redisMessage);
             tran.KeyDeleteAsync(lastProcessedKey);
 

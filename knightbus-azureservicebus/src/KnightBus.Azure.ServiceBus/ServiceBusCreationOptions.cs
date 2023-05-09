@@ -1,4 +1,4 @@
-namespace KnightBus.Azure.ServiceBus
+﻿namespace KnightBus.Azure.ServiceBus
 {
     public class ServiceBusCreationOptions : IServiceBusCreationOptions
     {

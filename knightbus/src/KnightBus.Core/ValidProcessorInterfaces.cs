@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace KnightBus.Core
 {
@@ -7,6 +7,6 @@ namespace KnightBus.Core
     /// </summary>
     public static class ValidProcessorInterfaces
     {
-        public static readonly Type[] Types = { typeof(IProcessCommand<,>), typeof(IProcessEvent<,,>), typeof(IProcessRequest<,,>) , typeof(IProcessStreamRequest<,,>)};
+        public static readonly Type[] Types = { typeof(IProcessCommand<,>), typeof(IProcessEvent<,,>), typeof(IProcessRequest<,,>), typeof(IProcessStreamRequest<,,>) };
     }
 }

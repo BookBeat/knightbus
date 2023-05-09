@@ -7,7 +7,7 @@ namespace KnightBus.Core.Sagas
     {
         Task Initialize();
     }
-    public class SagaHandler<TSagaData, TMessage> : ISagaHandler 
+    public class SagaHandler<TSagaData, TMessage> : ISagaHandler
         where TSagaData : new() where TMessage : IMessage
     {
         private readonly ISagaStore _sagaStore;
