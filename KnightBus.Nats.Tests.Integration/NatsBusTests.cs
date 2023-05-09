@@ -92,7 +92,7 @@ public class NatsBusTests
         response.Should().Contain(x => x.Payload == "response 2");
     }
     
-    [Test, Ignore("Not same mechanics as Request - should it be?")]
+    [Test]
     public void RequestStreamAsync_WhenNoResponders_Throws()
     {
         _target.Invoking(x => x.RequestStream<TestNatsRequest, TestNatsResponse>(new TestNatsRequest()))
