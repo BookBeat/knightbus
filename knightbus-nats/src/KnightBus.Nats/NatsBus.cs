@@ -7,6 +7,7 @@ using KnightBus.Core.Exceptions;
 using KnightBus.Messages;
 using KnightBus.Nats.Messages;
 using NATS.Client;
+using NATS.Client.JetStream;
 
 namespace KnightBus.Nats
 {
@@ -23,11 +24,13 @@ namespace KnightBus.Nats
         private readonly IConnection _connection;
         private readonly IMessageAttachmentProvider _attachmentProvider;
         private readonly INatsConfiguration _configuration;
+        private readonly IJetStream _streamContext;
 
 
         public NatsBus(IConnectionFactory connection, INatsConfiguration configuration, IMessageAttachmentProvider attachmentProvider = null)
         {
             _connection = connection.CreateConnection(configuration.Options);
+            _streamContext = _connection.CreateJetStreamContext();
             _configuration = configuration;
             _attachmentProvider = attachmentProvider;
         }
@@ -63,7 +66,8 @@ namespace KnightBus.Nats
                     msg.Header.Add(AttachmentUtility.AttachmentKey, string.Join(",", attachmentIds));
                 }
             }
-            _connection.Publish(msg);
+
+            await _streamContext.PublishAsync(msg);
         }
 
         public async Task<TResponse> RequestAsync<T, TResponse>(INatsRequest request, CancellationToken cancellationToken = default) where T : INatsRequest
@@ -71,7 +75,7 @@ namespace KnightBus.Nats
             var mapping = AutoMessageMapper.GetMapping(request.GetType());
             var serializer = _configuration.MessageSerializer;
             if (mapping is ICustomMessageSerializer customSerializer) serializer = customSerializer.MessageSerializer;
-
+            
             var reply = await _connection.RequestAsync(mapping.QueueName, serializer.Serialize(request), cancellationToken).ConfigureAwait(false);
             ThrowIfErrorResponse(reply);
             return serializer.Deserialize<TResponse>(reply.Data.AsSpan());
@@ -84,12 +88,13 @@ namespace KnightBus.Nats
             if (mapping is ICustomMessageSerializer customSerializer) serializer = customSerializer.MessageSerializer;
 
             var inbox = Guid.NewGuid().ToString("N");
-            using var sub = _connection.SubscribeSync(inbox);
+            using var sub =  _connection.SubscribeSync(inbox);
             _connection.Publish(mapping.QueueName, inbox, serializer.Serialize(command));
 
             do
             {
                 var msg = sub.NextMessage();
+                msg.Ack();
                 if (msg.Data.Length == 0)
                 {
                     if (msg.HasHeaders && msg.Header[MsgConstants.HeaderName] == MsgConstants.Completed)

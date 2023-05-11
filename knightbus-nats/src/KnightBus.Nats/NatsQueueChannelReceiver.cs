@@ -3,8 +3,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
 using KnightBus.Messages;
+using KnightBus.Nats.Messages;
 using Microsoft.Extensions.Logging;
 using NATS.Client;
+using NATS.Client.JetStream;
 
 namespace KnightBus.Nats
 {
@@ -43,10 +45,44 @@ namespace KnightBus.Nats
 
             var queueName = AutoMessageMapper.GetQueueName<T>();
             ISyncSubscription subscription;
-            if (_subscription is null)
-                subscription = _connection.SubscribeSync(queueName, CommandQueueGroup);
+            
+
+            if (typeof(INatsRequest).IsAssignableFrom(typeof(T)))
+            {
+                if (_subscription is null)
+                    subscription = _connection.SubscribeSync(queueName, CommandQueueGroup);
+                else
+                    subscription = _connection.SubscribeSync(queueName, _subscription.Name);
+            }
             else
-                subscription = _connection.SubscribeSync(queueName, _subscription.Name);
+            {
+                var streamName = $"{queueName}-stream";
+                var streamConfig = StreamConfiguration.Builder()
+                    .WithName(streamName)
+                    .WithSubjects(queueName)
+                    .WithStorageType(StorageType.File)
+                    .WithRetentionPolicy(RetentionPolicy.WorkQueue)
+                    .Build();
+                
+                _connection.CreateJetStreamManagementContext()
+                    .AddStream(streamConfig);
+
+                var jetStream = _connection.CreateJetStreamContext();
+
+                var durable = $"{streamName}_consumer";
+                var consumerConfig = ConsumerConfiguration.Builder()
+                    .WithDurable(durable)
+                    .WithAckPolicy(AckPolicy.Explicit)
+                    .WithFilterSubject(queueName)
+                    .Build();
+
+                var options = PushSubscribeOptions.Builder().WithConfiguration(consumerConfig).Build();
+
+                if (_subscription is null)
+                    subscription = jetStream.PushSubscribeSync(queueName, CommandQueueGroup, options);
+                else
+                    subscription = jetStream.PushSubscribeSync(queueName, _subscription.Name, options);
+            }
 
 #pragma warning disable CS4014
             Task.Run(() => ListenForMessages(subscription), cancellationToken);
@@ -83,6 +119,7 @@ namespace KnightBus.Nats
                 try
                 {
                     var msg = subscription.NextMessage();
+                    msg.Ack();
 
 #pragma warning disable CS4014
                     Task.Run(

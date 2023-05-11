@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net7.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\..\knightbus-nats\src\KnightBus.Nats\KnightBus.Nats.csproj" />
+      <ProjectReference Include="..\KnightBus.Examples.Nats\KnightBus.Examples.Nats.csproj" />
+    </ItemGroup>
+
+</Project>
