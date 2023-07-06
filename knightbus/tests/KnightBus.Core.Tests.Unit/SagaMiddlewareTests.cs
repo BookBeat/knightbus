@@ -143,7 +143,7 @@ namespace KnightBus.Core.Tests.Unit
             await middleware.ProcessAsync(messageStateHandler.Object, pipelineInformation.Object, next.Object, CancellationToken.None);
             //assert
             next.Verify(x => x.ProcessAsync(messageStateHandler.Object, CancellationToken.None), Times.Once);
-            saga.Data.Should().Be("loaded");
+            saga.Data.Data.Should().Be("loaded");
         }
 
         public class Saga : Saga<SagaData>, IProcessCommand<SagaStartMessage, Settings>
