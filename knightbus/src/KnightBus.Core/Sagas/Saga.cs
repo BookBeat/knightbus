@@ -38,7 +38,7 @@ namespace KnightBus.Core.Sagas
     public class SagaData<T>
     {
         public T Data { get; set; }
-        public string Etag { get; set; }
+        public string ConcurrencyStamp { get; set; }
     }
     public abstract class Saga<T> : ISaga<T>
     {

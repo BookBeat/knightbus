@@ -39,7 +39,7 @@ namespace KnightBus.Azure.Storage.Sagas
 
                 var downloadInfo = await blob.DownloadAsync().ConfigureAwait(false);
                 T data = await JsonSerializer.DeserializeAsync<T>(downloadInfo.Value.Content).ConfigureAwait(false);
-                return new SagaData<T> { Data = data, Etag = downloadInfo.Value.Details.ETag.ToString() };
+                return new SagaData<T> { Data = data, ConcurrencyStamp = downloadInfo.Value.Details.ETag.ToString() };
             }
             catch (RequestFailedException e) when (e.Status == 404)
             {
@@ -92,7 +92,7 @@ namespace KnightBus.Azure.Storage.Sagas
                         },
                         Conditions = requestConditions
                     }).ConfigureAwait(false);
-                sagaData.Etag = blobInfo.Value.ETag.ToString();
+                sagaData.ConcurrencyStamp = blobInfo.Value.ETag.ToString();
             }
             catch (RequestFailedException e) when (e.Status == 404 &&
                                                    e.ErrorCode == "ContainerNotFound")
@@ -122,7 +122,7 @@ namespace KnightBus.Azure.Storage.Sagas
                         Metadata = properties.Value.Metadata,
                         Conditions = new AppendBlobRequestConditions
                         {
-                            IfMatch = new ETag(sagaData.Etag)
+                            IfMatch = new ETag(sagaData.ConcurrencyStamp)
                         }
                     }).ConfigureAwait(false);
                 }
