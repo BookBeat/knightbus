@@ -20,7 +20,8 @@ namespace KnightBus.Core.Sagas
         /// <summary>
         /// Stateful data associated with the Saga.
         /// </summary>
-        T Data { get; set; }
+        /// 
+        SagaData<T> SagaData { get; set; }
 
         ISagaStore SagaStore { set; }
 
@@ -34,12 +35,27 @@ namespace KnightBus.Core.Sagas
         /// </summary>
         Task UpdateAsync();
     }
-
+    public class SagaData<T>
+    {
+        public T Data { get; set; }
+        public string Etag { get; set; }
+    }
     public abstract class Saga<T> : ISaga<T>
     {
         public abstract string PartitionKey { get; }
         public string Id { get; set; }
-        public T Data { get; set; }
+        public SagaData<T> SagaData { get; set; }
+        public T Data
+        {
+            get
+            {
+                return SagaData.Data;
+            }
+            set
+            {
+                SagaData.Data = value;
+            }
+        }
         public ISagaMessageMapper MessageMapper { get; } = new SagaMessageMapper();
         public ISagaStore SagaStore { get; set; }
 
@@ -52,9 +68,7 @@ namespace KnightBus.Core.Sagas
 
         public virtual Task UpdateAsync()
         {
-            return SagaStore.Update(PartitionKey, Id, Data);
+            return SagaStore.Update(PartitionKey, Id, SagaData);
         }
-
-
     }
 }

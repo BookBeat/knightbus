@@ -12,7 +12,7 @@ namespace KnightBus.Shared.Tests.Integration
     {
         protected ISagaStore SagaStore { get; set; }
 
-        private class SagaData
+        protected class SagaData
         {
             public string Message { get; set; }
         }
@@ -63,7 +63,7 @@ namespace KnightBus.Shared.Tests.Integration
             await SagaStore.Create(partitionKey, id, new SagaData { Message = "yo" }, TimeSpan.FromMinutes(1));
             //assert
             var saga = await SagaStore.GetSaga<SagaData>(partitionKey, id);
-            saga.Message.Should().Be("yo");
+            saga.Data.Message.Should().Be("yo");
         }
 
         [Test]
@@ -131,7 +131,7 @@ namespace KnightBus.Shared.Tests.Integration
             var id = Guid.NewGuid().ToString("N");
             //act & assert
             await SagaStore
-                .Awaiting(x => x.Update(partitionKey, id, new SagaData()))
+                .Awaiting(x => x.Update(partitionKey, id, new SagaData<SagaData>()))
                 .Should()
                 .ThrowAsync<SagaNotFoundException>();
         }
@@ -144,10 +144,10 @@ namespace KnightBus.Shared.Tests.Integration
             var id = Guid.NewGuid().ToString("N");
             await SagaStore.Create(partitionKey, id, new SagaData { Message = "yo" }, TimeSpan.FromMinutes(1));
             //act
-            await SagaStore.Update(partitionKey, id, new SagaData { Message = "updated" });
+            await SagaStore.Update(partitionKey, id, new SagaData<SagaData> { Data = new SagaData { Message = "updated" }});
             //assert
             var data = await SagaStore.GetSaga<SagaData>(partitionKey, id);
-            data.Message.Should().Be("updated");
+            data.Data.Message.Should().Be("updated");
         }
     }
 }

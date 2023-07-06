@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Threading.Tasks;
-using KnightBus.Core;
 using KnightBus.Core.Sagas;
 using KnightBus.Core.Sagas.Exceptions;
 using KnightBus.Messages;
@@ -22,24 +21,24 @@ namespace KnightBus.Redis
             _configuration = configuration;
             _serializer = _configuration.MessageSerializer;
         }
-        public async Task<T> GetSaga<T>(string partitionKey, string id)
+        public async Task<SagaData<T>> GetSaga<T>(string partitionKey, string id)
         {
             byte[] saga = await _connectionMultiplexer.GetDatabase(_configuration.DatabaseId).StringGetAsync(GetKey(partitionKey, id)).ConfigureAwait(false);
             if (saga == null) throw new SagaNotFoundException(partitionKey, id);
-            return _serializer.Deserialize<T>(saga.AsSpan());
+            return new SagaData<T> { Data = _serializer.Deserialize<T>(saga.AsSpan()) };
         }
 
-        public async Task<T> Create<T>(string partitionKey, string id, T sagaData, TimeSpan ttl)
+        public async Task<SagaData<T>> Create<T>(string partitionKey, string id, T sagaData, TimeSpan ttl)
         {
             var saga = _serializer.Serialize(sagaData);
             var sagaSaved = await _connectionMultiplexer.GetDatabase(_configuration.DatabaseId).StringSetAsync(GetKey(partitionKey, id), saga, ttl, When.NotExists).ConfigureAwait(false);
             if (!sagaSaved) throw new SagaAlreadyStartedException(partitionKey, id);
-            return sagaData;
+            return new SagaData<T> { Data = sagaData };
         }
 
-        public async Task Update<T>(string partitionKey, string id, T sagaData)
+        public async Task Update<T>(string partitionKey, string id, SagaData<T> sagaData)
         {
-            var saga = _serializer.Serialize(sagaData);
+            var saga = _serializer.Serialize(sagaData.Data);
             var sagaSaved = await _connectionMultiplexer.GetDatabase(_configuration.DatabaseId).StringSetAsync(GetKey(partitionKey, id), saga, null, When.Exists).ConfigureAwait(false);
             if (!sagaSaved) throw new SagaNotFoundException(partitionKey, id);
         }

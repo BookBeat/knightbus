@@ -55,7 +55,7 @@ namespace KnightBus.SqlServer
             await command.ExecuteNonQueryAsync();
         }
 
-        public async Task<T> GetSaga<T>(string partitionKey, string id)
+        public async Task<SagaData<T>> GetSaga<T>(string partitionKey, string id)
         {
             using (var connection = await GetConnection().ConfigureAwait(false))
             {
@@ -69,7 +69,7 @@ namespace KnightBus.SqlServer
 
                     await result.ReadAsync().ConfigureAwait(false);
                     var json = result.GetString(0);
-                    return JsonSerializer.Deserialize<T>(json);
+                    return new SagaData<T> { Data = JsonSerializer.Deserialize<T>(json) };
                 }
                 catch (SqlException e) when (e.Number == 208)
                 {
@@ -79,7 +79,7 @@ namespace KnightBus.SqlServer
             }
         }
 
-        public async Task<T> Create<T>(string partitionKey, string id, T sagaData, TimeSpan ttl)
+        public async Task<SagaData<T>> Create<T>(string partitionKey, string id, T sagaData, TimeSpan ttl)
         {
             var json = JsonSerializer.Serialize(sagaData);
             using (var connection = await GetConnection().ConfigureAwait(false))
@@ -115,12 +115,12 @@ INSERT INTO {_schema}.{_tableName} (PartitionKey, Id, Json, Expiration) VALUES (
                 }
             }
 
-            return sagaData;
+            return new SagaData<T> { Data = sagaData };
         }
 
-        public async Task Update<T>(string partitionKey, string id, T sagaData)
+        public async Task Update<T>(string partitionKey, string id, SagaData<T> sagaData)
         {
-            var json = JsonSerializer.Serialize(sagaData);
+            var json = JsonSerializer.Serialize(sagaData.Data);
             using (var connection = await GetConnection().ConfigureAwait(false))
             {
                 var sql = $@"UPDATE {_schema}.{_tableName} SET Json = @Json WHERE PartitionKey = @PartitionKey AND Id = @Id";

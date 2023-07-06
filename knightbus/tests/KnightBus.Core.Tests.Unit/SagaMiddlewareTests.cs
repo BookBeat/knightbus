@@ -118,7 +118,7 @@ namespace KnightBus.Core.Tests.Unit
             var partitionKey = "a";
             var id = "b";
             var sagaStore = new Mock<ISagaStore>();
-            sagaStore.Setup(x => x.Create(partitionKey, id, It.IsAny<SagaData>(), TimeSpan.FromHours(1))).ReturnsAsync(new SagaData { Data = "loaded" });
+            sagaStore.Setup(x => x.Create(partitionKey, id, It.IsAny<SagaData>(), TimeSpan.FromHours(1))).ReturnsAsync(new SagaData<SagaData> { Data = new SagaData { Data = "loaded" }});
 
             var saga = new Saga();
 
@@ -143,7 +143,7 @@ namespace KnightBus.Core.Tests.Unit
             await middleware.ProcessAsync(messageStateHandler.Object, pipelineInformation.Object, next.Object, CancellationToken.None);
             //assert
             next.Verify(x => x.ProcessAsync(messageStateHandler.Object, CancellationToken.None), Times.Once);
-            saga.Data.Data.Should().Be("loaded");
+            saga.Data.Should().Be("loaded");
         }
 
         public class Saga : Saga<SagaData>, IProcessCommand<SagaStartMessage, Settings>
