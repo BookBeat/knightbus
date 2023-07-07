@@ -45,5 +45,36 @@ namespace KnightBus.Azure.Storage.Tests.Integration
             var data = await SagaStore.GetSaga<Data>(partitionKey, id, CancellationToken.None);
             data.Data.Message.Should().Be("updated");
         }
+
+        [Test]
+        public async Task Complete_should_throw_when_etag_differs()
+        {
+            //arrange
+            var partitionKey = Guid.NewGuid().ToString("N");
+            var id = Guid.NewGuid().ToString("N");
+            await SagaStore.Create(partitionKey, id, new Data { Message = "yo" }, TimeSpan.FromMinutes(1), CancellationToken.None);
+            //act & assert
+            await SagaStore
+                .Awaiting(x => x.Complete(partitionKey, id, new SagaData<Data> { Data = new Data { Message = "updated" }, ConcurrencyStamp = "etag" }, CancellationToken.None))
+                .Should()
+                .ThrowAsync<SagaDataConflictException>();
+        }
+
+        [Test]
+        public async Task Complete_should_delete_the_saga_when_etag_matches()
+        {
+            //arrange
+            var partitionKey = Guid.NewGuid().ToString("N");
+            var id = Guid.NewGuid().ToString("N");
+            var sagaData = new SagaData<Data> { Data = new Data { Message = "yo" } };
+            sagaData = await SagaStore.Create(partitionKey, id, sagaData.Data, TimeSpan.FromMinutes(1), CancellationToken.None);
+            //act
+            await SagaStore.Complete(partitionKey, id, new SagaData<Data> { ConcurrencyStamp = sagaData.ConcurrencyStamp }, CancellationToken.None);
+            //assert
+            await SagaStore
+                .Awaiting(x => x.GetSaga<Data>(partitionKey, id, CancellationToken.None))
+                .Should()
+                .ThrowAsync<SagaNotFoundException>();
+        }
     }
 }
