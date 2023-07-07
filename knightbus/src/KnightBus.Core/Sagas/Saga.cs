@@ -21,7 +21,7 @@ namespace KnightBus.Core.Sagas
         /// Stateful data associated with the Saga.
         /// </summary>
         /// 
-        SagaData<T> SagaData { get; set; }
+        SagaData<T> SagaData { set; }
 
         ISagaStore SagaStore { set; }
 
@@ -44,7 +44,7 @@ namespace KnightBus.Core.Sagas
     {
         public abstract string PartitionKey { get; }
         public string Id { get; set; }
-        public SagaData<T> SagaData { get; set; }
+        public SagaData<T> SagaData { private get; set; }
         public T Data
         {
             get
