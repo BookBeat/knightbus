@@ -55,7 +55,7 @@ namespace KnightBus.Azure.Storage.Tests.Integration
             await SagaStore.Create(partitionKey, id, new Data { Message = "yo" }, TimeSpan.FromMinutes(1), CancellationToken.None);
             //act & assert
             await SagaStore
-                .Awaiting(x => x.Complete(partitionKey, id, new SagaData<Data> { Data = new Data { Message = "updated" }, ConcurrencyStamp = "etag" }, CancellationToken.None))
+                .Awaiting(x => x.Complete(partitionKey, id, new SagaData<Data> { ConcurrencyStamp = "etag" }, CancellationToken.None))
                 .Should()
                 .ThrowAsync<SagaDataConflictException>();
         }
