@@ -193,7 +193,7 @@ class Program
         public async Task ProcessAsync(SampleRedisSagaCommand message, CancellationToken cancellationToken)
         {
             Data.Counter++;
-            await UpdateAsync();
+            await UpdateAsync(CancellationToken.None);
             Console.WriteLine($"Saga value was {Data.Counter}");
             if (Data.Counter < 10)
             {
@@ -201,7 +201,7 @@ class Program
             }
             else
             {
-                await CompleteAsync();
+                await CompleteAsync(CancellationToken.None);
                 Console.WriteLine("Saga completed");
             }
         }
