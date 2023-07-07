@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Azure;
 using Azure.Storage.Blobs;
@@ -26,19 +27,19 @@ namespace KnightBus.Azure.Storage.Sagas
         {
         }
 
-        public async Task<SagaData<T>> GetSaga<T>(string partitionKey, string id)
+        public async Task<SagaData<T>> GetSaga<T>(string partitionKey, string id, CancellationToken ct)
         {
             var blob = _container.GetBlobClient(Filename(partitionKey, id));
 
             try
             {
-                var properties = await blob.GetPropertiesAsync().ConfigureAwait(false);
+                var properties = await blob.GetPropertiesAsync(cancellationToken: ct).ConfigureAwait(false);
                 var expiration = DateTimeOffset.Parse(properties.Value.Metadata[ExpirationField]);
                 if (expiration < DateTime.UtcNow)
                     throw new SagaNotFoundException(partitionKey, id);
 
-                var downloadInfo = await blob.DownloadAsync().ConfigureAwait(false);
-                T data = await JsonSerializer.DeserializeAsync<T>(downloadInfo.Value.Content).ConfigureAwait(false);
+                var downloadInfo = await blob.DownloadAsync(ct).ConfigureAwait(false);
+                T data = await JsonSerializer.DeserializeAsync<T>(downloadInfo.Value.Content, cancellationToken: ct).ConfigureAwait(false);
                 return new SagaData<T> { Data = data, ConcurrencyStamp = downloadInfo.Value.Details.ETag.ToString() };
             }
             catch (RequestFailedException e) when (e.Status == 404)
@@ -47,7 +48,7 @@ namespace KnightBus.Azure.Storage.Sagas
             }
         }
 
-        public async Task<SagaData<T>> Create<T>(string partitionKey, string id, T data, TimeSpan ttl)
+        public async Task<SagaData<T>> Create<T>(string partitionKey, string id, T data, TimeSpan ttl, CancellationToken ct)
         {
             var blob = _container.GetBlobClient(Filename(partitionKey, id));
             var requestConditions = new BlobRequestConditions
@@ -57,7 +58,7 @@ namespace KnightBus.Azure.Storage.Sagas
             // If the saga already exists and has not expired thrown an SagaAlreadyStartedException
             try
             {
-                var properties = await blob.GetPropertiesAsync().ConfigureAwait(false);
+                var properties = await blob.GetPropertiesAsync(cancellationToken: ct).ConfigureAwait(false);
                 var expiration = DateTimeOffset.Parse(properties.Value.Metadata[ExpirationField]);
                 if (expiration > DateTime.UtcNow)
                     throw new SagaAlreadyStartedException(partitionKey, id);
@@ -91,14 +92,14 @@ namespace KnightBus.Azure.Storage.Sagas
                             {ExpirationField, DateTimeOffset.UtcNow.Add(ttl).ToString()}
                         },
                         Conditions = requestConditions
-                    }).ConfigureAwait(false);
+                    }, ct).ConfigureAwait(false);
                 sagaData.ConcurrencyStamp = blobInfo.Value.ETag.ToString();
             }
             catch (RequestFailedException e) when (e.Status == 404 &&
                                                    e.ErrorCode == "ContainerNotFound")
             {
-                await _container.CreateIfNotExistsAsync().ConfigureAwait(false);
-                await Create(partitionKey, id, data, ttl);
+                await _container.CreateIfNotExistsAsync(cancellationToken: ct).ConfigureAwait(false);
+                await Create(partitionKey, id, data, ttl, ct);
             }
             catch (RequestFailedException e) when (e.Status == 412 || e.Status == 409)
             {
@@ -109,14 +110,14 @@ namespace KnightBus.Azure.Storage.Sagas
             return sagaData;
         }
 
-        public async Task Update<T>(string partitionKey, string id, SagaData<T> sagaData)
+        public async Task Update<T>(string partitionKey, string id, SagaData<T> sagaData, CancellationToken ct)
         {
             var blob = _container.GetBlobClient(Filename(partitionKey, id));
             try
             {
                 using (var stream = GetStream(sagaData.Data))
                 {
-                    var properties = await blob.GetPropertiesAsync().ConfigureAwait(false);
+                    var properties = await blob.GetPropertiesAsync(cancellationToken: ct).ConfigureAwait(false);
                     await blob.UploadAsync(stream, new BlobUploadOptions
                     {
                         Metadata = properties.Value.Metadata,
@@ -124,7 +125,7 @@ namespace KnightBus.Azure.Storage.Sagas
                         {
                             IfMatch = new ETag(sagaData.ConcurrencyStamp)
                         }
-                    }).ConfigureAwait(false);
+                    }, ct).ConfigureAwait(false);
                 }
             }
             catch (RequestFailedException e) when (e.Status == 404)
@@ -137,12 +138,30 @@ namespace KnightBus.Azure.Storage.Sagas
             }
         }
 
-        public async Task Complete(string partitionKey, string id)
+        public async Task Complete<T>(string partitionKey, string id, SagaData<T> sagaData, CancellationToken ct)
         {
             var blob = _container.GetBlobClient(Filename(partitionKey, id));
             try
             {
-                await blob.DeleteAsync().ConfigureAwait(false);
+                var conditions = new AppendBlobRequestConditions { IfMatch = new ETag(sagaData.ConcurrencyStamp) };
+                await blob.DeleteAsync(conditions: conditions, cancellationToken: ct).ConfigureAwait(false);
+            }
+            catch (RequestFailedException e) when (e.Status == 404)
+            {
+                throw new SagaNotFoundException(partitionKey, id);
+            }
+            catch (RequestFailedException e) when (e.Status == 412)
+            {
+                throw new SagaDataConflictException(partitionKey, id);
+            }
+        }
+
+        public async Task Delete(string partitionKey, string id, CancellationToken ct)
+        {
+            var blob = _container.GetBlobClient(Filename(partitionKey, id));
+            try
+            {
+                await blob.DeleteAsync(cancellationToken: ct).ConfigureAwait(false);
             }
             catch (RequestFailedException e) when (e.Status == 404)
             {
