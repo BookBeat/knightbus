@@ -1,4 +1,7 @@
 # KnightBus.Core Changelog
+# 15.0.0
+* Throw if etag differs when updating blob saga data
+
 # 14.0.0
 * Removed ConsoleWriter
 
