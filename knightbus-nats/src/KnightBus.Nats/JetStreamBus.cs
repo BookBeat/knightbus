@@ -7,27 +7,24 @@ using KnightBus.Core.Exceptions;
 using KnightBus.Messages;
 using KnightBus.Nats.Messages;
 using NATS.Client;
+using NATS.Client.JetStream;
 
 namespace KnightBus.Nats
 {
-    public interface INatsBus
-    {
-        Task Send(INatsCommand message, CancellationToken cancellationToken = default);
-        Task Publish(INatsEvent message, CancellationToken cancellationToken = default);
-        Task<TResponse> RequestAsync<T, TResponse>(INatsRequest request, CancellationToken cancellationToken = default) where T : INatsRequest;
-        IEnumerable<TResponse> RequestStream<T, TResponse>(INatsRequest command, CancellationToken cancellationToken = default) where T : INatsRequest;
-    }
 
-    public class NatsBus : INatsBus
+    public class JetStreamBus : INatsBus
     {
         private readonly IConnection _connection;
         private readonly IMessageAttachmentProvider _attachmentProvider;
-        private readonly INatsConfiguration _configuration;
+        private readonly IJetStreamConfiguration _configuration;
+        private readonly IJetStream _streamContext;
 
 
-        public NatsBus(IConnectionFactory connection, INatsConfiguration configuration, IMessageAttachmentProvider attachmentProvider = null)
+        public JetStreamBus(IConnectionFactory connection, IJetStreamConfiguration configuration,
+            IMessageAttachmentProvider attachmentProvider = null)
         {
             _connection = connection.CreateConnection(configuration.Options);
+            _streamContext = _connection.CreateJetStreamContext(configuration.JetStreamOptions);
             _configuration = configuration;
             _attachmentProvider = attachmentProvider;
         }
@@ -58,33 +55,39 @@ namespace KnightBus.Nats
                 {
                     var attachmentIds = new List<string>();
                     var id = Guid.NewGuid().ToString("N");
-                    await _attachmentProvider.UploadAttachmentAsync(mapping.QueueName, id, attachmentMessage.Attachment, cancellationToken).ConfigureAwait(false);
+                    await _attachmentProvider
+                        .UploadAttachmentAsync(mapping.QueueName, id, attachmentMessage.Attachment, cancellationToken)
+                        .ConfigureAwait(false);
                     attachmentIds.Add(id);
                     msg.Header.Add(AttachmentUtility.AttachmentKey, string.Join(",", attachmentIds));
                 }
             }
 
-            _connection.Publish(msg);
+            await _streamContext.PublishAsync(msg).ConfigureAwait(false);
         }
 
-        public async Task<TResponse> RequestAsync<T, TResponse>(INatsRequest request, CancellationToken cancellationToken = default) where T : INatsRequest
+        public async Task<TResponse> RequestAsync<T, TResponse>(INatsRequest request,
+            CancellationToken cancellationToken = default) where T : INatsRequest
         {
             var mapping = AutoMessageMapper.GetMapping(request.GetType());
             var serializer = _configuration.MessageSerializer;
             if (mapping is ICustomMessageSerializer customSerializer) serializer = customSerializer.MessageSerializer;
 
-            var reply = await _connection.RequestAsync(mapping.QueueName, serializer.Serialize(request), cancellationToken).ConfigureAwait(false);
+            var reply = await _connection
+                .RequestAsync(mapping.QueueName, serializer.Serialize(request), cancellationToken)
+                .ConfigureAwait(false);
             ThrowIfErrorResponse(reply);
             return serializer.Deserialize<TResponse>(reply.Data.AsSpan());
         }
 
-        public IEnumerable<TResponse> RequestStream<T, TResponse>(INatsRequest command, CancellationToken cancellationToken = default) where T : INatsRequest
+        public IEnumerable<TResponse> RequestStream<T, TResponse>(INatsRequest command,
+            CancellationToken cancellationToken = default) where T : INatsRequest
         {
             var mapping = AutoMessageMapper.GetMapping(command.GetType());
             var serializer = _configuration.MessageSerializer;
             if (mapping is ICustomMessageSerializer customSerializer) serializer = customSerializer.MessageSerializer;
 
-            var inbox = _connection.NewInbox();
+            var inbox = Guid.NewGuid().ToString("N");
             using var sub = _connection.SubscribeSync(inbox);
             _connection.Publish(mapping.QueueName, inbox, serializer.Serialize(command));
 
@@ -98,6 +101,7 @@ namespace KnightBus.Nats
                     {
                         break;
                     }
+
                     ThrowIfErrorResponse(msg);
 
                     yield return default;
@@ -106,6 +110,7 @@ namespace KnightBus.Nats
                 yield return serializer.Deserialize<TResponse>(msg.Data.AsSpan());
 
             } while (true);
+
             sub.Unsubscribe();
         }
 

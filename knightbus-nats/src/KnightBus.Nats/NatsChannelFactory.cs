@@ -26,7 +26,7 @@ namespace KnightBus.Nats
 
         public bool CanCreate(Type messageType)
         {
-            return typeof(INatsCommand).IsAssignableFrom(messageType) || typeof(INatsEvent).IsAssignableFrom(messageType) || typeof(INatsRequest).IsAssignableFrom(messageType); ;
+            return typeof(INatsCommand).IsAssignableFrom(messageType) || typeof(INatsEvent).IsAssignableFrom(messageType) || typeof(INatsRequest).IsAssignableFrom(messageType);
         }
     }
 }
