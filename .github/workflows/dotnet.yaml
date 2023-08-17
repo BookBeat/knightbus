@@ -29,7 +29,7 @@ jobs:
     - name: Docker Redis
       run: docker run -d -p 6379:6379 --name redis6379 redis
     - name: Docker nats
-      run: docker run -d -p 4222:4222 nats:latest
+      run: docker run -d -p 4222:4222 nats:latest -js
     - name: Docker Azurite
       run: docker run -d -p 10000:10000 -p 10001:10001 mcr.microsoft.com/azure-storage/azurite
     - name: Docker SQL
