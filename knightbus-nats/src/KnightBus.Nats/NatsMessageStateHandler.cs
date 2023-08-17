@@ -8,13 +8,13 @@ using NATS.Client;
 
 namespace KnightBus.Nats
 {
-    internal class NatsBusMessageStateHandler<T> : IMessageStateHandler<T> where T : class, IMessage
+    internal class NatsMessageStateHandler<T> : IMessageStateHandler<T> where T : class, IMessage
     {
         private readonly T _message;
         private readonly Msg _msg;
         private readonly IMessageSerializer _serializer;
 
-        public NatsBusMessageStateHandler(Msg msg, IMessageSerializer serializer, int deadLetterDeliveryLimit, IDependencyInjection messageScope)
+        public NatsMessageStateHandler(Msg msg, IMessageSerializer serializer, int deadLetterDeliveryLimit, IDependencyInjection messageScope)
         {
             DeadLetterDeliveryLimit = deadLetterDeliveryLimit;
             MessageScope = messageScope;
