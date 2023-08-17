@@ -10,14 +10,30 @@ using NATS.Client.JetStream;
 
 namespace KnightBus.Nats
 {
-    public class NatsQueueChannelReceiverBase
+    public class NatsQueueChannelReceiverBase<T> where T : class, IMessage
     {
-        protected async Task ListenForMessages(ISyncSubscription subscription)
+        private readonly IHostConfiguration _hostConfiguration;
+        private readonly IMessageSerializer _serializer;
+        private readonly IMessageProcessor _processor;
+        private readonly SemaphoreSlim _maxConcurrent;
+        private readonly ILogger _log;
+        public IProcessingSettings Settings { get; set; }
+
+        public NatsQueueChannelReceiverBase(IProcessingSettings settings, IHostConfiguration hostConfiguration, IMessageSerializer serializer, IMessageProcessor processor)
         {
-            while (!_cancellationToken.IsCancellationRequested)
+            _hostConfiguration = hostConfiguration;
+            _serializer = serializer;
+            _processor = processor;
+            Settings = settings;
+            _maxConcurrent = new SemaphoreSlim(Settings.MaxConcurrentCalls);
+            _log = _hostConfiguration.Log;
+        }
+        protected async Task ListenForMessages(ISyncSubscription subscription, CancellationToken cancellationToken)
+        {
+            while (!cancellationToken.IsCancellationRequested)
             {
                 var messageExpiration = new CancellationTokenSource(Settings.MessageLockTimeout);
-                var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(messageExpiration.Token, _cancellationToken);
+                var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(messageExpiration.Token, cancellationToken);
                 await _maxConcurrent.WaitAsync(linkedToken.Token);
                 try
                 {
@@ -41,34 +57,41 @@ namespace KnightBus.Nats
 #pragma warning restore CS4014
             }
         }
+
+        private async Task ProcessMessage(Msg msg, CancellationToken token)
+        {
+            try
+            {
+
+                var stateHandler = new NatsMessageStateHandler<T>(msg, _serializer, Settings.DeadLetterDeliveryLimit, _hostConfiguration.DependencyInjection);
+                await _processor.ProcessAsync(stateHandler, token).ConfigureAwait(false);
+            }
+            catch (Exception e)
+            {
+                _log.LogError(e, "Nats OnMessageHandler Error");
+            }
+        }
     }
-    public class JetStreamQueueChannelReceiver<T> : NatsQueueChannelReceiverBase, IChannelReceiver
+    public class JetStreamQueueChannelReceiver<T> : NatsQueueChannelReceiverBase<T>, IChannelReceiver
         where T : class, IMessage
     {
-        private readonly IMessageSerializer _serializer;
-        private readonly IHostConfiguration _hostConfiguration;
-        private readonly IMessageProcessor _processor;
-        private readonly INatsConfiguration _configuration;
+        private readonly IJetStreamConfiguration _configuration;
         private readonly IEventSubscription _subscription;
         private const string CommandQueueGroup = "qg";
-        public IProcessingSettings Settings { get; set; }
+
         private readonly ConnectionFactory _factory;
         private readonly ILogger _log;
         private CancellationToken _cancellationToken;
         private IConnection _connection;
-        private readonly SemaphoreSlim _maxConcurrent;
 
-        public JetStreamQueueChannelReceiver(IProcessingSettings settings, IMessageSerializer serializer, IHostConfiguration hostConfiguration, IMessageProcessor processor, INatsConfiguration configuration, IEventSubscription subscription)
+        public JetStreamQueueChannelReceiver(IProcessingSettings settings, IMessageSerializer serializer, IHostConfiguration hostConfiguration, IMessageProcessor processor, IJetStreamConfiguration configuration, IEventSubscription subscription)
+            : base(settings, hostConfiguration, serializer, processor)
         {
-            Settings = settings;
-            _serializer = serializer;
-            _hostConfiguration = hostConfiguration;
-            _processor = processor;
             _configuration = configuration;
             _subscription = subscription;
             _log = hostConfiguration.Log;
             _factory = new ConnectionFactory();
-            _maxConcurrent = new SemaphoreSlim(Settings.MaxConcurrentCalls);
+
         }
         public Task StartAsync(CancellationToken cancellationToken)
         {
@@ -96,10 +119,10 @@ namespace KnightBus.Nats
                     .WithRetentionPolicy(RetentionPolicy.WorkQueue)
                     .Build();
 
-                _connection.CreateJetStreamManagementContext()
+                _connection.CreateJetStreamManagementContext(_configuration.JetStreamOptions)
                     .AddStream(streamConfig);
 
-                var jetStream = _connection.CreateJetStreamContext();
+                var jetStream = _connection.CreateJetStreamContext(_configuration.JetStreamOptions);
 
                 var durable = $"{streamName}_consumer";
                 var consumerConfig = ConsumerConfiguration.Builder()
@@ -117,7 +140,7 @@ namespace KnightBus.Nats
             }
 
 #pragma warning disable CS4014
-            Task.Run(() => ListenForMessages(subscription), cancellationToken);
+            Task.Run(() => ListenForMessages(subscription, _cancellationToken), cancellationToken);
 #pragma warning restore CS4014
 
 #pragma warning disable 4014
@@ -144,18 +167,6 @@ namespace KnightBus.Nats
 
 
 
-        private async Task ProcessMessage(Msg msg, CancellationToken token)
-        {
-            try
-            {
 
-                var stateHandler = new NatsMessageStateHandler<T>(msg, _serializer, Settings.DeadLetterDeliveryLimit, _hostConfiguration.DependencyInjection);
-                await _processor.ProcessAsync(stateHandler, token).ConfigureAwait(false);
-            }
-            catch (Exception e)
-            {
-                _log.LogError(e, "Nats OnMessageHandler Error");
-            }
-        }
     }
 }
