@@ -66,7 +66,6 @@ namespace KnightBus.Nats
                 try
                 {
                     var msg = subscription.NextMessage();
-                    msg.Ack();
 
 #pragma warning disable CS4014
                     Task.Run(

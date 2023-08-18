@@ -32,6 +32,7 @@ namespace KnightBus.Nats
         public Task CompleteAsync()
         {
             TryReply(MsgConstants.Completed);
+            _msg.Ack();
             return Task.CompletedTask;
         }
 
@@ -44,11 +45,13 @@ namespace KnightBus.Nats
         public Task AbandonByErrorAsync(Exception e)
         {
             TryReply(MsgConstants.Error);
+            _msg.Nak();
             return Task.CompletedTask;
         }
 
         public Task DeadLetterAsync(int deadLetterLimit)
         {
+            _msg.Nak();
             return Task.CompletedTask;
         }
 
