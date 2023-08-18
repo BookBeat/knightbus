@@ -6,6 +6,7 @@ using KnightBus.Messages;
 using KnightBus.Nats.Messages;
 using Microsoft.Extensions.Logging;
 using NATS.Client;
+using NATS.Client.Internals;
 using NATS.Client.JetStream;
 
 namespace KnightBus.Nats
@@ -16,7 +17,7 @@ namespace KnightBus.Nats
         private readonly IJetStreamConfiguration _configuration;
         private readonly IEventSubscription _subscription;
         private const string CommandQueueGroup = "qg";
-        
+
 
         public JetStreamChannelReceiver(IProcessingSettings settings, IMessageSerializer serializer, IHostConfiguration hostConfiguration, IMessageProcessor processor, IJetStreamConfiguration configuration, IEventSubscription subscription)
             : base(settings, hostConfiguration, serializer, processor)
@@ -27,17 +28,16 @@ namespace KnightBus.Nats
 
         public override ISyncSubscription Subscribe(IConnection connection, CancellationToken cancellationToken)
         {
-            var queueName = AutoMessageMapper.GetQueueName<T>();
-            var streamName = $"{queueName}-stream";
+            var streamName = AutoMessageMapper.GetQueueName<T>();
             var streamConfig = StreamConfiguration.Builder()
                 .WithName(streamName)
-                .WithSubjects(queueName)
+                .WithSubjects(streamName)
                 .WithStorageType(StorageType.File)
                 .WithRetentionPolicy(RetentionPolicy.WorkQueue)
                 .Build();
 
-            connection.CreateJetStreamManagementContext(_configuration.JetStreamOptions)
-                .AddStream(streamConfig);
+            var jetStreamManagement = connection.CreateJetStreamManagementContext(_configuration.JetStreamOptions);
+            jetStreamManagement.AddStream(streamConfig);
 
             var jetStream = connection.CreateJetStreamContext(_configuration.JetStreamOptions);
 
@@ -45,15 +45,18 @@ namespace KnightBus.Nats
             var consumerConfig = ConsumerConfiguration.Builder()
                 .WithDurable(durable)
                 .WithAckPolicy(AckPolicy.Explicit)
-                .WithFilterSubject(queueName)
+                .WithMaxDeliver(Settings.DeadLetterDeliveryLimit)
+                .WithFilterSubject(streamName) //Needed?
                 .Build();
+
+            jetStreamManagement.AddOrUpdateConsumer(streamName, consumerConfig);
 
             var options = PushSubscribeOptions.Builder().WithConfiguration(consumerConfig).Build();
 
             if (_subscription is null)
-                return jetStream.PushSubscribeSync(queueName, CommandQueueGroup, options);
-            
-            return jetStream.PushSubscribeSync(queueName, _subscription.Name, options);
+                return jetStream.PushSubscribeSync(streamName, CommandQueueGroup, options);
+
+            return jetStream.PushSubscribeSync(streamName, _subscription.Name, options);
         }
     }
 }
