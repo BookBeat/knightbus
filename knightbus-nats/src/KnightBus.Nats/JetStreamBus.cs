@@ -20,10 +20,10 @@ namespace KnightBus.Nats
         private readonly IJetStream _streamContext;
 
 
-        public JetStreamBus(IConnectionFactory connection, IJetStreamConfiguration configuration,
+        public JetStreamBus(IConnection connection, IJetStreamConfiguration configuration,
             IMessageAttachmentProvider attachmentProvider = null)
         {
-            _connection = connection.CreateConnection(configuration.Options);
+            _connection = connection;
             _streamContext = _connection.CreateJetStreamContext(configuration.JetStreamOptions);
             _configuration = configuration;
             _attachmentProvider = attachmentProvider;
