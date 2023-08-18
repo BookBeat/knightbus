@@ -11,8 +11,15 @@ using NATS.Client.JetStream;
 
 namespace KnightBus.Nats
 {
+    public interface IJetStreamBus
+    {
+        Task Send(IJetStreamCommand message, CancellationToken cancellationToken = default);
+        Task Publish(IJetStreamEvent message, CancellationToken cancellationToken = default);
+        Task<TResponse> RequestAsync<T, TResponse>(IJetStreamRequest request, CancellationToken cancellationToken = default) where T : IJetStreamRequest;
+        IEnumerable<TResponse> RequestStream<T, TResponse>(IJetStreamRequest command, CancellationToken cancellationToken = default) where T : IJetStreamRequest;
+    }
 
-    public class JetStreamBus : INatsBus
+    public class JetStreamBus : IJetStreamBus
     {
         private readonly IConnection _connection;
         private readonly IMessageAttachmentProvider _attachmentProvider;
@@ -29,12 +36,12 @@ namespace KnightBus.Nats
             _attachmentProvider = attachmentProvider;
         }
 
-        public Task Send(INatsCommand message, CancellationToken cancellationToken = default)
+        public Task Send(IJetStreamCommand message, CancellationToken cancellationToken = default)
         {
             return SendInternal(message, cancellationToken);
         }
 
-        public Task Publish(INatsEvent message, CancellationToken cancellationToken = default)
+        public Task Publish(IJetStreamEvent message, CancellationToken cancellationToken = default)
         {
             return SendInternal(message, cancellationToken);
         }
@@ -66,8 +73,8 @@ namespace KnightBus.Nats
             await _streamContext.PublishAsync(msg).ConfigureAwait(false);
         }
 
-        public async Task<TResponse> RequestAsync<T, TResponse>(INatsRequest request,
-            CancellationToken cancellationToken = default) where T : INatsRequest
+        public async Task<TResponse> RequestAsync<T, TResponse>(IJetStreamRequest request,
+            CancellationToken cancellationToken = default) where T : IJetStreamRequest
         {
             var mapping = AutoMessageMapper.GetMapping(request.GetType());
             var serializer = _configuration.MessageSerializer;
@@ -80,8 +87,8 @@ namespace KnightBus.Nats
             return serializer.Deserialize<TResponse>(reply.Data.AsSpan());
         }
 
-        public IEnumerable<TResponse> RequestStream<T, TResponse>(INatsRequest command,
-            CancellationToken cancellationToken = default) where T : INatsRequest
+        public IEnumerable<TResponse> RequestStream<T, TResponse>(IJetStreamRequest command,
+            CancellationToken cancellationToken = default) where T : IJetStreamRequest
         {
             var mapping = AutoMessageMapper.GetMapping(command.GetType());
             var serializer = _configuration.MessageSerializer;
