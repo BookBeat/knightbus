@@ -10,35 +10,24 @@ using NATS.Client.JetStream;
 
 namespace KnightBus.Nats
 {
-    public class JetStreamQueueChannelReceiver<T> : NatsQueueChannelReceiverBase<T>, IChannelReceiver
+    public class JetStreamChannelReceiver<T> : NatsChannelReceiverBase<T>
         where T : class, IMessage
     {
         private readonly IJetStreamConfiguration _configuration;
         private readonly IEventSubscription _subscription;
         private const string CommandQueueGroup = "qg";
+        
 
-        private readonly ILogger _log;
-        private IConnection _connection;
-
-        public JetStreamQueueChannelReceiver(IProcessingSettings settings, IMessageSerializer serializer, IHostConfiguration hostConfiguration, IMessageProcessor processor, IJetStreamConfiguration configuration, IEventSubscription subscription)
+        public JetStreamChannelReceiver(IProcessingSettings settings, IMessageSerializer serializer, IHostConfiguration hostConfiguration, IMessageProcessor processor, IJetStreamConfiguration configuration, IEventSubscription subscription)
             : base(settings, hostConfiguration, serializer, processor)
         {
             _configuration = configuration;
             _subscription = subscription;
-            _log = hostConfiguration.Log;
-
-        }
-
-        public Task StartAsync(CancellationToken cancellationToken)
-        {
-
         }
 
         public override ISyncSubscription Subscribe(IConnection connection, CancellationToken cancellationToken)
         {
             var queueName = AutoMessageMapper.GetQueueName<T>();
-            ISyncSubscription subscription;
-
             var streamName = $"{queueName}-stream";
             var streamConfig = StreamConfiguration.Builder()
                 .WithName(streamName)
@@ -62,13 +51,9 @@ namespace KnightBus.Nats
             var options = PushSubscribeOptions.Builder().WithConfiguration(consumerConfig).Build();
 
             if (_subscription is null)
-                subscription = jetStream.PushSubscribeSync(queueName, CommandQueueGroup, options);
-            else
-                subscription = jetStream.PushSubscribeSync(queueName, _subscription.Name, options);
-
-            return subscription;
+                return jetStream.PushSubscribeSync(queueName, CommandQueueGroup, options);
+            
+            return jetStream.PushSubscribeSync(queueName, _subscription.Name, options);
         }
-
-
     }
 }

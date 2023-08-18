@@ -8,7 +8,7 @@ using NATS.Client;
 
 namespace KnightBus.Nats
 {
-    public abstract class NatsQueueChannelReceiverBase<T> where T : class, IMessage
+    public abstract class NatsChannelReceiverBase<T> : IChannelReceiver where T : class, IMessage
     {
         private readonly IHostConfiguration _hostConfiguration;
         private readonly IMessageSerializer _serializer;
@@ -16,24 +16,8 @@ namespace KnightBus.Nats
         private readonly SemaphoreSlim _maxConcurrent;
         private readonly ILogger _log;
         private IConnection _connection;
-        public IProcessingSettings Settings { get; set; }
-
-        protected NatsQueueChannelReceiverBase(IProcessingSettings settings, IHostConfiguration hostConfiguration, IMessageSerializer serializer, IMessageProcessor processor)
+        public Task StartAsync(CancellationToken cancellationToken)
         {
-            _hostConfiguration = hostConfiguration;
-            _serializer = serializer;
-            _processor = processor;
-            Settings = settings;
-            _maxConcurrent = new SemaphoreSlim(Settings.MaxConcurrentCalls);
-            _log = _hostConfiguration.Log;
-        }
-
-        public abstract ISyncSubscription Subscribe(IConnection connection, CancellationToken cancellationToken);
-
-
-        public Task Start(CancellationToken cancellationToken)
-        {
-            var queueName = AutoMessageMapper.GetQueueName<T>();
             ISyncSubscription subscription = Subscribe(_connection, cancellationToken);
 
 
@@ -56,6 +40,21 @@ namespace KnightBus.Nats
             }, CancellationToken.None);
             return Task.CompletedTask;
         }
+
+        public IProcessingSettings Settings { get; set; }
+
+        protected NatsChannelReceiverBase(IProcessingSettings settings, IHostConfiguration hostConfiguration, IMessageSerializer serializer, IMessageProcessor processor)
+        {
+            _hostConfiguration = hostConfiguration;
+            _serializer = serializer;
+            _processor = processor;
+            Settings = settings;
+            _maxConcurrent = new SemaphoreSlim(Settings.MaxConcurrentCalls);
+            _log = _hostConfiguration.Log;
+        }
+
+        public abstract ISyncSubscription Subscribe(IConnection connection, CancellationToken cancellationToken);
+
 
         protected async Task ListenForMessages(ISyncSubscription subscription, CancellationToken cancellationToken)
         {

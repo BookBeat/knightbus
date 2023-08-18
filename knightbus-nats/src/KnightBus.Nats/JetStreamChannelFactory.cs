@@ -18,7 +18,7 @@ namespace KnightBus.Nats
             IMessageSerializer serializer, IHostConfiguration configuration, IMessageProcessor processor)
         {
 
-            var readerType = typeof(JetStreamQueueChannelReceiver<>).MakeGenericType(messageType);
+            var readerType = typeof(JetStreamChannelReceiver<>).MakeGenericType(messageType);
             var reader = (IChannelReceiver)Activator.CreateInstance(readerType, processingSettings, serializer, configuration, processor, Configuration, subscription);
 
             return reader;
