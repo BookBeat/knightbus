@@ -20,8 +20,8 @@ namespace KnightBus.Nats
         {
             var jetStreamConfiguration = new JetStreamConfiguration();
             configuration?.Invoke(jetStreamConfiguration);
-            services.AddSingleton<IConnectionFactory>(_ => new ConnectionFactory());
             services.AddSingleton<IJetStreamConfiguration>(jetStreamConfiguration);
+            services.AddSingleton<IConnection>(_ => new ConnectionFactory().CreateConnection(jetStreamConfiguration.Options));
             services.AddScoped<IJetStreamBus, JetStreamBus>();
             return services;
         }

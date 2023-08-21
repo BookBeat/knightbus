@@ -1,4 +1,5 @@
-﻿using System.Threading;
+﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Nats.Tests.Integration.Processors;
 using NATS.Client;
@@ -16,6 +17,8 @@ public class CommandTests
         var connection = factory.CreateConnection();
         var cmd = new JetStreamCommand();
         var bus = new JetStreamBus(connection, new JetStreamConfiguration(), null);
+
+        await Task.Delay(TimeSpan.FromSeconds(10));
 
         await bus.Send(cmd, CancellationToken.None);
 

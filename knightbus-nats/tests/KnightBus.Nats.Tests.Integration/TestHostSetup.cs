@@ -7,6 +7,7 @@ using KnightBus.Azure.Storage;
 using KnightBus.Core;
 using KnightBus.Core.DependencyInjection;
 using KnightBus.Host;
+using KnightBus.Nats.Tests.Integration.Processors;
 using Microsoft.Extensions.Hosting;
 using NUnit.Framework;
 
@@ -20,7 +21,7 @@ namespace KnightBus.Nats.Tests.Integration
         [OneTimeSetUp]
         public async Task Setup()
         {
-            var connectionString = "nats://0.0.0.0:4222";
+            var connectionString = "nats://localhost:4222";
             var storageConnection = "UseDevelopmentStorage=true";
             // Start nats.io first
             // $ docker run -p 4222:4222 -ti -js nats:latest
@@ -38,7 +39,7 @@ namespace KnightBus.Nats.Tests.Integration
                         .UseBlobStorageAttachments()
                         .UseBlobStorageSagas()
                         .UseJetStream(configuration => configuration.ConnectionString = connectionString)
-                        .RegisterProcessors(typeof(CommandBehavior).Assembly)
+                        .RegisterProcessors(typeof(CommandProcessor).Assembly)
                         //Enable the Nats Transport
                         .UseTransport<JetStreamTransport>();
 
