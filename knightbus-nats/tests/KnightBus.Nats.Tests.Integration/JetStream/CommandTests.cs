@@ -15,12 +15,11 @@ public class CommandTests
     {
         var factory = new ConnectionFactory();
         var connection = factory.CreateConnection();
-        var cmd = new JetStreamCommand();
+        var cmd = new JetStreamCommand("Should_process_command");
         var bus = new JetStreamBus(connection, new JetStreamConfiguration(), null);
 
-        await Task.Delay(TimeSpan.FromSeconds(10));
-
         await bus.Send(cmd, CancellationToken.None);
+        await Task.Delay(1);
 
     }
 }

@@ -32,7 +32,7 @@ namespace KnightBus.Nats
         }
         public JetStreamTransport(IJetStreamConfiguration configuration)
         {
-            TransportChannelFactories = new ITransportChannelFactory[] { new NatsChannelFactory(configuration), };
+            TransportChannelFactories = new ITransportChannelFactory[] { new JetStreamChannelFactory(configuration), };
         }
         public ITransportChannelFactory[] TransportChannelFactories { get; }
         public ITransport ConfigureChannels(ITransportConfiguration configuration)

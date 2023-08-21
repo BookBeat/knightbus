@@ -1,4 +1,5 @@
-﻿using System.Threading;
+﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
 
@@ -14,6 +15,7 @@ public class CommandProcessor : IProcessCommand<JetStreamCommand, JetStreamSetti
     }
     public Task ProcessAsync(JetStreamCommand message, CancellationToken cancellationToken)
     {
+        Console.WriteLine(message.Message);
         _executionCounter.Increment();
         return Task.CompletedTask;
     }

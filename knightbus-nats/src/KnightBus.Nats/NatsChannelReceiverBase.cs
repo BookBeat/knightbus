@@ -16,8 +16,22 @@ namespace KnightBus.Nats
         private readonly SemaphoreSlim _maxConcurrent;
         private readonly ILogger _log;
         private IConnection _connection;
+
+        public IProcessingSettings Settings { get; set; }
+
+        protected NatsChannelReceiverBase(IProcessingSettings settings, IHostConfiguration hostConfiguration, IMessageSerializer serializer, IMessageProcessor processor)
+        {
+            _hostConfiguration = hostConfiguration;
+            _serializer = serializer;
+            _processor = processor;
+            Settings = settings;
+            _maxConcurrent = new SemaphoreSlim(Settings.MaxConcurrentCalls);
+            _log = _hostConfiguration.Log;
+        }
+
         public Task StartAsync(CancellationToken cancellationToken)
         {
+            _connection = _hostConfiguration.DependencyInjection.GetInstance<IConnection>();
             ISyncSubscription subscription = Subscribe(_connection, cancellationToken);
 
 
@@ -40,19 +54,6 @@ namespace KnightBus.Nats
             }, CancellationToken.None);
             return Task.CompletedTask;
         }
-
-        public IProcessingSettings Settings { get; set; }
-
-        protected NatsChannelReceiverBase(IProcessingSettings settings, IHostConfiguration hostConfiguration, IMessageSerializer serializer, IMessageProcessor processor)
-        {
-            _hostConfiguration = hostConfiguration;
-            _serializer = serializer;
-            _processor = processor;
-            Settings = settings;
-            _maxConcurrent = new SemaphoreSlim(Settings.MaxConcurrentCalls);
-            _log = _hostConfiguration.Log;
-        }
-
         public abstract ISyncSubscription Subscribe(IConnection connection, CancellationToken cancellationToken);
 
 

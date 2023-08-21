@@ -47,16 +47,15 @@ namespace KnightBus.Nats
                 .WithAckPolicy(AckPolicy.Explicit)
                 .WithMaxDeliver(Settings.DeadLetterDeliveryLimit)
                 .WithFilterSubject(streamName) //Needed?
-                .Build();
+                .BuildPushSubscribeOptions();
 
-            jetStreamManagement.AddOrUpdateConsumer(streamName, consumerConfig);
+            //jetStreamManagement.AddOrUpdateConsumer(streamName, consumerConfig.ConsumerConfiguration);
 
-            var options = PushSubscribeOptions.Builder().WithConfiguration(consumerConfig).Build();
 
             if (_subscription is null)
-                return jetStream.PushSubscribeSync(streamName, CommandQueueGroup, options);
+                return jetStream.PushSubscribeSync(streamName, CommandQueueGroup, consumerConfig);
 
-            return jetStream.PushSubscribeSync(streamName, _subscription.Name, options);
+            return jetStream.PushSubscribeSync(streamName, _subscription.Name, consumerConfig);
         }
     }
 }

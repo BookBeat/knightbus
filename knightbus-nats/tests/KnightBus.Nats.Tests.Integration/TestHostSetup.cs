@@ -8,7 +8,9 @@ using KnightBus.Core;
 using KnightBus.Core.DependencyInjection;
 using KnightBus.Host;
 using KnightBus.Nats.Tests.Integration.Processors;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Moq;
 using NUnit.Framework;
 
 namespace KnightBus.Nats.Tests.Integration
@@ -35,6 +37,7 @@ namespace KnightBus.Nats.Tests.Integration
                 .ConfigureServices(services =>
                 {
                     services
+                        .AddSingleton<IExecutionCounter>(provider => new Mock<IExecutionCounter>().Object)
                         .UseBlobStorage(storageConnection)
                         .UseBlobStorageAttachments()
                         .UseBlobStorageSagas()
@@ -53,6 +56,7 @@ namespace KnightBus.Nats.Tests.Integration
         [OneTimeTearDown]
         public async Task TearDown()
         {
+            await Task.Delay(TimeSpan.FromSeconds(10));
             await _knightBus.StopAsync(TimeSpan.FromSeconds(10));
         }
     }
