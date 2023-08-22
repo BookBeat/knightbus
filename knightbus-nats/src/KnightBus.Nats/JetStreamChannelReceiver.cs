@@ -1,12 +1,7 @@
-﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using System.Threading;
 using KnightBus.Core;
 using KnightBus.Messages;
-using KnightBus.Nats.Messages;
-using Microsoft.Extensions.Logging;
 using NATS.Client;
-using NATS.Client.Internals;
 using NATS.Client.JetStream;
 
 namespace KnightBus.Nats
