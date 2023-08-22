@@ -28,28 +28,38 @@ namespace KnightBus.Nats
 
         public override ISyncSubscription Subscribe(IConnection connection, CancellationToken cancellationToken)
         {
+            string subscription;
+            if (_subscription is null)
+                subscription = CommandQueueGroup;
+            else
+                subscription = _subscription.Name;
+
             var streamName = AutoMessageMapper.GetQueueName<T>();
             var streamConfig = StreamConfiguration.Builder()
                 .WithName(streamName)
-                .WithSubjects(streamName)
+                //.WithSubjects(subscription)
                 .WithStorageType(StorageType.File)
                 .WithRetentionPolicy(RetentionPolicy.WorkQueue)
                 .Build();
 
             var jetStreamManagement = connection.CreateJetStreamManagementContext(_configuration.JetStreamOptions);
-            jetStreamManagement.AddStream(streamConfig);
+            var a = jetStreamManagement.AddStream(streamConfig);
+            a.Config.Subjects.Add(subscription);
 
             var jetStream = connection.CreateJetStreamContext(_configuration.JetStreamOptions);
 
-            var durable = $"{streamName}_consumer";
+            var durable = $"{streamName}_{subscription}";
             var consumerConfig = ConsumerConfiguration.Builder()
                 .WithDurable(durable)
+                .WithDeliverGroup(subscription)
+                .WithDeliverSubject(subscription)
                 .WithAckPolicy(AckPolicy.Explicit)
                 .WithMaxDeliver(Settings.DeadLetterDeliveryLimit)
                 .WithFilterSubject(streamName) //Needed?
+
                 .BuildPushSubscribeOptions();
 
-            //jetStreamManagement.AddOrUpdateConsumer(streamName, consumerConfig.ConsumerConfiguration);
+            jetStreamManagement.AddOrUpdateConsumer(streamName, consumerConfig.ConsumerConfiguration);
 
 
             if (_subscription is null)

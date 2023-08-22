@@ -7,6 +7,7 @@ using KnightBus.Core;
 using KnightBus.Core.DependencyInjection;
 using KnightBus.Host;
 using KnightBus.Nats.Tests.Integration.Processors;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using NUnit.Framework;
 
@@ -36,6 +37,7 @@ namespace KnightBus.Nats.Tests.Integration
                 {
                     services
                         .Replace<IExecutionCounter>()
+                        .Replace<IExecutionCompletion>()
                         .UseBlobStorage(storageConnection)
                         .UseBlobStorageAttachments()
                         .UseBlobStorageSagas()
@@ -47,7 +49,6 @@ namespace KnightBus.Nats.Tests.Integration
                 })
                 .UseKnightBus()
                 .Build();
-            //Start the KnightBus Host, it will now connect to the StorageBus and listen to the SampleStorageBusMessageMapping.QueueName
             await _knightBus.StartAsync(CancellationToken.None);
             ServiceProvider = _knightBus.Services;
         }
@@ -55,8 +56,7 @@ namespace KnightBus.Nats.Tests.Integration
         [OneTimeTearDown]
         public async Task TearDown()
         {
-            await Task.Delay(TimeSpan.FromSeconds(10));
-            await _knightBus.StopAsync(TimeSpan.FromSeconds(10));
+            await _knightBus.StopAsync();
         }
     }
 }
