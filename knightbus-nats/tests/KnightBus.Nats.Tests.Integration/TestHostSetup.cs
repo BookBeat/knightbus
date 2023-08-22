@@ -1,6 +1,5 @@
 ﻿
 using System;
-using System.Data;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Azure.Storage;
@@ -8,9 +7,7 @@ using KnightBus.Core;
 using KnightBus.Core.DependencyInjection;
 using KnightBus.Host;
 using KnightBus.Nats.Tests.Integration.Processors;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Moq;
 using NUnit.Framework;
 
 namespace KnightBus.Nats.Tests.Integration
@@ -19,6 +16,7 @@ namespace KnightBus.Nats.Tests.Integration
     public class TestHostSetup
     {
         private IHost _knightBus;
+        public static IServiceProvider ServiceProvider { get; private set; }
 
         [OneTimeSetUp]
         public async Task Setup()
@@ -37,7 +35,7 @@ namespace KnightBus.Nats.Tests.Integration
                 .ConfigureServices(services =>
                 {
                     services
-                        .AddSingleton<IExecutionCounter>(provider => new Mock<IExecutionCounter>().Object)
+                        .Replace<IExecutionCounter>()
                         .UseBlobStorage(storageConnection)
                         .UseBlobStorageAttachments()
                         .UseBlobStorageSagas()
@@ -51,6 +49,7 @@ namespace KnightBus.Nats.Tests.Integration
                 .Build();
             //Start the KnightBus Host, it will now connect to the StorageBus and listen to the SampleStorageBusMessageMapping.QueueName
             await _knightBus.StartAsync(CancellationToken.None);
+            ServiceProvider = _knightBus.Services;
         }
 
         [OneTimeTearDown]
