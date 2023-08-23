@@ -42,7 +42,7 @@ namespace KnightBus.Nats.Tests.Integration
                         .UseBlobStorageAttachments()
                         .UseBlobStorageSagas()
                         .UseJetStream(configuration => configuration.ConnectionString = connectionString)
-                        .RegisterProcessors(typeof(CommandProcessor).Assembly)
+                        .RegisterProcessors(typeof(TestHostSetup).Assembly)
                         //Enable the Nats Transport
                         .UseTransport<JetStreamTransport>();
 
