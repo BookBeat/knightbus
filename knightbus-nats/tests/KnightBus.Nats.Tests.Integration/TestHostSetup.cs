@@ -25,7 +25,7 @@ namespace KnightBus.Nats.Tests.Integration
             var connectionString = "nats://localhost:4222";
             var storageConnection = "UseDevelopmentStorage=true";
             // Start nats.io first
-            // $ docker run -p 4222:4222 -ti -js nats:latest
+            // $ docker run -p 4222:4222 -ti  nats:latest -js
 
             _knightBus = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
                 .UseDefaultServiceProvider(options =>

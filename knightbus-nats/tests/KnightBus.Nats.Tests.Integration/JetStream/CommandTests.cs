@@ -49,10 +49,10 @@ public class CommandTests
         var factory = new ConnectionFactory();
         var connection = factory.CreateConnection();
 
-        var cmd = new JetStreamCommand("Should_process_command");
+        var cmd = new JetStreamEvent("Should_process_command");
         var bus = new JetStreamBus(connection, new JetStreamConfiguration(), null);
 
-        await bus.Send(cmd, CancellationToken.None);
+        await bus.Publish(cmd, CancellationToken.None);
         completion.Wait(TimeSpan.FromMinutes(1));
 
         counterMock.Verify(x => x.Increment(), Times.Once);

@@ -1,7 +1,9 @@
-﻿using System.Threading;
+﻿using System;
+using System.Threading;
 using KnightBus.Core;
 using KnightBus.Messages;
 using NATS.Client;
+using NATS.Client.Internals;
 using NATS.Client.JetStream;
 
 namespace KnightBus.Nats
@@ -14,7 +16,8 @@ namespace KnightBus.Nats
         private const string DeliverGroup = "qg";
 
 
-        public JetStreamChannelReceiver(IProcessingSettings settings, IMessageSerializer serializer, IHostConfiguration hostConfiguration, IMessageProcessor processor, IJetStreamConfiguration configuration, IEventSubscription subscription)
+        public JetStreamChannelReceiver(IProcessingSettings settings, IMessageSerializer serializer, IHostConfiguration hostConfiguration,
+            IMessageProcessor processor, IJetStreamConfiguration configuration, IEventSubscription subscription)
             : base(settings, hostConfiguration, serializer, processor)
         {
             _configuration = configuration;
@@ -23,51 +26,44 @@ namespace KnightBus.Nats
 
         public override ISyncSubscription Subscribe(IConnection connection, CancellationToken cancellationToken)
         {
-            string deliveryGroup;
+            var jetStreamManagement = connection.CreateJetStreamManagementContext(_configuration.JetStreamOptions);
+            string subscriptionName;
             if (_subscription is null)
-                deliveryGroup = DeliverGroup;
+                subscriptionName = DeliverGroup;
             else
-                deliveryGroup = _subscription.Name;
+                subscriptionName = _subscription.Name;
 
-            var streamName = AutoMessageMapper.GetQueueName<T>();
+            var queueName = AutoMessageMapper.GetQueueName<T>();
+            var streamName = $"{queueName}-stream";
+            var subjects = $"{queueName}.>";
             var streamConfig = StreamConfiguration.Builder()
                 .WithName(streamName)
-                .WithSubjects(streamName)
-                .WithStorageType(StorageType.File)
+                .WithSubjects(subjects)
+                .WithStorageType(StorageType.Memory)
                 .WithRetentionPolicy(RetentionPolicy.Interest)
                 .Build();
 
-            var topicName = $"{streamName}-{deliveryGroup}";
 
-            var source = new Source.SourceBuilder().WithName(streamName).WithFilterSubject(streamName).Build();
-            var topicConfig = StreamConfiguration.Builder()
-                .WithSources(source)
-                .WithName(topicName)
-                .WithSubjects(deliveryGroup)
-                .WithStorageType(StorageType.File)
-                .WithRetentionPolicy(RetentionPolicy.WorkQueue)
-                .Build();
-
-            var jetStreamManagement = connection.CreateJetStreamManagementContext(_configuration.JetStreamOptions);
-            var s = jetStreamManagement.AddStream(streamConfig);
-
-            var t = jetStreamManagement.AddStream(topicConfig);
-
-
+            try
+            {
+                jetStreamManagement.UpdateStream(streamConfig);
+            }
+            catch (NATSJetStreamException e) when (e.ErrorCode == 404)
+            {
+                jetStreamManagement.AddStream(streamConfig);
+            }
 
             var jetStream = connection.CreateJetStreamContext(_configuration.JetStreamOptions);
 
-            var durable = $"{streamName}_{deliveryGroup}-dr";
+            var durable = $"{streamName}-{subscriptionName}-dr";
             var consumerConfig = ConsumerConfiguration.Builder()
                 .WithDurable(durable)
+                .WithFilterSubject(queueName + ".*")
                 .WithAckPolicy(AckPolicy.Explicit)
                 .WithMaxDeliver(Settings.DeadLetterDeliveryLimit)
                 .BuildPullSubscribeOptions();
 
-            //jetStreamManagement.AddOrUpdateConsumer(streamName, consumerConfig.ConsumerConfiguration);
-
-
-            return jetStream.PullSubscribe(deliveryGroup, consumerConfig);
+            return jetStream.PullSubscribe(queueName + ".*", consumerConfig);
         }
     }
 }

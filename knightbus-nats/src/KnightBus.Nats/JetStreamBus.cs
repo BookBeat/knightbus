@@ -52,7 +52,7 @@ namespace KnightBus.Nats
             var serializer = _configuration.MessageSerializer;
             if (mapping is ICustomMessageSerializer customSerializer) serializer = customSerializer.MessageSerializer;
 
-            var msg = new Msg(mapping.QueueName, serializer.Serialize(message));
+            var msg = new Msg(mapping.QueueName + ".kalle", serializer.Serialize(message));
 
             if (message is ICommandWithAttachment attachmentMessage)
             {
