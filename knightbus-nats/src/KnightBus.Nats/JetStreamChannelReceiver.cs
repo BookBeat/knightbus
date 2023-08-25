@@ -3,7 +3,6 @@ using System.Threading;
 using KnightBus.Core;
 using KnightBus.Messages;
 using NATS.Client;
-using NATS.Client.Internals;
 using NATS.Client.JetStream;
 
 namespace KnightBus.Nats
@@ -24,7 +23,7 @@ namespace KnightBus.Nats
             _subscription = subscription;
         }
 
-        public override ISyncSubscription Subscribe(IConnection connection, CancellationToken cancellationToken)
+        public override IJetStreamPullSubscription Subscribe(IConnection connection, CancellationToken cancellationToken)
         {
             var jetStreamManagement = connection.CreateJetStreamManagementContext(_configuration.JetStreamOptions);
             string subscriptionName;
@@ -56,14 +55,15 @@ namespace KnightBus.Nats
             var jetStream = connection.CreateJetStreamContext(_configuration.JetStreamOptions);
 
             var durable = $"{streamName}-{subscriptionName}-dr";
+
             var consumerConfig = ConsumerConfiguration.Builder()
                 .WithDurable(durable)
-                .WithFilterSubject(queueName + ".*")
                 .WithAckPolicy(AckPolicy.Explicit)
+                .WithAckWait((long)Math.Round(Settings.MessageLockTimeout.TotalMilliseconds, MidpointRounding.AwayFromZero))
                 .WithMaxDeliver(Settings.DeadLetterDeliveryLimit)
                 .BuildPullSubscribeOptions();
 
-            return jetStream.PullSubscribe(queueName + ".*", consumerConfig);
+            return jetStream.PullSubscribe(subjects, consumerConfig);
         }
     }
 }

@@ -5,6 +5,7 @@ using KnightBus.Core;
 using KnightBus.Messages;
 using Microsoft.Extensions.Logging;
 using NATS.Client;
+using NATS.Client.JetStream;
 
 namespace KnightBus.Nats
 {
@@ -32,7 +33,7 @@ namespace KnightBus.Nats
         public Task StartAsync(CancellationToken cancellationToken)
         {
             _connection = _hostConfiguration.DependencyInjection.GetInstance<IConnection>();
-            ISyncSubscription subscription = Subscribe(_connection, cancellationToken);
+            var subscription = Subscribe(_connection, cancellationToken);
 
 
             Task.Run(() => ListenForMessages(subscription, cancellationToken), cancellationToken);
@@ -54,10 +55,10 @@ namespace KnightBus.Nats
             }, CancellationToken.None);
             return Task.CompletedTask;
         }
-        public abstract ISyncSubscription Subscribe(IConnection connection, CancellationToken cancellationToken);
+        public abstract IJetStreamPullSubscription Subscribe(IConnection connection, CancellationToken cancellationToken);
 
 
-        protected async Task ListenForMessages(ISyncSubscription subscription, CancellationToken cancellationToken)
+        protected async Task ListenForMessages(IJetStreamPullSubscription subscription, CancellationToken cancellationToken)
         {
             while (!cancellationToken.IsCancellationRequested)
             {
@@ -66,23 +67,24 @@ namespace KnightBus.Nats
                 await _maxConcurrent.WaitAsync(linkedToken.Token);
                 try
                 {
-                    var msg = subscription.NextMessage();
-
+                    var messages = subscription.Fetch(Settings.MaxConcurrentCalls, 1000);
+                    foreach (var msg in messages)
+                    {
 #pragma warning disable CS4014
-                    Task.Run(
-                        () => ProcessMessage(msg, linkedToken.Token).ContinueWith(t =>
-                        {
-                            _maxConcurrent.Release();
-                            messageExpiration.Dispose();
-                            linkedToken.Dispose();
+                        Task.Run(
+                            () => ProcessMessage(msg, linkedToken.Token).ContinueWith(t =>
+                            {
+                                _maxConcurrent.Release();
+                                messageExpiration.Dispose();
+                                linkedToken.Dispose();
 
-                        }, CancellationToken.None).ConfigureAwait(false), linkedToken.Token);
+                            }, CancellationToken.None).ConfigureAwait(false), linkedToken.Token);
+                    }
                 }
                 catch (Exception e)
                 {
                     _log.LogError(e, "Error to read message from Nats");
                 }
-#pragma warning restore CS4014
             }
         }
 

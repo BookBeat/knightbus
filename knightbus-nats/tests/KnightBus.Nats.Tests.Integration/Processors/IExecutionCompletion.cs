@@ -13,38 +13,27 @@ public interface IExecutionCompletion
 
 public class ExecutionCompletion : IExecutionCompletion, IDisposable
 {
-    private readonly ConcurrentBag<CancellationTokenSource> _completed = new();
+    private readonly CountdownEvent _event;
+
 
     public ExecutionCompletion(int count = 1)
     {
-        for (int i = 0; i < count; i++)
-        {
-            _completed.Add(new CancellationTokenSource());
-        }
+
+        _event = new CountdownEvent(count);
     }
 
     public void Complete()
     {
-        foreach (var cts in _completed)
-        {
-            if (!cts.IsCancellationRequested)
-                cts.Cancel();
-        }
+        _event.Signal();
     }
 
     public void Wait(TimeSpan timeout)
     {
-        foreach (var cts in _completed)
-        {
-            cts.Token.WaitHandle.WaitOne(timeout);
-        }
+        _event.WaitHandle.WaitOne(timeout);
     }
 
     public void Dispose()
     {
-        foreach (var cts in _completed)
-        {
-            cts?.Dispose();
-        }
+        _event?.Dispose();
     }
 }

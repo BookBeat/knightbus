@@ -43,18 +43,19 @@ public class CommandTests
         counter.Replace(counterMock.Object);
 
         var completionWrapper = TestHostSetup.ServiceProvider.GetService<ServiceReplacement<IExecutionCompletion>>();
-        var completion = new ExecutionCompletion();
+        var completion = new ExecutionCompletion(2);
         completionWrapper.Replace(completion);
 
         var factory = new ConnectionFactory();
         var connection = factory.CreateConnection();
 
-        var cmd = new JetStreamEvent("Should_process_command");
+        var cmd = new JetStreamEvent("Should_process_event");
         var bus = new JetStreamBus(connection, new JetStreamConfiguration(), null);
 
         await bus.Publish(cmd, CancellationToken.None);
-        completion.Wait(TimeSpan.FromMinutes(1));
 
-        counterMock.Verify(x => x.Increment(), Times.Once);
+        completion.Wait(TimeSpan.FromSeconds(10));
+
+        counterMock.Verify(x => x.Increment(), Times.Exactly(2));
     }
 }

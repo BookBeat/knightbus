@@ -2,6 +2,7 @@
 using KnightBus.Core;
 using KnightBus.Messages;
 using NATS.Client;
+using NATS.Client.JetStream;
 
 namespace KnightBus.Nats
 {
@@ -17,13 +18,14 @@ namespace KnightBus.Nats
             _subscription = subscription;
         }
 
-        public override ISyncSubscription Subscribe(IConnection connection, CancellationToken cancellationToken)
+        public override IJetStreamPullSubscription Subscribe(IConnection connection, CancellationToken cancellationToken)
         {
-            var queueName = AutoMessageMapper.GetQueueName<T>();
-            if (_subscription is null)
-                return connection.SubscribeSync(queueName, CommandQueueGroup);
-
-            return connection.SubscribeSync(queueName, _subscription.Name);
+            throw new System.NotImplementedException();
+            // var queueName = AutoMessageMapper.GetQueueName<T>();
+            // if (_subscription is null)
+            //     return connection.SubscribeSync(queueName, CommandQueueGroup);
+            //
+            // return connection.SubscribeSync(queueName, _subscription.Name);
         }
     }
 }
