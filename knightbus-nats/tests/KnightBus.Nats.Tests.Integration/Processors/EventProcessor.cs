@@ -2,12 +2,13 @@
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
+using KnightBus.Messages;
 
 namespace KnightBus.Nats.Tests.Integration.Processors;
 
 public class EventProcessor :
-    IProcessEvent<JetStreamEvent, SubOne, JetStreamSettings>
-// IProcessEvent<JetStreamEvent, SubTwo, JetStreamSettings>
+    IProcessEvent<JetStreamEvent, SubOne, JetStreamSettings>,
+    IProcessEvent<JetStreamEvent, SubTwo, JetStreamSettings>
 {
     private readonly IExecutionCounter _executionCounter;
     private readonly IExecutionCompletion _executionCompletion;
@@ -32,4 +33,12 @@ public class EventProcessor :
             _executionCompletion.Complete();
         }
     }
+}
+public class SubOne : IEventSubscription<JetStreamEvent>
+{
+    public string Name => "one";
+}
+public class SubTwo : IEventSubscription<JetStreamEvent>
+{
+    public string Name => "two";
 }

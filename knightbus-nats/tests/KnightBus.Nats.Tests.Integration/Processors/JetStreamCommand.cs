@@ -6,7 +6,5 @@ namespace KnightBus.Nats.Tests.Integration.Processors;
 public record JetStreamCommand(string Message) : IJetStreamCommand;
 public class JetStreamCommandMapping : IMessageMapping<JetStreamCommand>
 {
-    public string QueueName => "knightbus-tests-jetstream-command4s221";
+    public string QueueName => "knightbus-tests-jetstream-command.subject";
 }
-
-

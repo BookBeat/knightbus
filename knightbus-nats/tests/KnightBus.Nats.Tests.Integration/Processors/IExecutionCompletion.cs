@@ -11,7 +11,7 @@ public interface IExecutionCompletion
 }
 
 
-public class ExecutionCompletion : IExecutionCompletion, IDisposable
+public class ExecutionCompletion : IExecutionCompletion
 {
     private readonly CountdownEvent _event;
 
@@ -30,10 +30,5 @@ public class ExecutionCompletion : IExecutionCompletion, IDisposable
     public void Wait(TimeSpan timeout)
     {
         _event.WaitHandle.WaitOne(timeout);
-    }
-
-    public void Dispose()
-    {
-        _event?.Dispose();
     }
 }

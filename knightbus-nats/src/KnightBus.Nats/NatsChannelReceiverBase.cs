@@ -64,14 +64,14 @@ namespace KnightBus.Nats
         {
             while (!cancellationToken.IsCancellationRequested)
             {
-                var messageExpiration = new CancellationTokenSource(Settings.MessageLockTimeout);
-                var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(messageExpiration.Token, cancellationToken);
-                await _maxConcurrent.WaitAsync(linkedToken.Token);
                 try
                 {
                     var messages = subscription.Fetch(Settings.MaxConcurrentCalls, 1000);
                     foreach (var msg in messages)
                     {
+                        var messageExpiration = new CancellationTokenSource(Settings.MessageLockTimeout);
+                        var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(messageExpiration.Token, cancellationToken);
+                        await _maxConcurrent.WaitAsync(linkedToken.Token);
 #pragma warning disable CS4014
                         Task.Run(
                             () => ProcessMessage(msg, linkedToken.Token).ContinueWith(t =>
