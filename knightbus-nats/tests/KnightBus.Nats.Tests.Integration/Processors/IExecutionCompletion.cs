@@ -8,6 +8,7 @@ public interface IExecutionCompletion
 {
     void Wait(TimeSpan timeout);
     void Complete();
+    void Reset(int count = 1);
 }
 
 
@@ -25,6 +26,11 @@ public class ExecutionCompletion : IExecutionCompletion
     public void Complete()
     {
         _event.Signal();
+    }
+
+    public void Reset(int count = 1)
+    {
+        _event.Reset(count);
     }
 
     public void Wait(TimeSpan timeout)

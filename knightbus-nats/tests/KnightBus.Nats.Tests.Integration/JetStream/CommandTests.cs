@@ -9,53 +9,72 @@ using NUnit.Framework;
 
 namespace KnightBus.Nats.Tests.Integration.JetStream;
 
+public class JetStreamIntegrationTest
+{
+    protected IConnection Connection { get; private set; }
+    protected Mock<IExecutionCounter> CounterMock { get; private set; }
+    protected ExecutionCompletion Completion { get; private set; }
+    protected IJetStreamBus Bus { get; private set; }
+
+
+    [SetUp]
+    public void Setup()
+    {
+        var counter = TestHostSetup.ServiceProvider.GetService<ServiceReplacement<IExecutionCounter>>();
+        CounterMock = new Mock<IExecutionCounter>();
+        counter.Replace(CounterMock.Object);
+
+        var completionWrapper = TestHostSetup.ServiceProvider.GetService<ServiceReplacement<IExecutionCompletion>>();
+        Completion = new ExecutionCompletion();
+        completionWrapper.Replace(Completion);
+
+        var factory = new ConnectionFactory();
+        Connection = factory.CreateConnection();
+
+        Bus = new JetStreamBus(Connection, new JetStreamConfiguration(), null);
+    }
+
+
+    [TearDown]
+    public void TearDown()
+    {
+        Connection?.Close();
+    }
+}
+
 [TestFixture]
-public class CommandTests
+public class CommandTests : JetStreamIntegrationTest
 {
     [Test]
     public async Task Should_process_command_once()
     {
-        var counter = TestHostSetup.ServiceProvider.GetService<ServiceReplacement<IExecutionCounter>>();
-        var counterMock = new Mock<IExecutionCounter>();
-        counter.Replace(counterMock.Object);
-
-        var completionWrapper = TestHostSetup.ServiceProvider.GetService<ServiceReplacement<IExecutionCompletion>>();
-        var completion = new ExecutionCompletion();
-        completionWrapper.Replace(completion);
-
-        var factory = new ConnectionFactory();
-        var connection = factory.CreateConnection();
-
+        //arrange
         var cmd = new JetStreamCommand("Should_process_command");
-        var bus = new JetStreamBus(connection, new JetStreamConfiguration(), null);
 
-        await bus.Send(cmd, CancellationToken.None);
-        completion.Wait(TimeSpan.FromMinutes(1));
+        //act
+        await Bus.Send(cmd, CancellationToken.None);
 
-        counterMock.Verify(x => x.Increment(), Times.Once);
+        //assert
+        Completion.Wait(TimeSpan.FromMinutes(1));
+        CounterMock.Verify(x => x.Increment(), Times.Once);
     }
+}
 
+[TestFixture]
+public class EventTests : JetStreamIntegrationTest
+{
     [Test]
     public async Task Should_process_event_twice()
     {
-        var counter = TestHostSetup.ServiceProvider.GetService<ServiceReplacement<IExecutionCounter>>();
-        var counterMock = new Mock<IExecutionCounter>();
-        counter.Replace(counterMock.Object);
-
-        var completionWrapper = TestHostSetup.ServiceProvider.GetService<ServiceReplacement<IExecutionCompletion>>();
-        var completion = new ExecutionCompletion(2);
-        completionWrapper.Replace(completion);
-
-        var factory = new ConnectionFactory();
-        var connection = factory.CreateConnection();
-
+        //arrange
+        Completion.Reset(2);
         var cmd = new JetStreamEvent("Should_process_event", false);
-        var bus = new JetStreamBus(connection, new JetStreamConfiguration(), null);
 
-        await bus.Publish(cmd, CancellationToken.None).ConfigureAwait(false);
+        //act
+        await Bus.Publish(cmd, CancellationToken.None).ConfigureAwait(false);
 
-        completion.Wait(TimeSpan.FromSeconds(20));
-
-        counterMock.Verify(x => x.Increment(), Times.Exactly(2));
+        //assert
+        Completion.Wait(TimeSpan.FromSeconds(10));
+        CounterMock.Verify(x => x.Increment(), Times.Exactly(2));
     }
 }
