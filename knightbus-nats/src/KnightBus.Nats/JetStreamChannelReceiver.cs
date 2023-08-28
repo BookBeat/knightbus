@@ -45,7 +45,7 @@ namespace KnightBus.Nats
             else
                 subscriptionName = _subscription.Name;
 
-            var queueName = AutoMessageMapper.GetQueueName<T>();
+            var queueName = JetStreamHelpers.GetRootSubject(AutoMessageMapper.GetQueueName<T>());
             var streamName = $"{queueName}-stream";
             var streamSubject = $"{queueName}.>";
 

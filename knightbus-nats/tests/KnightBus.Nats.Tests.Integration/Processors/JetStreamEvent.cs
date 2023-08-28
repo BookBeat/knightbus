@@ -7,5 +7,5 @@ public record JetStreamEvent(string Message, bool Throw) : IJetStreamEvent;
 
 public class JetStreamEventMapping : IMessageMapping<JetStreamEvent>
 {
-    public string QueueName => "knightbus-tests-jetstream-evt";
+    public string QueueName => "knightbus-tests-jetstream-evt.topic";
 }
