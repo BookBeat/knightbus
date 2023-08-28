@@ -13,17 +13,19 @@ namespace KnightBus.Nats
         private readonly T _message;
         private readonly Msg _msg;
         private readonly IMessageSerializer _serializer;
+        private readonly bool _shouldReply;
 
-        public NatsMessageStateHandler(Msg msg, IMessageSerializer serializer, int deadLetterDeliveryLimit, IDependencyInjection messageScope)
+        public NatsMessageStateHandler(Msg msg, IMessageSerializer serializer, int deadLetterDeliveryLimit, IDependencyInjection messageScope, bool reply)
         {
             DeadLetterDeliveryLimit = deadLetterDeliveryLimit;
             MessageScope = messageScope;
             _msg = msg;
             _serializer = serializer;
             _message = serializer.Deserialize<T>(msg.Data.AsSpan());
+            _shouldReply = reply;
         }
 
-        public int DeliveryCount { get; } = 1;
+        public int DeliveryCount => (int)_msg.MetaData.NumDelivered;
         public int DeadLetterDeliveryLimit { get; }
 
         public IDictionary<string, string> MessageProperties => _msg.Header.Keys.Cast<string>().ToDictionary(key => key, key => _msg.Header[key]);
@@ -49,10 +51,14 @@ namespace KnightBus.Nats
             return Task.CompletedTask;
         }
 
-        public Task DeadLetterAsync(int deadLetterLimit)
+        public async Task DeadLetterAsync(int deadLetterLimit)
         {
-            _msg.Nak();
-            return Task.CompletedTask;
+            var subject = JetStreamHelpers.ConvertToDeadletterSubject(_msg.Subject);
+            var deadletterMsg = new Msg(subject, _msg.Data);
+
+            var js = _msg.ArrivalSubscription.Connection.CreateJetStreamContext();
+            await js.PublishAsync(deadletterMsg).ConfigureAwait(false);
+            _msg.Ack();
         }
 
         public T GetMessage()
@@ -64,7 +70,7 @@ namespace KnightBus.Nats
 
         private void TryReply(string status)
         {
-            if (!string.IsNullOrEmpty(_msg.Reply))
+            if (_shouldReply && !string.IsNullOrEmpty(_msg.Reply))
             {
                 var msg = new Msg(_msg.Reply);
                 msg.Header.Add(MsgConstants.HeaderName, status);

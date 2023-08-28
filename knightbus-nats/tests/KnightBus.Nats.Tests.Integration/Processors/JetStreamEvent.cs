@@ -3,7 +3,7 @@ using KnightBus.Nats.Messages;
 
 namespace KnightBus.Nats.Tests.Integration.Processors;
 
-public record JetStreamEvent(string Message) : IJetStreamEvent;
+public record JetStreamEvent(string Message, bool Throw) : IJetStreamEvent;
 
 public class JetStreamEventMapping : IMessageMapping<JetStreamEvent>
 {

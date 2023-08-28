@@ -43,13 +43,13 @@ public class CommandTests
         counter.Replace(counterMock.Object);
 
         var completionWrapper = TestHostSetup.ServiceProvider.GetService<ServiceReplacement<IExecutionCompletion>>();
-        var completion = new ExecutionCompletion(2);
+        var completion = new ExecutionCompletion(1 * 5);
         completionWrapper.Replace(completion);
 
         var factory = new ConnectionFactory();
         var connection = factory.CreateConnection();
 
-        var cmd = new JetStreamEvent("Should_process_event");
+        var cmd = new JetStreamEvent("Should_process_event", true);
         var bus = new JetStreamBus(connection, new JetStreamConfiguration(), null);
 
         await bus.Publish(cmd, CancellationToken.None);

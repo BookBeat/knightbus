@@ -17,6 +17,7 @@ namespace KnightBus.Nats
         private readonly SemaphoreSlim _maxConcurrent;
         private readonly ILogger _log;
         private IConnection _connection;
+        private readonly bool _shouldReply;
 
         public IProcessingSettings Settings { get; set; }
 
@@ -28,6 +29,7 @@ namespace KnightBus.Nats
             Settings = settings;
             _maxConcurrent = new SemaphoreSlim(Settings.MaxConcurrentCalls);
             _log = _hostConfiguration.Log;
+            _shouldReply = typeof(IRequest).IsAssignableFrom(typeof(T));
         }
 
         public Task StartAsync(CancellationToken cancellationToken)
@@ -92,8 +94,7 @@ namespace KnightBus.Nats
         {
             try
             {
-
-                var stateHandler = new NatsMessageStateHandler<T>(msg, _serializer, Settings.DeadLetterDeliveryLimit, _hostConfiguration.DependencyInjection);
+                var stateHandler = new NatsMessageStateHandler<T>(msg, _serializer, Settings.DeadLetterDeliveryLimit, _hostConfiguration.DependencyInjection, _shouldReply);
                 await _processor.ProcessAsync(stateHandler, token).ConfigureAwait(false);
             }
             catch (Exception e)

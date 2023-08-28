@@ -7,6 +7,19 @@ using NATS.Client.JetStream;
 
 namespace KnightBus.Nats
 {
+    public static class JetStreamHelpers
+    {
+        public static string GetRootDeadletterSubject(string name) => $"dl-{name}";
+
+        public static string GetRootSubject(string subject) => subject.IndexOf('.') < 0 ? subject : subject[..subject.IndexOf('.')];
+        public static string ConvertToDeadletterSubject(string subject)
+        {
+            var root = GetRootSubject(subject);
+            return subject.Replace(root, GetRootDeadletterSubject(root));
+        }
+
+
+    }
     public class JetStreamChannelReceiver<T> : NatsChannelReceiverBase<T>
         where T : class, IMessage
     {
@@ -34,15 +47,18 @@ namespace KnightBus.Nats
 
             var queueName = AutoMessageMapper.GetQueueName<T>();
             var streamName = $"{queueName}-stream";
-            var subjects = $"{queueName}.>";
+            var streamSubject = $"{queueName}.>";
+
+            var deadletterName = JetStreamHelpers.GetRootDeadletterSubject(queueName);
+            var dlStreamName = $"{deadletterName}-stream";
+            var deadletterSubject = $"{deadletterName}.>";
+
             var streamConfig = StreamConfiguration.Builder()
                 .WithName(streamName)
-                .WithSubjects(subjects)
+                .WithSubjects(streamSubject)
                 .WithStorageType(StorageType.Memory)
                 .WithRetentionPolicy(RetentionPolicy.Interest)
                 .Build();
-
-
             try
             {
                 jetStreamManagement.UpdateStream(streamConfig);
@@ -52,18 +68,36 @@ namespace KnightBus.Nats
                 jetStreamManagement.AddStream(streamConfig);
             }
 
+            var dlStreamConfig = StreamConfiguration.Builder()
+                .WithName(dlStreamName)
+                .WithSubjects(deadletterSubject)
+                .WithStorageType(StorageType.Memory)
+                .WithRetentionPolicy(RetentionPolicy.WorkQueue)
+                .Build();
+            try
+            {
+                jetStreamManagement.UpdateStream(dlStreamConfig);
+            }
+            catch (NATSJetStreamException e) when (e.ErrorCode == 404)
+            {
+                jetStreamManagement.AddStream(dlStreamConfig);
+            }
+
+
             var jetStream = connection.CreateJetStreamContext(_configuration.JetStreamOptions);
 
             var durable = $"{streamName}-{subscriptionName}-dr";
 
-            var consumerConfig = ConsumerConfiguration.Builder()
+            var subscribeOptions = ConsumerConfiguration.Builder()
                 .WithDurable(durable)
                 .WithAckPolicy(AckPolicy.Explicit)
                 .WithAckWait((long)Math.Round(Settings.MessageLockTimeout.TotalMilliseconds, MidpointRounding.AwayFromZero))
-                .WithMaxDeliver(Settings.DeadLetterDeliveryLimit)
+                .WithFilterSubject(streamSubject)
                 .BuildPullSubscribeOptions();
 
-            return jetStream.PullSubscribe(subjects, consumerConfig);
+            jetStreamManagement.AddOrUpdateConsumer(streamName, subscribeOptions.ConsumerConfiguration);
+
+            return jetStream.PullSubscribe(streamSubject, subscribeOptions);
         }
     }
 }
