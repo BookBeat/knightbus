@@ -25,7 +25,7 @@ namespace KnightBus.Nats
     {
         private readonly IJetStreamConfiguration _configuration;
         private readonly IEventSubscription _subscription;
-        private const string DeliverGroup = "qg";
+        private const string CommandDeliverGroup = "qg";
 
 
         public JetStreamChannelReceiver(IProcessingSettings settings, IMessageSerializer serializer, IHostConfiguration hostConfiguration,
@@ -36,21 +36,21 @@ namespace KnightBus.Nats
             _subscription = subscription;
         }
 
-        public override IJetStreamPullSubscription Subscribe(IConnection connection, CancellationToken cancellationToken)
+        public override IJetStreamPushSyncSubscription Subscribe(IConnection connection, CancellationToken cancellationToken)
         {
             var jetStreamManagement = connection.CreateJetStreamManagementContext(_configuration.JetStreamOptions);
-            string subscriptionName;
+            string deliverGroup;
             if (_subscription is null)
-                subscriptionName = DeliverGroup;
+                deliverGroup = CommandDeliverGroup;
             else
-                subscriptionName = _subscription.Name;
+                deliverGroup = _subscription.Name;
 
             var queueName = JetStreamHelpers.GetRootSubject(AutoMessageMapper.GetQueueName<T>());
             var streamName = $"{queueName}-stream";
             var streamSubject = $"{queueName}.>";
 
             var deadletterName = JetStreamHelpers.GetRootDeadletterSubject(queueName);
-            var dlStreamName = $"{deadletterName}-stream";
+            var deadLetterStreamName = $"{deadletterName}-stream";
             var deadletterSubject = $"{deadletterName}.>";
 
             var streamConfig = StreamConfiguration.Builder()
@@ -59,45 +59,41 @@ namespace KnightBus.Nats
                 .WithStorageType(StorageType.Memory)
                 .WithRetentionPolicy(RetentionPolicy.Interest)
                 .Build();
-            try
-            {
-                jetStreamManagement.UpdateStream(streamConfig);
-            }
-            catch (NATSJetStreamException e) when (e.ErrorCode == 404)
-            {
-                jetStreamManagement.AddStream(streamConfig);
-            }
+
+            UpsertStream(jetStreamManagement, streamConfig);
 
             var dlStreamConfig = StreamConfiguration.Builder()
-                .WithName(dlStreamName)
+                .WithName(deadLetterStreamName)
                 .WithSubjects(deadletterSubject)
                 .WithStorageType(StorageType.Memory)
                 .WithRetentionPolicy(RetentionPolicy.WorkQueue)
                 .Build();
-            try
-            {
-                jetStreamManagement.UpdateStream(dlStreamConfig);
-            }
-            catch (NATSJetStreamException e) when (e.ErrorCode == 404)
-            {
-                jetStreamManagement.AddStream(dlStreamConfig);
-            }
 
+            UpsertStream(jetStreamManagement, dlStreamConfig);
 
             var jetStream = connection.CreateJetStreamContext(_configuration.JetStreamOptions);
 
-            var durable = $"{streamName}-{subscriptionName}-dr";
+            var durable = $"{streamName}-{deliverGroup}-dr";
 
             var subscribeOptions = ConsumerConfiguration.Builder()
                 .WithDurable(durable)
                 .WithAckPolicy(AckPolicy.Explicit)
                 .WithAckWait((long)Math.Round(Settings.MessageLockTimeout.TotalMilliseconds, MidpointRounding.AwayFromZero))
-                .WithFilterSubject(streamSubject)
-                .BuildPullSubscribeOptions();
+                .BuildPushSubscribeOptions();
 
-            jetStreamManagement.AddOrUpdateConsumer(streamName, subscribeOptions.ConsumerConfiguration);
+            return jetStream.PushSubscribeSync(streamSubject, deliverGroup, subscribeOptions);
+        }
 
-            return jetStream.PullSubscribe(streamSubject, subscribeOptions);
+        private void UpsertStream(IJetStreamManagement jetStreamManagement, StreamConfiguration streamConfiguration)
+        {
+            try
+            {
+                jetStreamManagement.UpdateStream(streamConfiguration);
+            }
+            catch (NATSJetStreamException e) when (e.ErrorCode == 404)
+            {
+                jetStreamManagement.AddStream(streamConfiguration);
+            }
         }
     }
 }

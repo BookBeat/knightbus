@@ -18,7 +18,7 @@ namespace KnightBus.Nats
             _subscription = subscription;
         }
 
-        public override IJetStreamPullSubscription Subscribe(IConnection connection, CancellationToken cancellationToken)
+        public override IJetStreamPushSyncSubscription Subscribe(IConnection connection, CancellationToken cancellationToken)
         {
             throw new System.NotImplementedException();
             // var queueName = AutoMessageMapper.GetQueueName<T>();

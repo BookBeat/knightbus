@@ -57,31 +57,30 @@ namespace KnightBus.Nats
             }, CancellationToken.None);
             return Task.CompletedTask;
         }
-        public abstract IJetStreamPullSubscription Subscribe(IConnection connection, CancellationToken cancellationToken);
+        public abstract IJetStreamPushSyncSubscription Subscribe(IConnection connection, CancellationToken cancellationToken);
 
 
-        protected async Task ListenForMessages(IJetStreamPullSubscription subscription, CancellationToken cancellationToken)
+        protected async Task ListenForMessages(IJetStreamPushSyncSubscription subscription, CancellationToken cancellationToken)
         {
             while (!cancellationToken.IsCancellationRequested)
             {
                 try
                 {
-                    var messages = subscription.Fetch(Settings.MaxConcurrentCalls, 1000);
-                    foreach (var msg in messages)
-                    {
-                        var messageExpiration = new CancellationTokenSource(Settings.MessageLockTimeout);
-                        var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(messageExpiration.Token, cancellationToken);
-                        await _maxConcurrent.WaitAsync(linkedToken.Token);
-#pragma warning disable CS4014
-                        Task.Run(
-                            () => ProcessMessage(msg, linkedToken.Token).ContinueWith(t =>
-                            {
-                                _maxConcurrent.Release();
-                                messageExpiration.Dispose();
-                                linkedToken.Dispose();
+                    var messageExpiration = new CancellationTokenSource(Settings.MessageLockTimeout);
+                    var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(messageExpiration.Token, cancellationToken);
+                    await _maxConcurrent.WaitAsync(linkedToken.Token);
+                    var msg = subscription.NextMessage();
 
-                            }, CancellationToken.None).ConfigureAwait(false), linkedToken.Token);
-                    }
+#pragma warning disable CS4014
+                    Task.Run(
+                        () => ProcessMessage(msg, linkedToken.Token).ContinueWith(t =>
+                        {
+                            _maxConcurrent.Release();
+                            messageExpiration.Dispose();
+                            linkedToken.Dispose();
+
+                        }, CancellationToken.None).ConfigureAwait(false), linkedToken.Token);
+
                 }
                 catch (Exception e)
                 {

@@ -20,6 +20,7 @@ public class CommandProcessor : IProcessCommand<JetStreamCommand, JetStreamSetti
         try
         {
             Console.WriteLine(message.Message);
+            if (message.Throw) throw new Exception("kaboom");
             _executionCounter.Increment();
             return Task.CompletedTask;
         }
