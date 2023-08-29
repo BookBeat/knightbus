@@ -21,7 +21,7 @@ namespace KnightBus.Core.Tests.Unit
             var partitionKey = "a";
             var id = "b";
             var sagaStore = new Mock<ISagaStore>();
-            sagaStore.Setup(x => x.Create(partitionKey, id, It.IsAny<SagaData>(), TimeSpan.FromHours(1))).ThrowsAsync(new SagaAlreadyStartedException(partitionKey, id));
+            sagaStore.Setup(x => x.Create(partitionKey, id, It.IsAny<SagaData>(), TimeSpan.FromHours(1), CancellationToken.None)).ThrowsAsync(new SagaAlreadyStartedException(partitionKey, id));
 
             var di = new Mock<IDependencyInjection>();
             di.Setup(x => x.GetInstance<object>(typeof(IProcessCommand<SagaStartMessage, Settings>))).Returns(new Saga());
@@ -51,7 +51,7 @@ namespace KnightBus.Core.Tests.Unit
             var partitionKey = "a";
             var id = "b";
             var sagaStore = new Mock<ISagaStore>();
-            sagaStore.Setup(x => x.Create<SagaData>(partitionKey, id, It.IsAny<SagaData>(), TimeSpan.FromHours(1))).ThrowsAsync(new SagaAlreadyStartedException(partitionKey, id));
+            sagaStore.Setup(x => x.Create<SagaData>(partitionKey, id, It.IsAny<SagaData>(), TimeSpan.FromHours(1), CancellationToken.None)).ThrowsAsync(new SagaAlreadyStartedException(partitionKey, id));
 
             var di = new Mock<IDependencyInjection>();
             var countable = new Mock<ICountable>();
@@ -83,7 +83,7 @@ namespace KnightBus.Core.Tests.Unit
             var partitionKey = "a";
             var id = "b";
             var sagaStore = new Mock<ISagaStore>();
-            sagaStore.Setup(x => x.Create<SagaData>(partitionKey, id, It.IsAny<SagaData>(), TimeSpan.FromHours(1))).ThrowsAsync(new SagaAlreadyStartedException(partitionKey, id));
+            sagaStore.Setup(x => x.Create<SagaData>(partitionKey, id, It.IsAny<SagaData>(), TimeSpan.FromHours(1), CancellationToken.None)).ThrowsAsync(new SagaAlreadyStartedException(partitionKey, id));
 
             var di = new Mock<IDependencyInjection>();
             var countable = new Mock<ICountable>();
@@ -118,7 +118,7 @@ namespace KnightBus.Core.Tests.Unit
             var partitionKey = "a";
             var id = "b";
             var sagaStore = new Mock<ISagaStore>();
-            sagaStore.Setup(x => x.Create(partitionKey, id, It.IsAny<SagaData>(), TimeSpan.FromHours(1))).ReturnsAsync(new SagaData { Data = "loaded" });
+            sagaStore.Setup(x => x.Create(partitionKey, id, It.IsAny<SagaData>(), TimeSpan.FromHours(1), CancellationToken.None)).ReturnsAsync(new SagaData<SagaData> { Data = new SagaData { Data = "loaded" }});
 
             var saga = new Saga();
 

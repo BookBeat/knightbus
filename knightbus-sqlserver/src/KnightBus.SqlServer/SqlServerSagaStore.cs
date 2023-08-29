@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Data;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core.Sagas;
 using KnightBus.Core.Sagas.Exceptions;
@@ -55,7 +56,7 @@ namespace KnightBus.SqlServer
             await command.ExecuteNonQueryAsync();
         }
 
-        public async Task<T> GetSaga<T>(string partitionKey, string id)
+        public async Task<SagaData<T>> GetSaga<T>(string partitionKey, string id, CancellationToken ct)
         {
             using (var connection = await GetConnection().ConfigureAwait(false))
             {
@@ -63,23 +64,23 @@ namespace KnightBus.SqlServer
                 var command = GetCommandWithParameters(sql, connection, partitionKey, id);
                 try
                 {
-                    var result = await command.ExecuteReaderAsync(CommandBehavior.SingleResult).ConfigureAwait(false);
+                    var result = await command.ExecuteReaderAsync(CommandBehavior.SingleResult, ct).ConfigureAwait(false);
 
                     if (!result.HasRows) throw new SagaNotFoundException(partitionKey, id);
 
                     await result.ReadAsync().ConfigureAwait(false);
                     var json = result.GetString(0);
-                    return JsonSerializer.Deserialize<T>(json);
+                    return new SagaData<T> { Data = JsonSerializer.Deserialize<T>(json) };
                 }
                 catch (SqlException e) when (e.Number == 208)
                 {
                     await CreateSagaTable(connection);
-                    return await GetSaga<T>(partitionKey, id).ConfigureAwait(false);
+                    return await GetSaga<T>(partitionKey, id, ct).ConfigureAwait(false);
                 }
             }
         }
 
-        public async Task<T> Create<T>(string partitionKey, string id, T sagaData, TimeSpan ttl)
+        public async Task<SagaData<T>> Create<T>(string partitionKey, string id, T sagaData, TimeSpan ttl, CancellationToken ct)
         {
             var json = JsonSerializer.Serialize(sagaData);
             using (var connection = await GetConnection().ConfigureAwait(false))
@@ -102,12 +103,12 @@ INSERT INTO {_schema}.{_tableName} (PartitionKey, Id, Json, Expiration) VALUES (
                 command.Parameters.AddWithValue("@Expiration", DateTime.UtcNow.Add(ttl));
                 try
                 {
-                    await command.ExecuteNonQueryAsync();
+                    await command.ExecuteNonQueryAsync(ct);
                 }
                 catch (SqlException e) when (e.Number == 208)
                 {
                     await CreateSagaTable(connection);
-                    return await Create(partitionKey, id, sagaData, ttl).ConfigureAwait(false);
+                    return await Create(partitionKey, id, sagaData, ttl, ct).ConfigureAwait(false);
                 }
                 catch (SqlException e) when (e.Number == 2627)
                 {
@@ -115,12 +116,12 @@ INSERT INTO {_schema}.{_tableName} (PartitionKey, Id, Json, Expiration) VALUES (
                 }
             }
 
-            return sagaData;
+            return new SagaData<T> { Data = sagaData };
         }
 
-        public async Task Update<T>(string partitionKey, string id, T sagaData)
+        public async Task Update<T>(string partitionKey, string id, SagaData<T> sagaData, CancellationToken ct)
         {
-            var json = JsonSerializer.Serialize(sagaData);
+            var json = JsonSerializer.Serialize(sagaData.Data);
             using (var connection = await GetConnection().ConfigureAwait(false))
             {
                 var sql = $@"UPDATE {_schema}.{_tableName} SET Json = @Json WHERE PartitionKey = @PartitionKey AND Id = @Id";
@@ -128,18 +129,18 @@ INSERT INTO {_schema}.{_tableName} (PartitionKey, Id, Json, Expiration) VALUES (
                 command.Parameters.AddWithValue("@Json", json);
                 try
                 {
-                    var result = await command.ExecuteNonQueryAsync().ConfigureAwait(false);
+                    var result = await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
                     if (result == 0) throw new SagaNotFoundException(partitionKey, id);
                 }
                 catch (SqlException e) when (e.Number == 208)
                 {
                     await CreateSagaTable(connection);
-                    await Update(partitionKey, id, sagaData).ConfigureAwait(false);
+                    await Update(partitionKey, id, sagaData, ct).ConfigureAwait(false);
                 }
             }
         }
 
-        public async Task Complete(string partitionKey, string id)
+        public async Task Complete<T>(string partitionKey, string id, SagaData<T> sagaData, CancellationToken ct)
         {
             using (var connection = await GetConnection().ConfigureAwait(false))
             {
@@ -148,13 +149,33 @@ INSERT INTO {_schema}.{_tableName} (PartitionKey, Id, Json, Expiration) VALUES (
 
                 try
                 {
-                    var result = await command.ExecuteNonQueryAsync();
+                    var result = await command.ExecuteNonQueryAsync(ct);
                     if (result == 0) throw new SagaNotFoundException(partitionKey, id);
                 }
                 catch (SqlException e) when (e.Number == 208)
                 {
                     await CreateSagaTable(connection);
-                    await Complete(partitionKey, id).ConfigureAwait(false);
+                    await Complete(partitionKey, id, sagaData, ct).ConfigureAwait(false);
+                }
+            }
+        }
+
+        public async Task Delete(string partitionKey, string id, CancellationToken ct)
+        {
+            using (var connection = await GetConnection().ConfigureAwait(false))
+            {
+                var sql = $@"DELETE FROM {_schema}.{_tableName} WHERE PartitionKey = @PartitionKey AND Id = @Id";
+                var command = GetCommandWithParameters(sql, connection, partitionKey, id);
+
+                try
+                {
+                    var result = await command.ExecuteNonQueryAsync(ct);
+                    if (result == 0) throw new SagaNotFoundException(partitionKey, id);
+                }
+                catch (SqlException e) when (e.Number == 208)
+                {
+                    await CreateSagaTable(connection);
+                    await Delete(partitionKey, id, ct).ConfigureAwait(false);
                 }
             }
         }

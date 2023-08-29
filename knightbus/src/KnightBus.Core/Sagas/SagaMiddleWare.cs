@@ -32,7 +32,7 @@ namespace KnightBus.Core.Sagas
                 var sagaHandler = (ISagaHandler)Activator.CreateInstance(sagaHandlerType, _sagaStore, processor, message);
                 try
                 {
-                    await sagaHandler.Initialize().ConfigureAwait(false);
+                    await sagaHandler.Initialize(cancellationToken).ConfigureAwait(false);
                 }
                 catch (SagaAlreadyStartedException e)
                 {
@@ -59,7 +59,7 @@ namespace KnightBus.Core.Sagas
                     if (saga.MessageMapper.IsStartMessage(typeof(T)))
                     {
                         //If we have started a saga but the start message fails then we must make sure the message can be retried
-                        await _sagaStore.Complete(saga.PartitionKey, saga.Id).ConfigureAwait(false);
+                        await _sagaStore.Delete(saga.PartitionKey, saga.Id, cancellationToken).ConfigureAwait(false);
                     }
                     throw;
                 }

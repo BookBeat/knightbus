@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using KnightBus.Core.Sagas;
@@ -21,9 +22,9 @@ namespace KnightBus.Core.Tests.Unit
             var startMessage = new TestSagaStartMessage(id);
             var handler = new SagaHandler<TestSagaData, TestSagaStartMessage>(store.Object, saga, startMessage);
             //act
-            await handler.Initialize();
+            await handler.Initialize(CancellationToken.None);
             //assert
-            store.Verify(x => x.Create(saga.PartitionKey, id, It.IsAny<TestSagaData>(), TimeSpan.FromHours(1)), Times.Once);
+            store.Verify(x => x.Create(saga.PartitionKey, id, It.IsAny<TestSagaData>(), TimeSpan.FromHours(1), CancellationToken.None), Times.Once);
         }
 
         [Test]
@@ -37,9 +38,9 @@ namespace KnightBus.Core.Tests.Unit
             var handler = new SagaHandler<TestSagaData, TestSagaMessage>(store.Object, saga, startMessage);
             saga.MessageMapper.MapMessage<TestSagaMessage>(x => x.MessageId);
             //act
-            await handler.Initialize();
+            await handler.Initialize(CancellationToken.None);
             //assert
-            store.Verify(x => x.GetSaga<TestSagaData>(saga.PartitionKey, id), Times.Once);
+            store.Verify(x => x.GetSaga<TestSagaData>(saga.PartitionKey, id, CancellationToken.None), Times.Once);
         }
 
         [Test]
@@ -53,7 +54,7 @@ namespace KnightBus.Core.Tests.Unit
             var handler = new SagaHandler<TestSagaData, TestSagaMessage>(store.Object, saga, startMessage);
             //act & assert
             await handler
-                .Awaiting(x => x.Initialize())
+                .Awaiting(x => x.Initialize(CancellationToken.None))
                 .Should()
                 .ThrowAsync<SagaMessageMappingNotFoundException>();
         }

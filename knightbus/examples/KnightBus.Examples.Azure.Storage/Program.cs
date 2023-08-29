@@ -138,12 +138,12 @@ namespace KnightBus.Examples.Azure.Storage
                 if (Data.Counter == 5)
                 {
                     Console.WriteLine("Finishing Saga");
-                    await CompleteAsync();
+                    await CompleteAsync(CancellationToken.None);
                     return;
                 }
 
                 Data.Counter++;
-                await UpdateAsync();
+                await UpdateAsync(CancellationToken.None);
                 await _storageBus.SendAsync(new SampleSagaMessage());
             }
         }

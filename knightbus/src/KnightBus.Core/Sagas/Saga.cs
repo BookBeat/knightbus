@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace KnightBus.Core.Sagas
@@ -20,7 +21,8 @@ namespace KnightBus.Core.Sagas
         /// <summary>
         /// Stateful data associated with the Saga.
         /// </summary>
-        T Data { get; set; }
+        /// 
+        SagaData<T> SagaData { set; }
 
         ISagaStore SagaStore { set; }
 
@@ -28,33 +30,46 @@ namespace KnightBus.Core.Sagas
         /// <summary>
         /// Mark the Saga as completed.
         /// </summary>
-        Task CompleteAsync();
+        Task CompleteAsync(CancellationToken ct);
         /// <summary>
         /// Update the Saga Data.
         /// </summary>
-        Task UpdateAsync();
+        Task UpdateAsync(CancellationToken ct);
     }
-
+    public class SagaData<T>
+    {
+        public T Data { get; set; }
+        public string ConcurrencyStamp { get; set; }
+    }
     public abstract class Saga<T> : ISaga<T>
     {
         public abstract string PartitionKey { get; }
         public string Id { get; set; }
-        public T Data { get; set; }
+        public SagaData<T> SagaData { private get; set; }
+        public T Data
+        {
+            get
+            {
+                return SagaData.Data;
+            }
+            set
+            {
+                SagaData.Data = value;
+            }
+        }
         public ISagaMessageMapper MessageMapper { get; } = new SagaMessageMapper();
         public ISagaStore SagaStore { get; set; }
 
         public abstract TimeSpan TimeToLive { get; }
 
-        public virtual Task CompleteAsync()
+        public virtual Task CompleteAsync(CancellationToken ct)
         {
-            return SagaStore.Complete(PartitionKey, Id);
+            return SagaStore.Complete(PartitionKey, Id, SagaData, ct);
         }
 
-        public virtual Task UpdateAsync()
+        public virtual Task UpdateAsync(CancellationToken ct)
         {
-            return SagaStore.Update(PartitionKey, Id, Data);
+            return SagaStore.Update(PartitionKey, Id, SagaData, ct);
         }
-
-
     }
 }
