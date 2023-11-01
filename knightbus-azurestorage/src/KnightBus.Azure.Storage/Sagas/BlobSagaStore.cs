@@ -118,7 +118,7 @@ namespace KnightBus.Azure.Storage.Sagas
                 using (var stream = GetStream(sagaData.Data))
                 {
                     var properties = await blob.GetPropertiesAsync(cancellationToken: ct).ConfigureAwait(false);
-                    await blob.UploadAsync(stream, new BlobUploadOptions
+                    var response = await blob.UploadAsync(stream, new BlobUploadOptions
                     {
                         Metadata = properties.Value.Metadata,
                         Conditions = new AppendBlobRequestConditions
@@ -126,6 +126,7 @@ namespace KnightBus.Azure.Storage.Sagas
                             IfMatch = new ETag(sagaData.ConcurrencyStamp)
                         }
                     }, ct).ConfigureAwait(false);
+                    sagaData.ConcurrencyStamp = response.Value.ETag.ToString();
                 }
             }
             catch (RequestFailedException e) when (e.Status == 404)
