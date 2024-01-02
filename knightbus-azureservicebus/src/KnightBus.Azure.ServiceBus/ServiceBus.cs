@@ -178,6 +178,12 @@ namespace KnightBus.Azure.ServiceBus
                 }
             }
 
+            NewRelic.Api.Agent.NewRelic.GetAgent().CurrentTransaction.InsertDistributedTraceHeaders(message.ApplicationProperties,
+                ((carrier, key, value) =>
+                {
+                    carrier.Add(key, value);
+                }));
+
             return message;
         }
 

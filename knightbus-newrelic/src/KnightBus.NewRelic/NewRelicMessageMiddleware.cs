@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
@@ -22,6 +23,9 @@ namespace KnightBus.NewRelicMiddleware
             var messageName = typeof(T).FullName;
             NewRelic.Api.Agent.NewRelic.SetTransactionName("Message", messageName);
             var transaction = _agent.CurrentTransaction;
+            transaction.AcceptDistributedTraceHeaders(messageStateHandler.MessageProperties,
+                ((carrier, key) => carrier.TryGetValue(key, out var value) ? new[] { value } : null),
+                TransportType.AMQP);
             try
             {
                 await next.ProcessAsync(messageStateHandler, cancellationToken).ConfigureAwait(false);
