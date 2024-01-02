@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using KnightBus.Core.PreProcessors;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace KnightBus.Core.DistributedTracing
 {
@@ -10,6 +11,7 @@ namespace KnightBus.Core.DistributedTracing
         {
             services.AddScoped<IDistributedTracingProvider, T>();
             services.AddMiddleware<DistributedTracingMiddleware>();
+            services.AddScoped<IMessagePreProcessor, DistributedTracingPreProcessor>();
             return services;
         }
     }

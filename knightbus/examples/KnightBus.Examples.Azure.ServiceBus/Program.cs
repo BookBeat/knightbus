@@ -1,10 +1,12 @@
 ﻿using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Azure.ServiceBus;
 using KnightBus.Azure.ServiceBus.Messages;
 using KnightBus.Core;
 using KnightBus.Core.DependencyInjection;
+using KnightBus.Core.PreProcessors;
 using KnightBus.Host;
 using KnightBus.Messages;
 using KnightBus.ProtobufNet;
@@ -39,8 +41,9 @@ namespace KnightBus.Examples.Azure.ServiceBus
 
             //Initiate the client
             var protoClient = new KnightBus.Azure.ServiceBus.ServiceBus(new ServiceBusConfiguration(serviceBusConnection)
-            { MessageSerializer = new ProtobufNetSerializer() });
-            var jsonClient = new KnightBus.Azure.ServiceBus.ServiceBus(new ServiceBusConfiguration(serviceBusConnection));
+            { MessageSerializer = new ProtobufNetSerializer() }, new ClientFactory(new ServiceBusConfiguration(serviceBusConnection)), Enumerable.Empty<IMessagePreProcessor>());
+            var jsonClient = new KnightBus.Azure.ServiceBus.ServiceBus(new ServiceBusConfiguration(serviceBusConnection), new ClientFactory(new ServiceBusConfiguration(serviceBusConnection)),
+                Enumerable.Empty<IMessagePreProcessor>());
             //Send some Messages and watch them print in the console
             for (var i = 0; i < 10; i++)
             {

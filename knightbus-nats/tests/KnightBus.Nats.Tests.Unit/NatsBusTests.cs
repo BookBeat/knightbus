@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
+using KnightBus.Core.PreProcessors;
 using Moq;
 using NATS.Client;
 using NUnit.Framework;
@@ -25,7 +26,7 @@ namespace KnightBus.Nats.Tests.Unit
         {
             //arrange
 
-            var bus = new NatsBus(_factory.Object, new NatsConfiguration());
+            var bus = new NatsBus(_factory.Object, new NatsConfiguration(), Enumerable.Empty<IMessagePreProcessor>());
             //act 
             bus.Send(new TestNatsCommand());
             //assert
@@ -36,7 +37,7 @@ namespace KnightBus.Nats.Tests.Unit
         public void When_publish_should_publish_message()
         {
             //arrange
-            var bus = new NatsBus(_factory.Object, new NatsConfiguration());
+            var bus = new NatsBus(_factory.Object, new NatsConfiguration(), Enumerable.Empty<IMessagePreProcessor>());
             //act 
             bus.Publish(new TestNatsEvent());
             //assert
@@ -52,7 +53,7 @@ namespace KnightBus.Nats.Tests.Unit
             _connection.Setup(x =>
                     x.RequestAsync("requestName", It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(() => new Msg("reply", config.MessageSerializer.Serialize(new TestNatsResponse())));
-            var bus = new NatsBus(_factory.Object, config);
+            var bus = new NatsBus(_factory.Object, config, Enumerable.Empty<IMessagePreProcessor>());
             //act 
             var response = await bus.RequestAsync<TestNatsRequest, TestNatsResponse>(new TestNatsRequest());
             //assert
@@ -72,7 +73,7 @@ namespace KnightBus.Nats.Tests.Unit
 
 
             _connection.Setup(x => x.SubscribeSync(It.IsAny<string>())).Returns(sub.Object);
-            var bus = new NatsBus(_factory.Object, new NatsConfiguration());
+            var bus = new NatsBus(_factory.Object, new NatsConfiguration(), Enumerable.Empty<IMessagePreProcessor>());
             //act 
             var response = bus.RequestStream<TestNatsRequest, TestNatsResponse>(new TestNatsRequest());
 
@@ -93,7 +94,7 @@ namespace KnightBus.Nats.Tests.Unit
 
 
             _connection.Setup(x => x.SubscribeSync(It.IsAny<string>())).Returns(sub.Object);
-            var bus = new NatsBus(_factory.Object, new NatsConfiguration());
+            var bus = new NatsBus(_factory.Object, new NatsConfiguration(), Enumerable.Empty<IMessagePreProcessor>());
             //act 
             var response = bus.RequestStream<TestNatsRequest, TestNatsResponse>(new TestNatsRequest());
 
