@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Azure.Messaging.ServiceBus;
 using KnightBus.Azure.ServiceBus.Messages;
 using KnightBus.Core;
+using KnightBus.Core.DistributedTracing;
 using KnightBus.Core.Exceptions;
 using KnightBus.Messages;
 
@@ -47,16 +48,18 @@ namespace KnightBus.Azure.ServiceBus
     public class ServiceBus : IServiceBus
     {
         private readonly IServiceBusConfiguration _configuration;
-        private IMessageAttachmentProvider _attachmentProvider;
+        private readonly IMessageAttachmentProvider _attachmentProvider;
+        private readonly IDistributedTracingProvider _distributedTracingProvider;
         private readonly ConcurrentDictionary<Type, IMessageSerializer> _serializers;
 
         internal IClientFactory ClientFactory { get; set; }
 
-        public ServiceBus(IServiceBusConfiguration config, IMessageAttachmentProvider attachmentProvider = null)
+        public ServiceBus(IServiceBusConfiguration config, IMessageAttachmentProvider attachmentProvider = null, IDistributedTracingProvider distributedTracingProvider = null)
         {
             ClientFactory = new ClientFactory(config.ConnectionString);
             _configuration = config;
             _attachmentProvider = attachmentProvider;
+            _distributedTracingProvider = distributedTracingProvider;
             _serializers = new ConcurrentDictionary<Type, IMessageSerializer>();
         }
 
@@ -176,6 +179,11 @@ namespace KnightBus.Azure.ServiceBus
                     attachmentIds.Add(id);
                     message.ApplicationProperties[AttachmentUtility.AttachmentKey] = string.Join(",", attachmentIds);
                 }
+            }
+
+            if (_distributedTracingProvider != null)
+            {
+                message.ApplicationProperties[DistributedTracingUtility.TraceIdKey] = _distributedTracingProvider.Get();
             }
 
             return message;

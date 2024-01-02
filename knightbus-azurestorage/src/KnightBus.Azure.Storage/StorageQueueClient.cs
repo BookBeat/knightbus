@@ -9,6 +9,8 @@ using Azure.Storage.Blobs;
 using Azure.Storage.Queues;
 using KnightBus.Azure.Storage.Messages;
 using KnightBus.Core;
+using KnightBus.Core.DefaultMiddlewares;
+using KnightBus.Core.DistributedTracing;
 using KnightBus.Core.Exceptions;
 using KnightBus.Messages;
 
@@ -39,11 +41,13 @@ namespace KnightBus.Azure.Storage
         private readonly QueueClient _queue;
         private readonly QueueClient _dlQueue;
         private readonly BlobContainerClient _container;
+        private readonly IDistributedTracingProvider _distributedTracingProvider;
 
-        public StorageQueueClient(IStorageBusConfiguration configuration, IMessageSerializer serializer, IMessageAttachmentProvider attachmentProvider, string queueName)
+        public StorageQueueClient(IStorageBusConfiguration configuration, IMessageSerializer serializer, IMessageAttachmentProvider attachmentProvider, IDistributedTracingProvider distributedTracingProvider, string queueName)
         {
             _attachmentProvider = attachmentProvider;
             _queueName = queueName;
+            _distributedTracingProvider = distributedTracingProvider;
             _serializer = serializer;
 
             //QueueMessageEncoding.Base64 required for backwards compability with v11 storage clients
@@ -108,6 +112,11 @@ namespace KnightBus.Azure.Storage
                     attachmentIds.Add(attachmentId);
                     storageMessage.Properties[AttachmentUtility.AttachmentKey] = string.Join(",", attachmentIds);
                 }
+            }
+
+            if (_distributedTracingProvider != null)
+            {
+                storageMessage.Properties[DistributedTracingUtility.TraceIdKey] = _distributedTracingProvider.Get();
             }
 
             try

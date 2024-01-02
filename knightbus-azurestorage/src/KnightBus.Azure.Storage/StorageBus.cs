@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Azure.Storage.Messages;
 using KnightBus.Core;
+using KnightBus.Core.DistributedTracing;
 using KnightBus.Messages;
 
 namespace KnightBus.Azure.Storage
@@ -19,11 +20,13 @@ namespace KnightBus.Azure.Storage
         private readonly IStorageBusConfiguration _options;
         private readonly ConcurrentDictionary<Type, IStorageQueueClient> _queueClients = new ConcurrentDictionary<Type, IStorageQueueClient>();
         private readonly IMessageAttachmentProvider _attachmentProvider;
+        private readonly IDistributedTracingProvider _distributedTracingProvider;
 
-        public StorageBus(IStorageBusConfiguration options, IMessageAttachmentProvider attachmentProvider = null)
+        public StorageBus(IStorageBusConfiguration options, IMessageAttachmentProvider attachmentProvider = null, IDistributedTracingProvider distributedTracingProvider = null)
         {
             _options = options;
             _attachmentProvider = attachmentProvider;
+            _distributedTracingProvider = distributedTracingProvider;
         }
 
         private IStorageQueueClient GetClient<T>() where T : class, ICommand
@@ -33,7 +36,7 @@ namespace KnightBus.Azure.Storage
                 var serializer = _options.MessageSerializer;
                 var mapping = AutoMessageMapper.GetMapping<T>();
                 if (mapping is ICustomMessageSerializer customSerializer) serializer = customSerializer.MessageSerializer;
-                return new StorageQueueClient(_options, serializer, _attachmentProvider, AutoMessageMapper.GetQueueName<T>());
+                return new StorageQueueClient(_options, serializer, _attachmentProvider, _distributedTracingProvider, AutoMessageMapper.GetQueueName<T>());
             });
         }
 

@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Azure.Storage.Messages;
 using KnightBus.Core;
+using KnightBus.Core.DistributedTracing;
 using KnightBus.Messages;
 using KnightBus.Newtonsoft;
 using Microsoft.Extensions.Logging;
@@ -23,6 +24,7 @@ namespace KnightBus.Azure.Storage.Tests.Integration
                 new StorageBusConfiguration("UseDevelopmentStorage=true"),
                 new NewtonsoftSerializer(),
                 new BlobStorageMessageAttachmentProvider("UseDevelopmentStorage=true"),
+                null,
                 $"{GetType().Name}-{DateTime.UtcNow.Ticks}".ToLower());
             var settings = new TestMessageSettings();
             var log = new Mock<ILogger>();
