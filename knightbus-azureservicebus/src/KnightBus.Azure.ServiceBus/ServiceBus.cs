@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Azure.Messaging.ServiceBus;
 using KnightBus.Azure.ServiceBus.Messages;
 using KnightBus.Core;
-using KnightBus.Core.Exceptions;
+using KnightBus.Core.PreProcessors;
 using KnightBus.Messages;
 
 namespace KnightBus.Azure.ServiceBus
@@ -47,34 +47,33 @@ namespace KnightBus.Azure.ServiceBus
     public class ServiceBus : IServiceBus
     {
         private readonly IServiceBusConfiguration _configuration;
-        private IMessageAttachmentProvider _attachmentProvider;
+        private readonly IClientFactory _clientFactory;
         private readonly ConcurrentDictionary<Type, IMessageSerializer> _serializers;
+        private readonly IEnumerable<IMessagePreProcessor> _messagePreProcessors;
 
-        internal IClientFactory ClientFactory { get; set; }
-
-        public ServiceBus(IServiceBusConfiguration config, IMessageAttachmentProvider attachmentProvider = null)
+        public ServiceBus(IServiceBusConfiguration config, IClientFactory clientFactory, IEnumerable<IMessagePreProcessor> messagePreProcessors)
         {
-            ClientFactory = new ClientFactory(config.ConnectionString);
             _configuration = config;
-            _attachmentProvider = attachmentProvider;
+            _clientFactory = clientFactory;
+            _messagePreProcessors = messagePreProcessors;
             _serializers = new ConcurrentDictionary<Type, IMessageSerializer>();
         }
 
         public async Task SendAsync<T>(T message, CancellationToken cancellationToken = default) where T : IServiceBusCommand
         {
-            var client = await ClientFactory.GetSenderClient<T>().ConfigureAwait(false);
-            var sbMessage = await CreateMessageAsync(message).ConfigureAwait(false);
+            var client = await _clientFactory.GetSenderClient<T>().ConfigureAwait(false);
+            var sbMessage = await CreateMessageAsync(message, cancellationToken).ConfigureAwait(false);
 
             await SendAsync(client, sbMessage, cancellationToken).ConfigureAwait(false);
         }
 
         public async Task SendAsync<T>(IEnumerable<T> messages, CancellationToken cancellationToken = default) where T : IServiceBusCommand
         {
-            var client = await ClientFactory.GetSenderClient<T>().ConfigureAwait(false);
+            var client = await _clientFactory.GetSenderClient<T>().ConfigureAwait(false);
             var sbMessages = new Queue<ServiceBusMessage>();
             foreach (var message in messages)
             {
-                sbMessages.Enqueue(await CreateMessageAsync(message).ConfigureAwait(false));
+                sbMessages.Enqueue(await CreateMessageAsync(message, cancellationToken).ConfigureAwait(false));
             }
 
             await SendAsync(client, sbMessages, cancellationToken).ConfigureAwait(false);
@@ -82,8 +81,8 @@ namespace KnightBus.Azure.ServiceBus
 
         public async Task ScheduleAsync<T>(T message, TimeSpan span, CancellationToken cancellationToken = default) where T : IServiceBusCommand
         {
-            var client = await ClientFactory.GetSenderClient<T>().ConfigureAwait(false);
-            var sbMessage = await CreateMessageAsync(message).ConfigureAwait(false);
+            var client = await _clientFactory.GetSenderClient<T>().ConfigureAwait(false);
+            var sbMessage = await CreateMessageAsync(message, cancellationToken).ConfigureAwait(false);
             sbMessage.ScheduledEnqueueTime = DateTime.UtcNow.Add(span);
 
             await SendAsync(client, sbMessage, cancellationToken).ConfigureAwait(false);
@@ -91,11 +90,11 @@ namespace KnightBus.Azure.ServiceBus
 
         public async Task ScheduleAsync<T>(IEnumerable<T> messages, TimeSpan span, CancellationToken cancellationToken = default) where T : IServiceBusCommand
         {
-            var client = await ClientFactory.GetSenderClient<T>().ConfigureAwait(false);
+            var client = await _clientFactory.GetSenderClient<T>().ConfigureAwait(false);
             var sbMessages = new Queue<ServiceBusMessage>();
             foreach (var message in messages)
             {
-                var msg = await CreateMessageAsync(message).ConfigureAwait(false);
+                var msg = await CreateMessageAsync(message, cancellationToken).ConfigureAwait(false);
                 msg.ScheduledEnqueueTime = DateTime.UtcNow.Add(span);
                 sbMessages.Enqueue(msg);
             }
@@ -105,19 +104,19 @@ namespace KnightBus.Azure.ServiceBus
 
         public async Task PublishEventAsync<T>(T message, CancellationToken cancellationToken = default) where T : IServiceBusEvent
         {
-            var client = await ClientFactory.GetSenderClient<T>().ConfigureAwait(false);
-            var brokeredMessage = await CreateMessageAsync(message).ConfigureAwait(false);
+            var client = await _clientFactory.GetSenderClient<T>().ConfigureAwait(false);
+            var brokeredMessage = await CreateMessageAsync(message, cancellationToken).ConfigureAwait(false);
 
             await SendAsync(client, brokeredMessage, cancellationToken).ConfigureAwait(false);
         }
 
         public async Task PublishEventsAsync<T>(IEnumerable<T> messages, CancellationToken cancellationToken = default) where T : IServiceBusEvent
         {
-            var client = await ClientFactory.GetSenderClient<T>().ConfigureAwait(false);
+            var client = await _clientFactory.GetSenderClient<T>().ConfigureAwait(false);
             var sbMessages = new Queue<ServiceBusMessage>();
             foreach (var message in messages)
             {
-                sbMessages.Enqueue(await CreateMessageAsync(message).ConfigureAwait(false));
+                sbMessages.Enqueue(await CreateMessageAsync(message, cancellationToken).ConfigureAwait(false));
             }
 
             await SendAsync(client, sbMessages, cancellationToken).ConfigureAwait(false);
@@ -154,7 +153,7 @@ namespace KnightBus.Azure.ServiceBus
             }
         }
 
-        private async Task<ServiceBusMessage> CreateMessageAsync<T>(T body) where T : IMessage
+        private async Task<ServiceBusMessage> CreateMessageAsync<T>(T body, CancellationToken cancellationToken) where T : IMessage
         {
             var serializer = GetSerializer<T>();
             var message = new ServiceBusMessage(serializer.Serialize(body))
@@ -162,19 +161,12 @@ namespace KnightBus.Azure.ServiceBus
                 ContentType = serializer.ContentType
             };
 
-            if (typeof(ICommandWithAttachment).IsAssignableFrom(typeof(T)))
+            foreach (var preProcessor in _messagePreProcessors)
             {
-                if (_attachmentProvider == null) throw new AttachmentProviderMissingException();
-
-                var attachmentMessage = (ICommandWithAttachment)body;
-                if (attachmentMessage.Attachment != null)
+                var properties = await preProcessor.PreProcess(body, cancellationToken);
+                foreach (var property in properties)
                 {
-                    var attachmentIds = new List<string>();
-                    var id = Guid.NewGuid().ToString("N");
-                    var queueName = AutoMessageMapper.GetQueueName<T>();
-                    await _attachmentProvider.UploadAttachmentAsync(queueName, id, attachmentMessage.Attachment).ConfigureAwait(false);
-                    attachmentIds.Add(id);
-                    message.ApplicationProperties[AttachmentUtility.AttachmentKey] = string.Join(",", attachmentIds);
+                    message.ApplicationProperties[property.Key] = property.Value;
                 }
             }
 

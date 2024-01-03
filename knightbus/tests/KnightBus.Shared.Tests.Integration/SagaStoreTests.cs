@@ -146,7 +146,7 @@ namespace KnightBus.Shared.Tests.Integration
             var id = Guid.NewGuid().ToString("N");
             await SagaStore.Create(partitionKey, id, new Data { Message = "yo" }, TimeSpan.FromMinutes(1), CancellationToken.None);
             //act
-            await SagaStore.Update(partitionKey, id, new SagaData<Data> { Data = new Data { Message = "updated" }}, CancellationToken.None);
+            await SagaStore.Update(partitionKey, id, new SagaData<Data> { Data = new Data { Message = "updated" } }, CancellationToken.None);
             //assert
             var data = await SagaStore.GetSaga<Data>(partitionKey, id, CancellationToken.None);
             data.Data.Message.Should().Be("updated");

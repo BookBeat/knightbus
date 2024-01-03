@@ -1,5 +1,4 @@
-﻿using KnightBus.Core;
-using KnightBus.Shared.Tests.Integration;
+﻿using KnightBus.Shared.Tests.Integration;
 using NUnit.Framework;
 
 namespace KnightBus.Redis.Tests.Integration

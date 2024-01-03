@@ -64,6 +64,23 @@ To override for a specific Message set it on the message mapping.
         public IMessageSerializer MessageSerializer => new ProtobufNetSerializer();
     }
 
+Message pre processing
+-------------------
+
+KnightBus supports pre procsssing of messages before they are sent. You can register custom pre processors by using the interface IMessagePreProcessor.
+
+.. code-block:: c#
+    public class ExamplePreProcessor : IMessagePreProcessor
+    {
+        public ExamplePreProcessor(IDependency dependency) {}
+
+        public Task<IDictionary<string, object>> PreProcess<T>(T message, CancellationToken cancellationToken) where T : IMessage
+        {
+            // Add custom code
+            return Task.FromResult((IDictionary<string, object>)new Dictionary<string, object>());
+        }
+    }
+
 Message Attachments
 -------------------
 

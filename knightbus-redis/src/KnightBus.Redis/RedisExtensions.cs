@@ -1,6 +1,7 @@
 ﻿using System;
 using KnightBus.Core;
 using KnightBus.Core.DefaultMiddlewares;
+using KnightBus.Core.PreProcessors;
 using KnightBus.Core.Sagas;
 using Microsoft.Extensions.DependencyInjection;
 using StackExchange.Redis;
@@ -13,6 +14,7 @@ namespace KnightBus.Redis
         {
             services.AddSingleton<IMessageAttachmentProvider, RedisAttachmentProvider>();
             services.AddMiddleware<AttachmentMiddleware>();
+            services.AddSingleton<IMessagePreProcessor, AttachmentPreProcessor>();
             return services;
         }
 

@@ -8,8 +8,7 @@ using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Queues;
 using KnightBus.Azure.Storage.Messages;
-using KnightBus.Core;
-using KnightBus.Core.Exceptions;
+using KnightBus.Core.PreProcessors;
 using KnightBus.Messages;
 
 namespace KnightBus.Azure.Storage
@@ -33,23 +32,26 @@ namespace KnightBus.Azure.Storage
 
     public class StorageQueueClient : IStorageQueueClient
     {
-        private readonly string _queueName;
         private readonly IMessageSerializer _serializer;
-        private readonly IMessageAttachmentProvider _attachmentProvider;
         private readonly QueueClient _queue;
         private readonly QueueClient _dlQueue;
         private readonly BlobContainerClient _container;
+        private readonly IEnumerable<IMessagePreProcessor> _messagePreProcessors;
 
-        public StorageQueueClient(IStorageBusConfiguration configuration, IMessageSerializer serializer, IMessageAttachmentProvider attachmentProvider, string queueName)
+        public StorageQueueClient(
+            IStorageBusConfiguration configuration,
+            IMessageSerializer serializer,
+            IEnumerable<IMessagePreProcessor> messagePreProcessors,
+            string queueName
+            )
         {
-            _attachmentProvider = attachmentProvider;
-            _queueName = queueName;
             _serializer = serializer;
 
             //QueueMessageEncoding.Base64 required for backwards compability with v11 storage clients
             _queue = new QueueClient(configuration.ConnectionString, queueName, new QueueClientOptions { MessageEncoding = configuration.MessageEncoding });
             _dlQueue = new QueueClient(configuration.ConnectionString, GetDeadLetterName(queueName), new QueueClientOptions { MessageEncoding = configuration.MessageEncoding });
             _container = new BlobContainerClient(configuration.ConnectionString, queueName);
+            _messagePreProcessors = messagePreProcessors;
         }
 
         public static string GetDeadLetterName(string queueName)
@@ -95,18 +97,12 @@ namespace KnightBus.Azure.Storage
                 BlobMessageId = Guid.NewGuid().ToString()
             };
 
-            if (typeof(ICommandWithAttachment).IsAssignableFrom(typeof(T)))
+            foreach (var preProcessor in _messagePreProcessors)
             {
-                if (_attachmentProvider == null) throw new AttachmentProviderMissingException();
-
-                var attachmentMessage = (ICommandWithAttachment)message;
-                if (attachmentMessage.Attachment != null)
+                var properties = await preProcessor.PreProcess(message, cancellationToken);
+                foreach (var property in properties)
                 {
-                    var attachmentIds = new List<string>();
-                    var attachmentId = Guid.NewGuid().ToString("N");
-                    await _attachmentProvider.UploadAttachmentAsync(_queueName, attachmentId, attachmentMessage.Attachment, cancellationToken).ConfigureAwait(false);
-                    attachmentIds.Add(attachmentId);
-                    storageMessage.Properties[AttachmentUtility.AttachmentKey] = string.Join(",", attachmentIds);
+                    storageMessage.Properties[property.Key] = property.Value.ToString();
                 }
             }
 

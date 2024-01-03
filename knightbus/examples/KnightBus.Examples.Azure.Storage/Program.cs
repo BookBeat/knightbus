@@ -7,6 +7,7 @@ using KnightBus.Azure.Storage;
 using KnightBus.Azure.Storage.Messages;
 using KnightBus.Core;
 using KnightBus.Core.DependencyInjection;
+using KnightBus.Core.DistributedTracing;
 using KnightBus.Core.Sagas;
 using KnightBus.Host;
 using KnightBus.Messages;
@@ -36,7 +37,8 @@ namespace KnightBus.Examples.Azure.Storage
                         .UseBlobStorageAttachments()
                         .UseTransport<StorageTransport>()
                         //Enable Saga support using the table storage Saga store
-                        .UseBlobStorageSagas();
+                        .UseBlobStorageSagas()
+                        .UseDistributedTracing();
                 })
                 .UseKnightBus().Build();
 
@@ -97,12 +99,19 @@ namespace KnightBus.Examples.Azure.Storage
 
         class SampleStorageBusMessageProcessor : IProcessCommand<SampleStorageBusMessage, SomeProcessingSetting>
         {
+            private readonly IDistributedTracingProvider _distributedTracingProvider;
+
+            public SampleStorageBusMessageProcessor(IDistributedTracingProvider distributedTracingProvider)
+            {
+                _distributedTracingProvider = distributedTracingProvider;
+            }
             public Task ProcessAsync(SampleStorageBusMessage message, CancellationToken cancellationToken)
             {
                 using (var streamReader = new StreamReader(message.Attachment.Stream))
                 {
                     Console.WriteLine($"Received command: '{message.Message}'");
                     Console.WriteLine($"Attach file contents:'{streamReader.ReadToEnd()}'");
+                    Console.WriteLine($"Trace id: {_distributedTracingProvider.GetProperties()[DistributedTracingUtility.TraceIdKey]}");
                 }
 
                 return Task.CompletedTask;

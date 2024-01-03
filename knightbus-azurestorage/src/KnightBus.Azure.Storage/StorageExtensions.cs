@@ -3,6 +3,7 @@ using KnightBus.Azure.Storage.Sagas;
 using KnightBus.Azure.Storage.Singleton;
 using KnightBus.Core;
 using KnightBus.Core.DefaultMiddlewares;
+using KnightBus.Core.PreProcessors;
 using KnightBus.Core.Sagas;
 using KnightBus.Core.Singleton;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,6 +17,7 @@ namespace KnightBus.Azure.Storage
         {
             services.AddSingleton<IMessageAttachmentProvider, BlobStorageMessageAttachmentProvider>();
             services.AddMiddleware<AttachmentMiddleware>();
+            services.AddSingleton<IMessagePreProcessor, AttachmentPreProcessor>();
             return services;
         }
 
