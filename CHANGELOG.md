@@ -4,11 +4,13 @@
 * Added pre processors of messages before they are sent
 * Converter Attachments to using a pre processor
 * Added support for distributed tracing using a pre processor
+* Updated external dependencies
 ### KnightBus.Azure.ServiceBus 20.0.0
 ### KnightBus.Azure.Storage 15.0.0
 ### KnightBus.Nats 4.0.0
 ### KnightBus.Redis 11.0.0
 ### KnightBus.Core 15.1.0
+### KnightBus.NewRelic 10.0.0
 
 ## 2023-04-24
 

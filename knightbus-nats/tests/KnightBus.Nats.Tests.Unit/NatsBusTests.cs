@@ -18,7 +18,7 @@ namespace KnightBus.Nats.Tests.Unit
         [SetUp]
         public void Setup()
         {
-            _factory.Setup(c => c.CreateConnection(It.IsAny<Options>()))
+            _factory.Setup(c => c.CreateConnection(It.IsAny<Options>(), false))
                 .Returns(_connection.Object);
         }
         [Test]
