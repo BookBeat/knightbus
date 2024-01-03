@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -25,7 +25,7 @@ public class AttachmentPreProcessor : IMessagePreProcessor
                 var attachmentId = Guid.NewGuid().ToString("N");
                 await _messageAttachmentProvider.UploadAttachmentAsync(AutoMessageMapper.GetQueueName<T>(), attachmentId, attachmentMessage.Attachment, cancellationToken).ConfigureAwait(false);
                 attachmentIds.Add(attachmentId);
-                return new Dictionary<string, object>{ { AttachmentUtility.AttachmentKey, string.Join(",", attachmentIds) }};
+                return new Dictionary<string, object> { { AttachmentUtility.AttachmentKey, string.Join(",", attachmentIds) } };
             }
         }
         return new Dictionary<string, object>();

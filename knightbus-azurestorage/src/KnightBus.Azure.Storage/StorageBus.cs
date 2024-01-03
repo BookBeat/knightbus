@@ -5,7 +5,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Azure.Storage.Messages;
 using KnightBus.Core;
-using KnightBus.Core.DistributedTracing;
 using KnightBus.Core.PreProcessors;
 using KnightBus.Messages;
 

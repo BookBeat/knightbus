@@ -57,7 +57,7 @@ namespace KnightBus.Nats
                     msg.Header.Add(property.Key, property.Value.ToString());
                 }
             }
-            
+
             _connection.Publish(msg);
         }
 

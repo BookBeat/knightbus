@@ -8,10 +8,6 @@ using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Queues;
 using KnightBus.Azure.Storage.Messages;
-using KnightBus.Core;
-using KnightBus.Core.DefaultMiddlewares;
-using KnightBus.Core.DistributedTracing;
-using KnightBus.Core.Exceptions;
 using KnightBus.Core.PreProcessors;
 using KnightBus.Messages;
 

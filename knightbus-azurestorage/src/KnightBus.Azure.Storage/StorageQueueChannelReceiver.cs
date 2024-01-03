@@ -5,7 +5,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Azure.Storage.Messages;
 using KnightBus.Core;
-using KnightBus.Core.DistributedTracing;
 using KnightBus.Core.PreProcessors;
 using KnightBus.Messages;
 
@@ -47,7 +46,7 @@ namespace KnightBus.Azure.Storage
         private void Initialize()
         {
             var queueName = AutoMessageMapper.GetQueueName<T>();
-            _storageQueueClient = new StorageQueueClient(_storageOptions, _serializer, Enumerable.Empty<IMessagePreProcessor>(),  queueName);
+            _storageQueueClient = new StorageQueueClient(_storageOptions, _serializer, Enumerable.Empty<IMessagePreProcessor>(), queueName);
             _messagePump = new StorageQueueMessagePump(_storageQueueClient, Settings, _hostConfiguration.Log);
         }
 

@@ -1,4 +1,4 @@
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Messages;
 
@@ -12,7 +12,7 @@ public class DistributedTracingMiddleware : IMessageProcessorMiddleware
         var distributedTracingProvider = messageStateHandler.MessageScope.GetInstance<IDistributedTracingProvider>();
 
         distributedTracingProvider.Init(messageStateHandler.MessageProperties);
-        
+
         await next.ProcessAsync(messageStateHandler, cancellationToken).ConfigureAwait(false);
     }
 }

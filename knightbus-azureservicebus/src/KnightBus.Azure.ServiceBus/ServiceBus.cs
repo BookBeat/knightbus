@@ -6,8 +6,6 @@ using System.Threading.Tasks;
 using Azure.Messaging.ServiceBus;
 using KnightBus.Azure.ServiceBus.Messages;
 using KnightBus.Core;
-using KnightBus.Core.DistributedTracing;
-using KnightBus.Core.Exceptions;
 using KnightBus.Core.PreProcessors;
 using KnightBus.Messages;
 
