@@ -2,7 +2,6 @@
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
-using KnightBus.Core.DistributedTracing;
 using KnightBus.Messages;
 using NewRelic.Api.Agent;
 

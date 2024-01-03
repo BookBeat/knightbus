@@ -14,5 +14,10 @@ namespace KnightBus.Core.DistributedTracing
             services.AddScoped<IMessagePreProcessor, DistributedTracingPreProcessor>();
             return services;
         }
+
+        public static IServiceCollection UseDistributedTracing(this IServiceCollection services)
+        {
+            return services.UseDistributedTracing<DefaultDistributedTracingProvider>();
+        }
     }
 }
