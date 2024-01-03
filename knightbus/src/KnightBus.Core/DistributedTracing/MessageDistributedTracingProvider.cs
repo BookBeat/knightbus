@@ -1,19 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace KnightBus.Core.DistributedTracing;
 
 public class MessageDistributedTracingProvider : IDistributedTracingProvider
 {
-    private IDictionary<string, string> _messageProperties = new Dictionary<string, string>();
+    private IDictionary<string, string> _properties = new Dictionary<string, string>();
 
-    public void Init(IDictionary<string, string> messageProperties)
+    public void SetProperties(IDictionary<string, string> properties)
     {
-        _messageProperties = messageProperties;
+        _properties = properties;
     }
 
-    public string Get()
+    public IDictionary<string, string> GetProperties()
     {
-        return _messageProperties.TryGetValue(DistributedTracingUtility.TraceIdKey, out var traceId) ? traceId : Guid.NewGuid().ToString("N");
+        return _properties;
     }
 }

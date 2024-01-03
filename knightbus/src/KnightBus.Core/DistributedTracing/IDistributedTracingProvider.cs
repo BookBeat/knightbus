@@ -4,6 +4,6 @@ namespace KnightBus.Core.DistributedTracing;
 
 public interface IDistributedTracingProvider
 {
-    void Init(IDictionary<string, string> properties);
-    string Get();
+    public void SetProperties(IDictionary<string, string> properties);
+    public IDictionary<string, string> GetProperties();
 }

@@ -2,6 +2,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
+using KnightBus.Core.DistributedTracing;
 using KnightBus.Messages;
 using NewRelic.Api.Agent;
 
@@ -25,6 +26,9 @@ namespace KnightBus.NewRelicMiddleware
             try
             {
                 await next.ProcessAsync(messageStateHandler, cancellationToken).ConfigureAwait(false);
+
+                var tracingProvider = messageStateHandler.MessageScope.GetInstance<IDistributedTracingProvider>();
+                tracingProvider.SetProperties(messageStateHandler.MessageProperties);
 
                 // Add the message properties to the telemetry log
                 foreach (var property in messageStateHandler.MessageProperties)

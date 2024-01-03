@@ -10,8 +10,7 @@ public class DistributedTracingMiddleware : IMessageProcessorMiddleware
         IMessageProcessor next, CancellationToken cancellationToken) where T : class, IMessage
     {
         var distributedTracingProvider = messageStateHandler.MessageScope.GetInstance<IDistributedTracingProvider>();
-
-        distributedTracingProvider.Init(messageStateHandler.MessageProperties);
+        distributedTracingProvider.SetProperties(messageStateHandler.MessageProperties);
 
         await next.ProcessAsync(messageStateHandler, cancellationToken).ConfigureAwait(false);
     }
