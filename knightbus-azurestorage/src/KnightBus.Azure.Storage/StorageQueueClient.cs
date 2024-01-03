@@ -103,7 +103,11 @@ namespace KnightBus.Azure.Storage
 
             foreach (var preProcessor in _messagePreProcessors)
             {
-                await preProcessor.Process(message, (key, value) => storageMessage.Properties[key] = value, cancellationToken);
+                var properties = await preProcessor.PreProcess(message, cancellationToken);
+                foreach (var property in properties)
+                {
+                    storageMessage.Properties[property.Key] = property.Value.ToString();
+                }
             }
 
             try

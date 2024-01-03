@@ -13,8 +13,8 @@ public class AttachmentPreProcessor : IMessagePreProcessor
     {
         _messageAttachmentProvider = messageAttachmentProvider;
     }
-    
-    public async Task Process<T>(T message, Action<string, string> setter, CancellationToken cancellationToken) where T : IMessage
+
+    public async Task<IDictionary<string, object>> PreProcess<T>(T message, CancellationToken cancellationToken) where T : IMessage
     {
         if (typeof(ICommandWithAttachment).IsAssignableFrom(typeof(T)))
         {
@@ -25,8 +25,9 @@ public class AttachmentPreProcessor : IMessagePreProcessor
                 var attachmentId = Guid.NewGuid().ToString("N");
                 await _messageAttachmentProvider.UploadAttachmentAsync(AutoMessageMapper.GetQueueName<T>(), attachmentId, attachmentMessage.Attachment, cancellationToken).ConfigureAwait(false);
                 attachmentIds.Add(attachmentId);
-                setter(AttachmentUtility.AttachmentKey, string.Join(",", attachmentIds));
+                return new Dictionary<string, object>{ { AttachmentUtility.AttachmentKey, string.Join(",", attachmentIds) }};
             }
         }
+        return new Dictionary<string, object>();
     }
 }

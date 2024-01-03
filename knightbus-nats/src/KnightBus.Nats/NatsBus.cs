@@ -51,7 +51,11 @@ namespace KnightBus.Nats
 
             foreach (var preProcessor in _messagePreProcessors)
             {
-                await preProcessor.Process(message, (key, value) => msg.Header.Add(key, value), CancellationToken.None);
+                var properties = await preProcessor.PreProcess(message, cancellationToken);
+                foreach (var property in properties)
+                {
+                    msg.Header.Add(property.Key, property.Value.ToString());
+                }
             }
             
             _connection.Publish(msg);

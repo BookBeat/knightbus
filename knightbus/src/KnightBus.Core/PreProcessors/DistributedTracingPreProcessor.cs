@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core.DistributedTracing;
@@ -15,9 +16,9 @@ public class DistributedTracingPreProcessor : IMessagePreProcessor
         _distributedTracingProvider = distributedTracingProvider;
     }
     
-    public Task Process<T>(T message, Action<string, string> setter, CancellationToken cancellationToken) where T : IMessage
+    public Task<IDictionary<string, object>> PreProcess<T>(T message, CancellationToken cancellationToken) where T : IMessage
     {
-        setter(DistributedTracingUtility.TraceIdKey, _distributedTracingProvider.Get());
-        return Task.CompletedTask;
+        IDictionary<string, object> result = new Dictionary<string, object>{ { DistributedTracingUtility.TraceIdKey, _distributedTracingProvider.Get() }};
+        return Task.FromResult(result);
     }
 }

@@ -165,7 +165,11 @@ namespace KnightBus.Azure.ServiceBus
 
             foreach (var preProcessor in _messagePreProcessors)
             {
-                await preProcessor.Process(body, (key, value) => message.ApplicationProperties[key] = value, CancellationToken.None);
+                var properties = await preProcessor.PreProcess(body, cancellationToken);
+                foreach (var property in properties)
+                {
+                    message.ApplicationProperties[property.Key] = property.Value;
+                }
             }
 
             return message;

@@ -103,11 +103,11 @@ namespace KnightBus.Redis
         {
             foreach (var preProcessor in _messagePreProcessors)
             {
-                await preProcessor.Process(item.Body,
-                    async (key, value) =>
-                    {
-                        await db.HashSetAsync(RedisQueueConventions.GetMessageHashKey(queueName, item.Id), key, value);
-                    }, CancellationToken.None);
+                var properties = await preProcessor.PreProcess(item.Body, CancellationToken.None);
+                foreach (var property in properties)
+                {
+                    await db.HashSetAsync(RedisQueueConventions.GetMessageHashKey(queueName, item.Id), property.Key, property.Value.ToString());
+                }
             }
         }
 
