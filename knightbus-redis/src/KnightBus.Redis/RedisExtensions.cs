@@ -25,7 +25,7 @@ namespace KnightBus.Redis
             services.AddSingleton<IRedisConfiguration>(_ => redisConfiguration);
             services.AddSingleton<IConnectionMultiplexer>(provider =>
                 ConnectionMultiplexer.Connect(provider.GetRequiredService<IRedisConfiguration>().ConnectionString));
-            services.AddSingleton<IRedisBus, RedisBus>();
+            services.AddScoped<IRedisBus, RedisBus>();
             return services;
         }
 
