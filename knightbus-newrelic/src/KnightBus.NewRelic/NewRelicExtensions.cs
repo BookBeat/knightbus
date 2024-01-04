@@ -8,8 +8,8 @@ namespace KnightBus.NewRelicMiddleware
     {
         public static IServiceCollection UseNewRelic(this IServiceCollection services)
         {
-            services.UseDistributedTracing<NewRelicDistributedTracingProvider>();
             services.AddMiddleware<NewRelicMessageMiddleware>();
+            services.UseDistributedTracing<NewRelicDistributedTracingProvider>();
             return services;
         }
     }
