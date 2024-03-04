@@ -1,0 +1,65 @@
+﻿@using KnightBus.UI.Blazor.Providers
+@inject QueueService QueueService
+
+<MudNavMenu Bordered="true" Color="Color.Info">
+    <MudNavGroup Title="Service Bus">
+        @foreach (var node in _serviceBusNodes)
+        {
+            <MudNavGroup Title="@node.Label" Expanded="false">
+                @foreach (var child in node.QueueNodes)
+                {
+                    <MudNavGroup Title="@child.Label" Expanded="false">
+                        @foreach (var subChild in child.QueueNodes)
+                        {
+                            if (subChild.Properties.Type == QueueType.Topic)
+                            {
+                                <MudNavGroup Title="@subChild.Label" Expanded="false">
+                                    @foreach (var subscription in subChild.QueueNodes)
+                                    {
+                                        <MudNavLink Href="@subscription.Url" Match="NavLinkMatch.Prefix" IconColor="@GetIconColor(subscription)" Icon="@GetIcon(subscription)">@subscription.Label</MudNavLink>
+                                    }
+                                </MudNavGroup>
+                            }
+                            else
+                            {
+                                <MudNavLink Href="@subChild.Url" Match="NavLinkMatch.Prefix" IconColor="@GetIconColor(subChild)" Icon="@GetIcon(subChild)">@subChild.Label</MudNavLink>
+                            }
+                        }
+                    </MudNavGroup>
+                }
+            </MudNavGroup>
+        }
+    </MudNavGroup>
+</MudNavMenu>
+
+<MudNavMenu Bordered="true" Color="Color.Tertiary">
+    <MudNavGroup Title="Storage queues">
+        @foreach (var node in _storageQueueNodes)
+        {
+            <MudNavGroup Title="@node.Label" Expanded="false">
+                @foreach (var child in node.QueueNodes)
+                {
+                    <MudNavLink Href="@child.Url" Match="NavLinkMatch.Prefix" IconColor="@GetIconColor(child)" Icon="@GetIcon(child)">@child.Label</MudNavLink>
+                }
+            </MudNavGroup>
+        }
+    </MudNavGroup>
+</MudNavMenu>
+
+@code {
+    private IEnumerable<QueueNode> _serviceBusNodes = [];
+    private IEnumerable<QueueNode> _storageQueueNodes = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _serviceBusNodes = await QueueService.GetServiceBusNodes(default);
+        StateHasChanged();
+
+        _storageQueueNodes = await QueueService.GetStorageQueueNodes(default);
+
+        await base.OnInitializedAsync();
+    }
+
+    Color GetIconColor(QueueNode node) => node.DeadLetterMessageCount > 0 ? Color.Error : Color.Default;
+    string GetIcon(QueueNode node) => node.DeadLetterMessageCount > 0 ? Icons.Material.Filled.BugReport : node.Properties.Type == QueueType.Queue ? Icons.Material.Filled.Message : Icons.Material.Filled.Subscriptions;
+}

@@ -1,0 +1,88 @@
+﻿@using Environment = KnightBus.UI.Blazor.Environment
+@inherits LayoutComponentBase
+@inject EnvironmentService EnvironmentService;
+@inject NavigationManager NavManager
+
+<MudThemeProvider IsDarkMode="@DarkMode" Theme="_theme"/>
+<MudDialogProvider/>
+<MudSnackbarProvider/>
+
+<MudLayout>
+    <MudAppBar Elevation="0">
+        <MudLink Href="/">
+            <MudImage Src="/knightbus-logo.svg" Width="32"></MudImage>
+        </MudLink>
+        <MudSpacer/>
+        <MudStack Row="true">
+            <MudSelect T="Environment" FullWidth="false"
+                       Class="flex-fill"
+                       Margin="Margin.Dense"
+                       Value="@EnvironmentService.Get()"
+                       Adornment="Adornment.Start"
+                       ValueChanged="OnEnvChanged"
+                       AdornmentIcon="@Icons.Custom.Uncategorized.Radioactive"
+                       AdornmentColor="@GetEnvironmentColor()">
+                <MudSelectItem Value="@Environment.Dev">Development</MudSelectItem>
+                <MudSelectItem Value="@Environment.Test">Test</MudSelectItem>
+                <MudSelectItem Value="@Environment.Prod">Production</MudSelectItem>
+            </MudSelect>
+            <MudToggleIconButton
+                Edge="Edge.End"
+                @bind-Toggled="@DarkMode"
+                Icon="@Icons.Material.Filled.DarkMode"
+                ToggledIcon="@Icons.Material.Filled.LightMode"/>
+        </MudStack>
+    </MudAppBar>
+    <MudDrawer Open="true" ClipMode="DrawerClipMode.Docked" Width="350px">
+        <NavMenu/>
+    </MudDrawer>
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge">
+            @Body
+
+            <div id="blazor-error-ui">
+                An unhandled error has occurred.
+                <a href="" class="reload">Reload</a>
+                <a class="dismiss">🗙</a>
+            </div>
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+
+@code {
+    private bool DarkMode { get; set; } = true;
+
+    MudTheme _theme = new()
+    {
+        Typography = new Typography
+        {
+            Default = new Default
+            {
+                FontFamily = ["Inter", "BlinkMacSystemFont", "Helvetica", "Arial", "sans-serif"]
+            },
+            Button = new Button
+            {
+                TextTransform = "none"
+            }
+        }
+    };
+
+    private Color GetEnvironmentColor()
+    {
+        return EnvironmentService.Get() switch
+        {
+            Environment.Dev => Color.Primary,
+            Environment.Test => Color.Tertiary,
+            Environment.Prod => Color.Secondary,
+            _ => Color.Primary
+        };
+    }
+
+    private void OnEnvChanged(Environment environment)
+    {
+        EnvironmentService.Set(environment);
+        NavManager.NavigateTo("/", true);
+    }
+
+}

@@ -1,0 +1,49 @@
+@inject TopicsService TopicsService
+
+<MudDataGrid TItem="SubscriptionNode" Items="@_subscriptions" Groupable="true" Loading="_isLoading" GroupExpanded="true">
+    <Columns>
+        <PropertyColumn Property="p => p.Properties.Name" Filterable="true">
+            <CellTemplate>
+                <MudLink Href="@context.Item.Url" Class="text-break">@context.Item.Properties.Name</MudLink>
+            </CellTemplate>
+        </PropertyColumn>
+        <PropertyColumn Property="p => p.Topic" Grouping GroupBy="p => p.Topic">
+            <GroupTemplate>
+                @context.Grouping.Key
+            </GroupTemplate>
+        </PropertyColumn>
+        <PropertyColumn Property="p => p.DeadLetterMessageCount" Sortable="true">
+            <CellTemplate>
+                @if (context.Item.DeadLetterMessageCount > 0)
+                {
+                    <MudChip Variant="Variant.Text" Color="Color.Error">@context.Item.DeadLetterMessageCount</MudChip>
+                }
+                else
+                {
+                    <MudChip Variant="Variant.Text">@context.Item.DeadLetterMessageCount</MudChip>
+                }
+            </CellTemplate>
+        </PropertyColumn>
+        <PropertyColumn Property="p => p.Properties.ActiveMessageCount" Sortable="true"/>
+    </Columns>
+</MudDataGrid>
+
+@code {
+    private IEnumerable<SubscriptionNode> _subscriptions = [];
+    private bool _isLoading;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _isLoading = true;
+            StateHasChanged();
+
+            _subscriptions = await TopicsService.ListTopicSubscriptions(default);
+            _isLoading = false;
+            StateHasChanged();
+        }
+
+        await base.OnAfterRenderAsync(firstRender);
+    }
+}

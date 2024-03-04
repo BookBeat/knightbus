@@ -1,0 +1,21 @@
+﻿@page "/"
+
+<PageTitle>KnightBus UI</PageTitle>
+
+<MudText Typo="Typo.h4">KnightBus UI</MudText>
+
+<MudTabs Class="mt-5">
+    <MudTabPanel Text="Queues" Icon="@Icons.Material.Filled.Message">
+        <QueueList />
+    </MudTabPanel>
+    <MudTabPanel Text="Topics" Icon="@Icons.Material.Filled.Topic">
+        <TopicList />
+    </MudTabPanel>
+    <MudTabPanel Text="Storage queues" Icon="@Icons.Material.Filled.Storage">
+        <StorageQueueList />
+    </MudTabPanel>
+</MudTabs>
+
+@code {
+
+}

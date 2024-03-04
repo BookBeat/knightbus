@@ -1,0 +1,44 @@
+@inject QueueService QueueService
+
+<MudDataGrid TItem="QueueNode" Items="@_queues" Groupable="true" Loading="_isLoading">
+    <Columns>
+        <PropertyColumn Property="p => p.Properties.Name" Filterable="true">
+            <CellTemplate>
+                <MudLink Href="@context.Item.Url" Class="text-break">@context.Item.Properties.Name</MudLink>
+            </CellTemplate>
+        </PropertyColumn>
+        <PropertyColumn Property="p => p.Properties.QueueGroup"/>
+        <PropertyColumn Property="p => p.DeadLetterMessageCount" Sortable="true">
+            <CellTemplate>
+                @if (context.Item.DeadLetterMessageCount > 0)
+                {
+                    <MudChip Variant="Variant.Text" Color="Color.Error">@context.Item.DeadLetterMessageCount</MudChip>
+                }
+                else
+                {
+                    <MudChip Variant="Variant.Text">@context.Item.DeadLetterMessageCount</MudChip>
+                }
+            </CellTemplate>
+        </PropertyColumn>
+        <PropertyColumn Property="p => p.Properties.ActiveMessageCount" Sortable="true"/>
+    </Columns>
+</MudDataGrid>
+
+@code {
+    private IEnumerable<QueueNode> _queues = [];
+    private bool _isLoading = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if(firstRender)
+        {
+            _isLoading = true;
+            StateHasChanged();
+            _queues = await QueueService.GetServiceBusQueues(default);
+
+            _isLoading = false;
+            StateHasChanged();
+        }
+        await base.OnAfterRenderAsync(firstRender);
+    }
+}

@@ -1,0 +1,205 @@
+﻿@page "/topics/{topic}/{subscription}"
+@using KnightBus.UI.Blazor.Providers
+@using Variant = MudBlazor.Variant
+@inject TopicsService TopicsService
+
+@if (_isLoading)
+{
+    <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="50"/>
+    return;
+}
+<MudStack Class="mt-5 mb-5" Row="true" AlignItems="AlignItems.Center">
+    <MudIcon Icon="@Icons.Material.Filled.Topic" Size="Size.Large" Color="Color.Primary"/><MudText Typo="Typo.h4">@_queue.Topic / @_queue.Name</MudText>
+</MudStack>
+
+<MudTabs>
+    <MudTabPanel Text="Details">
+        <MudPaper Elevation="0" Class="p-2">
+            <dl class="row">
+                <dt class="col-sm-3">Provider name</dt>
+                <dd class="col-sm-9">@_queue.ProviderName</dd>
+
+                <dt class="col-sm-3">Name</dt>
+                <dd class="col-sm-9">@_queue.Name</dd>
+
+                <dt class="col-sm-3">Topic</dt>
+                <dd class="col-sm-9">@_queue.Topic</dd>
+
+                <dt class="col-sm-3">Type</dt>
+                <dd class="col-sm-9">@_queue.Type.ToString()</dd>
+
+                <dt class="col-sm-3">Total message count</dt>
+                <dd class="col-sm-9">@_queue.TotalMessageCount</dd>
+
+                <dt class="col-sm-3">Active message count</dt>
+                <dd class="col-sm-9">@_queue.ActiveMessageCount</dd>
+
+                <dt class="col-sm-3">Dead letter message count</dt>
+                <dd class="col-sm-9">@_queue.DeadLetterMessageCount</dd>
+
+                <dt class="col-sm-3">Scheduled message count</dt>
+                <dd class="col-sm-9">@_queue.ScheduledMessageCount</dd>
+            </dl>
+        </MudPaper>
+    </MudTabPanel>
+    <MudTabPanel Icon="@Icons.Material.Filled.BugReport" BadgeData="@_queue.DeadLetterMessageCount.ToString()" BadgeColor="Color.Error">
+        <MudStack Row="true" Class="p-2 pt-4 pb-4">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@OnShowPeekDeadLettersDialog">Peek</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="@OnShowReceiveDeadLettersDialog">Receive</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Warning" OnClick="@OnShowReSendDeadLettersDialog">Re-send dead letters</MudButton>
+        </MudStack>
+        <MudSpacer/>
+        <MudDataGrid TItem="QueueMessage" Items="@_deadLetterMessages" Loading="@_isLoadingDeadLetters">
+            <Columns>
+                <HierarchyColumn T="QueueMessage"/>
+                <PropertyColumn Property="p => p.MessageId"/>
+                <PropertyColumn Property="p => p.Time"/>
+                <PropertyColumn Property="p => p.DeliveryCount"/>
+            </Columns>
+            <ChildRowContent>
+                <MudTabs>
+                    <MudTabPanel Text="Message body">
+                        <MudTextField T="string" FullWidth="true" Variant="Variant.Outlined" Text="@context.Item.Body" Lines="10"/>
+                    </MudTabPanel>
+                    <MudTabPanel Text="Error">
+                        <MudPaper Outlined="true" Class="pa-4">
+                            <code style="word-wrap: break-word">
+                                @context.Item.Error
+                            </code>
+                        </MudPaper>
+                    </MudTabPanel>
+                </MudTabs>
+            </ChildRowContent>
+        </MudDataGrid>
+    </MudTabPanel>
+</MudTabs>
+
+<MudDialog @bind-IsVisible="_isDlPeekDialogVisible">
+    <TitleContent>
+        <MudText Typo="Typo.h5">Peek from start</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudNumericField Label="Count" T="int" Variant="Variant.Outlined" @bind-Value="_numberOfMessagesToPeek"/>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@OnPeekDeadLettersClick" Class="px-10">Peek</MudButton>
+    </DialogActions>
+</MudDialog>
+
+<MudDialog @bind-IsVisible="_isDlReceiveDialogVisible">
+    <TitleContent>
+        <MudText Typo="Typo.h5">Receive from start</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudNumericField Label="Count" T="int" Variant="Variant.Outlined" @bind-Value="_numberOfDeadLettersToReceive"/>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@OnReceiveDeadLettersClick" Class="px-10">Receive</MudButton>
+    </DialogActions>
+</MudDialog>
+
+<MudDialog @bind-IsVisible="_isDlReSendDialogVisible">
+    <TitleContent>
+        <MudText Typo="Typo.h5">Re-send dead letters</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudNumericField Label="Count" T="int" Variant="Variant.Outlined" @bind-Value="_numberOfDeadLettersToReSend"/>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@OnReSendDeadLetters" Class="px-10">Send</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+
+    [Parameter]
+    public string Topic { get; set; } = null!;
+
+    [Parameter]
+    public string Subscription { get; set; } = null!;
+
+    private SubscriptionQueueProperties _queue = null!;
+
+    private IReadOnlyCollection<QueueMessage> _deadLetterMessages = [];
+
+    private bool _isLoading;
+    private bool _isLoadingDeadLetters;
+    private bool _isDlPeekDialogVisible;
+    private int _numberOfMessagesToPeek = 10;
+
+    private bool _isDlReceiveDialogVisible;
+    private int _numberOfDeadLettersToReceive;
+
+    private bool _isDlReSendDialogVisible;
+    private int _numberOfDeadLettersToReSend = 1;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadQueue();
+    }
+
+    async Task LoadQueue()
+    {
+        _isLoading = true;
+        _queue = await TopicsService.GetSubscription(Topic, Subscription);
+        _isLoading = false;
+    }
+
+    async Task PeekDeadLetters(int count)
+    {
+        _isLoadingDeadLetters = true;
+        _deadLetterMessages = await TopicsService.PeekDeadLetter(
+            Topic,
+            Subscription,
+            count);
+        _isLoadingDeadLetters = false;
+    }
+
+    async Task ReceiveDeadLetters(int count)
+    {
+        _isLoadingDeadLetters = true;
+        _deadLetterMessages = await TopicsService.ReceiveDeadLetter(
+            Topic,
+            Subscription,
+            count);
+        await LoadQueue();
+        _isLoadingDeadLetters = false;
+    }
+
+    async Task ReSendDeadLetters(int count)
+    {
+        _isLoadingDeadLetters = true;
+        await TopicsService.MoveDeadLetters(
+            Topic,
+            Subscription,
+            count);
+        await LoadQueue();
+        _isLoadingDeadLetters = false;
+    }
+
+    private void OnShowPeekDeadLettersDialog() => _isDlPeekDialogVisible = true;
+    private void OnShowReceiveDeadLettersDialog() => _isDlReceiveDialogVisible = true;
+    private void OnShowReSendDeadLettersDialog() => _isDlReSendDialogVisible = true;
+
+    async Task OnReceiveDeadLettersClick()
+    {
+        await ReceiveDeadLetters(_numberOfDeadLettersToReceive);
+
+        _isDlReceiveDialogVisible = false;
+    }
+
+    async Task OnPeekDeadLettersClick()
+    {
+        await PeekDeadLetters(_numberOfMessagesToPeek);
+
+        _isDlPeekDialogVisible = false;
+    }
+
+    async Task OnReSendDeadLetters()
+    {
+        await ReSendDeadLetters(_numberOfDeadLettersToReSend);
+
+        _isDlReSendDialogVisible = false;
+    }
+
+}

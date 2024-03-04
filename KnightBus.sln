@@ -89,6 +89,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Nats.Messages", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.Nats.Tests.Unit", "knightbus-nats\tests\KnightBus.Nats.Tests.Unit\KnightBus.Nats.Tests.Unit.csproj", "{4E160CA8-3B3F-404B-ACE5-FA9B696BC921}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.UI.Blazor", "knightbus-ui-blazor\KnightBus.UI.Blazor\KnightBus.UI.Blazor.csproj", "{C171E64D-349B-43B8-B1A2-12DF37C50A96}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -227,6 +229,10 @@ Global
 		{4E160CA8-3B3F-404B-ACE5-FA9B696BC921}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4E160CA8-3B3F-404B-ACE5-FA9B696BC921}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4E160CA8-3B3F-404B-ACE5-FA9B696BC921}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C171E64D-349B-43B8-B1A2-12DF37C50A96}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C171E64D-349B-43B8-B1A2-12DF37C50A96}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C171E64D-349B-43B8-B1A2-12DF37C50A96}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C171E64D-349B-43B8-B1A2-12DF37C50A96}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
