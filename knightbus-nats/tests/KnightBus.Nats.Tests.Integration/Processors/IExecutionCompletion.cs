@@ -1,0 +1,40 @@
+﻿using System;
+using System.Collections.Concurrent;
+using System.Threading;
+
+namespace KnightBus.Nats.Tests.Integration.Processors;
+
+public interface IExecutionCompletion
+{
+    void Wait(TimeSpan timeout);
+    void Complete();
+    void Reset(int count = 1);
+}
+
+
+public class ExecutionCompletion : IExecutionCompletion
+{
+    private readonly CountdownEvent _event;
+
+
+    public ExecutionCompletion(int count = 1)
+    {
+
+        _event = new CountdownEvent(count);
+    }
+
+    public void Complete()
+    {
+        _event.Signal();
+    }
+
+    public void Reset(int count = 1)
+    {
+        _event.Reset(count);
+    }
+
+    public void Wait(TimeSpan timeout)
+    {
+        _event.WaitHandle.WaitOne(timeout);
+    }
+}

@@ -8,22 +8,24 @@ using NATS.Client;
 
 namespace KnightBus.Nats
 {
-    internal class NatsBusMessageStateHandler<T> : IMessageStateHandler<T> where T : class, IMessage
+    internal class NatsMessageStateHandler<T> : IMessageStateHandler<T> where T : class, IMessage
     {
         private readonly T _message;
         private readonly Msg _msg;
         private readonly IMessageSerializer _serializer;
+        private readonly bool _shouldReply;
 
-        public NatsBusMessageStateHandler(Msg msg, IMessageSerializer serializer, int deadLetterDeliveryLimit, IDependencyInjection messageScope)
+        public NatsMessageStateHandler(Msg msg, IMessageSerializer serializer, int deadLetterDeliveryLimit, IDependencyInjection messageScope, bool reply)
         {
             DeadLetterDeliveryLimit = deadLetterDeliveryLimit;
             MessageScope = messageScope;
             _msg = msg;
             _serializer = serializer;
             _message = serializer.Deserialize<T>(msg.Data.AsSpan());
+            _shouldReply = reply;
         }
 
-        public int DeliveryCount { get; } = 1;
+        public int DeliveryCount => (int)_msg.MetaData.NumDelivered;
         public int DeadLetterDeliveryLimit { get; }
 
         public IDictionary<string, string> MessageProperties => _msg.Header.Keys.Cast<string>().ToDictionary(key => key, key => _msg.Header[key]);
@@ -32,6 +34,7 @@ namespace KnightBus.Nats
         public Task CompleteAsync()
         {
             TryReply(MsgConstants.Completed);
+            _msg.Ack();
             return Task.CompletedTask;
         }
 
@@ -44,12 +47,18 @@ namespace KnightBus.Nats
         public Task AbandonByErrorAsync(Exception e)
         {
             TryReply(MsgConstants.Error);
+            _msg.Nak();
             return Task.CompletedTask;
         }
 
-        public Task DeadLetterAsync(int deadLetterLimit)
+        public async Task DeadLetterAsync(int deadLetterLimit)
         {
-            return Task.CompletedTask;
+            var subject = JetStreamHelpers.ConvertToDeadletterSubject(_msg.Subject);
+            var deadletterMsg = new Msg(subject, _msg.Data);
+
+            var js = _msg.ArrivalSubscription.Connection.CreateJetStreamContext();
+            await js.PublishAsync(deadletterMsg).ConfigureAwait(false);
+            _msg.Ack();
         }
 
         public T GetMessage()
@@ -61,7 +70,7 @@ namespace KnightBus.Nats
 
         private void TryReply(string status)
         {
-            if (!string.IsNullOrEmpty(_msg.Reply))
+            if (_shouldReply && !string.IsNullOrEmpty(_msg.Reply))
             {
                 var msg = new Msg(_msg.Reply);
                 msg.Header.Add(MsgConstants.HeaderName, status);

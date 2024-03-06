@@ -5,9 +5,9 @@ using KnightBus.Nats.Messages;
 
 namespace KnightBus.Nats
 {
-    public class NatsChannelFactory : ITransportChannelFactory
+    public class JetStreamChannelFactory : ITransportChannelFactory
     {
-        public NatsChannelFactory(INatsConfiguration configuration)
+        public JetStreamChannelFactory(IJetStreamConfiguration configuration)
         {
             Configuration = configuration;
         }
@@ -17,7 +17,8 @@ namespace KnightBus.Nats
         public IChannelReceiver Create(Type messageType, IEventSubscription subscription, IProcessingSettings processingSettings,
             IMessageSerializer serializer, IHostConfiguration configuration, IMessageProcessor processor)
         {
-            var readerType = typeof(NatsChannelReceiver<>).MakeGenericType(messageType);
+
+            var readerType = typeof(JetStreamChannelReceiver<>).MakeGenericType(messageType);
             var reader = (IChannelReceiver)Activator.CreateInstance(readerType, processingSettings, serializer, configuration, processor, Configuration, subscription);
 
             return reader;
@@ -25,7 +26,7 @@ namespace KnightBus.Nats
 
         public bool CanCreate(Type messageType)
         {
-            return typeof(INatsCommand).IsAssignableFrom(messageType) || typeof(INatsEvent).IsAssignableFrom(messageType) || typeof(INatsRequest).IsAssignableFrom(messageType);
+            return typeof(IJetStreamCommand).IsAssignableFrom(messageType) || typeof(IJetStreamEvent).IsAssignableFrom(messageType) || typeof(IJetStreamRequest).IsAssignableFrom(messageType);
         }
     }
 }

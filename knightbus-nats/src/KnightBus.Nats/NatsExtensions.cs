@@ -15,5 +15,15 @@ namespace KnightBus.Nats
             services.AddScoped<INatsBus, NatsBus>();
             return services;
         }
+
+        public static IServiceCollection UseJetStream(this IServiceCollection services, Action<IJetStreamConfiguration> configuration = null)
+        {
+            var jetStreamConfiguration = new JetStreamConfiguration();
+            configuration?.Invoke(jetStreamConfiguration);
+            services.AddSingleton<IJetStreamConfiguration>(jetStreamConfiguration);
+            services.AddSingleton<IConnection>(_ => new ConnectionFactory().CreateConnection(jetStreamConfiguration.Options));
+            services.AddScoped<IJetStreamBus, JetStreamBus>();
+            return services;
+        }
     }
 }
