@@ -1,12 +1,12 @@
-﻿using FluentAssertions;
-using System.Threading.Tasks;
-using System;
+﻿using System;
 using System.Threading;
+using System.Threading.Tasks;
+using FluentAssertions;
 using KnightBus.Azure.Storage.Sagas;
+using KnightBus.Core.Sagas;
 using KnightBus.Core.Sagas.Exceptions;
 using KnightBus.Shared.Tests.Integration;
 using NUnit.Framework;
-using KnightBus.Core.Sagas;
 
 namespace KnightBus.Azure.Storage.Tests.Integration
 {
@@ -44,6 +44,23 @@ namespace KnightBus.Azure.Storage.Tests.Integration
             //assert
             var data = await SagaStore.GetSaga<Data>(partitionKey, id, CancellationToken.None);
             data.Data.Message.Should().Be("updated");
+        }
+
+        [Test]
+        public async Task Update_should_change_to_current_etag_on_success()
+        {
+            //arrange
+            var partitionKey = Guid.NewGuid().ToString("N");
+            var id = Guid.NewGuid().ToString("N");
+            var sagaData = await SagaStore.Create(partitionKey, id, new Data { Message = "yo" }, TimeSpan.FromMinutes(1), CancellationToken.None);
+            //act
+            sagaData.Data.Message = "updated";
+            await SagaStore.Update(partitionKey, id, sagaData, CancellationToken.None);
+            sagaData.Data.Message = "updated again";
+            await SagaStore.Update(partitionKey, id, sagaData, CancellationToken.None);
+            //assert
+            var data = await SagaStore.GetSaga<Data>(partitionKey, id, CancellationToken.None);
+            data.Data.Message.Should().Be("updated again");
         }
 
         [Test]

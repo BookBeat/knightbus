@@ -12,7 +12,7 @@ namespace KnightBus.Azure.ServiceBus
             config?.Invoke(configuration);
             collection.AddSingleton<IServiceBusConfiguration>(configuration);
             collection.AddSingleton<IClientFactory, ClientFactory>();
-            collection.AddSingleton<IServiceBus, ServiceBus>();
+            collection.AddScoped<IServiceBus, ServiceBus>();
             return collection;
         }
     }

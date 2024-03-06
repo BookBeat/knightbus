@@ -1,13 +1,11 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Azure.Messaging.ServiceBus;
 using KnightBus.Core;
 using KnightBus.Messages;
 
-[assembly: InternalsVisibleTo("KnightBus.Azure.ServiceBus.Unit")]
 namespace KnightBus.Azure.ServiceBus
 {
     public interface IClientFactory : IAsyncDisposable
@@ -17,7 +15,7 @@ namespace KnightBus.Azure.ServiceBus
         Task<ServiceBusProcessor> GetReceiverClient<TTopic, TSubscription>(TSubscription subscription, ServiceBusProcessorOptions options) where TTopic : IEvent where TSubscription : IEventSubscription<TTopic>;
     }
 
-    internal class ClientFactory : IClientFactory
+    public class ClientFactory : IClientFactory
     {
         private readonly ServiceBusClient _serviceBusClient;
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);

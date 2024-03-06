@@ -20,3 +20,4 @@ Unordered list of persons contributing their time and intellect to KnightBus
 * André Virdarson
 * Tobias Balzano
 * Peter Bergman
+* Björn Bylund
