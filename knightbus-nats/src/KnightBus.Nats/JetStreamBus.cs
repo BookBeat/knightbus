@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
 using KnightBus.Core.Exceptions;
+using KnightBus.Core.PreProcessors;
 using KnightBus.Messages;
 using KnightBus.Nats.Messages;
 using NATS.Client;
@@ -22,18 +23,17 @@ namespace KnightBus.Nats
     public class JetStreamBus : IJetStreamBus
     {
         private readonly IConnection _connection;
-        private readonly IMessageAttachmentProvider _attachmentProvider;
         private readonly IJetStreamConfiguration _configuration;
+        private readonly IEnumerable<IMessagePreProcessor> _messagePreProcessors;
         private readonly IJetStream _streamContext;
 
 
-        public JetStreamBus(IConnection connection, IJetStreamConfiguration configuration,
-            IMessageAttachmentProvider attachmentProvider = null)
+        public JetStreamBus(IConnection connection, IJetStreamConfiguration configuration, IEnumerable<IMessagePreProcessor> messagePreProcessors)
         {
             _connection = connection;
             _streamContext = _connection.CreateJetStreamContext(configuration.JetStreamOptions);
             _configuration = configuration;
-            _attachmentProvider = attachmentProvider;
+            _messagePreProcessors = messagePreProcessors;
         }
 
         public Task Send(IJetStreamCommand message, CancellationToken cancellationToken = default)
@@ -54,19 +54,13 @@ namespace KnightBus.Nats
 
             var msg = new Msg(mapping.QueueName, serializer.Serialize(message));
 
-            if (message is ICommandWithAttachment attachmentMessage)
-            {
-                if (_attachmentProvider == null) throw new AttachmentProviderMissingException();
 
-                if (attachmentMessage.Attachment != null)
+            foreach (var preProcessor in _messagePreProcessors)
+            {
+                var properties = await preProcessor.PreProcess(message, cancellationToken);
+                foreach (var property in properties)
                 {
-                    var attachmentIds = new List<string>();
-                    var id = Guid.NewGuid().ToString("N");
-                    await _attachmentProvider
-                        .UploadAttachmentAsync(mapping.QueueName, id, attachmentMessage.Attachment, cancellationToken)
-                        .ConfigureAwait(false);
-                    attachmentIds.Add(id);
-                    msg.Header.Add(AttachmentUtility.AttachmentKey, string.Join(",", attachmentIds));
+                    msg.Header.Add(property.Key, property.Value.ToString());
                 }
             }
 
