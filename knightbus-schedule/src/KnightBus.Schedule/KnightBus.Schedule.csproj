@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.1;net6.0</TargetFrameworks>
+    <TargetFramework>net8.0</TargetFramework>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Authors>BookBeat</Authors>
     <Description>KnightBus Chron Scheduler</Description>
@@ -11,14 +11,14 @@
     <PackageIconUrl>https://raw.githubusercontent.com/BookBeat/knightbus/master/documentation/media/images/knighbus-64.png</PackageIconUrl>
     <PackageIcon>knighbus-64.png</PackageIcon>
     <RepositoryUrl>https://github.com/BookBeat/knightbus</RepositoryUrl>
-    <Version>12.0.0</Version>
+    <Version>13.0.0</Version>
     <PackageTags>knightbus;quartz;schedule;trigger</PackageTags>
   </PropertyGroup>
   <ItemGroup>
     <None Include="knighbus-64.png" Pack="true" Visible="false" PackagePath="" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Quartz" Version="3.6.2" />
+    <PackageReference Include="Quartz" Version="3.8.1" />
   </ItemGroup>
 
   <ItemGroup>

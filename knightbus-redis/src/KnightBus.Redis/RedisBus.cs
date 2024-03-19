@@ -27,18 +27,16 @@ namespace KnightBus.Redis
     {
         private readonly IConnectionMultiplexer _multiplexer;
         private readonly IRedisConfiguration _configuration;
-        private readonly IMessageAttachmentProvider _attachmentProvider;
         private readonly ConcurrentDictionary<Type, IMessageSerializer> _serializers;
         private readonly IEnumerable<IMessagePreProcessor> _messagePreProcessors;
 
         public RedisBus(string connectionString, IEnumerable<IMessagePreProcessor> messagePreProcessors) : this(new RedisConfiguration(connectionString), ConnectionMultiplexer.Connect(connectionString), messagePreProcessors)
         { }
-        public RedisBus(IRedisConfiguration configuration, IConnectionMultiplexer multiplexer, IEnumerable<IMessagePreProcessor> messagePreProcessors, IMessageAttachmentProvider attachmentProvider = null)
+        public RedisBus(IRedisConfiguration configuration, IConnectionMultiplexer multiplexer, IEnumerable<IMessagePreProcessor> messagePreProcessors)
         {
             _multiplexer = multiplexer;
             _messagePreProcessors = messagePreProcessors;
             _configuration = configuration;
-            _attachmentProvider = attachmentProvider;
             _serializers = new ConcurrentDictionary<Type, IMessageSerializer>();
         }
 
@@ -65,7 +63,7 @@ namespace KnightBus.Redis
 
             await Task.WhenAll(
                 db.ListLeftPushAsync(queueName, serialized),
-                db.PublishAsync(queueName, 0, CommandFlags.FireAndForget)
+                db.PublishAsync(new RedisChannel(queueName, RedisChannel.PatternMode.Literal), 0, CommandFlags.FireAndForget)
             );
         }
 
@@ -76,7 +74,7 @@ namespace KnightBus.Redis
             await RunPreProcessors(redisListItem, db, queueName);
             await Task.WhenAll(
                 db.ListLeftPushAsync(queueName, GetSerializer<T>().Serialize(redisListItem)),
-                db.PublishAsync(queueName, 0, CommandFlags.FireAndForget)
+                db.PublishAsync(new RedisChannel(queueName, RedisChannel.PatternMode.Literal), 0, CommandFlags.FireAndForget)
             );
         }
 
@@ -85,7 +83,6 @@ namespace KnightBus.Redis
             var db = _multiplexer.GetDatabase(_configuration.DatabaseId);
             var queueName = AutoMessageMapper.GetQueueName<T>();
             var subscriptions = await db.SetMembersAsync(RedisQueueConventions.GetSubscriptionKey(queueName)).ConfigureAwait(false);
-            if (subscriptions == null) return;
             await Task.WhenAll(subscriptions.Select(sub => SendAsync(message, RedisQueueConventions.GetSubscriptionQueueName(queueName, sub)))).ConfigureAwait(false);
         }
 
@@ -94,9 +91,8 @@ namespace KnightBus.Redis
             var db = _multiplexer.GetDatabase(_configuration.DatabaseId);
             var queueName = AutoMessageMapper.GetQueueName<T>();
             var subscriptions = await db.SetMembersAsync(RedisQueueConventions.GetSubscriptionKey(queueName)).ConfigureAwait(false);
-            if (subscriptions == null) return;
             var messageList = messages.ToList();
-            await Task.WhenAll(subscriptions.Select(sub => SendAsync<T>(messageList, RedisQueueConventions.GetSubscriptionQueueName(queueName, sub)))).ConfigureAwait(false);
+            await Task.WhenAll(subscriptions.Select(sub => SendAsync(messageList, RedisQueueConventions.GetSubscriptionQueueName(queueName, sub)))).ConfigureAwait(false);
         }
 
         private async Task RunPreProcessors<T>(RedisListItem<T> item, IDatabase db, string queueName) where T : IRedisMessage
@@ -113,7 +109,7 @@ namespace KnightBus.Redis
 
         private IMessageSerializer GetSerializer<T>() where T : IMessage
         {
-            return _serializers.GetOrAdd(typeof(T), type =>
+            return _serializers.GetOrAdd(typeof(T), _ =>
             {
                 var mapper = AutoMessageMapper.GetMapping<T>();
                 if (mapper is ICustomMessageSerializer serializer) return serializer.MessageSerializer;

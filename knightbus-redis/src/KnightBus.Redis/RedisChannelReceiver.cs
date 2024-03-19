@@ -42,7 +42,7 @@ namespace KnightBus.Redis
         {
             _queueClient = new RedisQueueClient<T>(ConnectionMultiplexer.GetDatabase(_redisConfiguration.DatabaseId), _serializer, _hostConfiguration.Log);
             var sub = ConnectionMultiplexer.GetSubscriber();
-            await sub.SubscribeAsync(_queueName, MessageSignalReceivedHandler);
+            await sub.SubscribeAsync(new RedisChannel(_queueName, RedisChannel.PatternMode.Literal), MessageSignalReceivedHandler);
 
             _messagePumpTask = Task.Factory.StartNew(async () =>
             {

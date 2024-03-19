@@ -122,6 +122,7 @@ namespace KnightBus.Examples.Nats
             {
                 for (int i = 0; i < 20; i++)
                 {
+                    await Task.Delay(1, cancellationToken);
                     yield return new SampleNatsReply { Reply = $"Async Reply {i}:\t {message.Message}" };
                 }
             }

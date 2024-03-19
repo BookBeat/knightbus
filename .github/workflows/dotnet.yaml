@@ -13,11 +13,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
     - name: Setup .NET
       uses: actions/setup-dotnet@v2
       with:
-        dotnet-version: 6.0.x
+        dotnet-version: 8.0.x
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
@@ -26,14 +28,14 @@ jobs:
       run: dotnet pack --no-build --configuration Release --output ${{ env.NuGetDirectory }}
 
       # Install docker test dependencies
+    - name: Docker SQL
+      run: docker run -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=Password12!' -e 'MSSQL_PID=Express' -p 1433:1433 -d mcr.microsoft.com/mssql/server:2019-latest
     - name: Docker Redis
       run: docker run -d -p 6379:6379 --name redis6379 redis
     - name: Docker nats
       run: docker run -d -p 4222:4222 nats:latest
     - name: Docker Azurite
-      run: docker run -d -p 10000:10000 -p 10001:10001 mcr.microsoft.com/azure-storage/azurite
-    - name: Docker SQL
-      run: docker run -e 'ACCEPT_EULA=1' -e 'MSSQL_SA_PASSWORD=Password12!' -e 'MSSQL_USER=SA' -p 1433:1433 -d --name=SQL2019 mcr.microsoft.com/azure-sql-edge
+      run: docker run -d -p 10000:10000 -p 10001:10001 mcr.microsoft.com/azure-storage/azurite 
       
     - name: Test
       run: dotnet test --no-build --configuration Release --verbosity normal --logger "trx;LogFileName=test-results.trx" || true
