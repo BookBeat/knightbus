@@ -1,7 +1,6 @@
-﻿namespace KnightBus.Messages
-{
-    public interface IRequest : IMessage
-    {
+﻿namespace KnightBus.Messages;
 
-    }
+public interface IRequest : IMessage
+{
+
 }

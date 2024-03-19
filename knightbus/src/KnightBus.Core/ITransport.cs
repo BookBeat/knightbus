@@ -1,11 +1,10 @@
-﻿namespace KnightBus.Core
+﻿namespace KnightBus.Core;
+
+/// <summary>
+/// Defines a message transport
+/// </summary>
+public interface ITransport
 {
-    /// <summary>
-    /// Defines a message transport
-    /// </summary>
-    public interface ITransport
-    {
-        ITransportChannelFactory[] TransportChannelFactories { get; }
-        ITransport ConfigureChannels(ITransportConfiguration configuration);
-    }
+    ITransportChannelFactory[] TransportChannelFactories { get; }
+    ITransport ConfigureChannels(ITransportConfiguration configuration);
 }

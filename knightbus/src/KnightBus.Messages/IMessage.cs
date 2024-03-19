@@ -1,9 +1,8 @@
-﻿namespace KnightBus.Messages
+﻿namespace KnightBus.Messages;
+
+/// <summary>
+/// Base interface for all messages
+/// </summary>
+public interface IMessage
 {
-    /// <summary>
-    /// Base interface for all messages
-    /// </summary>
-    public interface IMessage
-    {
-    }
 }

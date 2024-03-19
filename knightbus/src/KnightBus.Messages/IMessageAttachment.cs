@@ -1,12 +1,11 @@
 ﻿using System.IO;
 
-namespace KnightBus.Messages
+namespace KnightBus.Messages;
+
+public interface IMessageAttachment
 {
-    public interface IMessageAttachment
-    {
-        string Filename { get; }
-        string ContentType { get; }
-        long Length { get; }
-        Stream Stream { get; }
-    }
+    string Filename { get; }
+    string ContentType { get; }
+    long Length { get; }
+    Stream Stream { get; }
 }

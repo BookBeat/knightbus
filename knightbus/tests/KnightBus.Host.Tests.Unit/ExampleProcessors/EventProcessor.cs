@@ -2,21 +2,20 @@
 using System.Threading.Tasks;
 using KnightBus.Core;
 
-namespace KnightBus.Host.Tests.Unit.ExampleProcessors
-{
-    public class EventProcessor :
-        IProcessEvent<TestEvent, TestSubscription, TestTopicSettings>
-    {
-        private readonly ICountable _countable;
+namespace KnightBus.Host.Tests.Unit.ExampleProcessors;
 
-        public EventProcessor(ICountable countable)
-        {
-            _countable = countable;
-        }
-        public Task ProcessAsync(TestEvent message, CancellationToken cancellationToken)
-        {
-            _countable.Count();
-            return Task.CompletedTask;
-        }
+public class EventProcessor :
+    IProcessEvent<TestEvent, TestSubscription, TestTopicSettings>
+{
+    private readonly ICountable _countable;
+
+    public EventProcessor(ICountable countable)
+    {
+        _countable = countable;
+    }
+    public Task ProcessAsync(TestEvent message, CancellationToken cancellationToken)
+    {
+        _countable.Count();
+        return Task.CompletedTask;
     }
 }

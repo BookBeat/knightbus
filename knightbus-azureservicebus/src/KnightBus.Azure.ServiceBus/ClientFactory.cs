@@ -6,85 +6,84 @@ using Azure.Messaging.ServiceBus;
 using KnightBus.Core;
 using KnightBus.Messages;
 
-namespace KnightBus.Azure.ServiceBus
+namespace KnightBus.Azure.ServiceBus;
+
+public interface IClientFactory : IAsyncDisposable
 {
-    public interface IClientFactory : IAsyncDisposable
+    Task<ServiceBusSender> GetSenderClient<T>() where T : IMessage;
+    Task<ServiceBusProcessor> GetReceiverClient<T>(ServiceBusProcessorOptions options) where T : ICommand;
+    Task<ServiceBusProcessor> GetReceiverClient<TTopic, TSubscription>(TSubscription subscription, ServiceBusProcessorOptions options) where TTopic : IEvent where TSubscription : IEventSubscription<TTopic>;
+}
+
+public class ClientFactory : IClientFactory
+{
+    private readonly ServiceBusClient _serviceBusClient;
+    private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
+    private ConcurrentDictionary<Type, ServiceBusSender> SenderClients { get; } = new ConcurrentDictionary<Type, ServiceBusSender>();
+
+    public ClientFactory(string connectionString)
     {
-        Task<ServiceBusSender> GetSenderClient<T>() where T : IMessage;
-        Task<ServiceBusProcessor> GetReceiverClient<T>(ServiceBusProcessorOptions options) where T : ICommand;
-        Task<ServiceBusProcessor> GetReceiverClient<TTopic, TSubscription>(TSubscription subscription, ServiceBusProcessorOptions options) where TTopic : IEvent where TSubscription : IEventSubscription<TTopic>;
+        _serviceBusClient = new ServiceBusClient(connectionString);
     }
 
-    public class ClientFactory : IClientFactory
+    public ClientFactory(IServiceBusConfiguration configuration) : this(configuration.ConnectionString)
     {
-        private readonly ServiceBusClient _serviceBusClient;
-        private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
-        private ConcurrentDictionary<Type, ServiceBusSender> SenderClients { get; } = new ConcurrentDictionary<Type, ServiceBusSender>();
+    }
 
-        public ClientFactory(string connectionString)
+    private ServiceBusSender CreateQueueClient<T>() where T : IMessage
+    {
+        var queueName = AutoMessageMapper.GetQueueName<T>();
+        return _serviceBusClient.CreateSender(queueName);
+    }
+
+    public async Task<ServiceBusSender> GetSenderClient<T>() where T : IMessage
+    {
+        if (SenderClients.TryGetValue(typeof(T), out var client))
         {
-            _serviceBusClient = new ServiceBusClient(connectionString);
+            return client;
         }
 
-        public ClientFactory(IServiceBusConfiguration configuration) : this(configuration.ConnectionString)
+        try
         {
-        }
+            // No existing client found, try and create one making sure parallel threads do not compete
+            await _semaphore.WaitAsync().ConfigureAwait(false);
 
-        private ServiceBusSender CreateQueueClient<T>() where T : IMessage
-        {
-            var queueName = AutoMessageMapper.GetQueueName<T>();
-            return _serviceBusClient.CreateSender(queueName);
-        }
-
-        public async Task<ServiceBusSender> GetSenderClient<T>() where T : IMessage
-        {
-            if (SenderClients.TryGetValue(typeof(T), out var client))
+            // After we have waited, another thread might have created the client we're looking for
+            if (SenderClients.TryGetValue(typeof(T), out client))
             {
                 return client;
             }
 
-            try
-            {
-                // No existing client found, try and create one making sure parallel threads do not compete
-                await _semaphore.WaitAsync().ConfigureAwait(false);
-
-                // After we have waited, another thread might have created the client we're looking for
-                if (SenderClients.TryGetValue(typeof(T), out client))
-                {
-                    return client;
-                }
-
-                client = CreateQueueClient<T>();
-                return SenderClients.GetOrAdd(typeof(T), client);
-            }
-            finally
-            {
-                _semaphore.Release();
-            }
+            client = CreateQueueClient<T>();
+            return SenderClients.GetOrAdd(typeof(T), client);
         }
-
-        public Task<ServiceBusProcessor> GetReceiverClient<T>(ServiceBusProcessorOptions options) where T : ICommand
+        finally
         {
-            var queueName = AutoMessageMapper.GetQueueName<T>();
-            return Task.FromResult(_serviceBusClient.CreateProcessor(queueName, options));
+            _semaphore.Release();
         }
+    }
 
-        public Task<ServiceBusProcessor> GetReceiverClient<TTopic, TSubscription>(TSubscription subscription, ServiceBusProcessorOptions options) where TTopic : IEvent where TSubscription : IEventSubscription<TTopic>
+    public Task<ServiceBusProcessor> GetReceiverClient<T>(ServiceBusProcessorOptions options) where T : ICommand
+    {
+        var queueName = AutoMessageMapper.GetQueueName<T>();
+        return Task.FromResult(_serviceBusClient.CreateProcessor(queueName, options));
+    }
+
+    public Task<ServiceBusProcessor> GetReceiverClient<TTopic, TSubscription>(TSubscription subscription, ServiceBusProcessorOptions options) where TTopic : IEvent where TSubscription : IEventSubscription<TTopic>
+    {
+        var topicName = AutoMessageMapper.GetQueueName<TTopic>();
+        return Task.FromResult(_serviceBusClient.CreateProcessor(topicName, subscription.Name, options));
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _semaphore?.Dispose();
+
+        foreach (var client in SenderClients)
         {
-            var topicName = AutoMessageMapper.GetQueueName<TTopic>();
-            return Task.FromResult(_serviceBusClient.CreateProcessor(topicName, subscription.Name, options));
+            await client.Value.DisposeAsync();
         }
 
-        public async ValueTask DisposeAsync()
-        {
-            _semaphore?.Dispose();
-
-            foreach (var client in SenderClients)
-            {
-                await client.Value.DisposeAsync();
-            }
-
-            SenderClients.Clear();
-        }
+        SenderClients.Clear();
     }
 }

@@ -1,27 +1,26 @@
 ﻿using KnightBus.Core;
 
-namespace KnightBus.Azure.Storage
+namespace KnightBus.Azure.Storage;
+
+public class StorageTransport : ITransport
 {
-    public class StorageTransport : ITransport
+    public StorageTransport(string connectionString) : this(new StorageBusConfiguration(connectionString))
+    { }
+
+    public StorageTransport(IStorageBusConfiguration configuration)
     {
-        public StorageTransport(string connectionString) : this(new StorageBusConfiguration(connectionString))
-        { }
+        TransportChannelFactories = new ITransportChannelFactory[] { new StorageQueueChannelFactory(configuration), };
+    }
 
-        public StorageTransport(IStorageBusConfiguration configuration)
+    public ITransportChannelFactory[] TransportChannelFactories { get; }
+
+    public ITransport ConfigureChannels(ITransportConfiguration configuration)
+    {
+        foreach (var channelFactory in TransportChannelFactories)
         {
-            TransportChannelFactories = new ITransportChannelFactory[] { new StorageQueueChannelFactory(configuration), };
+            channelFactory.Configuration = configuration;
         }
 
-        public ITransportChannelFactory[] TransportChannelFactories { get; }
-
-        public ITransport ConfigureChannels(ITransportConfiguration configuration)
-        {
-            foreach (var channelFactory in TransportChannelFactories)
-            {
-                channelFactory.Configuration = configuration;
-            }
-
-            return this;
-        }
+        return this;
     }
 }
