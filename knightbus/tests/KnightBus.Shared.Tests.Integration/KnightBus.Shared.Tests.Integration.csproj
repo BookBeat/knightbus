@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.1;net6.0</TargetFrameworks>
+    <TargetFramework>net8.0</TargetFramework>
     <Authors>BookBeat</Authors>
     <Copyright>Copyright © BookBeat 2020</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
