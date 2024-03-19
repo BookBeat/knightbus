@@ -1,13 +1,12 @@
 ﻿using System;
 using KnightBus.Messages;
 
-namespace KnightBus.Core
+namespace KnightBus.Core;
+
+public interface IPipelineInformation
 {
-    public interface IPipelineInformation
-    {
-        Type ProcessorInterfaceType { get; }
-        IEventSubscription Subscription { get; }
-        IProcessingSettings ProcessingSettings { get; }
-        IHostConfiguration HostConfiguration { get; }
-    }
+    Type ProcessorInterfaceType { get; }
+    IEventSubscription Subscription { get; }
+    IProcessingSettings ProcessingSettings { get; }
+    IHostConfiguration HostConfiguration { get; }
 }

@@ -1,10 +1,9 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
 
-namespace KnightBus.Core
+namespace KnightBus.Core;
+
+public interface IPlugin
 {
-    public interface IPlugin
-    {
-        Task StartAsync(CancellationToken cancellationToken);
-    }
+    Task StartAsync(CancellationToken cancellationToken);
 }

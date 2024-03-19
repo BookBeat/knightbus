@@ -1,8 +1,7 @@
 ﻿using System;
 
-namespace KnightBus.Azure.ServiceBus
+namespace KnightBus.Azure.ServiceBus;
+
+public sealed class ServiceBusMessageTooLargeException : Exception
 {
-    public sealed class ServiceBusMessageTooLargeException : Exception
-    {
-    }
 }

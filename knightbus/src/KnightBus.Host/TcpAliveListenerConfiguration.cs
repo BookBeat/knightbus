@@ -1,17 +1,16 @@
-﻿namespace KnightBus.Host
+﻿namespace KnightBus.Host;
+
+public interface ITcpAliveListenerConfiguration
 {
-    public interface ITcpAliveListenerConfiguration
+    int Port { get; }
+}
+
+internal class TcpAliveListenerConfiguration : ITcpAliveListenerConfiguration
+{
+    public TcpAliveListenerConfiguration(int port)
     {
-        int Port { get; }
+        Port = port;
     }
 
-    internal class TcpAliveListenerConfiguration : ITcpAliveListenerConfiguration
-    {
-        public TcpAliveListenerConfiguration(int port)
-        {
-            Port = port;
-        }
-
-        public int Port { get; }
-    }
+    public int Port { get; }
 }

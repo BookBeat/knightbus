@@ -4,30 +4,29 @@ using KnightBus.Messages;
 using KnightBus.Redis.Messages;
 using StackExchange.Redis;
 
-namespace KnightBus.Redis
+namespace KnightBus.Redis;
+
+internal class RedisEventChannelFactory : ITransportChannelFactory
 {
-    internal class RedisEventChannelFactory : ITransportChannelFactory
+    private readonly IConnectionMultiplexer _connectionMultiplexer;
+
+    public RedisEventChannelFactory(IRedisConfiguration configuration, IConnectionMultiplexer connectionMultiplexer)
     {
-        private readonly IConnectionMultiplexer _connectionMultiplexer;
+        _connectionMultiplexer = connectionMultiplexer;
+        Configuration = configuration;
+    }
 
-        public RedisEventChannelFactory(IRedisConfiguration configuration, IConnectionMultiplexer connectionMultiplexer)
-        {
-            _connectionMultiplexer = connectionMultiplexer;
-            Configuration = configuration;
-        }
+    public ITransportConfiguration Configuration { get; set; }
 
-        public ITransportConfiguration Configuration { get; set; }
+    public IChannelReceiver Create(Type messageType, IEventSubscription subscription, IProcessingSettings processingSettings, IMessageSerializer serializer, IHostConfiguration configuration, IMessageProcessor processor)
+    {
+        var queueReaderType = typeof(RedisEventChannelReceiver<>).MakeGenericType(messageType);
+        var queueReader = (IChannelReceiver)Activator.CreateInstance(queueReaderType, _connectionMultiplexer, processingSettings, serializer, subscription, Configuration, configuration, processor);
+        return queueReader;
+    }
 
-        public IChannelReceiver Create(Type messageType, IEventSubscription subscription, IProcessingSettings processingSettings, IMessageSerializer serializer, IHostConfiguration configuration, IMessageProcessor processor)
-        {
-            var queueReaderType = typeof(RedisEventChannelReceiver<>).MakeGenericType(messageType);
-            var queueReader = (IChannelReceiver)Activator.CreateInstance(queueReaderType, _connectionMultiplexer, processingSettings, serializer, subscription, Configuration, configuration, processor);
-            return queueReader;
-        }
-
-        public bool CanCreate(Type messageType)
-        {
-            return typeof(IRedisEvent).IsAssignableFrom(messageType);
-        }
+    public bool CanCreate(Type messageType)
+    {
+        return typeof(IRedisEvent).IsAssignableFrom(messageType);
     }
 }
