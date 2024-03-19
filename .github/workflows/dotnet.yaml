@@ -30,7 +30,7 @@ jobs:
       # Install docker test dependencies
     - name: Docker SQL
       run: docker run -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=Password12!' -e 'MSSQL_PID=Express' -p 1433:1433 -d mcr.microsoft.com/mssql/server:2019-latest
-    - name: Docker Redis§§
+    - name: Docker Redis
       run: docker run -d -p 6379:6379 --name redis6379 redis
     - name: Docker nats
       run: docker run -d -p 4222:4222 nats:latest
