@@ -98,7 +98,7 @@ namespace KnightBus.Redis
 
             await _db.HashDeleteAsync(hashKey, new RedisValue[] { expirationKey, RedisHashKeys.DeliveryCount }).ConfigureAwait(false);
             await _db.ListRightPopLeftPushAsync(deadLetterProcessingQueueName, _queueName).ConfigureAwait(false);
-            await _db.PublishAsync(_queueName, 0, CommandFlags.FireAndForget).ConfigureAwait(false);
+            await _db.PublishAsync(new RedisChannel(_queueName, RedisChannel.PatternMode.Literal), 0, CommandFlags.FireAndForget).ConfigureAwait(false);
         }
 
         internal Task<long> GetMessageCount()
