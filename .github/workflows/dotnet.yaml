@@ -35,7 +35,7 @@ jobs:
     - name: Docker Azurite
       run: docker run -d -p 10000:10000 -p 10001:10001 mcr.microsoft.com/azure-storage/azurite
     - name: Docker SQL
-      run: docker run -e 'ACCEPT_EULA=1' -e 'MSSQL_SA_PASSWORD=Password12!' -e 'MSSQL_USER=SA' -p 1433:1433 -d --name=SQL2019 mcr.microsoft.com/azure-sql-edge
+      run: docker run -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=Password12!' -e 'MSSQL_PID=Express' -p 1433:1433 -d mcr.microsoft.com/mssql/server:2019-latest
       
     - name: Test
       run: dotnet test --no-build --configuration Release --verbosity normal --logger "trx;LogFileName=test-results.trx" || true
