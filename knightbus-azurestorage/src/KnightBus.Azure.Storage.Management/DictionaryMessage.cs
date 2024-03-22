@@ -3,7 +3,7 @@ using KnightBus.Azure.Storage.Messages;
 
 namespace KnightBus.Azure.Storage.Management;
 
-public class PropertyBag : Dictionary<string, object>, IStorageQueueCommand
+internal class DictionaryMessage : Dictionary<string, object>, IStorageQueueCommand
 {
 
 }

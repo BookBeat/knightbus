@@ -81,7 +81,7 @@ public class StorageQueueManager : IQueueManager
     {
         var qc = new StorageQueueClient(_configuration, _configuration.MessageSerializer, _preProcessors, name);
 
-        var messages = await qc.GetMessagesAsync<PropertyBag>(count, null).ConfigureAwait(false);
+        var messages = await qc.GetMessagesAsync<DictionaryMessage>(count, null).ConfigureAwait(false);
 
         return messages.Select(m =>
         {
@@ -95,7 +95,7 @@ public class StorageQueueManager : IQueueManager
     {
         var qc = new StorageQueueClient(_configuration, _configuration.MessageSerializer, _preProcessors, name);
 
-        var messages = await qc.PeekDeadLettersAsync<PropertyBag>(count).ConfigureAwait(false);
+        var messages = await qc.PeekDeadLettersAsync<DictionaryMessage>(count).ConfigureAwait(false);
 
         return messages.Select(m =>
         {
@@ -112,7 +112,7 @@ public class StorageQueueManager : IQueueManager
         var messages = new List<QueueMessage>();
         for (var i = 0; i < count; i++)
         {
-            var message = await qc.ReceiveDeadLetterAsync<PropertyBag>().ConfigureAwait(false);
+            var message = await qc.ReceiveDeadLetterAsync<DictionaryMessage>().ConfigureAwait(false);
             if (message == null)
                 break;
             messages.Add(
@@ -131,7 +131,7 @@ public class StorageQueueManager : IQueueManager
     public async Task<int> MoveDeadLetters(string name, int count, CancellationToken ct)
     {
         var qc = new StorageQueueClient(_configuration, _configuration.MessageSerializer, _preProcessors, name);
-        await qc.RequeueDeadLettersAsync<PropertyBag>(count, null).ConfigureAwait(false);
+        await qc.RequeueDeadLettersAsync<DictionaryMessage>(count, null).ConfigureAwait(false);
         return count;
     }
     public QueueType QueueType => QueueType.Queue;
