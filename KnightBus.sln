@@ -93,6 +93,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.Azure.ServiceBus.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.Azure.Storage.Management", "knightbus-azurestorage\src\KnightBus.Azure.Storage.Management\KnightBus.Azure.Storage.Management.csproj", "{90D75832-70E2-46A6-A74D-BEB147F9BDC6}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.Core.Management", "knightbus\src\KnightBus.Core.Management\KnightBus.Core.Management.csproj", "{8BDDA52E-B63E-479C-AF09-CFF10BBD79ED}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -239,6 +241,10 @@ Global
 		{90D75832-70E2-46A6-A74D-BEB147F9BDC6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{90D75832-70E2-46A6-A74D-BEB147F9BDC6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{90D75832-70E2-46A6-A74D-BEB147F9BDC6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8BDDA52E-B63E-479C-AF09-CFF10BBD79ED}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8BDDA52E-B63E-479C-AF09-CFF10BBD79ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8BDDA52E-B63E-479C-AF09-CFF10BBD79ED}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8BDDA52E-B63E-479C-AF09-CFF10BBD79ED}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

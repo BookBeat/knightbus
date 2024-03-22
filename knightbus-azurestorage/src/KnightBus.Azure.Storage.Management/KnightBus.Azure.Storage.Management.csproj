@@ -15,15 +15,10 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\..\..\knightbus\src\KnightBus.Core.Management\KnightBus.Core.Management.csproj" />
         <ProjectReference Include="..\KnightBus.Azure.Storage\KnightBus.Azure.Storage.csproj"/>
     </ItemGroup>
-
     <ItemGroup>
-      <None Update="knighbus-64.png">
-        <Pack>true</Pack>
-        <Visible>false</Visible>
-        <PackagePath></PackagePath>
-      </None>
+        <None Include="knighbus-64.png" Pack="true" Visible="false" PackagePath="" />
     </ItemGroup>
-
 </Project>
