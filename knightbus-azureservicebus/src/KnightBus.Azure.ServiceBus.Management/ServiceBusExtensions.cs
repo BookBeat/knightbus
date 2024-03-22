@@ -5,7 +5,7 @@ using QueueProperties = KnightBus.Core.Management.QueueProperties;
 
 namespace KnightBus.Azure.ServiceBus.Management;
 
-internal static class ServiceBusQueueExtensions
+internal static class ServiceBusExtensions
 {
     internal static QueueProperties ToQueueProperties(this QueueRuntimeProperties properties, IQueueManager manager)
     {

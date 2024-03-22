@@ -59,7 +59,5 @@ public class ServiceBusTopicManager : IQueueManager
     {
         throw new NotImplementedException();
     }
-
-    public string DisplayName => "ServiceBus Topic";
     public QueueType QueueType => QueueType.Topic;
 }

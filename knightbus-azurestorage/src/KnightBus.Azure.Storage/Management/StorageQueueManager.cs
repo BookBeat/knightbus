@@ -134,7 +134,5 @@ public class StorageQueueManager : IQueueManager
         await qc.RequeueDeadLettersAsync<PropertyBag>(count, null).ConfigureAwait(false);
         return count;
     }
-
-    public string DisplayName => "storage-queues";
     public QueueType QueueType => QueueType.Queue;
 }

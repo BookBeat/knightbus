@@ -36,10 +36,6 @@ public interface IQueueManager
     /// </summary>
     Task<int> MoveDeadLetters(string name, int count, CancellationToken ct);
     /// <summary>
-    /// Display name for the queue manager
-    /// </summary>
-    string DisplayName { get; }
-    /// <summary>
     /// Type of queue <see cref="QueueType"/>
     /// </summary>
     QueueType QueueType { get; }

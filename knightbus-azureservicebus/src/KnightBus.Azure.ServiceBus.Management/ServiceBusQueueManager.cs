@@ -142,8 +142,6 @@ public class ServiceBusQueueManager : IQueueManager
             count,
             10);
     }
-
-    public string DisplayName => "service-bus-queues";
     public QueueType QueueType => QueueType.Queue;
 
     internal static async Task<int> MoveMessages(
