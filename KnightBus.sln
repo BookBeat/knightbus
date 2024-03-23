@@ -95,6 +95,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.Azure.Storage.Man
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.Core.Management", "knightbus\src\KnightBus.Core.Management\KnightBus.Core.Management.csproj", "{8BDDA52E-B63E-479C-AF09-CFF10BBD79ED}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.Redis.Management", "knightbus-redis\src\KnightBus.Redis.Management\KnightBus.Redis.Management.csproj", "{11EE47A1-3F42-4ADE-9DC7-73F9DFD710D4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -245,6 +247,10 @@ Global
 		{8BDDA52E-B63E-479C-AF09-CFF10BBD79ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8BDDA52E-B63E-479C-AF09-CFF10BBD79ED}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8BDDA52E-B63E-479C-AF09-CFF10BBD79ED}.Release|Any CPU.Build.0 = Release|Any CPU
+		{11EE47A1-3F42-4ADE-9DC7-73F9DFD710D4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{11EE47A1-3F42-4ADE-9DC7-73F9DFD710D4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{11EE47A1-3F42-4ADE-9DC7-73F9DFD710D4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{11EE47A1-3F42-4ADE-9DC7-73F9DFD710D4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -274,6 +280,7 @@ Global
 		{4E160CA8-3B3F-404B-ACE5-FA9B696BC921} = {8598A638-84C1-4FE0-9E95-ABE6079A00E7}
 		{DA091C7C-9CDE-422A-9F59-121CD5A629D4} = {BFEEC811-DB77-4EF0-B43E-238FAF440E3A}
 		{90D75832-70E2-46A6-A74D-BEB147F9BDC6} = {46D48336-73CC-4A9B-8B5F-14725D2AFFB4}
+		{11EE47A1-3F42-4ADE-9DC7-73F9DFD710D4} = {09D121DD-771E-478D-8E10-080D65929948}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {14950A56-4265-429E-AF71-2D98B3B8AC48}
