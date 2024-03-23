@@ -91,9 +91,9 @@ public class StorageQueueManager : IQueueManager
         }).ToList();
     }
 
-    public async Task<IReadOnlyList<QueueMessage>> PeekDeadLetter(string name, int count, CancellationToken ct)
+    public async Task<IReadOnlyList<QueueMessage>> PeekDeadLetter(string path, int count, CancellationToken ct)
     {
-        var qc = new StorageQueueClient(_configuration, _configuration.MessageSerializer, _preProcessors, name);
+        var qc = new StorageQueueClient(_configuration, _configuration.MessageSerializer, _preProcessors, path);
 
         var messages = await qc.PeekDeadLettersAsync<DictionaryMessage>(count).ConfigureAwait(false);
 

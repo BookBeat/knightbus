@@ -137,6 +137,21 @@ internal class RedisQueueClient<T> where T : class, IRedisMessage
             _db.ListRemoveAsync(RedisQueueConventions.GetProcessingQueueName(_queueName), message.RedisValue, -1));
     }
 
+    internal async IAsyncEnumerable<RedisMessage<T>> PeekMessagesAsync(int limit)
+    {
+        if (limit >= 1) limit--; //0 is the first element of the list, thus 0 will return 1
+
+        var values = await _db.ListRangeAsync(_queueName, 0, limit).ConfigureAwait(false);
+
+        foreach (byte[] value in values)
+        {
+            var message = _serializer.Deserialize<RedisListItem<T>>(value.AsSpan());
+            var hashKey = RedisQueueConventions.GetMessageHashKey(_queueName, message.Id);
+            var hash = await _db.HashGetAllAsync(hashKey).ConfigureAwait(false);
+            yield return new RedisMessage<T>(value, message.Id, message.Body, hash, _queueName);
+        }
+    }
+
     internal async IAsyncEnumerable<RedisDeadletter<T>> PeekDeadlettersAsync(int limit)
     {
         if (limit >= 1) limit--; //0 is the first element of the list, thus 0 will return 1

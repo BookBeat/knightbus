@@ -26,7 +26,7 @@ public interface IQueueManager
     /// <summary>
     /// Peeks dead letter messages without removing them from the queue
     /// </summary>
-    Task<IReadOnlyList<QueueMessage>> PeekDeadLetter(string name, int count, CancellationToken ct);
+    Task<IReadOnlyList<QueueMessage>> PeekDeadLetter(string path, int count, CancellationToken ct);
     /// <summary>
     /// Reads dead letter messages and removes them from the queue
     /// </summary>

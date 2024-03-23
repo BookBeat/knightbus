@@ -43,6 +43,19 @@ public class RedisQueueManager : IQueueManager
 
     public async Task<IReadOnlyList<QueueMessage>> Peek(string path, int count, CancellationToken ct)
     {
+        var redisMessages = _managementClient.PeekMessagesAsync<DictionaryMessage>(path, count);
+        var messages = new List<QueueMessage>();
+        await foreach (var message in redisMessages)
+        {
+            var body = Encoding.UTF8.GetString(_configuration.MessageSerializer.Serialize(message.Message));
+            messages.Add(new QueueMessage(body, message.Error, message.LastProcessed, message.DeliveryCount, message.Id, message.HashEntries.AsReadOnly()));
+        }
+
+        return messages;
+    }
+
+    public async Task<IReadOnlyList<QueueMessage>> PeekDeadLetter(string path, int count, CancellationToken ct)
+    {
         var deadLetters = _managementClient.PeekDeadlettersAsync<DictionaryMessage>(path, count);
         var messages = new List<QueueMessage>();
         await foreach (var deadLetter in deadLetters)
@@ -52,11 +65,6 @@ public class RedisQueueManager : IQueueManager
         }
 
         return messages;
-    }
-
-    public Task<IReadOnlyList<QueueMessage>> PeekDeadLetter(string name, int count, CancellationToken ct)
-    {
-        throw new System.NotImplementedException();
     }
 
     public Task<IReadOnlyList<QueueMessage>> ReadDeadLetter(string name, int count, CancellationToken ct)

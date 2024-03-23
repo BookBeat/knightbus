@@ -63,11 +63,11 @@ public class ServiceBusQueueManager : IQueueManager
     }
 
     public async Task<IReadOnlyList<QueueMessage>> PeekDeadLetter(
-        string name,
+        string path,
         int count,
         CancellationToken ct)
     {
-        var receiver = _client.CreateReceiver(name, new ServiceBusReceiverOptions { SubQueue = SubQueue.DeadLetter });
+        var receiver = _client.CreateReceiver(path, new ServiceBusReceiverOptions { SubQueue = SubQueue.DeadLetter });
         var messages = await receiver.PeekMessagesAsync(count, cancellationToken: ct).ConfigureAwait(false);
         var queueMessages = messages.Select(
             m =>
