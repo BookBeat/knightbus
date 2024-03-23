@@ -21,7 +21,7 @@ public class RedisQueueClientTests
     public void Setup()
     {
         _bus = new RedisBus(RedisTestBase.Configuration.ConnectionString, Enumerable.Empty<IMessagePreProcessor>());
-        _target = new RedisQueueClient<TestCommand>(RedisTestBase.Database, new MicrosoftJsonSerializer(), _log);
+        _target = new RedisQueueClient<TestCommand>(RedisTestBase.Database, _queueName, new MicrosoftJsonSerializer(), _log);
     }
     [TearDown] //This should be done after each test thus not OneTime
     public void BaseTeardown()
@@ -56,8 +56,8 @@ public class RedisQueueClientTests
         messages.Length.Should().Be(1);
         var message = messages.First();
         message.Message.Should().BeEquivalentTo(command);
-        message.ExpirationKey.Should().NotBeNullOrEmpty();
         message.HashEntries.Should().ContainKey(RedisHashKeys.DeliveryCount);
+        message.HashEntries.Should().ContainKey(RedisHashKeys.LastProcessed);
         var deliveryCount = message.HashEntries.First(e => e.Key.Equals(RedisHashKeys.DeliveryCount));
         deliveryCount.Value.Should().Be("1");
         processingQueueLength = await RedisTestBase.Database.ListLengthAsync(RedisQueueConventions.GetProcessingQueueName(_queueName));
@@ -76,8 +76,6 @@ public class RedisQueueClientTests
         //Assert
         var hash = await RedisTestBase.Database.HashGetAllAsync(message.HashKey);
         hash.Should().BeEmpty();
-        var expirationKey = await RedisTestBase.Database.StringGetAsync(message.ExpirationKey);
-        expirationKey.HasValue.Should().BeFalse();
         var messages = await _target.GetMessagesAsync(1);
         messages.Length.Should().Be(0);
         var processingQueueLength = await RedisTestBase.Database.ListLengthAsync(RedisQueueConventions.GetProcessingQueueName(_queueName));
@@ -104,7 +102,6 @@ public class RedisQueueClientTests
         var reQueuedMessage = reQueuedMessages.First();
         reQueuedMessage.Message.Should().BeEquivalentTo(message.Message);
         reQueuedMessage.HashKey.Should().BeEquivalentTo(message.HashKey);
-        reQueuedMessage.ExpirationKey.Should().BeEquivalentTo(message.ExpirationKey);
     }
 
     [Test]
@@ -176,9 +173,5 @@ public class RedisQueueClientTests
         var hashKey = RedisQueueConventions.GetMessageHashKey(_queueName, deadletter.Message.Id);
         var hashes = await RedisTestBase.Database.HashGetAllAsync(hashKey).ConfigureAwait(false);
         hashes.Should().BeEmpty();
-
-        var expirationKey = RedisQueueConventions.GetMessageExpirationKey(_queueName, deadletter.Message.Id);
-        var expiration = await RedisTestBase.Database.StringGetAsync(expirationKey);
-        expiration.IsNull.Should().BeTrue();
     }
 }

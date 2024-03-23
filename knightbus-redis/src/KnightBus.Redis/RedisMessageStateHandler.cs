@@ -17,7 +17,7 @@ internal class RedisMessageStateHandler<T> : IMessageStateHandler<T> where T : c
     public RedisMessageStateHandler(IConnectionMultiplexer connection, RedisConfiguration configuration, RedisMessage<T> redisMessage, int deadLetterDeliveryLimit, IDependencyInjection messageScope, ILogger logger)
     {
         _redisMessage = redisMessage;
-        _queueClient = new RedisQueueClient<T>(connection.GetDatabase(configuration.DatabaseId), configuration.MessageSerializer, logger);
+        _queueClient = new RedisQueueClient<T>(connection.GetDatabase(configuration.DatabaseId), AutoMessageMapper.GetQueueName<T>(), configuration.MessageSerializer, logger);
         DeadLetterDeliveryLimit = deadLetterDeliveryLimit;
         MessageScope = messageScope;
     }

@@ -4,7 +4,6 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using KnightBus.Core;
 using KnightBus.Messages;
 using KnightBus.Redis.Messages;
 using Microsoft.Extensions.Logging;
@@ -16,14 +15,15 @@ namespace KnightBus.Redis;
 
 internal class RedisQueueClient<T> where T : class, IRedisMessage
 {
-    private readonly string _queueName = AutoMessageMapper.GetQueueName<T>();
+    private readonly string _queueName;
     private readonly IDatabase _db;
     private readonly IMessageSerializer _serializer;
     private readonly ILogger _log;
 
-    internal RedisQueueClient(IDatabase db, IMessageSerializer serializer, ILogger log)
+    internal RedisQueueClient(IDatabase db, string queueName, IMessageSerializer serializer, ILogger log)
     {
         _db = db;
+        _queueName = queueName;
         _serializer = serializer;
         _log = log;
     }
@@ -65,7 +65,7 @@ internal class RedisQueueClient<T> where T : class, IRedisMessage
 
             var tasks = new Task[]
             {
-                _db.StringSetAsync(RedisQueueConventions.GetMessageExpirationKey(_queueName, message.Id), DateTimeOffset.Now.ToUnixTimeMilliseconds()),
+                _db.HashSetAsync(hashKey, RedisHashKeys.LastProcessed, DateTimeOffset.Now.ToUnixTimeMilliseconds()),
                 _db.HashIncrementAsync(hashKey, RedisHashKeys.DeliveryCount)
             };
             await Task.WhenAll(tasks).ConfigureAwait(false);
@@ -94,9 +94,8 @@ internal class RedisQueueClient<T> where T : class, IRedisMessage
         if (listItem == null) return;
         var message = _serializer.Deserialize<RedisListItem<T>>(listItem.AsSpan());
         var hashKey = RedisQueueConventions.GetMessageHashKey(_queueName, message.Id);
-        var expirationKey = RedisQueueConventions.GetMessageExpirationKey(_queueName, message.Id);
 
-        await _db.HashDeleteAsync(hashKey, new RedisValue[] { expirationKey, RedisHashKeys.DeliveryCount }).ConfigureAwait(false);
+        await _db.HashDeleteAsync(hashKey, [RedisHashKeys.LastProcessed, RedisHashKeys.DeliveryCount]).ConfigureAwait(false);
         await _db.ListRightPopLeftPushAsync(deadLetterProcessingQueueName, _queueName).ConfigureAwait(false);
         await _db.PublishAsync(new RedisChannel(_queueName, RedisChannel.PatternMode.Literal), 0, CommandFlags.FireAndForget).ConfigureAwait(false);
     }
@@ -119,7 +118,7 @@ internal class RedisQueueClient<T> where T : class, IRedisMessage
     internal Task CompleteMessageAsync(RedisMessage<T> message)
     {
         return Task.WhenAll(
-            _db.KeyDeleteAsync(new RedisKey[] { message.HashKey, message.ExpirationKey }),
+            _db.KeyDeleteAsync(message.HashKey),
             _db.ListRemoveAsync(RedisQueueConventions.GetProcessingQueueName(_queueName), message.RedisValue, -1));
     }
 
@@ -134,7 +133,6 @@ internal class RedisQueueClient<T> where T : class, IRedisMessage
     internal Task DeadletterMessageAsync(RedisMessage<T> message, int deadLetterLimit)
     {
         return Task.WhenAll(
-            _db.HashSetAsync(message.HashKey, "MaxDeliveryCountExceeded", $"DeliveryCount exceeded limit of {deadLetterLimit}"),
             _db.ListLeftPushAsync(RedisQueueConventions.GetDeadLetterQueueName(_queueName), message.RedisValue),
             _db.ListRemoveAsync(RedisQueueConventions.GetProcessingQueueName(_queueName), message.RedisValue, -1));
     }
@@ -159,8 +157,8 @@ internal class RedisQueueClient<T> where T : class, IRedisMessage
     {
         var deadletterQueueName = RedisQueueConventions.GetDeadLetterQueueName(_queueName);
         var hash = RedisQueueConventions.GetMessageHashKey(_queueName, deadletter.Message.Id);
-        var expirationKey = RedisQueueConventions.GetMessageExpirationKey(_queueName, deadletter.Message.Id);
-        return Task.WhenAll(_db.KeyDeleteAsync(new RedisKey[] { hash, expirationKey }),
+        return Task.WhenAll(
+            _db.KeyDeleteAsync(hash),
             _db.ListRemoveAsync(deadletterQueueName, _serializer.Serialize(deadletter.Message), -1));
     }
 }
