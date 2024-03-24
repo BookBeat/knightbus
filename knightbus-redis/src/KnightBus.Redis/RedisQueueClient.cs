@@ -169,6 +169,21 @@ internal class RedisQueueClient<T> where T : class, IRedisMessage
         }
     }
 
+    internal async IAsyncEnumerable<RedisDeadletter<T>> ReadDeadlettersAsync(int limit)
+    {
+        var values = await _db.ListRightPopAsync(RedisQueueConventions.GetDeadLetterQueueName(_queueName), limit).ConfigureAwait(false);
+
+        foreach (byte[] value in values)
+        {
+            var deadLetter = new RedisDeadletter<T> { Message = _serializer.Deserialize<RedisListItem<T>>(value.AsSpan()) };
+            var hash = RedisQueueConventions.GetMessageHashKey(_queueName, deadLetter.Message.Id);
+            var hashes = await _db.HashGetAllAsync(hash).ConfigureAwait(false);
+            deadLetter.HashEntries = hashes.ToStringDictionary();
+            await _db.KeyDeleteAsync(RedisQueueConventions.GetMessageHashKey(_queueName, deadLetter.Message.Id)).ConfigureAwait(false);
+            yield return deadLetter;
+        }
+    }
+
     internal Task DeleteDeadletterAsync(RedisDeadletter<T> deadletter)
     {
         var deadletterQueueName = RedisQueueConventions.GetDeadLetterQueueName(_queueName);

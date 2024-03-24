@@ -65,10 +65,10 @@ public class ServiceBusSubscriptionManager : IQueueManager
         }).ToList();
     }
 
-    public async Task<IReadOnlyList<QueueMessage>> ReadDeadLetter(string name, int receiveLimit, CancellationToken ct)
+    public async Task<IReadOnlyList<QueueMessage>> ReadDeadLetter(string path, int receiveLimit, CancellationToken ct)
     {
         var queueMessages = new List<QueueMessage>();
-        var receiver = _client.CreateReceiver(_topic, name, new ServiceBusReceiverOptions { SubQueue = SubQueue.DeadLetter });
+        var receiver = _client.CreateReceiver(_topic, path, new ServiceBusReceiverOptions { SubQueue = SubQueue.DeadLetter });
         // Receive messages
         var movedMessages = 0;
         var batchSize = 10;
@@ -105,10 +105,10 @@ public class ServiceBusSubscriptionManager : IQueueManager
         return queueMessages;
     }
 
-    public Task<int> MoveDeadLetters(string name, int count, CancellationToken ct)
+    public Task<int> MoveDeadLetters(string path, int count, CancellationToken ct)
     {
 
-        var receiver = _client.CreateReceiver(_topic, name, new ServiceBusReceiverOptions { SubQueue = SubQueue.DeadLetter });
+        var receiver = _client.CreateReceiver(_topic, path, new ServiceBusReceiverOptions { SubQueue = SubQueue.DeadLetter });
         var sender = _client.CreateSender(_topic);
 
         return ServiceBusQueueManager.MoveMessages(sender, receiver, count, 10);

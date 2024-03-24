@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -67,14 +66,22 @@ public class RedisQueueManager : IQueueManager
         return messages;
     }
 
-    public Task<IReadOnlyList<QueueMessage>> ReadDeadLetter(string name, int count, CancellationToken ct)
+    public async Task<IReadOnlyList<QueueMessage>> ReadDeadLetter(string path, int count, CancellationToken ct)
     {
-        throw new System.NotImplementedException();
+        var deadLetters = _managementClient.ReadDeadlettersAsync<DictionaryMessage>(path, count);
+        var messages = new List<QueueMessage>();
+        await foreach (var deadLetter in deadLetters)
+        {
+            var body = Encoding.UTF8.GetString(_configuration.MessageSerializer.Serialize(deadLetter.Message.Body));
+            messages.Add(new QueueMessage(body, deadLetter.Error, deadLetter.LastProcessed, deadLetter.DeliveryCount, deadLetter.Message.Id, deadLetter.HashEntries.AsReadOnly()));
+        }
+
+        return messages;
     }
 
-    public Task<int> MoveDeadLetters(string name, int count, CancellationToken ct)
+    public Task<int> MoveDeadLetters(string path, int count, CancellationToken ct)
     {
-        return _managementClient.RequeueDeadlettersAsync<DictionaryMessage>(name, count);
+        return _managementClient.RequeueDeadlettersAsync<DictionaryMessage>(path, count);
     }
 
     public QueueType QueueType => QueueType.Queue;
