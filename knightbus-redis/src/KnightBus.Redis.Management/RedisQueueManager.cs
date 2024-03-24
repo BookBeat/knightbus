@@ -37,7 +37,7 @@ public class RedisQueueManager : IQueueManager
 
     public Task Delete(string path, CancellationToken ct)
     {
-        throw new System.NotImplementedException();
+        return _managementClient.DeleteQueueAsync<DictionaryMessage>(path);
     }
 
     public async Task<IReadOnlyList<QueueMessage>> Peek(string path, int count, CancellationToken ct)

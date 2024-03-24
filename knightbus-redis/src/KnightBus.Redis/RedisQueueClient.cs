@@ -192,4 +192,27 @@ internal class RedisQueueClient<T> where T : class, IRedisMessage
             _db.KeyDeleteAsync(hash),
             _db.ListRemoveAsync(deadletterQueueName, _serializer.Serialize(deadletter.Message), -1));
     }
+
+    internal async Task DeleteQueueAsync()
+    {
+        await DeleteQueueAsync(RedisQueueConventions.GetProcessingQueueName(_queueName)).ConfigureAwait(false);
+        await DeleteQueueAsync(RedisQueueConventions.GetDeadLetterQueueName(_queueName)).ConfigureAwait(false);
+        await DeleteQueueAsync(_queueName).ConfigureAwait(false);
+
+        await _db.SetRemoveAsync(RedisQueueConventions.QueueListKey, _queueName).ConfigureAwait(false);
+    }
+
+    private async Task DeleteQueueAsync(string path)
+    {
+        var numberOfMessages = await GetMessageCount(path);
+        var values = await _db.ListRightPopAsync(path, numberOfMessages).ConfigureAwait(false);
+
+        foreach (byte[] value in values)
+        {
+            var message = new RedisDeadletter<T> { Message = _serializer.Deserialize<RedisListItem<T>>(value.AsSpan()) };
+            await _db.KeyDeleteAsync(RedisQueueConventions.GetMessageHashKey(_queueName, message.Message.Id)).ConfigureAwait(false);
+        }
+
+        await _db.KeyDeleteAsync(path).ConfigureAwait(false);
+    }
 }
