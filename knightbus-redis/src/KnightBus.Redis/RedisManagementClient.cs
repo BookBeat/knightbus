@@ -16,7 +16,7 @@ public interface IRedisManagementClient
     Task<long> GetDeadletterMessageCount<T>(string path) where T : class, IRedisMessage;
     IAsyncEnumerable<RedisDeadletter<T>> PeekDeadlettersAsync<T>(string path, int limit) where T : class, IRedisMessage;
     IAsyncEnumerable<RedisMessage<T>> PeekMessagesAsync<T>(string path, int limit) where T : class, IRedisMessage;
-    Task RequeueDeadlettersAsync<T>(string path, long count) where T : class, IRedisMessage;
+    Task<int> RequeueDeadlettersAsync<T>(string path, int count) where T : class, IRedisMessage;
     Task DeleteDeadletterAsync<T>(string path, RedisDeadletter<T> deadletter) where T : class, IRedisMessage;
 }
 
@@ -69,14 +69,19 @@ public class RedisManagementClient : IRedisManagementClient
         return queueClient.PeekMessagesAsync(limit);
     }
 
-    public async Task RequeueDeadlettersAsync<T>(string path, long count) where T : class, IRedisMessage
+    public async Task<int> RequeueDeadlettersAsync<T>(string path, int count) where T : class, IRedisMessage
     {
         var queueClient = new RedisQueueClient<T>(_db, path, _serializer, _log);
 
         for (var i = 0; i < count; i++)
         {
-            await queueClient.RequeueDeadletterAsync();
+            if (!await queueClient.RequeueDeadletterAsync())
+            {
+                return i;
+            }
         }
+
+        return count;
     }
 
     public Task DeleteDeadletterAsync<T>(string path, RedisDeadletter<T> deadletter) where T : class, IRedisMessage

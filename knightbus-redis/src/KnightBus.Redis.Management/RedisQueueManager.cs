@@ -74,7 +74,7 @@ public class RedisQueueManager : IQueueManager
 
     public Task<int> MoveDeadLetters(string name, int count, CancellationToken ct)
     {
-        throw new System.NotImplementedException();
+        return _managementClient.RequeueDeadlettersAsync<DictionaryMessage>(name, count);
     }
 
     public QueueType QueueType => QueueType.Queue;

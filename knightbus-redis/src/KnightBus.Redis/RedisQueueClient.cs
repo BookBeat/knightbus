@@ -85,19 +85,20 @@ internal class RedisQueueClient<T> where T : class, IRedisMessage
         }
     }
 
-    internal async Task RequeueDeadletterAsync()
+    internal async Task<bool> RequeueDeadletterAsync()
     {
         var deadLetterQueueName = RedisQueueConventions.GetDeadLetterQueueName(_queueName);
         var deadLetterProcessingQueueName = RedisQueueConventions.GetProcessingQueueName(deadLetterQueueName);
 
         byte[] listItem = await _db.ListRightPopLeftPushAsync(deadLetterQueueName, deadLetterProcessingQueueName).ConfigureAwait(false);
-        if (listItem == null) return;
+        if (listItem == null) return false;
         var message = _serializer.Deserialize<RedisListItem<T>>(listItem.AsSpan());
         var hashKey = RedisQueueConventions.GetMessageHashKey(_queueName, message.Id);
 
         await _db.HashDeleteAsync(hashKey, [RedisHashKeys.LastProcessed, RedisHashKeys.DeliveryCount]).ConfigureAwait(false);
         await _db.ListRightPopLeftPushAsync(deadLetterProcessingQueueName, _queueName).ConfigureAwait(false);
         await _db.PublishAsync(new RedisChannel(_queueName, RedisChannel.PatternMode.Literal), 0, CommandFlags.FireAndForget).ConfigureAwait(false);
+        return true;
     }
 
     internal Task<long> GetMessageCount()
