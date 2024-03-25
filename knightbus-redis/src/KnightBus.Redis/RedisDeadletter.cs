@@ -1,26 +1,26 @@
 ﻿using System;
 using System.Collections.Generic;
+using KnightBus.Messages;
 using KnightBus.Redis.Messages;
 
 namespace KnightBus.Redis;
 
-public class RedisDeadletter<T> where T : IRedisMessage
+public class RedisDeadletter<T> where T : IMessage
 {
     public RedisListItem<T> Message { get; internal set; }
 
     public IDictionary<string, string> HashEntries { get; internal set; }
 
     public DateTimeOffset LastProcessed =>
-        !HashEntries.ContainsKey(RedisHashKeys.LastProcessed) ?
-            DateTimeOffset.FromUnixTimeMilliseconds(long.Parse(HashEntries[RedisHashKeys.LastProcessed])) :
+        HashEntries.TryGetValue(RedisHashKeys.LastProcessed, out var value) ?
+            DateTimeOffset.FromUnixTimeMilliseconds(long.Parse(value)) :
             DateTimeOffset.MinValue;
 
     public string Error =>
-        !HashEntries.ContainsKey(RedisHashKeys.Errors) ?
-            HashEntries[RedisHashKeys.LastProcessed] :
+        HashEntries.TryGetValue(RedisHashKeys.Errors, out var value) ? value :
             string.Empty;
 
     public int DeliveryCount =>
-        !HashEntries.ContainsKey(RedisHashKeys.DeliveryCount) ?
-            int.Parse(HashEntries[RedisHashKeys.LastProcessed]) : 0;
+        HashEntries.TryGetValue(RedisHashKeys.DeliveryCount, out var value) ?
+            int.Parse(value) : 0;
 }

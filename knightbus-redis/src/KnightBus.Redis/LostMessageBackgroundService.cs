@@ -10,7 +10,7 @@ using StackExchange.Redis;
 
 namespace KnightBus.Redis;
 
-internal class LostMessageBackgroundService<T> where T : class, IRedisMessage
+internal class LostMessageBackgroundService<T> where T : class, IMessage
 {
     private readonly IDatabase _db;
     private readonly IMessageSerializer _serializer;

@@ -51,7 +51,7 @@ public class RedisBus : IRedisBus
         return SendAsync<T>(messages.ToList(), queueName);
     }
 
-    private async Task SendAsync<T>(IList<T> messages, string queueName) where T : IRedisMessage
+    private async Task SendAsync<T>(IList<T> messages, string queueName) where T : IMessage
     {
         var db = _multiplexer.GetDatabase(_configuration.DatabaseId);
         var listItems = messages.Select(m => new RedisListItem<T>(Guid.NewGuid().ToString("N"), m)).ToList();
@@ -67,7 +67,7 @@ public class RedisBus : IRedisBus
         );
     }
 
-    private async Task SendAsync<T>(T message, string queueName) where T : IRedisMessage
+    private async Task SendAsync<T>(T message, string queueName) where T : IMessage
     {
         var db = _multiplexer.GetDatabase(_configuration.DatabaseId);
         var redisListItem = new RedisListItem<T>(Guid.NewGuid().ToString("N"), message);
@@ -95,7 +95,7 @@ public class RedisBus : IRedisBus
         await Task.WhenAll(subscriptions.Select(sub => SendAsync(messageList, RedisQueueConventions.GetSubscriptionQueueName(queueName, sub)))).ConfigureAwait(false);
     }
 
-    private async Task RunPreProcessors<T>(RedisListItem<T> item, IDatabase db, string queueName) where T : IRedisMessage
+    private async Task RunPreProcessors<T>(RedisListItem<T> item, IDatabase db, string queueName) where T : IMessage
     {
         foreach (var preProcessor in _messagePreProcessors)
         {

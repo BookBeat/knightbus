@@ -5,7 +5,6 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Messages;
-using KnightBus.Redis.Messages;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
@@ -13,7 +12,7 @@ using StackExchange.Redis;
 [assembly: InternalsVisibleTo("KnightBus.Redis.Tests.Unit")]
 namespace KnightBus.Redis;
 
-internal class RedisQueueClient<T> where T : class, IRedisMessage
+internal class RedisQueueClient<T> where T : class, IMessage
 {
     private readonly string _queueName;
     private readonly IDatabase _db;
@@ -205,8 +204,10 @@ internal class RedisQueueClient<T> where T : class, IRedisMessage
     private async Task DeleteQueueAsync(string path)
     {
         var numberOfMessages = await GetMessageCount(path);
+        if (numberOfMessages == 0) return;
         var values = await _db.ListRightPopAsync(path, numberOfMessages).ConfigureAwait(false);
-
+        // ReSharper disable once ConditionIsAlwaysTrueOrFalse
+        if (values == null) return;
         foreach (byte[] value in values)
         {
             var message = new RedisDeadletter<T> { Message = _serializer.Deserialize<RedisListItem<T>>(value.AsSpan()) };

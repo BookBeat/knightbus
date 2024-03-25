@@ -10,7 +10,7 @@ using StackExchange.Redis;
 namespace KnightBus.Redis;
 
 internal abstract class RedisChannelReceiver<T> : IChannelReceiver
-    where T : class, IRedisMessage
+    where T : class, IMessage
 {
     private readonly RedisConfiguration _redisConfiguration;
     private readonly IHostConfiguration _hostConfiguration;
