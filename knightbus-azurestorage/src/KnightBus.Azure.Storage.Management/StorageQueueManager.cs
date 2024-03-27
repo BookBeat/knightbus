@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -81,7 +82,8 @@ public class StorageQueueManager : IQueueManager
     {
         var qc = new StorageQueueClient(_configuration, _configuration.MessageSerializer, _preProcessors, name);
 
-        var messages = await qc.GetMessagesAsync<DictionaryMessage>(count, null).ConfigureAwait(false);
+
+        var messages = await qc.PeekMessagesAsync<DictionaryMessage>(count).ConfigureAwait(false);
 
         return messages.Select(m =>
         {
