@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using KnightBus.Messages;
 using KnightBus.Redis.Messages;
@@ -9,11 +10,16 @@ namespace KnightBus.Redis;
 
 public interface IRedisManagementClient
 {
-    Task<long> GetMessageCount<T>() where T : class, IRedisMessage;
-    Task<long> GetDeadletterMessageCount<T>() where T : class, IRedisMessage;
-    IAsyncEnumerable<RedisDeadletter<T>> PeekDeadlettersAsync<T>(int limit) where T : class, IRedisMessage;
-    Task RequeueDeadlettersAsync<T>(long count) where T : class, IRedisMessage;
-    Task DeleteDeadletterAsync<T>(RedisDeadletter<T> deadletter) where T : class, IRedisMessage;
+    Task<IEnumerable<string>> ListQueues();
+    Task<IEnumerable<string>> ListTopics();
+    Task<long> GetMessageCount<T>(string path) where T : class, IMessage;
+    Task<long> GetDeadletterMessageCount<T>(string path) where T : class, IMessage;
+    IAsyncEnumerable<RedisDeadletter<T>> PeekDeadlettersAsync<T>(string path, int limit) where T : class, IMessage;
+    IAsyncEnumerable<RedisDeadletter<T>> ReadDeadlettersAsync<T>(string path, int limit) where T : class, IMessage;
+    IAsyncEnumerable<RedisMessage<T>> PeekMessagesAsync<T>(string path, int limit) where T : class, IMessage;
+    Task<int> RequeueDeadlettersAsync<T>(string path, int count) where T : class, IMessage;
+    Task DeleteDeadletterAsync<T>(string path, RedisDeadletter<T> deadletter) where T : class, IMessage;
+    Task DeleteQueueAsync<T>(string path) where T : class, IMessage;
 }
 
 public class RedisManagementClient : IRedisManagementClient
@@ -29,37 +35,72 @@ public class RedisManagementClient : IRedisManagementClient
         _serializer = configuration.MessageSerializer;
     }
 
-    public Task<long> GetMessageCount<T>() where T : class, IRedisMessage
+    public async Task<IEnumerable<string>> ListQueues()
     {
-        var queueClient = new RedisQueueClient<T>(_db, _serializer, _log);
+        var queues = await _db.SetMembersAsync(RedisQueueConventions.QueueListKey).ConfigureAwait(false);
+        return queues.Select(queue => queue.ToString());
+    }
+
+    public async Task<IEnumerable<string>> ListTopics()
+    {
+        var topics = await _db.SetMembersAsync(RedisQueueConventions.TopicListKey).ConfigureAwait(false);
+        return topics.Select(topic => topic.ToString());
+    }
+
+    public Task<long> GetMessageCount<T>(string path) where T : class, IMessage
+    {
+        var queueClient = new RedisQueueClient<T>(_db, path, _serializer, _log);
         return queueClient.GetMessageCount();
     }
 
-    public Task<long> GetDeadletterMessageCount<T>() where T : class, IRedisMessage
+    public Task<long> GetDeadletterMessageCount<T>(string path) where T : class, IMessage
     {
-        var queueClient = new RedisQueueClient<T>(_db, _serializer, _log);
+        var queueClient = new RedisQueueClient<T>(_db, path, _serializer, _log);
         return queueClient.GetDeadletterMessageCount();
     }
 
-    public IAsyncEnumerable<RedisDeadletter<T>> PeekDeadlettersAsync<T>(int limit) where T : class, IRedisMessage
+    public IAsyncEnumerable<RedisDeadletter<T>> PeekDeadlettersAsync<T>(string path, int limit) where T : class, IMessage
     {
-        var queueClient = new RedisQueueClient<T>(_db, _serializer, _log);
+        var queueClient = new RedisQueueClient<T>(_db, path, _serializer, _log);
         return queueClient.PeekDeadlettersAsync(limit);
     }
 
-    public async Task RequeueDeadlettersAsync<T>(long count) where T : class, IRedisMessage
+    public IAsyncEnumerable<RedisDeadletter<T>> ReadDeadlettersAsync<T>(string path, int limit) where T : class, IMessage
     {
-        var queueClient = new RedisQueueClient<T>(_db, _serializer, _log);
+        var queueClient = new RedisQueueClient<T>(_db, path, _serializer, _log);
+        return queueClient.ReadDeadlettersAsync(limit);
+    }
+
+    public IAsyncEnumerable<RedisMessage<T>> PeekMessagesAsync<T>(string path, int limit) where T : class, IMessage
+    {
+        var queueClient = new RedisQueueClient<T>(_db, path, _serializer, _log);
+        return queueClient.PeekMessagesAsync(limit);
+    }
+
+    public async Task<int> RequeueDeadlettersAsync<T>(string path, int count) where T : class, IMessage
+    {
+        var queueClient = new RedisQueueClient<T>(_db, path, _serializer, _log);
 
         for (var i = 0; i < count; i++)
         {
-            await queueClient.RequeueDeadletterAsync();
+            if (!await queueClient.RequeueDeadletterAsync())
+            {
+                return i;
+            }
         }
+
+        return count;
     }
 
-    public Task DeleteDeadletterAsync<T>(RedisDeadletter<T> deadletter) where T : class, IRedisMessage
+    public Task DeleteDeadletterAsync<T>(string path, RedisDeadletter<T> deadletter) where T : class, IMessage
     {
-        var queueClient = new RedisQueueClient<T>(_db, _serializer, _log);
+        var queueClient = new RedisQueueClient<T>(_db, path, _serializer, _log);
         return queueClient.DeleteDeadletterAsync(deadletter);
+    }
+
+    public Task DeleteQueueAsync<T>(string path) where T : class, IMessage
+    {
+        var queueClient = new RedisQueueClient<T>(_db, path, _serializer, _log);
+        return queueClient.DeleteQueueAsync();
     }
 }

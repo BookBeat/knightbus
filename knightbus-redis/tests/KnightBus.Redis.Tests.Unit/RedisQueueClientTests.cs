@@ -19,7 +19,7 @@ public class RedisQueueClientTests
     public void Setup()
     {
         _db = new Mock<IDatabase>();
-        _target = new RedisQueueClient<TestCommand>(_db.Object, new MicrosoftJsonSerializer(), _log);
+        _target = new RedisQueueClient<TestCommand>(_db.Object, AutoMessageMapper.GetQueueName<TestCommand>(), new MicrosoftJsonSerializer(), _log);
     }
 
     [Test]

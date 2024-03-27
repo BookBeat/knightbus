@@ -10,7 +10,7 @@ using StackExchange.Redis;
 
 namespace KnightBus.Redis;
 
-internal class LostMessageBackgroundService<T> where T : class, IRedisMessage
+internal class LostMessageBackgroundService<T> where T : class, IMessage
 {
     private readonly IDatabase _db;
     private readonly IMessageSerializer _serializer;
@@ -87,12 +87,12 @@ internal class LostMessageBackgroundService<T> where T : class, IRedisMessage
     private async Task<(bool lost, RedisListItem<T> message, RedisValue listItem)> HandlePotentiallyLostMessage(string queueName, byte[] listItem)
     {
         var message = _serializer.Deserialize<RedisListItem<T>>(listItem.AsSpan());
-        var lastProcessedKey = RedisQueueConventions.GetMessageExpirationKey(queueName, message.Id);
-        var hash = await _db.StringGetAsync(lastProcessedKey).ConfigureAwait(false);
-
-        if (!hash.IsNull)
+        var hashKey = RedisQueueConventions.GetMessageHashKey(queueName, message.Id);
+        var hashArray = await _db.HashGetAllAsync(hashKey).ConfigureAwait(false);
+        var hash = hashArray.ToStringDictionary();
+        if (hash.TryGetValue(RedisHashKeys.LastProcessed, out var value))
         {
-            var processTimeStamp = DateTimeOffset.FromUnixTimeMilliseconds(long.Parse(hash));
+            var processTimeStamp = DateTimeOffset.FromUnixTimeMilliseconds(long.Parse(value));
             if (processTimeStamp + _messageTimeout < DateTimeOffset.Now)
             {
                 //Message is lost or has exceeded maximum processing time
@@ -101,7 +101,7 @@ internal class LostMessageBackgroundService<T> where T : class, IRedisMessage
         }
         else
         {
-            await _db.StringSetAsync(lastProcessedKey, DateTimeOffset.Now.Add(-_messageTimeout).ToUnixTimeMilliseconds(), GetDelay() + GetDelay()).ConfigureAwait(false);
+            await _db.HashSetAsync(hashKey, RedisHashKeys.LastProcessed, DateTimeOffset.Now.Add(-_messageTimeout).ToUnixTimeMilliseconds()).ConfigureAwait(false);
         }
 
         return (false, default, listItem);
@@ -109,13 +109,13 @@ internal class LostMessageBackgroundService<T> where T : class, IRedisMessage
 
     private async Task<bool> RecoverLostMessageAsync(string queueName, RedisValue redisMessage, string id)
     {
-        var lastProcessedKey = RedisQueueConventions.GetMessageExpirationKey(queueName, id);
+        var hashKey = RedisQueueConventions.GetMessageHashKey(queueName, id);
 #pragma warning disable 4014
         var tran = _db.CreateTransaction();
-        tran.AddCondition(Condition.KeyExists(lastProcessedKey));
+        tran.AddCondition(Condition.KeyExists(hashKey));
         tran.ListRemoveAsync(RedisQueueConventions.GetProcessingQueueName(queueName), redisMessage, -1);
         tran.ListLeftPushAsync(queueName, redisMessage);
-        tran.KeyDeleteAsync(lastProcessedKey);
+        tran.HashDeleteAsync(hashKey, [RedisHashKeys.LastProcessed, RedisHashKeys.DeliveryCount]);
 
 #pragma warning restore 4014
         var result = await tran.ExecuteAsync().ConfigureAwait(false);

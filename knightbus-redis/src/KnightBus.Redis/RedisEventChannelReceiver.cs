@@ -24,6 +24,7 @@ internal class RedisEventChannelReceiver<T> : RedisChannelReceiver<T>
     {
         var db = ConnectionMultiplexer.GetDatabase(_redisConfiguration.DatabaseId);
         await db.SetAddAsync(RedisQueueConventions.GetSubscriptionKey(AutoMessageMapper.GetQueueName<T>()), _subscription.Name).ConfigureAwait(false);
+        await db.SetAddAsync(RedisQueueConventions.TopicListKey, AutoMessageMapper.GetQueueName<T>()).ConfigureAwait(false);
 
         await base.StartAsync(cancellationToken).ConfigureAwait(false);
     }

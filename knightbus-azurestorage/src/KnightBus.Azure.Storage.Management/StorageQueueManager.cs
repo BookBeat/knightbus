@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -81,7 +82,8 @@ public class StorageQueueManager : IQueueManager
     {
         var qc = new StorageQueueClient(_configuration, _configuration.MessageSerializer, _preProcessors, name);
 
-        var messages = await qc.GetMessagesAsync<DictionaryMessage>(count, null).ConfigureAwait(false);
+
+        var messages = await qc.PeekMessagesAsync<DictionaryMessage>(count).ConfigureAwait(false);
 
         return messages.Select(m =>
         {
@@ -91,9 +93,9 @@ public class StorageQueueManager : IQueueManager
         }).ToList();
     }
 
-    public async Task<IReadOnlyList<QueueMessage>> PeekDeadLetter(string name, int count, CancellationToken ct)
+    public async Task<IReadOnlyList<QueueMessage>> PeekDeadLetter(string path, int count, CancellationToken ct)
     {
-        var qc = new StorageQueueClient(_configuration, _configuration.MessageSerializer, _preProcessors, name);
+        var qc = new StorageQueueClient(_configuration, _configuration.MessageSerializer, _preProcessors, path);
 
         var messages = await qc.PeekDeadLettersAsync<DictionaryMessage>(count).ConfigureAwait(false);
 
@@ -105,9 +107,9 @@ public class StorageQueueManager : IQueueManager
         }).ToList();
     }
 
-    public async Task<IReadOnlyList<QueueMessage>> ReadDeadLetter(string name, int count, CancellationToken ct)
+    public async Task<IReadOnlyList<QueueMessage>> ReadDeadLetter(string path, int count, CancellationToken ct)
     {
-        var qc = new StorageQueueClient(_configuration, _configuration.MessageSerializer, _preProcessors, name);
+        var qc = new StorageQueueClient(_configuration, _configuration.MessageSerializer, _preProcessors, path);
 
         var messages = new List<QueueMessage>();
         for (var i = 0; i < count; i++)
@@ -128,9 +130,9 @@ public class StorageQueueManager : IQueueManager
         return messages;
     }
 
-    public async Task<int> MoveDeadLetters(string name, int count, CancellationToken ct)
+    public async Task<int> MoveDeadLetters(string path, int count, CancellationToken ct)
     {
-        var qc = new StorageQueueClient(_configuration, _configuration.MessageSerializer, _preProcessors, name);
+        var qc = new StorageQueueClient(_configuration, _configuration.MessageSerializer, _preProcessors, path);
         await qc.RequeueDeadLettersAsync<DictionaryMessage>(count, null).ConfigureAwait(false);
         return count;
     }

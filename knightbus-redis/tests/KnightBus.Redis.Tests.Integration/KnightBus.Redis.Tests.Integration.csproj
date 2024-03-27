@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\knightbus\tests\KnightBus.Shared.Tests.Integration\KnightBus.Shared.Tests.Integration.csproj" />
+    <ProjectReference Include="..\..\src\KnightBus.Redis.Management\KnightBus.Redis.Management.csproj" />
     <ProjectReference Include="..\..\src\KnightBus.Redis\KnightBus.Redis.csproj" />
   </ItemGroup>
 

@@ -11,6 +11,7 @@
     <PackageReference Include="nunit" Version="4.1.0" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\src\KnightBus.Core.Management\KnightBus.Core.Management.csproj" />
     <ProjectReference Include="..\..\src\KnightBus.Host\KnightBus.Host.csproj" />
   </ItemGroup>
 </Project>

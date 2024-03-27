@@ -9,13 +9,13 @@ public sealed class RedisTestBase
     public static IRedisConfiguration Configuration;
     public static IDatabase Database;
 
-    private IConnectionMultiplexer _multiplexer;
+    public static IConnectionMultiplexer Multiplexer;
 
     [OneTimeSetUp]
     public void BaseSetup()
     {
         Configuration = new RedisConfiguration("localhost:6379");
-        _multiplexer = ConnectionMultiplexer.Connect($"{Configuration.ConnectionString},allowAdmin=true");
-        Database = _multiplexer.GetDatabase(Configuration.DatabaseId);
+        Multiplexer = ConnectionMultiplexer.Connect($"{Configuration.ConnectionString},allowAdmin=true");
+        Database = Multiplexer.GetDatabase(Configuration.DatabaseId);
     }
 }
