@@ -11,13 +11,8 @@ using NUnit.Framework;
 
 namespace KnightBus.Shared.Tests.Integration;
 
-public class DictionaryMessage : Dictionary<string, object>, IMessage
-{
-
-}
-
 [TestFixture]
-public abstract class QueueManagerTests
+public abstract class QueueManagerTests<TCommand> where TCommand : class, IMessage
 {
     protected IQueueManager QueueManager { get; set; }
     protected QueueType QueueType { get; set; }
@@ -28,7 +23,7 @@ public abstract class QueueManagerTests
     public abstract Task<string> CreateQueue();
     public abstract Task<string> SendMessage(string message);
 
-    public abstract Task<IMessageStateHandler<DictionaryMessage>> GetMessageStateHandler(string queueName);
+    public abstract Task<IMessageStateHandler<TCommand>> GetMessageStateHandler(string queueName);
 
     [Test]
     public void Should_specify_queue_type()
@@ -85,5 +80,57 @@ public abstract class QueueManagerTests
         messages[0].Body.Should().Contain(messageText);
         var verifyStillAvailable = await QueueManager.PeekDeadLetter(queueName, 1, CancellationToken.None);
         verifyStillAvailable[0].Body.Should().Contain(messageText, "The message should still be available after peeking");
+    }
+
+    [Test]
+    public async Task Should_receive_dead_letter_message_and_delete_it()
+    {
+        //arrange
+        var messageText = Guid.NewGuid().ToString("N");
+        var queueName = await SendMessage(messageText);
+        var stateHandler = await GetMessageStateHandler(queueName);
+        await stateHandler.DeadLetterAsync(1);
+        //act
+        var messages = await QueueManager.ReadDeadLetter(queueName, 10, CancellationToken.None);
+        //assert
+        messages.Should().HaveCount(1);
+        messages[0].Body.Should().Contain(messageText);
+        var verifyStillAvailable = await QueueManager.PeekDeadLetter(queueName, 1, CancellationToken.None);
+        verifyStillAvailable.Should().BeEmpty("The message should be deleted after reading");
+    }
+
+    [Test]
+    public async Task Should_move_dead_letter_message_to_original_queue()
+    {
+        //arrange
+        var messageText = Guid.NewGuid().ToString("N");
+        var queueName = await SendMessage(messageText);
+        var stateHandler = await GetMessageStateHandler(queueName);
+        await stateHandler.DeadLetterAsync(1);
+        //act
+        var noMoved = await QueueManager.MoveDeadLetters(queueName, 1, CancellationToken.None);
+        //assert
+        noMoved.Should().Be(1);
+        var deadLetterMessages = await QueueManager.PeekDeadLetter(queueName, 10, CancellationToken.None);
+        deadLetterMessages.Count.Should().Be(0);
+        var messages = await QueueManager.Peek(queueName, 10, CancellationToken.None);
+        messages.Count.Should().Be(1);
+        messages[0].Body.Should().Contain(messageText);
+    }
+
+    [Test]
+    public async Task Should_reflect_current_queue_properties()
+    {
+        //arrange
+        var queueName = await SendMessage(Guid.NewGuid().ToString("N"));
+        await SendMessage(Guid.NewGuid().ToString("N"));
+        var stateHandler = await GetMessageStateHandler(queueName);
+        await stateHandler.DeadLetterAsync(1);
+        //act
+        var state = await QueueManager.Get(queueName, CancellationToken.None);
+        //assert
+        state.Name.Should().Be(queueName);
+        state.ActiveMessageCount.Should().Be(1);
+        state.DeadLetterMessageCount.Should().Be(1);
     }
 }

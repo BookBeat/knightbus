@@ -7,6 +7,7 @@ using KnightBus.Core.DependencyInjection;
 using KnightBus.Core.Management;
 using KnightBus.Core.PreProcessors;
 using KnightBus.Redis.Management;
+using KnightBus.Redis.Messages;
 using KnightBus.Shared.Tests.Integration;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -14,8 +15,10 @@ using NUnit.Framework;
 
 namespace KnightBus.Redis.Tests.Integration;
 
+
+
 [TestFixture]
-public class RedisQueueManagerTests : QueueManagerTests
+public class RedisQueueManagerTests : QueueManagerTests<TestCommand>
 {
     private RedisBus _bus;
 
@@ -47,10 +50,10 @@ public class RedisQueueManagerTests : QueueManagerTests
         return AutoMessageMapper.GetQueueName<TestCommand>();
     }
 
-    public override async Task<IMessageStateHandler<DictionaryMessage>> GetMessageStateHandler(string queueName)
+    public override async Task<IMessageStateHandler<TestCommand>> GetMessageStateHandler(string queueName)
     {
-        var q = new RedisQueueClient<DictionaryMessage>(RedisTestBase.Database, queueName, RedisTestBase.Configuration.MessageSerializer, Mock.Of<ILogger>());
+        var q = new RedisQueueClient<TestCommand>(RedisTestBase.Database, queueName, RedisTestBase.Configuration.MessageSerializer, Mock.Of<ILogger>());
         var m = await q.GetMessagesAsync(1);
-        return new RedisMessageStateHandler<DictionaryMessage>(RedisTestBase.Multiplexer, RedisTestBase.Configuration, m.First(), 5, null, Mock.Of<ILogger>());
+        return new RedisMessageStateHandler<TestCommand>(RedisTestBase.Multiplexer, RedisTestBase.Configuration, m.First(), 5, null, Mock.Of<ILogger>());
     }
 }
