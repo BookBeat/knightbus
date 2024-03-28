@@ -24,7 +24,7 @@ public class RedisQueueManagerTests : QueueManagerTests<TestCommand>
 
     public override async Task Setup()
     {
-        var logger = new Mock<ILogger>();
+        var logger = new Mock<ILogger<RedisManagementClient>>();
         var managementClient = new RedisManagementClient(RedisTestBase.Configuration, logger.Object);
         QueueManager = new RedisQueueManager(managementClient, RedisTestBase.Configuration);
         QueueType = QueueType.Queue;

@@ -2,7 +2,6 @@
 using System.Linq;
 using System.Threading.Tasks;
 using KnightBus.Messages;
-using KnightBus.Redis.Messages;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
@@ -28,7 +27,7 @@ public class RedisManagementClient : IRedisManagementClient
     private readonly IDatabase _db;
     private readonly IMessageSerializer _serializer;
 
-    public RedisManagementClient(IRedisConfiguration configuration, ILogger log)
+    public RedisManagementClient(IRedisConfiguration configuration, ILogger<RedisManagementClient> log)
     {
         _log = log;
         _db = ConnectionMultiplexer.Connect(configuration.ConnectionString).GetDatabase(configuration.DatabaseId);
