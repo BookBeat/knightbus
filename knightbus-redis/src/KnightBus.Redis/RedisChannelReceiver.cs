@@ -10,7 +10,7 @@ using StackExchange.Redis;
 namespace KnightBus.Redis;
 
 internal abstract class RedisChannelReceiver<T> : IChannelReceiver
-    where T : class, IRedisMessage
+    where T : class, IMessage
 {
     private readonly RedisConfiguration _redisConfiguration;
     private readonly IHostConfiguration _hostConfiguration;
@@ -40,7 +40,7 @@ internal abstract class RedisChannelReceiver<T> : IChannelReceiver
 
     public virtual async Task StartAsync(CancellationToken cancellationToken)
     {
-        _queueClient = new RedisQueueClient<T>(ConnectionMultiplexer.GetDatabase(_redisConfiguration.DatabaseId), _serializer, _hostConfiguration.Log);
+        _queueClient = new RedisQueueClient<T>(ConnectionMultiplexer.GetDatabase(_redisConfiguration.DatabaseId), AutoMessageMapper.GetQueueName<T>(), _serializer, _hostConfiguration.Log);
         var sub = ConnectionMultiplexer.GetSubscriber();
         await sub.SubscribeAsync(new RedisChannel(_queueName, RedisChannel.PatternMode.Literal), MessageSignalReceivedHandler);
 

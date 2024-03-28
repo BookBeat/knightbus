@@ -26,15 +26,15 @@ public interface IQueueManager
     /// <summary>
     /// Peeks dead letter messages without removing them from the queue
     /// </summary>
-    Task<IReadOnlyList<QueueMessage>> PeekDeadLetter(string name, int count, CancellationToken ct);
+    Task<IReadOnlyList<QueueMessage>> PeekDeadLetter(string path, int count, CancellationToken ct);
     /// <summary>
     /// Reads dead letter messages and removes them from the queue
     /// </summary>
-    Task<IReadOnlyList<QueueMessage>> ReadDeadLetter(string name, int count, CancellationToken ct);
+    Task<IReadOnlyList<QueueMessage>> ReadDeadLetter(string path, int count, CancellationToken ct);
     /// <summary>
     /// Moves dead letter messages back to the original queue
     /// </summary>
-    Task<int> MoveDeadLetters(string name, int count, CancellationToken ct);
+    Task<int> MoveDeadLetters(string path, int count, CancellationToken ct);
     /// <summary>
     /// Type of queue <see cref="QueueType"/>
     /// </summary>

@@ -45,17 +45,17 @@ public class ServiceBusTopicManager : IQueueManager
         throw new NotImplementedException();
     }
 
-    public Task<IReadOnlyList<QueueMessage>> PeekDeadLetter(string name, int count, CancellationToken ct)
+    public Task<IReadOnlyList<QueueMessage>> PeekDeadLetter(string path, int count, CancellationToken ct)
     {
         throw new NotImplementedException();
     }
 
-    public Task<IReadOnlyList<QueueMessage>> ReadDeadLetter(string name, int count, CancellationToken ct)
+    public Task<IReadOnlyList<QueueMessage>> ReadDeadLetter(string path, int count, CancellationToken ct)
     {
         throw new NotImplementedException();
     }
 
-    public Task<int> MoveDeadLetters(string name, int count, CancellationToken ct)
+    public Task<int> MoveDeadLetters(string path, int count, CancellationToken ct)
     {
         throw new NotImplementedException();
     }

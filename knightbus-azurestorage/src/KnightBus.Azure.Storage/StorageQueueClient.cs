@@ -24,6 +24,7 @@ public interface IStorageQueueClient
     Task CompleteAsync(StorageQueueMessage message);
     Task AbandonByErrorAsync(StorageQueueMessage message, TimeSpan? visibilityTimeout);
     Task SendAsync<T>(T message, TimeSpan? delay, CancellationToken cancellationToken) where T : IStorageQueueCommand;
+    Task<List<StorageQueueMessage>> PeekMessagesAsync<T>(int count) where T : IStorageQueueCommand;
     Task<List<StorageQueueMessage>> GetMessagesAsync<T>(int count, TimeSpan? lockDuration) where T : IStorageQueueCommand;
     Task CreateIfNotExistsAsync();
     Task DeleteIfExistsAsync();
@@ -125,7 +126,7 @@ public class StorageQueueClient : IStorageQueueClient
 
     public Task<List<StorageQueueMessage>> PeekDeadLettersAsync<T>(int count) where T : IStorageQueueCommand
     {
-        return GetMessagesAsync<T>(count, null, _dlQueue);
+        return PeekMessagesAsync<T>(count, _dlQueue);
     }
 
     public async Task RequeueDeadLettersAsync<T>(int count, Func<T, bool> shouldRequeue)
@@ -155,7 +156,7 @@ public class StorageQueueClient : IStorageQueueClient
 
     public async Task<StorageQueueMessage> ReceiveDeadLetterAsync<T>() where T : IStorageQueueCommand
     {
-        var messages = await PeekDeadLettersAsync<T>(1).ConfigureAwait(false);
+        var messages = await GetMessagesAsync<T>(1, null, _dlQueue).ConfigureAwait(false);
         if (!messages.Any()) return null;
         var message = messages.Single();
 
@@ -205,6 +206,7 @@ public class StorageQueueClient : IStorageQueueClient
     {
         return GetMessagesAsync<T>(count, lockDuration, _queue);
     }
+
     private async Task<List<StorageQueueMessage>> GetMessagesAsync<T>(int count, TimeSpan? lockDuration, QueueClient queue) where T : IStorageQueueCommand
     {
         var messages = (await queue.ReceiveMessagesAsync(count, lockDuration).ConfigureAwait(false)).Value;
@@ -234,6 +236,44 @@ public class StorageQueueClient : IStorageQueueClient
             {
                 //If we cannot find the message blob something is really wrong, delete the message right away
                 await queue.DeleteMessageAsync(queueMessage.MessageId, queueMessage.PopReceipt);
+            }
+        }
+
+        return messageContainers;
+    }
+
+    public Task<List<StorageQueueMessage>> PeekMessagesAsync<T>(int count) where T : IStorageQueueCommand
+    {
+        return PeekMessagesAsync<T>(count, _queue);
+    }
+
+    private async Task<List<StorageQueueMessage>> PeekMessagesAsync<T>(int count, QueueClient queue) where T : IStorageQueueCommand
+    {
+        var messages = (await queue.PeekMessagesAsync(count).ConfigureAwait(false)).Value;
+        if (!messages.Any()) return new List<StorageQueueMessage>();
+        var messageContainers = new List<StorageQueueMessage>(messages.Length);
+        foreach (var queueMessage in messages)
+        {
+            try
+            {
+                var message = new StorageQueueMessage
+                {
+                    QueueMessageId = queueMessage.MessageId,
+                    DequeueCount = (int)queueMessage.DequeueCount,
+                    Properties = TryDeserializeProperties(queueMessage.Body)
+                };
+                using (var stream = new MemoryStream())
+                {
+                    await _container.GetBlobClient(message.BlobMessageId).DownloadToAsync(stream).ConfigureAwait(false);
+                    stream.Position = 0;
+
+                    message.Message = await _serializer.Deserialize<T>(stream).ConfigureAwait(false);
+                    messageContainers.Add(message);
+                }
+            }
+            catch (RequestFailedException e) when (e.Status == 404)
+            {
+                //Cannot modify a peeked message, ignore it
             }
         }
 

@@ -12,6 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\knightbus\tests\KnightBus.Shared.Tests.Integration\KnightBus.Shared.Tests.Integration.csproj" />
+    <ProjectReference Include="..\..\src\KnightBus.Azure.Storage.Management\KnightBus.Azure.Storage.Management.csproj" />
     <ProjectReference Include="..\..\src\KnightBus.Azure.Storage\KnightBus.Azure.Storage.csproj" />
   </ItemGroup>
 </Project>
