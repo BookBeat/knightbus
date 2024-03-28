@@ -9,7 +9,8 @@ public static class RedisQueueExtensions
     {
         services = services
             .AddScoped<RedisQueueManager>()
-            .AddScoped<IQueueManager, RedisQueueManager>();
+            .AddScoped<IQueueManager, RedisQueueManager>()
+            .AddScoped<IRedisManagementClient, RedisManagementClient>();
 
         return services.UseRedis(c => c.ConnectionString = connectionString);
     }
