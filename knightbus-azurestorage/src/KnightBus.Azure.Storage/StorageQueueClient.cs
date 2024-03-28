@@ -156,7 +156,7 @@ public class StorageQueueClient : IStorageQueueClient
 
     public async Task<StorageQueueMessage> ReceiveDeadLetterAsync<T>() where T : IStorageQueueCommand
     {
-        var messages = await PeekDeadLettersAsync<T>(1).ConfigureAwait(false);
+        var messages = await GetMessagesAsync<T>(1, null, _dlQueue).ConfigureAwait(false);
         if (!messages.Any()) return null;
         var message = messages.Single();
 

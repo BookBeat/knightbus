@@ -21,18 +21,15 @@ public class StorageQueueManagerTests : QueueManagerTests<TestCommand>
         QueueManager = new StorageQueueManager(_configuration, Array.Empty<IMessagePreProcessor>());
         QueueType = QueueType.Queue;
         var queues = await QueueManager.List(CancellationToken.None);
-        await QueueManager.Delete("test", CancellationToken.None);
         foreach (var queue in queues)
         {
             await QueueManager.Delete(queue.Name, CancellationToken.None);
         }
-
-        await CreateQueue();
     }
 
     public override async Task<string> CreateQueue()
     {
-        var queueName = AutoMessageMapper.GetQueueName<TestCommand>();
+        var queueName = Guid.NewGuid().ToString("N");
         var client = new StorageQueueClient(_configuration, new NewtonsoftSerializer(), Array.Empty<IMessagePreProcessor>(), queueName);
         await client.CreateIfNotExistsAsync();
         return queueName;
@@ -41,6 +38,7 @@ public class StorageQueueManagerTests : QueueManagerTests<TestCommand>
     public override async Task<string> SendMessage(string message)
     {
         var client = new StorageQueueClient(_configuration, new NewtonsoftSerializer(), Array.Empty<IMessagePreProcessor>(), AutoMessageMapper.GetQueueName<TestCommand>());
+        await client.CreateIfNotExistsAsync();
         await client.SendAsync(new TestCommand { Message = message }, TimeSpan.Zero, CancellationToken.None);
         return AutoMessageMapper.GetQueueName<TestCommand>();
     }
