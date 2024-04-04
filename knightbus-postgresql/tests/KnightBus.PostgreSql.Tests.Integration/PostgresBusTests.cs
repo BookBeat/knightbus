@@ -46,7 +46,7 @@ public class PostgresBusTests
     public async Task SetUp()
     {
         _npgsqlDataSource = new NpgsqlDataSourceBuilder(s_connectionString).Build();
-        _postgresBus = new PostgresBus(_npgsqlDataSource, new NewtonsoftSerializer());
+        _postgresBus = new PostgresBus(_npgsqlDataSource, new PostgresConfiguration());
         _postgresQueueClient = new PostgresQueueClient<TestCommand>(_npgsqlDataSource, new NewtonsoftSerializer());
         await _postgresQueueClient.PurgeQueue();
         await _postgresQueueClient.PurgeDeadLetterQueue();

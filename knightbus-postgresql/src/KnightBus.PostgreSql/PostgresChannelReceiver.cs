@@ -16,7 +16,7 @@ public class PostgresChannelReceiver<T> : IChannelReceiver
     private readonly IMessageSerializer _serializer;
     private readonly SemaphoreSlim _maxConcurrent;
     private CancellationTokenSource _pumpDelayCancellationTokenSource = new();
-    private readonly TimeSpan _pollingSleepInterval = TimeSpan.FromSeconds(10);
+    private readonly TimeSpan _pollingSleepInterval = TimeSpan.FromSeconds(5);
     private Task _messagePumpTask;
 
     public PostgresChannelReceiver(
@@ -36,6 +36,7 @@ public class PostgresChannelReceiver<T> : IChannelReceiver
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
+        _hostConfiguration.Log.LogInformation("Starting postgres receiver");
         _queueClient = new PostgresQueueClient<T>(_npgsqlDataSource, _serializer);
 
         _messagePumpTask = Task.Factory.StartNew(async () =>
@@ -51,7 +52,7 @@ public class PostgresChannelReceiver<T> : IChannelReceiver
         try
         {
             var prefetchCount = Settings.PrefetchCount > 0 ? Settings.PrefetchCount : 1;
-            var messages = await _queueClient.GetMessagesAsync(prefetchCount, Settings.MessageLockTimeout.Seconds)
+            var messages = await _queueClient.GetMessagesAsync(prefetchCount, (int)Settings.MessageLockTimeout.TotalSeconds)
                 .ConfigureAwait(false);
             if (messages.Length == 0) return false;
 

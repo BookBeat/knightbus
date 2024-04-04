@@ -105,6 +105,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.PostgreSql.Messag
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.PostgreSql.Tests.Integration", "knightbus-postgresql\tests\KnightBus.PostgreSql.Tests.Integration\KnightBus.PostgreSql.Tests.Integration.csproj", "{CF38E1C2-9D42-4EEE-8E9A-C92CC7BEE310}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.Examples.PostgreSql", "knightbus\examples\KnightBus.Examples.PostgreSql\KnightBus.Examples.PostgreSql.csproj", "{09E9604D-DCE1-4A8A-BEE0-3E7526FFABC0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -271,6 +273,10 @@ Global
 		{CF38E1C2-9D42-4EEE-8E9A-C92CC7BEE310}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CF38E1C2-9D42-4EEE-8E9A-C92CC7BEE310}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CF38E1C2-9D42-4EEE-8E9A-C92CC7BEE310}.Release|Any CPU.Build.0 = Release|Any CPU
+		{09E9604D-DCE1-4A8A-BEE0-3E7526FFABC0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{09E9604D-DCE1-4A8A-BEE0-3E7526FFABC0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{09E9604D-DCE1-4A8A-BEE0-3E7526FFABC0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{09E9604D-DCE1-4A8A-BEE0-3E7526FFABC0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -305,6 +311,7 @@ Global
 		{782E171C-B08B-4788-BE39-F85CCD09DF5F} = {F4BD90E0-18D9-43A4-B9C1-E8CD2CEDCECA}
 		{8AA6DAD6-CA65-430A-A040-5FED474C5787} = {F4BD90E0-18D9-43A4-B9C1-E8CD2CEDCECA}
 		{CF38E1C2-9D42-4EEE-8E9A-C92CC7BEE310} = {F4BD90E0-18D9-43A4-B9C1-E8CD2CEDCECA}
+		{09E9604D-DCE1-4A8A-BEE0-3E7526FFABC0} = {1A7A20B2-65E7-4712-B93B-4AA3F73017A8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {14950A56-4265-429E-AF71-2D98B3B8AC48}

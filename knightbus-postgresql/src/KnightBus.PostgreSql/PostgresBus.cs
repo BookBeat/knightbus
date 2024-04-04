@@ -17,10 +17,10 @@ public class PostgresBus : IPostgresBus
     private readonly NpgsqlDataSource _npgsqlDataSource;
     private readonly IMessageSerializer _serializer;
 
-    public PostgresBus(NpgsqlDataSource npgsqlDataSource, IMessageSerializer serializer)
+    public PostgresBus(NpgsqlDataSource npgsqlDataSource, IPostgresConfiguration postgresConfiguration)
     {
         _npgsqlDataSource = npgsqlDataSource;
-        _serializer = serializer;
+        _serializer = postgresConfiguration.MessageSerializer;
     }
 
     public Task SendAsync<T>(T message) where T : IPostgresCommand
