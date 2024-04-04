@@ -13,6 +13,8 @@ public class PostgresConfiguration : IPostgresConfiguration
         ConnectionString = connectionString;
     }
 
+    public PostgresConfiguration() { }
+
     public string ConnectionString { get; set; }
     public IMessageSerializer MessageSerializer { get; set; } = new NewtonsoftSerializer();
 }

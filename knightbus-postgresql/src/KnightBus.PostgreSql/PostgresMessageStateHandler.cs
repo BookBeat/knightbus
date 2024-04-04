@@ -1,4 +1,5 @@
 ﻿using KnightBus.Core;
+using KnightBus.Messages;
 using KnightBus.PostgreSql.Messages;
 using Npgsql;
 
@@ -14,10 +15,10 @@ public class PostgresMessageStateHandler<T> :
         NpgsqlDataSource npgsqlDataSource,
         PostgresMessage<T> message,
         int deadLetterDeliveryLimit,
-        IPostgresConfiguration postgresConfiguration,
+        IMessageSerializer serializer,
         IDependencyInjection messageScope)
     {
-        _queueClient = new PostgresQueueClient<T>(npgsqlDataSource, postgresConfiguration.MessageSerializer);
+        _queueClient = new PostgresQueueClient<T>(npgsqlDataSource, serializer);
         _message = message;
         DeadLetterDeliveryLimit = deadLetterDeliveryLimit;
         MessageScope = messageScope;

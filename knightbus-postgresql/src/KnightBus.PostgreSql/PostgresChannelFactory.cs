@@ -1,15 +1,20 @@
 ﻿using KnightBus.Core;
 using KnightBus.Messages;
 using KnightBus.PostgreSql.Messages;
+using Npgsql;
 
 namespace KnightBus.PostgreSql;
 
 public class PostgresChannelFactory : ITransportChannelFactory
 {
-    public PostgresChannelFactory(ITransportConfiguration configuration)
+    private readonly NpgsqlDataSource _npgsqlDataSource;
+
+    public PostgresChannelFactory(ITransportConfiguration configuration, NpgsqlDataSource npgsqlDataSource)
     {
+        _npgsqlDataSource = npgsqlDataSource;
         Configuration = configuration;
     }
+
     public ITransportConfiguration Configuration { get; set; }
 
     public IChannelReceiver Create(
@@ -23,11 +28,11 @@ public class PostgresChannelFactory : ITransportChannelFactory
         var queueReaderType = typeof(PostgresChannelReceiver<>).MakeGenericType(messageType);
         var queueReader = (IChannelReceiver)Activator.CreateInstance(
             queueReaderType,
-            processingSettings,
-            serializer,
+            _npgsqlDataSource,
             processor,
+            processingSettings,
             configuration,
-            Configuration);
+            serializer);
 
         return queueReader;
     }
