@@ -176,4 +176,21 @@ WHERE message_id = {message[0].Id}")
         deadLetters[0].Message.Should().BeEquivalentTo(message[0].Message);
         deadLetters[0].Id.Should().Be(message[0].Id);
     }
+
+    [Test]
+    public async Task Schedule()
+    {
+        await _postgresBus.ScheduleAsync<TestCommand>(
+        [
+            new TestCommand { MessageBody = "for future" }
+        ], TimeSpan.FromSeconds(3));
+
+        var messages = await _postgresQueueClient.GetMessagesAsync(1, 10);
+        messages.Length.Should().Be(0);
+
+        await Task.Delay(3000);
+
+        var result = await _postgresQueueClient.GetMessagesAsync(1, 10);
+        result[0].Message.MessageBody.Should().Be("for future");
+    }
 }

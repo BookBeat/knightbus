@@ -10,6 +10,8 @@ public interface IPostgresBus
 {
     Task SendAsync<T>(T message) where T : IPostgresCommand;
     Task SendAsync<T>(IEnumerable<T> messages) where T : IPostgresCommand;
+    Task ScheduleAsync<T>(T message, TimeSpan delay) where T : IPostgresCommand;
+    Task ScheduleAsync<T>(IEnumerable<T> messages, TimeSpan delay) where T : IPostgresCommand;
 }
 
 public class PostgresBus : IPostgresBus
@@ -30,6 +32,21 @@ public class PostgresBus : IPostgresBus
 
     public async Task SendAsync<T>(IEnumerable<T> messages) where T : IPostgresCommand
     {
+        await SendAsyncInternal(messages, null);
+    }
+
+    public Task ScheduleAsync<T>(T message, TimeSpan delay) where T : IPostgresCommand
+    {
+        return ScheduleAsync([message], delay);
+    }
+
+    public Task ScheduleAsync<T>(IEnumerable<T> messages, TimeSpan delay) where T : IPostgresCommand
+    {
+        return SendAsyncInternal(messages, delay);
+    }
+
+    private async Task SendAsyncInternal<T>(IEnumerable<T> messages, TimeSpan? delay) where T : IPostgresCommand
+    {
         var queueName = AutoMessageMapper.GetQueueName<T>();
         var parameters = new List<NpgsqlParameter>();
         var values = "";
@@ -37,7 +54,7 @@ public class PostgresBus : IPostgresBus
 
         for (int i = 0; i < messagesList.Count; i++)
         {
-            values += $"((now()), (${i+1})),";
+            values += $"((now() + interval '{delay?.TotalSeconds ?? 0} seconds'), (${i+1})),";
             var mBody = _serializer.Serialize(messagesList[i]);
             parameters.Add(new NpgsqlParameter { Value = mBody, NpgsqlDbType = NpgsqlDbType.Jsonb });
         }
