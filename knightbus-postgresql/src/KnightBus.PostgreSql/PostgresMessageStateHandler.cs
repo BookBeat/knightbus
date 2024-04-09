@@ -47,7 +47,7 @@ public class PostgresMessageStateHandler<T> :
     {
         return _message.Message;
     }
-    
+
     public Task ReplyAsync<TReply>(TReply reply)
     {
         throw new NotImplementedException();

@@ -8,46 +8,32 @@ using NUnit.Framework;
 
 namespace KnightBus.PostgreSql.Tests.Integration;
 
-public class TestCommand : IPostgresCommand
-{
-    public string MessageBody { get; set; }
-}
-
-public class TestMessageSettings : IProcessingSettings
-{
-    public int MaxConcurrentCalls { get; set; } = 1;
-    public TimeSpan MessageLockTimeout { get; set; } = TimeSpan.FromMinutes(1);
-    public int DeadLetterDeliveryLimit { get; set; } = 1;
-    public int PrefetchCount { get; set; }
-}
-
-public class TestCommandMessageMapping : IMessageMapping<TestCommand>
-{
-    public string QueueName => "my_queue";
-}
-
 [TestFixture]
 public class PostgresBusTests
 {
-    private PostgresBus _postgresBus;
-    private PostgresQueueClient<TestCommand> _postgresQueueClient;
-    private NpgsqlDataSource _npgsqlDataSource;
+    private PostgresBus _postgresBus = null!;
+    private PostgresQueueClient<TestCommand> _postgresQueueClient = null!;
+    private NpgsqlDataSource _npgsqlDataSource = null!;
 
-    private static readonly string s_connectionString =
-        "Server=127.0.0.1;" +
-        "Port=5432;" +
-        "Database=knightbus;" +
-        "User Id=postgres;" +
-        "Password=passw;" +
-        "Include Error Detail=true;" +
-        "SearchPath=knightbus";
+    private const string ConnectionString = "Server=127.0.0.1;" +
+                                            "Port=5432;" +
+                                            "Database=knightbus;" +
+                                            "User Id=postgres;" +
+                                            "Password=passw;" +
+                                            "Include Error Detail=true;";
+
+    [OneTimeSetUp]
+    public async Task OneTimeSetUp()
+    {
+        _npgsqlDataSource = new NpgsqlDataSourceBuilder(ConnectionString).Build();
+        _postgresBus = new PostgresBus(_npgsqlDataSource, new PostgresConfiguration());
+        _postgresQueueClient = new PostgresQueueClient<TestCommand>(_npgsqlDataSource, new NewtonsoftSerializer());
+        await _postgresQueueClient.InitQueue();
+    }
 
     [SetUp]
     public async Task SetUp()
     {
-        _npgsqlDataSource = new NpgsqlDataSourceBuilder(s_connectionString).Build();
-        _postgresBus = new PostgresBus(_npgsqlDataSource, new PostgresConfiguration());
-        _postgresQueueClient = new PostgresQueueClient<TestCommand>(_npgsqlDataSource, new NewtonsoftSerializer());
         await _postgresQueueClient.PurgeQueue();
         await _postgresQueueClient.PurgeDeadLetterQueue();
     }
@@ -107,6 +93,8 @@ public class PostgresBusTests
         // fetch latest 2 messages
         var messages1 = await _postgresQueueClient.GetMessagesAsync(2, 100);
         messages1.Length.Should().Be(2);
+
+        await Task.Delay(3000);
 
         // fetch latest 2 messages again
         var messages2 = await _postgresQueueClient.GetMessagesAsync(2, 100);
@@ -193,4 +181,22 @@ WHERE message_id = {message[0].Id}")
         var result = await _postgresQueueClient.GetMessagesAsync(1, 10);
         result[0].Message.MessageBody.Should().Be("for future");
     }
+}
+
+public class TestCommand : IPostgresCommand
+{
+    public string MessageBody { get; set; }
+}
+
+public class TestMessageSettings : IProcessingSettings
+{
+    public int MaxConcurrentCalls { get; set; } = 1;
+    public TimeSpan MessageLockTimeout { get; set; } = TimeSpan.FromMinutes(1);
+    public int DeadLetterDeliveryLimit { get; set; } = 1;
+    public int PrefetchCount { get; set; }
+}
+
+public class TestCommandMessageMapping : IMessageMapping<TestCommand>
+{
+    public string QueueName => "my_queue";
 }

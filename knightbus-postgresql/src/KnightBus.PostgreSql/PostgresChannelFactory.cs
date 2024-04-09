@@ -26,15 +26,15 @@ public class PostgresChannelFactory : ITransportChannelFactory
         IMessageProcessor processor)
     {
         var queueReaderType = typeof(PostgresChannelReceiver<>).MakeGenericType(messageType);
-        var queueReader = (IChannelReceiver)Activator.CreateInstance(
+        var queueReader = Activator.CreateInstance(
             queueReaderType,
             _npgsqlDataSource,
             processor,
             processingSettings,
             configuration,
-            serializer);
+            serializer) as IChannelReceiver;
 
-        return queueReader;
+        return queueReader ?? throw new InvalidOperationException("ChannelReceiver could not be created");
     }
 
     public bool CanCreate(Type messageType)

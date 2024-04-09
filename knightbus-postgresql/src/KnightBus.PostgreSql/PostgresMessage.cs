@@ -4,8 +4,8 @@ namespace KnightBus.PostgreSql;
 
 public class PostgresMessage<T> where T : class, IPostgresCommand
 {
-    public long Id { get; set; }
-    public T Message { get; set; }
-    public int ReadCount { get; set; }
-    public Dictionary<string, string> Properties { get; set; } = new();
+    public long Id { get; init; }
+    public required T Message { get; init; }
+    public int ReadCount { get; init; }
+    public Dictionary<string, string> Properties { get; init; } = new();
 }

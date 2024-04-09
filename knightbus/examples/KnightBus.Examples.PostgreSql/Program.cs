@@ -18,14 +18,12 @@ class Program
     {
         Console.WriteLine("Starting PostgreSQL example");
 
-        var connectionString =
-            "Server=127.0.0.1;" +
-            "Port=5432;" +
-            "Database=knightbus;" +
-            "User Id=postgres;" +
-            "Password=passw;" +
-            "Include Error Detail=true;" +
-            "SearchPath=knightbus";
+        const string connectionString = "Server=127.0.0.1;" +
+                                        "Port=5432;" +
+                                        "Database=knightbus;" +
+                                        "User Id=postgres;" +
+                                        "Password=passw;" +
+                                        "Include Error Detail=true;";
 
         var knightBusHost = global::Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
             .UseDefaultServiceProvider(options =>
@@ -47,6 +45,8 @@ class Program
         //Start the KnightBus Host, it will now connect to the postgresql and listen
         await knightBusHost.StartAsync(CancellationToken.None);
 
+        await Task.Delay(3000);
+
         var client =
             (PostgresBus)knightBusHost.Services.CreateScope().ServiceProvider.GetRequiredService<IPostgresBus>();
         await client.SendAsync(new SamplePostgresMessage { MessageBody = Guid.NewGuid().ToString() });
@@ -62,10 +62,10 @@ class SamplePostgresMessage : IPostgresCommand
 
 class SamplePostgresMessageMapping : IMessageMapping<SamplePostgresMessage>
 {
-    public string QueueName => "sample_message";
+    public string QueueName => "postgres_sample_message";
 }
 
-class RedisEventProcessor : IProcessCommand<SamplePostgresMessage, PostgresProcessingSetting>
+class PostgresEventProcessor : IProcessCommand<SamplePostgresMessage, PostgresProcessingSetting>
 {
     public Task ProcessAsync(SamplePostgresMessage message, CancellationToken cancellationToken)
     {

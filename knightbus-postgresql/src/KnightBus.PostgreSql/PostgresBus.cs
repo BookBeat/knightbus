@@ -3,6 +3,7 @@ using KnightBus.Messages;
 using KnightBus.PostgreSql.Messages;
 using Npgsql;
 using NpgsqlTypes;
+using static KnightBus.PostgreSql.PostgresConstants;
 
 namespace KnightBus.PostgreSql;
 
@@ -48,28 +49,29 @@ public class PostgresBus : IPostgresBus
     private async Task SendAsyncInternal<T>(IEnumerable<T> messages, TimeSpan? delay) where T : IPostgresCommand
     {
         var queueName = AutoMessageMapper.GetQueueName<T>();
-        var parameters = new List<NpgsqlParameter>();
-        var values = "";
         var messagesList = messages.ToList();
+        await using var command = _npgsqlDataSource.CreateCommand();
 
+        /*
+         * Build a cmd text with multirow VALUES syntax and parameter placeholders
+         * INSERT INTO queue (visibility_timeout, message) VALUES
+         * ('now() + optional delay', ($1)),
+         * ('now() + optional delay', ($2)),
+         * ('now() + optional delay', ($3));
+         */
+        var values = "";
         for (int i = 0; i < messagesList.Count; i++)
         {
             values += $"((now() + interval '{delay?.TotalSeconds ?? 0} seconds'), (${i+1})),";
             var mBody = _serializer.Serialize(messagesList[i]);
-            parameters.Add(new NpgsqlParameter { Value = mBody, NpgsqlDbType = NpgsqlDbType.Jsonb });
+            command.Parameters.Add(new NpgsqlParameter { Value = mBody, NpgsqlDbType = NpgsqlDbType.Jsonb });
         }
-
         values = values.TrimEnd(',');
 
-        await using var command = _npgsqlDataSource.CreateCommand(@$"
-INSERT INTO knightbus.q_{queueName} (visibility_timeout, message)
-VALUES {values}
-");
-        foreach (var p in parameters)
-        {
-            command.Parameters.Add(p);
-        }
-
+        command.CommandText = @$"
+INSERT INTO {SchemaName}.{QueuePrefix}_{queueName} (visibility_timeout, message)
+VALUES {values};
+";
         await command.ExecuteNonQueryAsync();
     }
 }

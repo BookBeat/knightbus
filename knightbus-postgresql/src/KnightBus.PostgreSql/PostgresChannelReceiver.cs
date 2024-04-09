@@ -39,6 +39,7 @@ public class PostgresChannelReceiver<T> : IChannelReceiver
         _hostConfiguration.Log.LogInformation("Starting postgres receiver");
         _queueClient = new PostgresQueueClient<T>(_npgsqlDataSource, _serializer);
 
+        // TODO: Use NOTIFY + LISTEN to cancel delay token?
         _messagePumpTask = Task.Factory.StartNew(async () =>
         {
             while (!cancellationToken.IsCancellationRequested)
@@ -52,8 +53,10 @@ public class PostgresChannelReceiver<T> : IChannelReceiver
         try
         {
             var prefetchCount = Settings.PrefetchCount > 0 ? Settings.PrefetchCount : 1;
-            var messages = await _queueClient.GetMessagesAsync(prefetchCount, (int)Settings.MessageLockTimeout.TotalSeconds)
+            var messages = await _queueClient
+                .GetMessagesAsync(prefetchCount, (int)Settings.MessageLockTimeout.TotalSeconds)
                 .ConfigureAwait(false);
+
             if (messages.Length == 0) return false;
 
             foreach (var postgresMessage in messages)
@@ -76,13 +79,18 @@ public class PostgresChannelReceiver<T> : IChannelReceiver
 
             return true;
         }
+        catch (PostgresException e) when (e.SqlState == "42P01")
+        {
+            await _queueClient.InitQueue();
+            return false;
+        }
         catch (Exception e)
         {
             _hostConfiguration.Log.LogError(e, "Postgres message pump error");
             return false;
         }
     }
-    
+
     private async Task Delay(CancellationToken cancellationToken)
     {
         try
@@ -94,7 +102,7 @@ public class PostgresChannelReceiver<T> : IChannelReceiver
             _pumpDelayCancellationTokenSource = new CancellationTokenSource();
         }
     }
-    
+
     private async Task ProcessMessageAsync(PostgresMessage<T> postgresMessage, CancellationToken cancellationToken)
     {
         var stateHandler = new PostgresMessageStateHandler<T>(
