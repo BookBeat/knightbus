@@ -62,6 +62,8 @@ public class PostgresBus : IPostgresBus
         var values = "";
         for (int i = 0; i < messagesList.Count; i++)
         {
+            // TODO: check if 0 epoch is faster vs now()
+            // select extract(epoch from now());
             values += $"((now() + interval '{delay?.TotalSeconds ?? 0} seconds'), (${i+1})),";
             var mBody = _serializer.Serialize(messagesList[i]);
             command.Parameters.Add(new NpgsqlParameter { Value = mBody, NpgsqlDbType = NpgsqlDbType.Jsonb });
