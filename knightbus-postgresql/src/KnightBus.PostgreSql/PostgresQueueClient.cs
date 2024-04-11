@@ -11,15 +11,13 @@ public class PostgresQueueClient<T> where T : class, IPostgresCommand
 {
     private readonly NpgsqlDataSource _npgsqlDataSource;
     private readonly IMessageSerializer _serializer;
-    private readonly string _queueName;
+    private readonly PostgresQueueName _queueName;
 
     public PostgresQueueClient(NpgsqlDataSource npgsqlDataSource, IMessageSerializer serializer)
     {
         _npgsqlDataSource = npgsqlDataSource;
         _serializer = serializer;
-        _queueName = AutoMessageMapper.GetQueueName<T>();
-        if (_queueName.Contains('-'))
-            throw new ArgumentException("Postgres queue names can not contain '-'. Prefer using '_'");
+        _queueName = PostgresQueueName.Create(AutoMessageMapper.GetQueueName<T>());
     }
 
     public async Task<PostgresMessage<T>[]> GetMessagesAsync(int count, int visibilityTimeout)
@@ -189,7 +187,7 @@ TRUNCATE {SchemaName}.{DlQueuePrefix}_{_queueName} RESTART IDENTITY;
 DELETE FROM {SchemaName}.metadata
 WHERE queue_name = ($1);
 ");
-        deleteMetadata.Parameters.Add(new NpgsqlParameter<string> { TypedValue = _queueName });
+        deleteMetadata.Parameters.Add(new NpgsqlParameter<string> { TypedValue = _queueName.Value });
 
         await truncateQueue.ExecuteNonQueryAsync();
         await truncateDlQueue.ExecuteNonQueryAsync();
