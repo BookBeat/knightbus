@@ -50,7 +50,7 @@ class Program
         var client =
             (PostgresBus)knightBusHost.Services.CreateScope().ServiceProvider.GetRequiredService<IPostgresBus>();
         await client.SendAsync(new SamplePostgresMessage { MessageBody = Guid.NewGuid().ToString() });
-
+        await client.SendAsync(new SamplePoisonPostgresMessage { MessageBody = $"error_{Guid.NewGuid()}" } );
         Console.ReadKey();
     }
 }
@@ -60,17 +60,35 @@ class SamplePostgresMessage : IPostgresCommand
     public string MessageBody { get; set; }
 }
 
+class SamplePoisonPostgresMessage : IPostgresCommand
+{
+    public string MessageBody { get; set; }
+}
+
 class SamplePostgresMessageMapping : IMessageMapping<SamplePostgresMessage>
 {
     public string QueueName => "postgres_sample_message";
 }
 
-class PostgresEventProcessor : IProcessCommand<SamplePostgresMessage, PostgresProcessingSetting>
+class SamplePoisonPostgresMessageMapping : IMessageMapping<SamplePoisonPostgresMessage>
+{
+    public string QueueName => "poisoned_postgres_sample_message";
+}
+
+class PostgresEventProcessor :
+    IProcessCommand<SamplePostgresMessage, PostgresProcessingSetting>,
+    IProcessCommand<SamplePoisonPostgresMessage, PostgresProcessingSetting>
 {
     public Task ProcessAsync(SamplePostgresMessage message, CancellationToken cancellationToken)
     {
         Console.WriteLine($"Handler 1: '{message.MessageBody}'");
         return Task.CompletedTask;
+    }
+
+    public Task ProcessAsync(SamplePoisonPostgresMessage message, CancellationToken cancellationToken)
+    {
+        Console.WriteLine($"Handler 2: '{message.MessageBody}'");
+        throw new InvalidOperationException();
     }
 }
 
@@ -79,5 +97,5 @@ class PostgresProcessingSetting : IProcessingSettings
     public int MaxConcurrentCalls => 1;
     public int PrefetchCount => 10;
     public TimeSpan MessageLockTimeout => TimeSpan.FromMinutes(5);
-    public int DeadLetterDeliveryLimit => 5;
+    public int DeadLetterDeliveryLimit => 2;
 }
