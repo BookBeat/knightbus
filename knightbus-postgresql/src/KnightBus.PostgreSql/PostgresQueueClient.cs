@@ -202,6 +202,8 @@ WHERE queue_name = ($1);
         await using var connection = await _npgsqlDataSource.OpenConnectionAsync();
         await using var transaction = await connection.BeginTransactionAsync();
 
+        // CREATE SCHEMA IF NOT EXISTS {SchemaName};
+
         await using var createQueueCmd = new NpgsqlCommand(@$"
 CREATE TABLE IF NOT EXISTS {SchemaName}.{QueuePrefix}_{_queueName} (
     message_id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,

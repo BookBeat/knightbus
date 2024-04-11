@@ -66,6 +66,8 @@ public class PostgresBus : IPostgresBus
         {
             // TODO: check if 0 epoch is faster vs now()
             // select extract(epoch from now());
+
+            // perf review: string allocates a lot of memory here?
             values += $"((now() + interval '{delay?.TotalSeconds ?? 0} seconds'), (${i+1})),";
             var mBody = _serializer.Serialize(messagesList[i]);
             command.Parameters.Add(new NpgsqlParameter { Value = mBody, NpgsqlDbType = NpgsqlDbType.Jsonb });

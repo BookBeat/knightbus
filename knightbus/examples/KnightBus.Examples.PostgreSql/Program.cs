@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
@@ -18,12 +20,7 @@ class Program
     {
         Console.WriteLine("Starting PostgreSQL example");
 
-        const string connectionString = "Server=127.0.0.1;" +
-                                        "Port=5432;" +
-                                        "Database=knightbus;" +
-                                        "User Id=postgres;" +
-                                        "Password=passw;" +
-                                        "Include Error Detail=true;";
+        const string connectionString = "your_postgres_connstring";
 
         var knightBusHost = global::Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
             .UseDefaultServiceProvider(options =>
@@ -49,8 +46,22 @@ class Program
 
         var client =
             (PostgresBus)knightBusHost.Services.CreateScope().ServiceProvider.GetRequiredService<IPostgresBus>();
+
+        // var commands = new List<SamplePostgresMessage>();
+        // for (int i = 0; i < 10000; i++)
+        // {
+        //     commands.Add(new SamplePostgresMessage { MessageBody = $"{i}_{Guid.NewGuid()}" });
+        // }
+        // var chunks = commands.Chunk(1000);
+        // foreach (var chunk in chunks)
+        // {
+        //     await client.SendAsync(chunk);
+        // }
+
         await client.SendAsync(new SamplePostgresMessage { MessageBody = Guid.NewGuid().ToString() });
-        await client.SendAsync(new SamplePoisonPostgresMessage { MessageBody = $"error_{Guid.NewGuid()}" } );
+
+        //await client.SendAsync(new SamplePoisonPostgresMessage { MessageBody = $"error_{Guid.NewGuid()}" } );
+
         Console.ReadKey();
     }
 }
@@ -94,8 +105,8 @@ class PostgresEventProcessor :
 
 class PostgresProcessingSetting : IProcessingSettings
 {
-    public int MaxConcurrentCalls => 1;
-    public int PrefetchCount => 10;
+    public int MaxConcurrentCalls => 20;
+    public int PrefetchCount => 50;
     public TimeSpan MessageLockTimeout => TimeSpan.FromMinutes(5);
     public int DeadLetterDeliveryLimit => 2;
 }
