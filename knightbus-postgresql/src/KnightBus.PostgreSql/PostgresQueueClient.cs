@@ -171,6 +171,29 @@ FROM DeadLetter;
         await command.ExecuteNonQueryAsync();
     }
 
+    public async Task DeleteQueue()
+    {
+        await using var connection = await _npgsqlDataSource.OpenConnectionAsync();
+        await using var transaction = await connection.BeginTransactionAsync();
+
+        await using var truncateQueue = _npgsqlDataSource.CreateCommand(@$"
+TRUNCATE {SchemaName}.{QueuePrefix}_{_queueName} RESTART IDENTITY;
+");
+        await using var truncateDlQueue = _npgsqlDataSource.CreateCommand(@$"
+TRUNCATE {SchemaName}.{DlQueuePrefix}_{_queueName} RESTART IDENTITY;
+");
+        await using var deleteMetadata = _npgsqlDataSource.CreateCommand(@$"
+DELETE FROM {SchemaName}.metadata
+WHERE queue_name = ($1);
+");
+        deleteMetadata.Parameters.Add(new NpgsqlParameter<string> { TypedValue = _queueName });
+
+        await truncateQueue.ExecuteNonQueryAsync();
+        await truncateDlQueue.ExecuteNonQueryAsync();
+        await deleteMetadata.ExecuteNonQueryAsync();
+        await transaction.CommitAsync();
+    }
+
     public async Task InitQueue()
     {
         await using var connection = await _npgsqlDataSource.OpenConnectionAsync();

@@ -31,6 +31,12 @@ public class PostgresBusTests
         await _postgresQueueClient.InitQueue();
     }
 
+    [OneTimeTearDown]
+    public async Task OneTimeTearDown()
+    {
+        await _postgresQueueClient.DeleteQueue();
+    }
+
     [SetUp]
     public async Task SetUp()
     {
