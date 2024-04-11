@@ -36,7 +36,7 @@ WITH cte AS
     )
 UPDATE {SchemaName}.{QueuePrefix}_{_queueName} t
     SET
-        visibility_timeout = clock_timestamp() + interval '{visibilityTimeout} seconds',
+        visibility_timeout = clock_timestamp() + ($2),
         read_count = read_count + 1
         FROM cte
         WHERE t.message_id = cte.message_id
@@ -44,6 +44,8 @@ UPDATE {SchemaName}.{QueuePrefix}_{_queueName} t
 ");
 
         command.Parameters.Add(new NpgsqlParameter<int> { TypedValue = count });
+        command.Parameters.Add(new NpgsqlParameter<TimeSpan> { TypedValue = TimeSpan.FromSeconds(visibilityTimeout) });
+
         await using var reader = await command.ExecuteReaderAsync();
         var result = new List<PostgresMessage<T>>();
         while (await reader.ReadAsync())
