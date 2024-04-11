@@ -50,7 +50,9 @@ public class PostgresBus : IPostgresBus
     {
         var queueName = AutoMessageMapper.GetQueueName<T>();
         var messagesList = messages.ToList();
-        await using var command = _npgsqlDataSource.CreateCommand();
+
+        await using var connection = await _npgsqlDataSource.OpenConnectionAsync();
+        await using var command = new NpgsqlCommand(null, connection);
 
         /*
          * Build a cmd text with multirow VALUES syntax and parameter placeholders
@@ -74,6 +76,7 @@ public class PostgresBus : IPostgresBus
 INSERT INTO {SchemaName}.{QueuePrefix}_{queueName} (visibility_timeout, message)
 VALUES {values};
 ";
+        await command.PrepareAsync();
         await command.ExecuteNonQueryAsync();
     }
 }

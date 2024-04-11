@@ -24,7 +24,8 @@ public class PostgresQueueClient<T> where T : class, IPostgresCommand
 
     public async Task<PostgresMessage<T>[]> GetMessagesAsync(int count, int visibilityTimeout)
     {
-        await using var command = _npgsqlDataSource.CreateCommand(@$"
+        await using var connection = await _npgsqlDataSource.OpenConnectionAsync();
+        await using var command = new NpgsqlCommand(@$"
 WITH cte AS
     (
         SELECT message_id
@@ -41,10 +42,12 @@ UPDATE {SchemaName}.{QueuePrefix}_{_queueName} t
         FROM cte
         WHERE t.message_id = cte.message_id
         RETURNING *;
-");
+", connection);
 
         command.Parameters.Add(new NpgsqlParameter<int> { TypedValue = count });
         command.Parameters.Add(new NpgsqlParameter<TimeSpan> { TypedValue = TimeSpan.FromSeconds(visibilityTimeout) });
+
+        await command.PrepareAsync();
 
         await using var reader = await command.ExecuteReaderAsync();
         var result = new List<PostgresMessage<T>>();
