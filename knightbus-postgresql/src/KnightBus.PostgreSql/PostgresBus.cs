@@ -1,4 +1,5 @@
-﻿using KnightBus.Core;
+﻿using System.Text;
+using KnightBus.Core;
 using KnightBus.Messages;
 using KnightBus.PostgreSql.Messages;
 using Npgsql;
@@ -61,22 +62,18 @@ public class PostgresBus : IPostgresBus
          * ('now() + optional delay', ($2)),
          * ('now() + optional delay', ($3));
          */
-        var values = "";
+        var values = new StringBuilder();
         for (int i = 0; i < messagesList.Count; i++)
         {
-            // TODO: check if 0 epoch is faster vs now()
-            // select extract(epoch from now());
-
-            // perf review: string allocates a lot of memory here?
-            values += $"((now() + interval '{delay?.TotalSeconds ?? 0} seconds'), (${i+1})),";
+            values.AppendFormat("((now() + interval '{0} seconds'), (${1})),", delay?.TotalSeconds ?? 0, i + 1);
             var mBody = _serializer.Serialize(messagesList[i]);
             command.Parameters.Add(new NpgsqlParameter { Value = mBody, NpgsqlDbType = NpgsqlDbType.Jsonb });
         }
-        values = values.TrimEnd(',');
+        var stringValues = values.ToString().TrimEnd(',');
 
         command.CommandText = @$"
 INSERT INTO {SchemaName}.{QueuePrefix}_{queueName} (visibility_timeout, message)
-VALUES {values};
+VALUES {stringValues};
 ";
         await command.PrepareAsync();
         await command.ExecuteNonQueryAsync();
