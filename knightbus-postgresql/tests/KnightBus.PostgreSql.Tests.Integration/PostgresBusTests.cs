@@ -14,6 +14,7 @@ public class PostgresBusTests
     private PostgresBus _postgresBus = null!;
     private PostgresQueueClient<TestCommand> _postgresQueueClient = null!;
     private NpgsqlDataSource _npgsqlDataSource = null!;
+    private PostgresManagementClient _postgresManagementClient = null!;
 
     private const string ConnectionString = "Server=127.0.0.1;" +
                                             "Port=5432;" +
@@ -28,20 +29,24 @@ public class PostgresBusTests
         _npgsqlDataSource = new NpgsqlDataSourceBuilder(ConnectionString).Build();
         _postgresBus = new PostgresBus(_npgsqlDataSource, new PostgresConfiguration());
         _postgresQueueClient = new PostgresQueueClient<TestCommand>(_npgsqlDataSource, new NewtonsoftSerializer());
+        _postgresManagementClient = new PostgresManagementClient(_npgsqlDataSource, new NewtonsoftSerializer());
         await _postgresQueueClient.InitQueue();
     }
 
     [OneTimeTearDown]
     public async Task OneTimeTearDown()
     {
-        await _postgresQueueClient.DeleteQueue();
+        await _postgresManagementClient.DeleteQueue(
+            PostgresQueueName.Create(AutoMessageMapper.GetQueueName<TestCommand>()), default);
     }
 
     [SetUp]
     public async Task SetUp()
     {
-        await _postgresQueueClient.PurgeQueue();
-        await _postgresQueueClient.PurgeDeadLetterQueue();
+        await _postgresManagementClient.PurgeQueue(
+            PostgresQueueName.Create(AutoMessageMapper.GetQueueName<TestCommand>()));
+        await _postgresManagementClient.PurgeDeadLetterQueue(
+            PostgresQueueName.Create(AutoMessageMapper.GetQueueName<TestCommand>()));
     }
 
     [Test]
@@ -166,8 +171,10 @@ WHERE message_id = {message[0].Id}")
 
         originalMessage.Should().Be(0);
 
-        var deadLetters = await _postgresQueueClient.PeekDeadLettersAsync(1);
-        deadLetters[0].Message.Should().BeEquivalentTo(message[0].Message);
+        var deadLetters =
+            await _postgresManagementClient.PeekDeadLettersAsync(
+                PostgresQueueName.Create(AutoMessageMapper.GetQueueName<TestCommand>()), 10, default);
+        deadLetters[0].Message["MessageBody"].Should().BeEquivalentTo(message[0].Message.MessageBody);
         deadLetters[0].Id.Should().Be(message[0].Id);
     }
 

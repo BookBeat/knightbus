@@ -75,59 +75,6 @@ UPDATE {SchemaName}.{QueuePrefix}_{_queueName} t
         return result.ToArray();
     }
 
-    public async Task PurgeQueue()
-    {
-        await using var command = _npgsqlDataSource.CreateCommand(@$"
-DELETE FROM {SchemaName}.{QueuePrefix}_{_queueName};
-");
-        await command.ExecuteNonQueryAsync();
-    }
-    
-    public async Task PurgeDeadLetterQueue()
-    {
-        await using var command = _npgsqlDataSource.CreateCommand(@$"
-DELETE FROM {SchemaName}.{QueuePrefix}_{_queueName};
-");
-        await command.ExecuteNonQueryAsync();
-    }
-
-    public async Task<PostgresMessage<T>[]> PeekDeadLettersAsync(int limit)
-    {
-        await using var command = _npgsqlDataSource.CreateCommand(@$"
-SELECT message_id, enqueued_at, created_at, message, properties
-FROM {SchemaName}.{DlQueuePrefix}_{_queueName}
-ORDER BY message_id ASC
-LIMIT ($1)
-");
-
-        command.Parameters.Add(new NpgsqlParameter<int> { TypedValue = limit });
-        await using var reader = await command.ExecuteReaderAsync();
-        var result = new List<PostgresMessage<T>>();
-        while (await reader.ReadAsync())
-        {
-            var propertiesOrdinal = reader.GetOrdinal("properties");
-            var isPropertiesNull = reader.IsDBNull(propertiesOrdinal);
-
-            var postgresMessage = new PostgresMessage<T>
-            {
-                Id = reader.GetInt64(reader.GetOrdinal("message_id")),
-                Message = _serializer
-                    .Deserialize<T>(reader.GetFieldValue<byte[]>(
-                            reader.GetOrdinal("message"))
-                        .AsMemory()),
-                Properties = isPropertiesNull
-                    ? new Dictionary<string, string>()
-                    : _serializer
-                        .Deserialize<Dictionary<string, string>>(
-                            reader.GetFieldValue<byte[]>(propertiesOrdinal)
-                                .AsMemory())
-            };
-            result.Add(postgresMessage);
-        }
-
-        return result.ToArray();
-    }
-
     public async Task CompleteAsync(PostgresMessage<T> message)
     {
         await using var command = _npgsqlDataSource.CreateCommand(@$"
@@ -172,30 +119,8 @@ FROM DeadLetter;
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task DeleteQueue()
-    {
-        await using var connection = await _npgsqlDataSource.OpenConnectionAsync();
-        await using var transaction = await connection.BeginTransactionAsync();
-
-        await using var truncateQueue = _npgsqlDataSource.CreateCommand(@$"
-TRUNCATE {SchemaName}.{QueuePrefix}_{_queueName} RESTART IDENTITY;
-");
-        await using var truncateDlQueue = _npgsqlDataSource.CreateCommand(@$"
-TRUNCATE {SchemaName}.{DlQueuePrefix}_{_queueName} RESTART IDENTITY;
-");
-        await using var deleteMetadata = _npgsqlDataSource.CreateCommand(@$"
-DELETE FROM {SchemaName}.metadata
-WHERE queue_name = ($1);
-");
-        deleteMetadata.Parameters.Add(new NpgsqlParameter<string> { TypedValue = _queueName.Value });
-
-        await truncateQueue.ExecuteNonQueryAsync();
-        await truncateDlQueue.ExecuteNonQueryAsync();
-        await deleteMetadata.ExecuteNonQueryAsync();
-        await transaction.CommitAsync();
-    }
-
-    public async Task InitQueue()
+    // How to test this without the need to pass queueName to Init
+    public async Task InitQueue(string? queueName = null)
     {
         await using var connection = await _npgsqlDataSource.OpenConnectionAsync();
         await using var transaction = await connection.BeginTransactionAsync();
@@ -203,7 +128,7 @@ WHERE queue_name = ($1);
         // CREATE SCHEMA IF NOT EXISTS {SchemaName};
 
         await using var createQueueCmd = new NpgsqlCommand(@$"
-CREATE TABLE IF NOT EXISTS {SchemaName}.{QueuePrefix}_{_queueName} (
+CREATE TABLE IF NOT EXISTS {SchemaName}.{QueuePrefix}_{(queueName != null ? queueName : _queueName)} (
     message_id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     read_count INT DEFAULT 0 NOT NULL,
     enqueued_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
@@ -213,7 +138,7 @@ CREATE TABLE IF NOT EXISTS {SchemaName}.{QueuePrefix}_{_queueName} (
 );", connection);
 
         await using var createDlQueueCmd = new NpgsqlCommand(@$"
-CREATE TABLE IF NOT EXISTS {SchemaName}.{DlQueuePrefix}_{_queueName} (
+CREATE TABLE IF NOT EXISTS {SchemaName}.{DlQueuePrefix}_{(queueName != null ? queueName : _queueName)} (
     message_id BIGINT PRIMARY KEY,
     enqueued_at TIMESTAMP WITH TIME ZONE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
@@ -222,8 +147,8 @@ CREATE TABLE IF NOT EXISTS {SchemaName}.{DlQueuePrefix}_{_queueName} (
 );", connection);
 
         await using var createIndexCmd = new NpgsqlCommand(@$"
-CREATE INDEX IF NOT EXISTS {SchemaName}_{QueuePrefix}_{_queueName}_visibility_timeout_idx
-ON {SchemaName}.{QueuePrefix}_{_queueName} (visibility_timeout ASC);",
+CREATE INDEX IF NOT EXISTS {SchemaName}_{QueuePrefix}_{(queueName != null ? queueName : _queueName)}_visibility_timeout_idx
+ON {SchemaName}.{QueuePrefix}_{(queueName != null ? queueName : _queueName)} (visibility_timeout ASC);",
             connection);
 
         await using var createMetadataTableCmd = new NpgsqlCommand($@"
@@ -234,7 +159,7 @@ CREATE TABLE IF NOT EXISTS {SchemaName}.metadata (
 
         await using var insertMetadataCmd = new NpgsqlCommand(@$"
 INSERT INTO {SchemaName}.metadata (queue_name)
-VALUES ('{QueuePrefix}_{_queueName}')
+VALUES ('{(queueName != null ? queueName : _queueName)}')
 ON CONFLICT
 DO NOTHING;",
             connection);

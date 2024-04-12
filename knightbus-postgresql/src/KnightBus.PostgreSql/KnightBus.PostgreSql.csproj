@@ -8,6 +8,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\..\..\knightbus-newtonsoft\src\KnightBus.Newtonsoft\KnightBus.Newtonsoft.csproj" />
+      <ProjectReference Include="..\..\..\knightbus\src\KnightBus.Core.Management\KnightBus.Core.Management.csproj" />
       <ProjectReference Include="..\..\..\knightbus\src\KnightBus.Core\KnightBus.Core.csproj" />
       <ProjectReference Include="..\KnightBus.PostgreSql.Messages\KnightBus.PostgreSql.Messages.csproj" />
     </ItemGroup>

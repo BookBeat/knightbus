@@ -1,8 +1,8 @@
-using KnightBus.PostgreSql.Messages;
+using KnightBus.Messages;
 
 namespace KnightBus.PostgreSql;
 
-public class PostgresMessage<T> where T : class, IPostgresCommand
+public class PostgresMessage<T> where T : class, IMessage
 {
     public long Id { get; init; }
     public required T Message { get; init; }

@@ -1,6 +1,6 @@
 namespace KnightBus.PostgreSql;
 
-internal readonly struct PostgresQueueName
+public readonly struct PostgresQueueName
 {
     public string Value { get; }  
 
