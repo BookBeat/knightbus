@@ -13,12 +13,13 @@ public class PostgresQueueManagerTests : QueueManagerTests<PostgresTestCommand>
 {
     private PostgresBus _bus;
     private PostgresQueueClient<PostgresTestCommand> _postgresQueueClient;
+    private PostgresManagementClient _postgresManagementClient;
 
     public override async Task Setup()
     {
-        var managementClient = new PostgresManagementClient(PostgresTestBase.TestNpgsqlDataSource, new NewtonsoftSerializer());
+        _postgresManagementClient = new PostgresManagementClient(PostgresTestBase.TestNpgsqlDataSource, new NewtonsoftSerializer());
         _postgresQueueClient = new PostgresQueueClient<PostgresTestCommand>(PostgresTestBase.TestNpgsqlDataSource, new NewtonsoftSerializer());
-        QueueManager = new PostgresQueueManager(managementClient, new NewtonsoftSerializer());
+        QueueManager = new PostgresQueueManager(_postgresManagementClient, new NewtonsoftSerializer());
         QueueType = QueueType.Queue;
         _bus = new PostgresBus(PostgresTestBase.TestNpgsqlDataSource,
             new PostgresConfiguration { MessageSerializer = new NewtonsoftSerializer() });
@@ -34,13 +35,14 @@ public class PostgresQueueManagerTests : QueueManagerTests<PostgresTestCommand>
     public override async Task<string> CreateQueue()
     {
         var queueName = Guid.NewGuid().ToString("N");
-        await _postgresQueueClient.InitQueue(queueName);
+        await _postgresManagementClient.InitQueue(PostgresQueueName.Create(queueName));
         return queueName;
     }
 
     public override async Task<string> SendMessage(string message)
     {
-        await _postgresQueueClient.InitQueue();
+        await _postgresManagementClient.InitQueue(
+            PostgresQueueName.Create(AutoMessageMapper.GetQueueName<PostgresTestCommand>()));
         await _bus.SendAsync(new PostgresTestCommand(message));
         return AutoMessageMapper.GetQueueName<PostgresTestCommand>();
     }

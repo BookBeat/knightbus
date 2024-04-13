@@ -10,6 +10,7 @@ public class PostgresChannelReceiver<T> : IChannelReceiver
     where T : class, IPostgresCommand
 {
     private PostgresQueueClient<T> _queueClient;
+    private readonly PostgresManagementClient _managementClient;
     private readonly NpgsqlDataSource _npgsqlDataSource;
     private readonly IMessageProcessor _processor;
     private readonly IHostConfiguration _hostConfiguration;
@@ -32,6 +33,7 @@ public class PostgresChannelReceiver<T> : IChannelReceiver
         _hostConfiguration = hostConfiguration;
         _serializer = serializer;
         _maxConcurrent = new SemaphoreSlim(settings.MaxConcurrentCalls);
+        _managementClient = new PostgresManagementClient(_npgsqlDataSource, _serializer);
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
@@ -81,7 +83,8 @@ public class PostgresChannelReceiver<T> : IChannelReceiver
         }
         catch (PostgresException e) when (e.SqlState == "42P01")
         {
-            await _queueClient.InitQueue();
+            await _managementClient.InitQueue(
+                PostgresQueueName.Create(AutoMessageMapper.GetQueueName<T>()));
             return false;
         }
         catch (Exception e)

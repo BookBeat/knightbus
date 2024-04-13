@@ -30,7 +30,7 @@ public class PostgresBusTests
         _postgresBus = new PostgresBus(_npgsqlDataSource, new PostgresConfiguration());
         _postgresQueueClient = new PostgresQueueClient<TestCommand>(_npgsqlDataSource, new NewtonsoftSerializer());
         _postgresManagementClient = new PostgresManagementClient(_npgsqlDataSource, new NewtonsoftSerializer());
-        await _postgresQueueClient.InitQueue();
+        await _postgresManagementClient.InitQueue(PostgresQueueName.Create(AutoMessageMapper.GetQueueName<TestCommand>()));
     }
 
     [OneTimeTearDown]
