@@ -1,8 +1,6 @@
 using KnightBus.Core;
 using KnightBus.Core.Management;
-using KnightBus.Messages;
 using KnightBus.Newtonsoft;
-using KnightBus.PostgreSql.Messages;
 using KnightBus.Shared.Tests.Integration;
 using NUnit.Framework;
 
@@ -53,19 +51,4 @@ public class PostgresQueueManagerTests : QueueManagerTests<PostgresTestCommand>
         return new PostgresMessageStateHandler<PostgresTestCommand>(
             PostgresTestBase.TestNpgsqlDataSource, message.First(), 5, new NewtonsoftSerializer(), null!);
     }
-}
-
-public class PostgresTestCommand : IPostgresCommand
-{
-    public string Value { get; set; }
-
-    public PostgresTestCommand(string value)
-    {
-        Value = value;
-    }
-}
-
-public class PostgresTestCommandMapping : IMessageMapping<PostgresTestCommand>
-{
-    public string QueueName => "test";
 }
