@@ -13,23 +13,14 @@ public class PostgresBusTests
 {
     private PostgresBus _postgresBus = null!;
     private PostgresQueueClient<TestCommand> _postgresQueueClient = null!;
-    private NpgsqlDataSource _npgsqlDataSource = null!;
     private PostgresManagementClient _postgresManagementClient = null!;
-
-    private const string ConnectionString = "Server=127.0.0.1;" +
-                                            "Port=5432;" +
-                                            "Database=knightbus;" +
-                                            "User Id=postgres;" +
-                                            "Password=passw;" +
-                                            "Include Error Detail=true;";
 
     [OneTimeSetUp]
     public async Task OneTimeSetUp()
     {
-        _npgsqlDataSource = new NpgsqlDataSourceBuilder(ConnectionString).Build();
-        _postgresBus = new PostgresBus(_npgsqlDataSource, new PostgresConfiguration());
-        _postgresQueueClient = new PostgresQueueClient<TestCommand>(_npgsqlDataSource, new NewtonsoftSerializer());
-        _postgresManagementClient = new PostgresManagementClient(_npgsqlDataSource, new NewtonsoftSerializer());
+        _postgresBus = new PostgresBus(PostgresTestBase.TestNpgsqlDataSource, new PostgresConfiguration());
+        _postgresQueueClient = new PostgresQueueClient<TestCommand>(PostgresTestBase.TestNpgsqlDataSource, new NewtonsoftSerializer());
+        _postgresManagementClient = new PostgresManagementClient(PostgresTestBase.TestNpgsqlDataSource, new NewtonsoftSerializer());
         await _postgresManagementClient.InitQueue(PostgresQueueName.Create(AutoMessageMapper.GetQueueName<TestCommand>()));
     }
 
@@ -66,7 +57,7 @@ public class PostgresBusTests
         ]);
 
         var messagesCount = (long)
-            (await _npgsqlDataSource
+            (await PostgresTestBase.TestNpgsqlDataSource
                 .CreateCommand(
                     $"SELECT COUNT(*) FROM knightbus.q_{AutoMessageMapper.GetQueueName<TestCommand>()};")
                 .ExecuteScalarAsync() ?? 0);
@@ -125,7 +116,7 @@ public class PostgresBusTests
         await _postgresQueueClient.CompleteAsync(message[0]);
 
         var deleted = (long)
-            (await _npgsqlDataSource
+            (await PostgresTestBase.TestNpgsqlDataSource
                 .CreateCommand(@$"
 SELECT COUNT(*) FROM knightbus.q_{AutoMessageMapper.GetQueueName<TestCommand>()}
 WHERE message_id = {message[0].Id}")
@@ -163,7 +154,7 @@ WHERE message_id = {message[0].Id}")
         await _postgresQueueClient.DeadLetterMessageAsync(message[0]);
 
         var originalMessage = (long)
-            (await _npgsqlDataSource
+            (await PostgresTestBase.TestNpgsqlDataSource
                 .CreateCommand(@$"
 SELECT COUNT(*) FROM knightbus.q_{AutoMessageMapper.GetQueueName<TestCommand>()}
 WHERE message_id = {message[0].Id}")
@@ -193,6 +184,26 @@ WHERE message_id = {message[0].Id}")
 
         var result = await _postgresQueueClient.GetMessagesAsync(1, 10);
         result[0].Message.MessageBody.Should().Be("for future");
+    }
+
+    [Test]
+    public async Task PeekDeadLetterMessagesAsync()
+    {
+        await _postgresBus.SendAsync<TestCommand>(
+        [
+            new TestCommand { MessageBody = "dead letter" }
+        ]);
+
+        var message = await _postgresQueueClient.GetMessagesAsync(1, 10);
+        await _postgresQueueClient.DeadLetterMessageAsync(message[0]);
+
+        var firstResult = await _postgresQueueClient.PeekDeadLetterMessagesAsync(1, default);
+        firstResult.Single().Id.Should().Be(message[0].Id);
+        firstResult.Single().Message.Should().BeEquivalentTo(message[0].Message);
+
+        var secondResult = await _postgresQueueClient.PeekDeadLetterMessagesAsync(1, default);
+        secondResult.Single().Id.Should().Be(message[0].Id);
+        secondResult.Single().Message.Should().BeEquivalentTo(message[0].Message);
     }
 }
 

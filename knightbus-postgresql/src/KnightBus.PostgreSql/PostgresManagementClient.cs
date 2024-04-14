@@ -150,7 +150,7 @@ LIMIT ($1);
 
         command.Parameters.Add(new NpgsqlParameter<int> { TypedValue = count });
         await using var reader = await command.ExecuteReaderAsync(ct);
-        return await ReadDeadLetterRows(reader, ct);
+        return await reader.ReadDeadLetterRows<DictionaryMessage>(_serializer, ct);
     }
 
     public async Task<List<PostgresMessage<DictionaryMessage>>> ReadDeadLettersAsync(PostgresQueueName queueName, int count, CancellationToken ct)
@@ -173,7 +173,7 @@ FROM deleted_rows;
 
         command.Parameters.Add(new NpgsqlParameter<int> { TypedValue = count });
         await using var reader = await command.ExecuteReaderAsync(ct);
-        return await ReadDeadLetterRows(reader, ct);
+        return await reader.ReadDeadLetterRows<DictionaryMessage>(_serializer, default);
     }
 
     public async Task<long> RequeueDeadLettersAsync(PostgresQueueName queueName, int count, CancellationToken ct)
@@ -239,34 +239,6 @@ DELETE FROM {SchemaName}.{QueuePrefix}_{queueName};
 DELETE FROM {SchemaName}.{QueuePrefix}_{queueName};
 ");
         await command.ExecuteNonQueryAsync();
-    }
-
-    private async Task<List<PostgresMessage<DictionaryMessage>>> ReadDeadLetterRows(NpgsqlDataReader reader, CancellationToken ct)
-    {
-        var result = new List<PostgresMessage<DictionaryMessage>>();
-        while (await reader.ReadAsync(ct))
-        {
-            var propertiesOrdinal = reader.GetOrdinal("properties");
-            var isPropertiesNull = reader.IsDBNull(propertiesOrdinal);
-
-            var postgresMessage = new PostgresMessage<DictionaryMessage>
-            {
-                Id = reader.GetInt64(reader.GetOrdinal("message_id")),
-                Message = _serializer
-                    .Deserialize<DictionaryMessage>(reader.GetFieldValue<byte[]>(
-                            reader.GetOrdinal("message"))
-                        .AsMemory()),
-                Properties = isPropertiesNull
-                    ? new Dictionary<string, string>()
-                    : _serializer
-                        .Deserialize<Dictionary<string, string>>(
-                            reader.GetFieldValue<byte[]>(propertiesOrdinal)
-                                .AsMemory())
-            };
-            result.Add(postgresMessage);
-        }
-
-        return result;
     }
 
     public async Task InitQueue(PostgresQueueName queueName)

@@ -118,4 +118,18 @@ FROM DeadLetter;
         command.Parameters.Add(new NpgsqlParameter<long> { Value = message.Id });
         await command.ExecuteNonQueryAsync();
     }
+
+    public async Task<List<PostgresMessage<T>>> PeekDeadLetterMessagesAsync(int count, CancellationToken ct)
+    {
+        await using var command = _npgsqlDataSource.CreateCommand(@$"
+SELECT message_id, enqueued_at, created_at, message, properties
+FROM {SchemaName}.{DlQueuePrefix}_{_queueName}
+ORDER BY message_id ASC
+LIMIT ($1);
+");
+
+        command.Parameters.Add(new NpgsqlParameter<int> { TypedValue = count });
+        await using var reader = await command.ExecuteReaderAsync(ct);
+        return await reader.ReadDeadLetterRows<T>(_serializer, ct);
+    }
 }
