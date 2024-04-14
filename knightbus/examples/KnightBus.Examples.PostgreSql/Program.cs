@@ -40,7 +40,7 @@ class Program
             .Build();
 
         //Start the KnightBus Host, it will now connect to the postgresql and listen
-        await knightBusHost.StartAsync(CancellationToken.None);
+        await knightBusHost.StartAsync();
 
         await Task.Delay(3000);
 
@@ -63,6 +63,7 @@ class Program
         //await client.SendAsync(new SamplePoisonPostgresMessage { MessageBody = $"error_{Guid.NewGuid()}" } );
 
         Console.ReadKey();
+        await knightBusHost.StopAsync();
     }
 }
 

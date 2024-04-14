@@ -38,15 +38,19 @@ public class PostgresChannelReceiver<T> : IChannelReceiver
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        _hostConfiguration.Log.LogInformation("Starting postgres receiver");
         _queueClient = new PostgresQueueClient<T>(_npgsqlDataSource, _serializer);
 
         // TODO: Use NOTIFY + LISTEN to cancel delay token?
         _messagePumpTask = Task.Factory.StartNew(async () =>
         {
             while (!cancellationToken.IsCancellationRequested)
+            {
                 if (!await PumpAsync(cancellationToken).ConfigureAwait(false))
                     await Delay(_pumpDelayCancellationTokenSource.Token).ConfigureAwait(false);
+            }
+
+            _hostConfiguration.Log.LogInformation("Postgres receiver cancellation requested. Disposing npgsql data source");
+            await _npgsqlDataSource.DisposeAsync();
         });
     }
 
