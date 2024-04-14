@@ -1,6 +1,7 @@
 using KnightBus.Core;
 using KnightBus.Core.Management;
 using KnightBus.Newtonsoft;
+using KnightBus.PostgreSql.Management;
 using KnightBus.Shared.Tests.Integration;
 using NUnit.Framework;
 
@@ -31,14 +32,15 @@ public class PostgresQueueManagerTests : QueueManagerTests<PostgresTestCommand>
     public override async Task<string> CreateQueue()
     {
         var queueName = Guid.NewGuid().ToString("N");
-        await _postgresManagementClient.InitQueue(PostgresQueueName.Create(queueName));
+        await QueueInitializer.InitQueue(PostgresQueueName.Create(queueName), PostgresTestBase.TestNpgsqlDataSource);
         return queueName;
     }
 
     public override async Task<string> SendMessage(string message)
     {
-        await _postgresManagementClient.InitQueue(
-            PostgresQueueName.Create(AutoMessageMapper.GetQueueName<PostgresTestCommand>()));
+        await QueueInitializer.InitQueue(
+            PostgresQueueName.Create(AutoMessageMapper.GetQueueName<PostgresTestCommand>()),
+            PostgresTestBase.TestNpgsqlDataSource);
         await _bus.SendAsync(new PostgresTestCommand(message));
         return AutoMessageMapper.GetQueueName<PostgresTestCommand>();
     }

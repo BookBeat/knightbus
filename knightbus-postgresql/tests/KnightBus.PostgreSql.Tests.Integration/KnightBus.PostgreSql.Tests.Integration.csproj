@@ -14,6 +14,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\..\..\knightbus\tests\KnightBus.Shared.Tests.Integration\KnightBus.Shared.Tests.Integration.csproj" />
+      <ProjectReference Include="..\..\src\KnightBus.PostgreSql.Management\KnightBus.PostgreSql.Management.csproj" />
       <ProjectReference Include="..\..\src\KnightBus.PostgreSql\KnightBus.PostgreSql.csproj" />
     </ItemGroup>
 

@@ -2,7 +2,7 @@ using System.Text;
 using KnightBus.Core.Management;
 using KnightBus.Messages;
 
-namespace KnightBus.PostgreSql;
+namespace KnightBus.PostgreSql.Management;
 
 public class PostgresQueueManager : IQueueManager
 {
@@ -104,3 +104,4 @@ public class PostgresQueueManager : IQueueManager
 
     public QueueType QueueType => QueueType.Queue;
 }
+

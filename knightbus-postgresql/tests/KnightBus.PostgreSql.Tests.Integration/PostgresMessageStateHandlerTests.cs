@@ -1,5 +1,6 @@
 using KnightBus.Core;
 using KnightBus.Newtonsoft;
+using KnightBus.PostgreSql.Management;
 using KnightBus.Shared.Tests.Integration;
 using NUnit.Framework;
 
@@ -46,8 +47,9 @@ public class PostgresMessageStateHandlerTests : MessageStateHandlerTests<Postgre
 
     protected override async Task SendMessage(string message)
     {
-        await _postgresManagementClient.InitQueue(
-            PostgresQueueName.Create(AutoMessageMapper.GetQueueName<PostgresTestCommand>()));
+        await QueueInitializer.InitQueue(
+            PostgresQueueName.Create(AutoMessageMapper.GetQueueName<PostgresTestCommand>()),
+            PostgresTestBase.TestNpgsqlDataSource);
         await _bus.SendAsync(new PostgresTestCommand(message));
     }
 

@@ -20,7 +20,7 @@ class Program
     {
         Console.WriteLine("Starting PostgreSQL example");
 
-        const string connectionString = "your_postgres_connstring";
+        const string connectionString = "";
 
         var knightBusHost = global::Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
             .UseDefaultServiceProvider(options =>
