@@ -3,7 +3,7 @@ using KnightBus.Messages;
 using KnightBus.PostgreSql.Messages;
 using Npgsql;
 using NpgsqlTypes;
-using static KnightBus.PostgreSql.Query;
+using static KnightBus.PostgreSql.PostgresConstants;
 
 namespace KnightBus.PostgreSql;
 
@@ -23,7 +23,24 @@ public class PostgresQueueClient<T> where T : class, IPostgresCommand
     public async Task<PostgresMessage<T>[]> GetMessagesAsync(int count, int visibilityTimeout)
     {
         await using var connection = await _npgsqlDataSource.OpenConnectionAsync();
-        await using var command = new NpgsqlCommand(GetMessages(_queueName), connection);
+        await using var command = new NpgsqlCommand(@$"
+WITH cte AS
+    (
+        SELECT message_id
+        FROM {SchemaName}.{QueuePrefix}_{_queueName}
+        WHERE visibility_timeout <= clock_timestamp()
+        ORDER BY message_id ASC
+        LIMIT ($1)
+        FOR UPDATE SKIP LOCKED
+    )
+UPDATE {SchemaName}.{QueuePrefix}_{_queueName} t
+    SET
+        visibility_timeout = clock_timestamp() + ($2),
+        read_count = read_count + 1
+        FROM cte
+        WHERE t.message_id = cte.message_id
+        RETURNING *;
+", connection);
 
         command.Parameters.Add(new NpgsqlParameter<int> { TypedValue = count });
         command.Parameters.Add(new NpgsqlParameter<TimeSpan> { TypedValue = TimeSpan.FromSeconds(visibilityTimeout) });
@@ -60,7 +77,10 @@ public class PostgresQueueClient<T> where T : class, IPostgresCommand
 
     public async Task CompleteAsync(PostgresMessage<T> message)
     {
-        await using var command = _npgsqlDataSource.CreateCommand(CompleteMessage(_queueName));
+        await using var command = _npgsqlDataSource.CreateCommand(@$"
+DELETE FROM {SchemaName}.{QueuePrefix}_{_queueName}
+WHERE message_id = ($1);
+");
         command.Parameters.Add(new NpgsqlParameter<long> { Value = message.Id });
         await command.ExecuteNonQueryAsync();
     }
@@ -70,7 +90,11 @@ public class PostgresQueueClient<T> where T : class, IPostgresCommand
         var errorString = exception.ToString();
         message.Properties["error_message"] = errorString;
 
-        await using var command = _npgsqlDataSource.CreateCommand(AbandonByError(_queueName));
+        await using var command = _npgsqlDataSource.CreateCommand(@$"
+UPDATE {SchemaName}.{QueuePrefix}_{_queueName}
+SET properties = ($1), visibility_timeout = now()
+WHERE message_id = ($2);
+");
         command.Parameters.Add(new NpgsqlParameter
         {
             Value = _serializer.Serialize(message.Properties), NpgsqlDbType = NpgsqlDbType.Jsonb
@@ -81,14 +105,29 @@ public class PostgresQueueClient<T> where T : class, IPostgresCommand
 
     public async Task DeadLetterMessageAsync(PostgresMessage<T> message)
     {
-        await using var command = _npgsqlDataSource.CreateCommand(DeadLetterMessage(_queueName));
+        await using var command = _npgsqlDataSource.CreateCommand(@$"
+WITH DeadLetter AS (
+    DELETE FROM {SchemaName}.{QueuePrefix}_{_queueName}
+    WHERE message_id = ($1)
+    RETURNING message_id, enqueued_at, message, properties
+)
+INSERT INTO {SchemaName}.{DlQueuePrefix}_{_queueName} (message_id, enqueued_at, created_at, message, properties)
+SELECT message_id, enqueued_at, now(), message, properties
+FROM DeadLetter;
+");
         command.Parameters.Add(new NpgsqlParameter<long> { Value = message.Id });
         await command.ExecuteNonQueryAsync();
     }
 
     public async Task<List<PostgresMessage<T>>> PeekDeadLetterMessagesAsync(int count, CancellationToken ct)
     {
-        await using var command = _npgsqlDataSource.CreateCommand(PeekDeadLetterMessage(_queueName));
+        await using var command = _npgsqlDataSource.CreateCommand(@$"
+SELECT message_id, enqueued_at, created_at, message, properties
+FROM {SchemaName}.{DlQueuePrefix}_{_queueName}
+ORDER BY message_id ASC
+LIMIT ($1);
+");
+
         command.Parameters.Add(new NpgsqlParameter<int> { TypedValue = count });
         await using var reader = await command.ExecuteReaderAsync(ct);
         return await reader.ReadDeadLetterRows<T>(_serializer, ct);
