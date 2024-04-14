@@ -1,13 +1,29 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-    <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-    </PropertyGroup>
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Authors>BookBeat</Authors>
+    <Description>PostgreSQL Messages for KnightBus</Description>
+    <Copyright>Copyright © BookBeat 2021</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://knightbus.readthedocs.io</PackageProjectUrl>
+    <PackageIconUrl>https://raw.githubusercontent.com/BookBeat/knightbus/master/documentation/media/images/knighbus-64.png</PackageIconUrl>
+    <PackageIcon>knighbus-64.png</PackageIcon>
+    <RepositoryUrl>https://github.com/BookBeat/knightbus</RepositoryUrl>
+    <Version>1.0.0</Version>
+    <PackageTags>knightbus;postgresql;queues;messaging</PackageTags>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
 
-    <ItemGroup>
-      <ProjectReference Include="..\..\..\knightbus\src\KnightBus.Messages\KnightBus.Messages.csproj" />
-    </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\knightbus\src\KnightBus.Messages\KnightBus.Messages.csproj"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="knighbus-64.png" Pack="true" Visible="false" PackagePath=""/>
+  </ItemGroup>
 
 </Project>
