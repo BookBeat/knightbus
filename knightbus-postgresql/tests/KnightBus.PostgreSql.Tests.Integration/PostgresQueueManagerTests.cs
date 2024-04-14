@@ -22,13 +22,11 @@ public class PostgresQueueManagerTests : QueueManagerTests<PostgresTestCommand>
         _bus = new PostgresBus(PostgresTestBase.TestNpgsqlDataSource,
             new PostgresConfiguration { MessageSerializer = new NewtonsoftSerializer() });
 
-        var queues = await QueueManager.List(CancellationToken.None);
-        await QueueManager.Delete("test", CancellationToken.None);
-        foreach (var queue in queues)
-        {
-            await QueueManager.Delete(queue.Name, CancellationToken.None);
-        }
+        await CleanUpTestData();
     }
+
+    [OneTimeTearDown]
+    public async Task CleanUpAfterTests() => await CleanUpTestData();
 
     public override async Task<string> CreateQueue()
     {
@@ -50,5 +48,15 @@ public class PostgresQueueManagerTests : QueueManagerTests<PostgresTestCommand>
         var message = await _postgresQueueClient.GetMessagesAsync(1, 10);
         return new PostgresMessageStateHandler<PostgresTestCommand>(
             PostgresTestBase.TestNpgsqlDataSource, message.First(), 5, new NewtonsoftSerializer(), null!);
+    }
+
+    private async Task CleanUpTestData()
+    {
+        var queues = await QueueManager.List(default);
+        await QueueManager.Delete(AutoMessageMapper.GetQueueName<PostgresTestCommand>(), default);
+        foreach (var queue in queues)
+        {
+            await QueueManager.Delete(queue.Name, default);
+        }
     }
 }

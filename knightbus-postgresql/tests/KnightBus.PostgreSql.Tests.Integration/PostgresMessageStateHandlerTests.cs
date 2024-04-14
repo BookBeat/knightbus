@@ -1,6 +1,7 @@
 using KnightBus.Core;
 using KnightBus.Newtonsoft;
 using KnightBus.Shared.Tests.Integration;
+using NUnit.Framework;
 
 namespace KnightBus.PostgreSql.Tests.Integration;
 
@@ -16,11 +17,19 @@ public class PostgresMessageStateHandlerTests : MessageStateHandlerTests<Postgre
             PostgresTestBase.TestNpgsqlDataSource, new NewtonsoftSerializer());
         _postgresQueueClient = new PostgresQueueClient<PostgresTestCommand>(
             PostgresTestBase.TestNpgsqlDataSource, new NewtonsoftSerializer());
-        var qm = new PostgresQueueManager(_postgresManagementClient, new NewtonsoftSerializer());
         _bus = new PostgresBus(
             PostgresTestBase.TestNpgsqlDataSource,
             new PostgresConfiguration { MessageSerializer = new NewtonsoftSerializer() });
-        await qm.Delete(AutoMessageMapper.GetQueueName<PostgresTestCommand>(), default);
+
+        await _postgresManagementClient.DeleteQueue(
+            PostgresQueueName.Create(AutoMessageMapper.GetQueueName<PostgresTestCommand>()), default);
+    }
+
+    [OneTimeTearDown]
+    public async Task CleanUpAfterTests()
+    {
+        await _postgresManagementClient.DeleteQueue(
+            PostgresQueueName.Create(AutoMessageMapper.GetQueueName<PostgresTestCommand>()), default);
     }
 
     protected override async Task<List<PostgresTestCommand>> GetMessages(int count)
