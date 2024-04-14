@@ -228,7 +228,7 @@ WHERE queue_name = ($1);
     public async Task PurgeDeadLetterQueue(PostgresQueueName queueName)
     {
         await using var command = _npgsqlDataSource.CreateCommand(@$"
-DELETE FROM {SchemaName}.{QueuePrefix}_{queueName};
+DELETE FROM {SchemaName}.{DlQueuePrefix}_{queueName};
 ");
         await command.ExecuteNonQueryAsync();
     }
@@ -246,7 +246,9 @@ DELETE FROM {SchemaName}.{QueuePrefix}_{queueName};
         await using var connection = await _npgsqlDataSource.OpenConnectionAsync();
         await using var transaction = await connection.BeginTransactionAsync();
 
-        // CREATE SCHEMA IF NOT EXISTS {SchemaName};
+        await using var createSchema = new NpgsqlCommand(@$"
+ CREATE SCHEMA IF NOT EXISTS {SchemaName};
+", connection);
 
         await using var createQueueCmd = new NpgsqlCommand(@$"
 CREATE TABLE IF NOT EXISTS {SchemaName}.{QueuePrefix}_{queueName} (
@@ -285,11 +287,13 @@ ON CONFLICT
 DO NOTHING;",
             connection);
 
+        await createSchema.ExecuteNonQueryAsync();
         await createQueueCmd.ExecuteNonQueryAsync();
         await createDlQueueCmd.ExecuteNonQueryAsync();
         await createIndexCmd.ExecuteNonQueryAsync();
         await createMetadataTableCmd.ExecuteNonQueryAsync();
         await insertMetadataCmd.ExecuteNonQueryAsync();
+
         await transaction.CommitAsync();
     }
 }
