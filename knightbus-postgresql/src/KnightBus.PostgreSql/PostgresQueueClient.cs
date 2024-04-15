@@ -20,9 +20,9 @@ public class PostgresQueueClient<T> where T : class, IPostgresCommand
         _queueName = PostgresQueueName.Create(AutoMessageMapper.GetQueueName<T>());
     }
 
-    public async Task<List<PostgresMessage<T>>> GetMessagesAsync(int count, int visibilityTimeout)
+    public async Task<List<PostgresMessage<T>>> GetMessagesAsync(int count, int visibilityTimeout, CancellationToken ct)
     {
-        await using var connection = await _npgsqlDataSource.OpenConnectionAsync();
+        await using var connection = await _npgsqlDataSource.OpenConnectionAsync(ct);
         await using var command = new NpgsqlCommand(@$"
 WITH cte AS
     (
@@ -45,10 +45,10 @@ UPDATE {SchemaName}.{QueuePrefix}_{_queueName} t
         command.Parameters.Add(new NpgsqlParameter<int> { TypedValue = count });
         command.Parameters.Add(new NpgsqlParameter<TimeSpan> { TypedValue = TimeSpan.FromSeconds(visibilityTimeout) });
 
-        await command.PrepareAsync();
+        await command.PrepareAsync(ct);
 
-        await using var reader = await command.ExecuteReaderAsync();
-        var result = await reader.ReadMessageRows<T>(_serializer);
+        await using var reader = await command.ExecuteReaderAsync(ct);
+        var result = await reader.ReadMessageRows<T>(_serializer, ct: ct);
         return result;
     }
 

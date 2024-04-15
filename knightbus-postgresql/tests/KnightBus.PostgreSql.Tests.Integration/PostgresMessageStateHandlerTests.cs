@@ -35,7 +35,7 @@ public class PostgresMessageStateHandlerTests : MessageStateHandlerTests<Postgre
 
     protected override async Task<List<PostgresTestCommand>> GetMessages(int count)
     {
-        var messages = await _postgresQueueClient.GetMessagesAsync(count, 0);
+        var messages = await _postgresQueueClient.GetMessagesAsync(count, 0, default);
         return messages.Select(m => m.Message).ToList();
     }
 
@@ -55,7 +55,7 @@ public class PostgresMessageStateHandlerTests : MessageStateHandlerTests<Postgre
 
     protected override async Task<IMessageStateHandler<PostgresTestCommand>> GetMessageStateHandler()
     {
-        var m = await _postgresQueueClient.GetMessagesAsync(1, 0);
+        var m = await _postgresQueueClient.GetMessagesAsync(1, 0, default);
         return new PostgresMessageStateHandler<PostgresTestCommand>(PostgresTestBase.TestNpgsqlDataSource,
             m.First(), 5, new NewtonsoftSerializer(), null!);
     }

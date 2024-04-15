@@ -60,7 +60,7 @@ public class PostgresChannelReceiver<T> : IChannelReceiver
         {
             var prefetchCount = Settings.PrefetchCount > 0 ? Settings.PrefetchCount : 1;
             var messages = await _queueClient
-                .GetMessagesAsync(prefetchCount, (int)Settings.MessageLockTimeout.TotalSeconds)
+                .GetMessagesAsync(prefetchCount, (int)Settings.MessageLockTimeout.TotalSeconds, cancellationToken)
                 .ConfigureAwait(false);
 
             if (messages.Count == 0) return false;
