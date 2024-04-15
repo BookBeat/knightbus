@@ -41,7 +41,7 @@ public class PostgresQueueManagerTests : QueueManagerTests<PostgresTestCommand>
         await QueueInitializer.InitQueue(
             PostgresQueueName.Create(AutoMessageMapper.GetQueueName<PostgresTestCommand>()),
             PostgresTestBase.TestNpgsqlDataSource);
-        await _bus.SendAsync(new PostgresTestCommand(message));
+        await _bus.SendAsync(new PostgresTestCommand(message), default);
         return AutoMessageMapper.GetQueueName<PostgresTestCommand>();
     }
 

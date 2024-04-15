@@ -10,10 +10,10 @@ namespace KnightBus.PostgreSql;
 
 public interface IPostgresBus
 {
-    Task SendAsync<T>(T message) where T : IPostgresCommand;
-    Task SendAsync<T>(IEnumerable<T> messages) where T : IPostgresCommand;
-    Task ScheduleAsync<T>(T message, TimeSpan delay) where T : IPostgresCommand;
-    Task ScheduleAsync<T>(IEnumerable<T> messages, TimeSpan delay) where T : IPostgresCommand;
+    Task SendAsync<T>(T message, CancellationToken ct) where T : IPostgresCommand;
+    Task SendAsync<T>(IEnumerable<T> messages, CancellationToken ct) where T : IPostgresCommand;
+    Task ScheduleAsync<T>(T message, TimeSpan delay, CancellationToken ct) where T : IPostgresCommand;
+    Task ScheduleAsync<T>(IEnumerable<T> messages, TimeSpan delay, CancellationToken ct) where T : IPostgresCommand;
 }
 
 public class PostgresBus : IPostgresBus
@@ -27,32 +27,32 @@ public class PostgresBus : IPostgresBus
         _serializer = postgresConfiguration.MessageSerializer;
     }
 
-    public Task SendAsync<T>(T message) where T : IPostgresCommand
+    public Task SendAsync<T>(T message, CancellationToken ct) where T : IPostgresCommand
     {
-        return SendAsync([message]);
+        return SendAsync([message], ct);
     }
 
-    public async Task SendAsync<T>(IEnumerable<T> messages) where T : IPostgresCommand
+    public async Task SendAsync<T>(IEnumerable<T> messages, CancellationToken ct) where T : IPostgresCommand
     {
-        await SendAsyncInternal(messages, null);
+        await SendAsyncInternal(messages, null, ct);
     }
 
-    public Task ScheduleAsync<T>(T message, TimeSpan delay) where T : IPostgresCommand
+    public Task ScheduleAsync<T>(T message, TimeSpan delay, CancellationToken ct) where T : IPostgresCommand
     {
-        return ScheduleAsync([message], delay);
+        return ScheduleAsync([message], delay, ct);
     }
 
-    public Task ScheduleAsync<T>(IEnumerable<T> messages, TimeSpan delay) where T : IPostgresCommand
+    public Task ScheduleAsync<T>(IEnumerable<T> messages, TimeSpan delay, CancellationToken ct) where T : IPostgresCommand
     {
-        return SendAsyncInternal(messages, delay);
+        return SendAsyncInternal(messages, delay, ct);
     }
 
-    private async Task SendAsyncInternal<T>(IEnumerable<T> messages, TimeSpan? delay) where T : IPostgresCommand
+    private async Task SendAsyncInternal<T>(IEnumerable<T> messages, TimeSpan? delay, CancellationToken ct) where T : IPostgresCommand
     {
         var queueName = AutoMessageMapper.GetQueueName<T>();
         var messagesList = messages.ToList();
 
-        await using var connection = await _npgsqlDataSource.OpenConnectionAsync();
+        await using var connection = await _npgsqlDataSource.OpenConnectionAsync(ct);
         await using var command = new NpgsqlCommand(null, connection);
 
         /*
@@ -75,7 +75,7 @@ public class PostgresBus : IPostgresBus
 INSERT INTO {SchemaName}.{QueuePrefix}_{queueName} (visibility_timeout, message)
 VALUES {stringValues};
 ";
-        await command.PrepareAsync();
-        await command.ExecuteNonQueryAsync();
+        await command.PrepareAsync(ct);
+        await command.ExecuteNonQueryAsync(ct);
     }
 }

@@ -45,8 +45,8 @@ class Program
         var client =
             (PostgresBus)knightBusHost.Services.CreateScope().ServiceProvider.GetRequiredService<IPostgresBus>();
 
-        await client.SendAsync(new SamplePostgresMessage { MessageBody = Guid.NewGuid().ToString() });
-        await client.SendAsync(new SamplePoisonPostgresMessage { MessageBody = $"error_{Guid.NewGuid()}" } );
+        await client.SendAsync(new SamplePostgresMessage { MessageBody = Guid.NewGuid().ToString() }, default);
+        await client.SendAsync(new SamplePoisonPostgresMessage { MessageBody = $"error_{Guid.NewGuid()}" }, default );
 
         Console.ReadKey();
         await knightBusHost.StopAsync();

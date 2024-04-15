@@ -50,7 +50,7 @@ public class PostgresMessageStateHandlerTests : MessageStateHandlerTests<Postgre
         await QueueInitializer.InitQueue(
             PostgresQueueName.Create(AutoMessageMapper.GetQueueName<PostgresTestCommand>()),
             PostgresTestBase.TestNpgsqlDataSource);
-        await _bus.SendAsync(new PostgresTestCommand(message));
+        await _bus.SendAsync(new PostgresTestCommand(message), default);
     }
 
     protected override async Task<IMessageStateHandler<PostgresTestCommand>> GetMessageStateHandler()

@@ -56,7 +56,7 @@ public class PostgresBusTests
         [
             new TestCommand { MessageBody = "hello, world!" },
             new TestCommand { MessageBody = "hello?!" }
-        ]);
+        ], default);
 
         var messagesCount = (long)
             (await PostgresTestBase.TestNpgsqlDataSource
@@ -74,7 +74,7 @@ public class PostgresBusTests
         [
             new TestCommand { MessageBody = "message body 1" },
             new TestCommand { MessageBody = "message body 2" }
-        ]);
+        ], default);
 
         var messages = await _postgresQueueClient.GetMessagesAsync(2, 100);
 
@@ -92,7 +92,7 @@ public class PostgresBusTests
         [
             new TestCommand { MessageBody = "message body 1" },
             new TestCommand { MessageBody = "message body 2" }
-        ]);
+        ], default);
 
         // fetch latest 2 messages
         var messages1 = await _postgresQueueClient.GetMessagesAsync(2, 100);
@@ -111,7 +111,7 @@ public class PostgresBusTests
         await _postgresBus.SendAsync<TestCommand>(
         [
             new TestCommand { MessageBody = "delete me" },
-        ]);
+        ], default);
 
         var message = await _postgresQueueClient.GetMessagesAsync(1, 10);
 
@@ -133,7 +133,7 @@ WHERE message_id = {message[0].Id}")
         await _postgresBus.SendAsync<TestCommand>(
         [
             new TestCommand { MessageBody = "abandon me" },
-        ]);
+        ], default);
 
         var message = await _postgresQueueClient.GetMessagesAsync(1, 10);
 
@@ -150,7 +150,7 @@ WHERE message_id = {message[0].Id}")
         await _postgresBus.SendAsync<TestCommand>(
         [
             new TestCommand { MessageBody = "dead letter me" }
-        ]);
+        ], default);
 
         var message = await _postgresQueueClient.GetMessagesAsync(1, 10);
         await _postgresQueueClient.DeadLetterMessageAsync(message[0]);
@@ -177,7 +177,7 @@ WHERE message_id = {message[0].Id}")
         await _postgresBus.ScheduleAsync<TestCommand>(
         [
             new TestCommand { MessageBody = "for future" }
-        ], TimeSpan.FromSeconds(3));
+        ], TimeSpan.FromSeconds(3), default);
 
         var messages = await _postgresQueueClient.GetMessagesAsync(1, 10);
         messages.Count.Should().Be(0);
@@ -194,7 +194,7 @@ WHERE message_id = {message[0].Id}")
         await _postgresBus.SendAsync<TestCommand>(
         [
             new TestCommand { MessageBody = "dead letter" }
-        ]);
+        ], default);
 
         var message = await _postgresQueueClient.GetMessagesAsync(1, 10);
         await _postgresQueueClient.DeadLetterMessageAsync(message[0]);
