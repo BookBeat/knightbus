@@ -65,11 +65,16 @@ public class PostgresBus : IPostgresBus
         var values = new StringBuilder();
         for (int i = 0; i < messagesList.Count; i++)
         {
-            values.AppendFormat("((now() + interval '{0} seconds'), (${1})),", delay?.TotalSeconds ?? 0, i + 1);
+            var oneBasedIndex = i + 1;
+            var trailingComma = oneBasedIndex == messagesList.Count ? string.Empty : ",";
+            values.AppendFormat("((now() + interval '{0} seconds'), (${1})){2}",
+                delay?.TotalSeconds ?? 0, oneBasedIndex, trailingComma);
+
             var mBody = _serializer.Serialize(messagesList[i]);
             command.Parameters.Add(new NpgsqlParameter { Value = mBody, NpgsqlDbType = NpgsqlDbType.Jsonb });
         }
-        var stringValues = values.ToString().TrimEnd(',');
+
+        var stringValues = values.ToString();
 
         command.CommandText = @$"
 INSERT INTO {SchemaName}.{QueuePrefix}_{queueName} (visibility_timeout, message)
