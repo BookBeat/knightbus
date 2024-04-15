@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
@@ -47,20 +45,8 @@ class Program
         var client =
             (PostgresBus)knightBusHost.Services.CreateScope().ServiceProvider.GetRequiredService<IPostgresBus>();
 
-        // var commands = new List<SamplePostgresMessage>();
-        // for (int i = 0; i < 10000; i++)
-        // {
-        //     commands.Add(new SamplePostgresMessage { MessageBody = $"{i}_{Guid.NewGuid()}" });
-        // }
-        // var chunks = commands.Chunk(1000);
-        // foreach (var chunk in chunks)
-        // {
-        //     await client.SendAsync(chunk);
-        // }
-
         await client.SendAsync(new SamplePostgresMessage { MessageBody = Guid.NewGuid().ToString() });
-
-        //await client.SendAsync(new SamplePoisonPostgresMessage { MessageBody = $"error_{Guid.NewGuid()}" } );
+        await client.SendAsync(new SamplePoisonPostgresMessage { MessageBody = $"error_{Guid.NewGuid()}" } );
 
         Console.ReadKey();
         await knightBusHost.StopAsync();
@@ -87,7 +73,7 @@ class SamplePoisonPostgresMessageMapping : IMessageMapping<SamplePoisonPostgresM
     public string QueueName => "poisoned_postgres_sample_message";
 }
 
-class PostgresEventProcessor :
+class PostgresCommandProcessor :
     IProcessCommand<SamplePostgresMessage, PostgresProcessingSetting>,
     IProcessCommand<SamplePoisonPostgresMessage, PostgresProcessingSetting>
 {
