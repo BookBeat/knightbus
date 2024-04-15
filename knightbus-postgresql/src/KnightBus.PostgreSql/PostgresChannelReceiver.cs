@@ -61,7 +61,7 @@ public class PostgresChannelReceiver<T> : IChannelReceiver
                 .GetMessagesAsync(prefetchCount, (int)Settings.MessageLockTimeout.TotalSeconds)
                 .ConfigureAwait(false);
 
-            if (messages.Length == 0) return false;
+            if (messages.Count == 0) return false;
 
             foreach (var postgresMessage in messages)
             {

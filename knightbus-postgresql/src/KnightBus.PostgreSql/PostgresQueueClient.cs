@@ -20,7 +20,7 @@ public class PostgresQueueClient<T> where T : class, IPostgresCommand
         _queueName = PostgresQueueName.Create(AutoMessageMapper.GetQueueName<T>());
     }
 
-    public async Task<PostgresMessage<T>[]> GetMessagesAsync(int count, int visibilityTimeout)
+    public async Task<List<PostgresMessage<T>>> GetMessagesAsync(int count, int visibilityTimeout)
     {
         await using var connection = await _npgsqlDataSource.OpenConnectionAsync();
         await using var command = new NpgsqlCommand(@$"
@@ -48,31 +48,8 @@ UPDATE {SchemaName}.{QueuePrefix}_{_queueName} t
         await command.PrepareAsync();
 
         await using var reader = await command.ExecuteReaderAsync();
-        var result = new List<PostgresMessage<T>>();
-        while (await reader.ReadAsync())
-        {
-            var propertiesOrdinal = reader.GetOrdinal("properties");
-            var isPropertiesNull = reader.IsDBNull(propertiesOrdinal);
-
-            var postgresMessage = new PostgresMessage<T>
-            {
-                Id = reader.GetInt64(reader.GetOrdinal("message_id")),
-                ReadCount = reader.GetInt32(reader.GetOrdinal("read_count")),
-                Message = _serializer
-                    .Deserialize<T>(reader.GetFieldValue<byte[]>(
-                            reader.GetOrdinal("message"))
-                        .AsMemory()),
-                Properties = isPropertiesNull
-                    ? new Dictionary<string, string>()
-                    : _serializer
-                        .Deserialize<Dictionary<string, string>>(
-                            reader.GetFieldValue<byte[]>(propertiesOrdinal)
-                                .AsMemory())
-            };
-            result.Add(postgresMessage);
-        }
-
-        return result.ToArray();
+        var result = await reader.ReadMessageRows<T>(_serializer);
+        return result;
     }
 
     public async Task CompleteAsync(PostgresMessage<T> message)

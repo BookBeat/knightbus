@@ -46,7 +46,7 @@ public class PostgresBusTests
     public async Task GetMessages_Empty()
     {
         var messages = await _postgresQueueClient.GetMessagesAsync(1, 100);
-        messages.Length.Should().Be(0);
+        messages.Count.Should().Be(0);
     }
 
     [Test]
@@ -78,7 +78,7 @@ public class PostgresBusTests
 
         var messages = await _postgresQueueClient.GetMessagesAsync(2, 100);
 
-        messages.Length.Should().Be(2);
+        messages.Count.Should().Be(2);
         messages[0].Message.MessageBody.Should().Be("message body 1");
         messages[0].ReadCount.Should().Be(1);
         messages[1].Message.MessageBody.Should().Be("message body 2");
@@ -96,13 +96,13 @@ public class PostgresBusTests
 
         // fetch latest 2 messages
         var messages1 = await _postgresQueueClient.GetMessagesAsync(2, 100);
-        messages1.Length.Should().Be(2);
+        messages1.Count.Should().Be(2);
 
         await Task.Delay(3000);
 
         // fetch latest 2 messages again
         var messages2 = await _postgresQueueClient.GetMessagesAsync(2, 100);
-        messages2.Length.Should().Be(0);
+        messages2.Count.Should().Be(0);
     }
 
     [Test]
@@ -180,7 +180,7 @@ WHERE message_id = {message[0].Id}")
         ], TimeSpan.FromSeconds(3));
 
         var messages = await _postgresQueueClient.GetMessagesAsync(1, 10);
-        messages.Length.Should().Be(0);
+        messages.Count.Should().Be(0);
 
         await Task.Delay(3000);
 

@@ -112,30 +112,7 @@ LIMIT ($1);
         command.Parameters.Add(new NpgsqlParameter<int> { TypedValue = count });
 
         await using var reader = await command.ExecuteReaderAsync(ct);
-        var result = new List<PostgresMessage<DictionaryMessage>>();
-        while (await reader.ReadAsync(ct))
-        {
-            var propertiesOrdinal = reader.GetOrdinal("properties");
-            var isPropertiesNull = reader.IsDBNull(propertiesOrdinal);
-
-            var postgresMessage = new PostgresMessage<DictionaryMessage>
-            {
-                Id = reader.GetInt64(reader.GetOrdinal("message_id")),
-                ReadCount = reader.GetInt32(reader.GetOrdinal("read_count")),
-                Message = _serializer
-                    .Deserialize<DictionaryMessage>(reader.GetFieldValue<byte[]>(
-                            reader.GetOrdinal("message"))
-                        .AsMemory()),
-                Properties = isPropertiesNull
-                    ? new Dictionary<string, string>()
-                    : _serializer
-                        .Deserialize<Dictionary<string, string>>(
-                            reader.GetFieldValue<byte[]>(propertiesOrdinal)
-                                .AsMemory())
-            };
-            result.Add(postgresMessage);
-        }
-
+        var result = await reader.ReadMessageRows<DictionaryMessage>(_serializer, ct);
         return result;
     }
 
