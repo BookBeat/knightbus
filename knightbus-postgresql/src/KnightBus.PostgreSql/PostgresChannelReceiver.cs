@@ -34,7 +34,7 @@ public class PostgresChannelReceiver<T> : IChannelReceiver
         _maxConcurrent = new SemaphoreSlim(settings.MaxConcurrentCalls);
     }
 
-    public async Task StartAsync(CancellationToken cancellationToken)
+    public Task StartAsync(CancellationToken cancellationToken)
     {
         _queueClient = new PostgresQueueClient<T>(_npgsqlDataSource, _serializer);
 
@@ -50,6 +50,8 @@ public class PostgresChannelReceiver<T> : IChannelReceiver
             _hostConfiguration.Log.LogInformation("Postgres receiver cancellation requested. Disposing npgsql data source");
             await _npgsqlDataSource.DisposeAsync();
         });
+
+        return Task.CompletedTask;
     }
 
     private async Task<bool> PumpAsync(CancellationToken cancellationToken)
