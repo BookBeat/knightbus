@@ -45,7 +45,7 @@ internal class StorageQueueMessageStateHandler<T> : IMessageStateHandler<T>, IMe
         }
 
         _message.Properties["Error"] = errorMessage;
-        return _queueClient.AbandonByErrorAsync(_message, TimeSpan.FromSeconds(2));
+        return _queueClient.AbandonByErrorAsync(_message, null);
     }
 
     public Task DeadLetterAsync(int deadLetterLimit)

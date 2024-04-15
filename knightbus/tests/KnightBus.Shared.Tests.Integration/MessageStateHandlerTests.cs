@@ -18,6 +18,22 @@ public abstract class MessageStateHandlerTests<TCommand> where TCommand : class,
     protected abstract Task SendMessage(string message);
     protected abstract Task<IMessageStateHandler<TCommand>> GetMessageStateHandler();
 
+
+    [Test]
+    public async Task Should_lock_the_message_and_make_it_invisible_when_processing()
+    {
+        //arrange
+        await SendMessage("Testing Visibility");
+
+        //act
+        await GetMessageStateHandler();
+
+
+        //assert
+        var messages = await GetMessages(1);
+        messages.Should().BeEmpty();
+    }
+
     [Test]
     public async Task Should_complete_the_message_and_remove_it_from_the_queue()
     {
