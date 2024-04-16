@@ -47,7 +47,7 @@ internal class StorageQueueChannelReceiver<T> : IChannelReceiver
     {
         var queueName = AutoMessageMapper.GetQueueName<T>();
         _storageQueueClient = new StorageQueueClient(_storageOptions, _serializer, Enumerable.Empty<IMessagePreProcessor>(), queueName);
-        _messagePump = new StorageQueueMessagePump(Settings, _hostConfiguration.Log, _storageQueueClient);
+        _messagePump = new StorageQueueMessagePump(_storageQueueClient, Settings, _hostConfiguration.Log);
     }
 
     private async Task Handle(StorageQueueMessage message, CancellationToken cancellationToken)

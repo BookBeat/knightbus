@@ -13,7 +13,7 @@ internal class StorageQueueMessagePump : GenericMessagePump<StorageQueueMessage,
 {
     private readonly IStorageQueueClient _storageQueueClient;
 
-    public StorageQueueMessagePump(IProcessingSettings settings, ILogger log, IStorageQueueClient storageQueueClient) : base(settings, log)
+    public StorageQueueMessagePump(IStorageQueueClient storageQueueClient, IProcessingSettings settings, ILogger log) : base(settings, log)
     {
         _storageQueueClient = storageQueueClient;
     }
