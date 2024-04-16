@@ -71,12 +71,20 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
             }
 
             var messages = GetMessagesAsync<TMessage>(prefetchCount, visibilityTimeout);
-            var timeoutToken = new CancellationTokenSource(_settings.MessageLockTimeout);
-            var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutToken.Token);
+            var startTime = DateTime.UtcNow;
 
             await foreach (var message in messages.ConfigureAwait(false))
             {
                 if (message == null) continue;
+                var remainingLockDuration = startTime - DateTime.UtcNow + _settings.MessageLockTimeout;
+                if (remainingLockDuration <= TimeSpan.Zero)
+                {
+                    // We've waited for longer than the lock duration so exit and resume immediate polling to get messages with renewed locks
+                    return true;
+                }
+
+                var timeoutToken = new CancellationTokenSource(remainingLockDuration);
+                var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutToken.Token);
                 messageCount++;
                 await _maxConcurrent.WaitAsync(linkedToken.Token).ConfigureAwait(false);
 
@@ -89,9 +97,9 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
                         linkedToken.Dispose();
                     }, CancellationToken.None).ConfigureAwait(false);
 #pragma warning restore 4014
-                _log.LogDebug("Prefetched {MessageCount} messages from {QueueName} in {Name}", messageCount, queueName,
-                    nameof(GenericMessagePump<TInternalRepresentation, TMessageInterface>));
             }
+            _log.LogDebug("Prefetched {MessageCount} messages from {QueueName} in {Name}", messageCount, queueName,
+                nameof(GenericMessagePump<TInternalRepresentation, TMessageInterface>));
         }
         catch (Exception e)
         {
