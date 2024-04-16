@@ -36,7 +36,7 @@ public class StorageQueueMessagePumpTests
             messages.Add(new StorageQueueMessage(new LongRunningTestCommand { Message = i.ToString() }));
         }
 
-        _clientMock.Setup(x => x.GetMessagesAsync<LongRunningTestCommand>(10, It.IsAny<TimeSpan?>()))
+        _clientMock.Setup(x => x.GetMessagesAsync<LongRunningTestCommand>(11, It.IsAny<TimeSpan?>()))
             .ReturnsAsync(messages);
         var pump = new StorageQueueMessagePump(_clientMock.Object, settings, Mock.Of<ILogger>());
         var invocations = 0;
@@ -59,7 +59,7 @@ public class StorageQueueMessagePumpTests
             PrefetchCount = 0,
             MaxConcurrentCalls = 1
         };
-        var messages = new List<StorageQueueMessage> { new StorageQueueMessage(new LongRunningTestCommand { Message = 1.ToString() }) };
+        var messages = new List<StorageQueueMessage> { new(new LongRunningTestCommand { Message = 1.ToString() }) };
 
 
         _clientMock.Setup(x => x.GetMessagesAsync<LongRunningTestCommand>(1, It.IsAny<TimeSpan?>()))
@@ -154,7 +154,7 @@ public class StorageQueueMessagePumpTests
             messages.Add(new StorageQueueMessage(new LongRunningTestCommand { Message = i.ToString() }));
         }
 
-        _clientMock.Setup(x => x.GetMessagesAsync<LongRunningTestCommand>(20, It.IsAny<TimeSpan?>()))
+        _clientMock.Setup(x => x.GetMessagesAsync<LongRunningTestCommand>(30, It.IsAny<TimeSpan?>()))
             .ReturnsAsync(messages);
         var pump = new StorageQueueMessagePump(_clientMock.Object, settings, Mock.Of<ILogger>());
         var invocations = 0;
@@ -179,7 +179,7 @@ public class StorageQueueMessagePumpTests
         var settings = new TestMessageSettings
         {
             DeadLetterDeliveryLimit = 1,
-            PrefetchCount = 1,
+            PrefetchCount = 0,
             MaxConcurrentCalls = 1
         };
         var messageCount = 1;

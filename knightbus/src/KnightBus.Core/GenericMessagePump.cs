@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Messages;
@@ -19,6 +20,7 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
     private readonly SemaphoreSlim _maxConcurrent;
     private Task _runningTask;
     private CancellationTokenSource _pumpDelayCancellationTokenSource = new();
+    private string _queueName;
 
     protected GenericMessagePump(IProcessingSettings settings, ILogger log)
     {
@@ -36,6 +38,7 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
     /// <returns>A completed Task when the pump has started</returns>
     public virtual Task StartAsync<TMessage>(Func<TInternalRepresentation, CancellationToken, Task> action, CancellationToken cancellationToken) where TMessage : TMessageInterface
     {
+        _queueName = AutoMessageMapper.GetQueueName<TMessage>();
         _runningTask = Task.Run(async () =>
         {
             while (!cancellationToken.IsCancellationRequested)
@@ -53,12 +56,19 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
         var messageCount = 0;
         try
         {
-            //Do not fetch and lock messages if we won't be able to process them
-            if (_maxConcurrent.CurrentCount == 0) return false;
 
-            var queueName = AutoMessageMapper.GetQueueName<TMessage>();
+            try
+            {
+                //Do not fetch and lock messages if we won't be able to process them
+                await _maxConcurrent.WaitAsync(cancellationToken).ConfigureAwait(false);
+            }
+            finally
+            {
+                _maxConcurrent.Release();
+            }
 
-            var prefetchCount = _settings.PrefetchCount > 0 ? _settings.PrefetchCount : 1;
+            //Fetch enough messages to fill all AvailableThreads and add Prefetch on top of that as a buffer
+            var prefetchCount = _settings.PrefetchCount + AvailableThreads;
 
             TimeSpan visibilityTimeout;
             if (_settings is IExtendMessageLockTimeout extendMessageLockTimeout)
@@ -70,13 +80,14 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
                 visibilityTimeout = _settings.MessageLockTimeout;
             }
 
+            var stopWatch = Stopwatch.StartNew();
             var messages = GetMessagesAsync<TMessage>(prefetchCount, visibilityTimeout);
-            var startTime = DateTime.UtcNow;
+
 
             await foreach (var message in messages.ConfigureAwait(false))
             {
                 if (message == null) continue;
-                var remainingLockDuration = startTime - DateTime.UtcNow + _settings.MessageLockTimeout;
+                var remainingLockDuration = _settings.MessageLockTimeout - stopWatch.Elapsed;
                 if (remainingLockDuration <= TimeSpan.Zero)
                 {
                     // We've waited for longer than the lock duration so exit and resume immediate polling to get messages with renewed locks
@@ -98,7 +109,7 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
                     }, CancellationToken.None).ConfigureAwait(false);
 #pragma warning restore 4014
             }
-            _log.LogDebug("Prefetched {MessageCount} messages from {QueueName} in {Name}", messageCount, queueName,
+            _log.LogDebug("Prefetched {MessageCount} messages from {QueueName} in {Name}", messageCount, _queueName,
                 nameof(GenericMessagePump<TInternalRepresentation, TMessageInterface>));
         }
         catch (Exception e)
