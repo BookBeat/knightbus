@@ -1,5 +1,4 @@
 using KnightBus.Core;
-using KnightBus.Newtonsoft;
 using KnightBus.PostgreSql.Management;
 using KnightBus.Shared.Tests.Integration;
 using NUnit.Framework;
@@ -15,12 +14,12 @@ public class PostgresMessageStateHandlerTests : MessageStateHandlerTests<Postgre
     public override async Task Setup()
     {
         _postgresManagementClient = new PostgresManagementClient(
-            PostgresTestBase.TestNpgsqlDataSource, new NewtonsoftSerializer());
+            PostgresTestBase.TestNpgsqlDataSource, new MicrosoftJsonSerializer());
         _postgresQueueClient = new PostgresQueueClient<PostgresTestCommand>(
-            PostgresTestBase.TestNpgsqlDataSource, new NewtonsoftSerializer());
+            PostgresTestBase.TestNpgsqlDataSource, new MicrosoftJsonSerializer());
         _bus = new PostgresBus(
             PostgresTestBase.TestNpgsqlDataSource,
-            new PostgresConfiguration { MessageSerializer = new NewtonsoftSerializer() });
+            new PostgresConfiguration { MessageSerializer = new MicrosoftJsonSerializer() });
 
         await _postgresManagementClient.DeleteQueue(
             PostgresQueueName.Create(AutoMessageMapper.GetQueueName<PostgresTestCommand>()), default);
@@ -75,6 +74,6 @@ public class PostgresMessageStateHandlerTests : MessageStateHandlerTests<Postgre
         }
 
         return new PostgresMessageStateHandler<PostgresTestCommand>(PostgresTestBase.TestNpgsqlDataSource,
-            result.First(), 5, new NewtonsoftSerializer(), null!);
+            result.First(), 5, new MicrosoftJsonSerializer(), null!);
     }
 }

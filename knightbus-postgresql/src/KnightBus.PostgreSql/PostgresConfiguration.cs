@@ -1,6 +1,5 @@
 ﻿using KnightBus.Core;
 using KnightBus.Messages;
-using KnightBus.Newtonsoft;
 
 namespace KnightBus.PostgreSql;
 
@@ -20,6 +19,6 @@ public class PostgresConfiguration : IPostgresConfiguration
     public PostgresConfiguration() { }
 
     public string ConnectionString { get; set; } = null!;
-    public IMessageSerializer MessageSerializer { get; set; } = new NewtonsoftSerializer();
+    public IMessageSerializer MessageSerializer { get; set; } = new MicrosoftJsonSerializer();
     public TimeSpan PollingSleepInterval { get; set; } = TimeSpan.FromSeconds(5);
 }

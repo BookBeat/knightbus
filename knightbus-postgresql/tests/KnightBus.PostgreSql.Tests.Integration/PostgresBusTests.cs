@@ -1,7 +1,6 @@
 ﻿using FluentAssertions;
 using KnightBus.Core;
 using KnightBus.Messages;
-using KnightBus.Newtonsoft;
 using KnightBus.PostgreSql.Management;
 using KnightBus.PostgreSql.Messages;
 using NUnit.Framework;
@@ -19,8 +18,8 @@ public class PostgresBusTests
     public async Task OneTimeSetUp()
     {
         _postgresBus = new PostgresBus(PostgresTestBase.TestNpgsqlDataSource, new PostgresConfiguration());
-        _postgresQueueClient = new PostgresQueueClient<TestCommand>(PostgresTestBase.TestNpgsqlDataSource, new NewtonsoftSerializer());
-        _postgresManagementClient = new PostgresManagementClient(PostgresTestBase.TestNpgsqlDataSource, new NewtonsoftSerializer());
+        _postgresQueueClient = new PostgresQueueClient<TestCommand>(PostgresTestBase.TestNpgsqlDataSource, new MicrosoftJsonSerializer());
+        _postgresManagementClient = new PostgresManagementClient(PostgresTestBase.TestNpgsqlDataSource, new MicrosoftJsonSerializer());
         await QueueInitializer.InitQueue(
             PostgresQueueName.Create(AutoMessageMapper.GetQueueName<TestCommand>()),
             PostgresTestBase.TestNpgsqlDataSource);

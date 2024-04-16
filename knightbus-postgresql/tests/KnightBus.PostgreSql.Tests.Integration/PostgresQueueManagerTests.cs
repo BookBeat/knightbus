@@ -1,6 +1,5 @@
 using KnightBus.Core;
 using KnightBus.Core.Management;
-using KnightBus.Newtonsoft;
 using KnightBus.PostgreSql.Management;
 using KnightBus.Shared.Tests.Integration;
 using NUnit.Framework;
@@ -16,12 +15,12 @@ public class PostgresQueueManagerTests : QueueManagerTests<PostgresTestCommand>
 
     public override async Task Setup()
     {
-        _postgresManagementClient = new PostgresManagementClient(PostgresTestBase.TestNpgsqlDataSource, new NewtonsoftSerializer());
-        _postgresQueueClient = new PostgresQueueClient<PostgresTestCommand>(PostgresTestBase.TestNpgsqlDataSource, new NewtonsoftSerializer());
-        QueueManager = new PostgresQueueManager(_postgresManagementClient, new NewtonsoftSerializer());
+        _postgresManagementClient = new PostgresManagementClient(PostgresTestBase.TestNpgsqlDataSource, new MicrosoftJsonSerializer());
+        _postgresQueueClient = new PostgresQueueClient<PostgresTestCommand>(PostgresTestBase.TestNpgsqlDataSource, new MicrosoftJsonSerializer());
+        QueueManager = new PostgresQueueManager(_postgresManagementClient, new MicrosoftJsonSerializer());
         QueueType = QueueType.Queue;
         _bus = new PostgresBus(PostgresTestBase.TestNpgsqlDataSource,
-            new PostgresConfiguration { MessageSerializer = new NewtonsoftSerializer() });
+            new PostgresConfiguration { MessageSerializer = new MicrosoftJsonSerializer() });
 
         await CleanUpTestData();
     }
@@ -55,7 +54,7 @@ public class PostgresQueueManagerTests : QueueManagerTests<PostgresTestCommand>
         }
 
         return new PostgresMessageStateHandler<PostgresTestCommand>(
-            PostgresTestBase.TestNpgsqlDataSource, result.First(), 5, new NewtonsoftSerializer(), null!);
+            PostgresTestBase.TestNpgsqlDataSource, result.First(), 5,new MicrosoftJsonSerializer(), null!);
     }
 
     private async Task CleanUpTestData()
