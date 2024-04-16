@@ -16,7 +16,7 @@ public class PostgresChannelReceiver<T> : IChannelReceiver
     private readonly IMessageSerializer _serializer;
     private readonly SemaphoreSlim _maxConcurrent;
     private CancellationTokenSource _pumpDelayCancellationTokenSource = new();
-    private readonly TimeSpan _pollingSleepInterval = TimeSpan.FromSeconds(5);
+    private readonly TimeSpan _pollingSleepInterval;
     private Task _messagePumpTask;
 
     public PostgresChannelReceiver(
@@ -24,7 +24,8 @@ public class PostgresChannelReceiver<T> : IChannelReceiver
         IMessageProcessor processor,
         IProcessingSettings settings,
         IHostConfiguration hostConfiguration,
-        IMessageSerializer serializer)
+        IMessageSerializer serializer,
+        IPostgresConfiguration postgresConfiguration)
     {
         _npgsqlDataSource = npgsqlDataSource;
         _processor = processor;
@@ -32,6 +33,7 @@ public class PostgresChannelReceiver<T> : IChannelReceiver
         _hostConfiguration = hostConfiguration;
         _serializer = serializer;
         _maxConcurrent = new SemaphoreSlim(settings.MaxConcurrentCalls);
+        _pollingSleepInterval = postgresConfiguration.PollingSleepInterval;
     }
 
     public Task StartAsync(CancellationToken cancellationToken)

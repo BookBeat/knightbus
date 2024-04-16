@@ -4,7 +4,10 @@ using KnightBus.Newtonsoft;
 
 namespace KnightBus.PostgreSql;
 
-public interface IPostgresConfiguration : ITransportConfiguration;
+public interface IPostgresConfiguration : ITransportConfiguration
+{
+    TimeSpan PollingSleepInterval { get; set; }
+}
 
 public class PostgresConfiguration : IPostgresConfiguration
 {
@@ -18,4 +21,5 @@ public class PostgresConfiguration : IPostgresConfiguration
 
     public string ConnectionString { get; set; } = null!;
     public IMessageSerializer MessageSerializer { get; set; } = new NewtonsoftSerializer();
+    public TimeSpan PollingSleepInterval { get; set; } = TimeSpan.FromSeconds(5);
 }

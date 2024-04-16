@@ -8,11 +8,13 @@ namespace KnightBus.PostgreSql;
 public class PostgresChannelFactory : ITransportChannelFactory
 {
     private readonly NpgsqlDataSource _npgsqlDataSource;
+    private readonly IPostgresConfiguration _postgresConfiguration;
 
-    public PostgresChannelFactory(ITransportConfiguration configuration, NpgsqlDataSource npgsqlDataSource)
+    public PostgresChannelFactory(NpgsqlDataSource npgsqlDataSource, IPostgresConfiguration postgresConfiguration)
     {
         _npgsqlDataSource = npgsqlDataSource;
-        Configuration = configuration;
+        _postgresConfiguration = postgresConfiguration;
+        Configuration = postgresConfiguration;
     }
 
     public ITransportConfiguration Configuration { get; set; }
@@ -32,7 +34,8 @@ public class PostgresChannelFactory : ITransportChannelFactory
             processor,
             processingSettings,
             configuration,
-            serializer) as IChannelReceiver;
+            serializer,
+            _postgresConfiguration) as IChannelReceiver;
 
         return queueReader ?? throw new InvalidOperationException("ChannelReceiver could not be created");
     }

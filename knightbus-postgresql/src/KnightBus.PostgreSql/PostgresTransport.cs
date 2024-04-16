@@ -7,7 +7,7 @@ public class PostgresTransport : ITransport
 {
     public PostgresTransport(IPostgresConfiguration postgresConfiguration, NpgsqlDataSource npgsqlDataSource)
     {
-        TransportChannelFactories = [new PostgresChannelFactory(postgresConfiguration, npgsqlDataSource)];
+        TransportChannelFactories = [new PostgresChannelFactory(npgsqlDataSource, postgresConfiguration)];
     }
 
     public ITransportChannelFactory[] TransportChannelFactories { get; }

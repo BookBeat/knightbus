@@ -29,7 +29,11 @@ class Program
             .ConfigureServices(services =>
             {
                 services
-                    .UsePostgres(configuration => { configuration.ConnectionString = connectionString; })
+                    .UsePostgres(configuration =>
+                    {
+                        configuration.ConnectionString = connectionString;
+                        configuration.PollingSleepInterval = TimeSpan.FromMilliseconds(250);
+                    })
                     .RegisterProcessors(typeof(SamplePostgresMessage).Assembly)
                     //Enable the postgres Transport
                     .UseTransport<PostgresTransport>();
@@ -39,8 +43,6 @@ class Program
 
         //Start the KnightBus Host, it will now connect to the postgresql and listen
         await knightBusHost.StartAsync();
-
-        await Task.Delay(3000);
 
         var client =
             (PostgresBus)knightBusHost.Services.CreateScope().ServiceProvider.GetRequiredService<IPostgresBus>();
@@ -55,12 +57,12 @@ class Program
 
 class SamplePostgresMessage : IPostgresCommand
 {
-    public string MessageBody { get; set; }
+    public required string MessageBody { get; set; }
 }
 
 class SamplePoisonPostgresMessage : IPostgresCommand
 {
-    public string MessageBody { get; set; }
+    public required string MessageBody { get; set; }
 }
 
 class SamplePostgresMessageMapping : IMessageMapping<SamplePostgresMessage>
