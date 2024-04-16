@@ -17,7 +17,7 @@ public static class QueueInitializer
         await using var createQueueCmd = new NpgsqlCommand(@$"
 CREATE TABLE IF NOT EXISTS {SchemaName}.{QueuePrefix}_{queueName} (
     message_id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    read_count INT DEFAULT 0 NOT NULL,
+    read_count SMALLINT DEFAULT 0 NOT NULL,
     enqueued_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
     visibility_timeout TIMESTAMP WITH TIME ZONE NOT NULL,
     message JSONB,
