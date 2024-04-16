@@ -67,10 +67,20 @@ public class PostgresChannelReceiver<T> : IChannelReceiver
 
             if (messages.Count == 0) return false;
 
+            var startTime = DateTime.UtcNow;
+
             foreach (var postgresMessage in messages)
             {
                 await _maxConcurrent.WaitAsync(cancellationToken).ConfigureAwait(false);
-                var timeoutToken = new CancellationTokenSource(Settings.MessageLockTimeout);
+
+                var remainingLockDuration = startTime - DateTime.UtcNow + Settings.MessageLockTimeout;
+                if (remainingLockDuration <= TimeSpan.Zero)
+                {
+                    // We've waited for longer than the lock duration so exit and resume immediate polling to get messages with renewed locks
+                    return true;
+                }
+
+                var timeoutToken = new CancellationTokenSource(remainingLockDuration);
                 var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutToken.Token);
 #pragma warning disable 4014
                 Task.Run(
