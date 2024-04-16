@@ -61,15 +61,14 @@ public class PostgresChannelReceiver<T> : IChannelReceiver
         try
         {
             var prefetchCount = Settings.PrefetchCount > 0 ? Settings.PrefetchCount : 1;
-            var messages = await _queueClient
+            var messages = _queueClient
                 .GetMessagesAsync(prefetchCount, (int)Settings.MessageLockTimeout.TotalSeconds, cancellationToken)
                 .ConfigureAwait(false);
 
-            if (messages.Count == 0) return false;
-
             var startTime = DateTime.UtcNow;
 
-            foreach (var postgresMessage in messages)
+            var messageCount = 0;
+            await foreach (var postgresMessage in messages)
             {
                 await _maxConcurrent.WaitAsync(cancellationToken).ConfigureAwait(false);
 
@@ -93,9 +92,11 @@ public class PostgresChannelReceiver<T> : IChannelReceiver
                         linkedToken.Dispose();
                     }).ConfigureAwait(false);
 #pragma warning restore 4014
+
+                messageCount++;
             }
 
-            return true;
+            return messageCount > 0;
         }
         catch (PostgresException e) when (e.SqlState == "42P01")
         {

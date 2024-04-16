@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
@@ -38,7 +40,7 @@ class Program
                     //Enable the postgres Transport
                     .UseTransport<PostgresTransport>();
             })
-            .UseKnightBus()
+            .UseKnightBus(c => c.ShutdownGracePeriod = TimeSpan.FromSeconds(2))
             .Build();
 
         //Start the KnightBus Host, it will now connect to the postgresql and listen
@@ -47,10 +49,22 @@ class Program
         var client =
             (PostgresBus)knightBusHost.Services.CreateScope().ServiceProvider.GetRequiredService<IPostgresBus>();
 
-        await client.SendAsync(new SamplePostgresMessage { MessageBody = Guid.NewGuid().ToString() }, default);
+        var messages = new List<SamplePostgresMessage>();
+        for (int i = 0; i < 10000; i++)
+        {
+            messages.Add(new SamplePostgresMessage { MessageBody = i.ToString() });
+        }
+        foreach (var chunk in messages.Chunk(1000))
+        {
+            await client.SendAsync(chunk, default);
+        }
+
+        Console.ReadKey();
+
         await client.SendAsync(new SamplePoisonPostgresMessage { MessageBody = $"error_{Guid.NewGuid()}" }, default );
 
         Console.ReadKey();
+
         await knightBusHost.StopAsync();
     }
 }

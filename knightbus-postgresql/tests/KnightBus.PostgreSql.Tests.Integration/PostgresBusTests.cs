@@ -45,7 +45,9 @@ public class PostgresBusTests
     [Test]
     public async Task GetMessages_Empty()
     {
-        var messages = await _postgresQueueClient.GetMessagesAsync(1, 100, default);
+        var messages = _postgresQueueClient.GetMessagesAsync(1, 100, default)
+            .ToBlockingEnumerable()
+            .ToList();
         messages.Count.Should().Be(0);
     }
 
@@ -76,7 +78,9 @@ public class PostgresBusTests
             new TestCommand { MessageBody = "message body 2" }
         ], default);
 
-        var messages = await _postgresQueueClient.GetMessagesAsync(2, 100, default);
+        var messages = _postgresQueueClient.GetMessagesAsync(2, 100, default)
+            .ToBlockingEnumerable()
+            .ToList();
 
         messages.Count.Should().Be(2);
         messages[0].Message.MessageBody.Should().Be("message body 1");
@@ -95,13 +99,17 @@ public class PostgresBusTests
         ], default);
 
         // fetch latest 2 messages
-        var messages1 = await _postgresQueueClient.GetMessagesAsync(2, 100, default);
+        var messages1 = _postgresQueueClient.GetMessagesAsync(2, 100, default)
+            .ToBlockingEnumerable()
+            .ToList();
         messages1.Count.Should().Be(2);
 
         await Task.Delay(3000);
 
         // fetch latest 2 messages again
-        var messages2 = await _postgresQueueClient.GetMessagesAsync(2, 100, default);
+        var messages2 = _postgresQueueClient.GetMessagesAsync(2, 100, default)
+            .ToBlockingEnumerable()
+            .ToList();
         messages2.Count.Should().Be(0);
     }
 
@@ -113,7 +121,9 @@ public class PostgresBusTests
             new TestCommand { MessageBody = "delete me" },
         ], default);
 
-        var message = await _postgresQueueClient.GetMessagesAsync(1, 10, default);
+        var message = _postgresQueueClient.GetMessagesAsync(1, 10, default)
+            .ToBlockingEnumerable()
+            .ToList();
 
         await _postgresQueueClient.CompleteAsync(message[0]);
 
@@ -135,11 +145,15 @@ WHERE message_id = {message[0].Id}")
             new TestCommand { MessageBody = "abandon me" },
         ], default);
 
-        var message = await _postgresQueueClient.GetMessagesAsync(1, 10, default);
+        var message = _postgresQueueClient.GetMessagesAsync(1, 10, default)
+            .ToBlockingEnumerable()
+            .ToList();
 
         await _postgresQueueClient.AbandonByErrorAsync(message[0], new Exception("some error message"));
 
-        var result = await _postgresQueueClient.GetMessagesAsync(1, 10, default);
+        var result = _postgresQueueClient.GetMessagesAsync(1, 10, default)
+            .ToBlockingEnumerable()
+            .ToList();
         result[0].ReadCount.Should().Be(2);
         result[0].Properties["error_message"].Should().Contain("some error message");
     }
@@ -152,7 +166,9 @@ WHERE message_id = {message[0].Id}")
             new TestCommand { MessageBody = "dead letter me" }
         ], default);
 
-        var message = await _postgresQueueClient.GetMessagesAsync(1, 10, default);
+        var message = _postgresQueueClient.GetMessagesAsync(1, 10, default)
+            .ToBlockingEnumerable()
+            .ToList();
         await _postgresQueueClient.DeadLetterMessageAsync(message[0]);
 
         var originalMessage = (long)
@@ -164,9 +180,10 @@ WHERE message_id = {message[0].Id}")
 
         originalMessage.Should().Be(0);
 
-        var deadLetters =
-            await _postgresManagementClient.PeekDeadLettersAsync(
-                PostgresQueueName.Create(AutoMessageMapper.GetQueueName<TestCommand>()), 10, default);
+        var deadLetters = _postgresManagementClient.PeekDeadLettersAsync(
+                PostgresQueueName.Create(AutoMessageMapper.GetQueueName<TestCommand>()), 10, default)
+            .ToBlockingEnumerable()
+            .ToList();
         deadLetters[0].Message["MessageBody"].Should().BeEquivalentTo(message[0].Message.MessageBody);
         deadLetters[0].Id.Should().Be(message[0].Id);
     }
@@ -179,12 +196,16 @@ WHERE message_id = {message[0].Id}")
             new TestCommand { MessageBody = "for future" }
         ], TimeSpan.FromSeconds(3), default);
 
-        var messages = await _postgresQueueClient.GetMessagesAsync(1, 10, default);
+        var messages = _postgresQueueClient.GetMessagesAsync(1, 10, default)
+            .ToBlockingEnumerable()
+            .ToList();
         messages.Count.Should().Be(0);
 
         await Task.Delay(3000);
 
-        var result = await _postgresQueueClient.GetMessagesAsync(1, 10, default);
+        var result = _postgresQueueClient.GetMessagesAsync(1, 10, default)
+            .ToBlockingEnumerable()
+            .ToList();;
         result[0].Message.MessageBody.Should().Be("for future");
     }
 
@@ -196,14 +217,20 @@ WHERE message_id = {message[0].Id}")
             new TestCommand { MessageBody = "dead letter" }
         ], default);
 
-        var message = await _postgresQueueClient.GetMessagesAsync(1, 10, default);
+        var message = _postgresQueueClient.GetMessagesAsync(1, 10, default)
+            .ToBlockingEnumerable()
+            .ToList();
         await _postgresQueueClient.DeadLetterMessageAsync(message[0]);
 
-        var firstResult = await _postgresQueueClient.PeekDeadLetterMessagesAsync(1, default);
+        var firstResult = _postgresQueueClient.PeekDeadLetterMessagesAsync(1, default)
+            .ToBlockingEnumerable()
+            .ToList();
         firstResult.Single().Id.Should().Be(message[0].Id);
         firstResult.Single().Message.Should().BeEquivalentTo(message[0].Message);
 
-        var secondResult = await _postgresQueueClient.PeekDeadLetterMessagesAsync(1, default);
+        var secondResult = _postgresQueueClient.PeekDeadLetterMessagesAsync(1, default)
+            .ToBlockingEnumerable()
+            .ToList();
         secondResult.Single().Id.Should().Be(message[0].Id);
         secondResult.Single().Message.Should().BeEquivalentTo(message[0].Message);
     }

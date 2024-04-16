@@ -44,56 +44,65 @@ public class PostgresQueueManager : IQueueManager
 
     public async Task<IReadOnlyList<QueueMessage>> Peek(string name, int count, CancellationToken ct)
     {
-        var messages = await _managementClient
+        var messages = _managementClient
             .PeekMessagesAsync(PostgresQueueName.Create(name), count, ct);
 
-        return messages.Select(m =>
+        var result = new List<QueueMessage>();
+        await foreach (var m in messages)
         {
             m.Properties.TryGetValue("error_message", out var error);
-            return new QueueMessage(
+            result.Add(new QueueMessage(
                 Encoding.UTF8.GetString(_messageSerializer.Serialize(m.Message)),
                 error ?? string.Empty,
                 null,
                 m.ReadCount,
                 m.Id.ToString(),
-                m.Properties);
-        }).ToList();
+                m.Properties));
+        }
+
+        return result;
     }
 
     public async Task<IReadOnlyList<QueueMessage>> PeekDeadLetter(string path, int count, CancellationToken ct)
     {
-        var deadLetters = await _managementClient
+        var deadLetters = _managementClient
             .PeekDeadLettersAsync(PostgresQueueName.Create(path), count, ct);
 
-        return deadLetters.Select(m =>
+        var result = new List<QueueMessage>();
+        await foreach (var m in deadLetters)
         {
             m.Properties.TryGetValue("error_message", out var error);
-            return new QueueMessage(
+            result.Add(new QueueMessage(
                 Encoding.UTF8.GetString(_messageSerializer.Serialize(m.Message)),
                 error ?? string.Empty,
                 null,
                 m.ReadCount,
                 m.Id.ToString(),
-                m.Properties);
-        }).ToList();
+                m.Properties));
+        }
+
+        return result;
     }
 
     public async Task<IReadOnlyList<QueueMessage>> ReadDeadLetter(string path, int count, CancellationToken ct)
     {
-        var deadLetters = await _managementClient
+        var deadLetters = _managementClient
             .ReadDeadLettersAsync(PostgresQueueName.Create(path), count, ct);
 
-        return deadLetters.Select(m =>
+        var result = new List<QueueMessage>();
+        await foreach (var m in deadLetters)
         {
             m.Properties.TryGetValue("error_message", out var error);
-            return new QueueMessage(
+            result.Add(new QueueMessage(
                 Encoding.UTF8.GetString(_messageSerializer.Serialize(m.Message)),
                 error ?? string.Empty,
                 null,
                 m.ReadCount,
                 m.Id.ToString(),
-                m.Properties);
-        }).ToList();
+                m.Properties));
+        }
+
+        return result;
     }
 
     public async Task<int> MoveDeadLetters(string path, int count, CancellationToken ct)

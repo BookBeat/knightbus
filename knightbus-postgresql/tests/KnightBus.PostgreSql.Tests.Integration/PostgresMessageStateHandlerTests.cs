@@ -35,14 +35,26 @@ public class PostgresMessageStateHandlerTests : MessageStateHandlerTests<Postgre
 
     protected override async Task<List<PostgresTestCommand>> GetMessages(int count)
     {
-        var messages = await _postgresQueueClient.GetMessagesAsync(count, 0, default);
-        return messages.Select(m => m.Message).ToList();
+        var messages = _postgresQueueClient.GetMessagesAsync(count, 0, default);
+        var result = new List<PostgresTestCommand>();
+        await foreach (var m in messages)
+        {
+            result.Add(m.Message);
+        }
+
+        return result;
     }
 
     protected override async Task<List<PostgresTestCommand>> GetDeadLetterMessages(int count)
     {
-        var messages = await _postgresQueueClient.PeekDeadLetterMessagesAsync(count, default);
-        return messages.Select(m => m.Message).ToList();
+        var messages = _postgresQueueClient.PeekDeadLetterMessagesAsync(count, default);
+        var result = new List<PostgresTestCommand>();
+        await foreach (var m in messages)
+        {
+            result.Add(m.Message);
+        }
+
+        return result;
     }
 
     protected override async Task SendMessage(string message)
@@ -55,8 +67,14 @@ public class PostgresMessageStateHandlerTests : MessageStateHandlerTests<Postgre
 
     protected override async Task<IMessageStateHandler<PostgresTestCommand>> GetMessageStateHandler()
     {
-        var m = await _postgresQueueClient.GetMessagesAsync(1, 0, default);
+        var messages = _postgresQueueClient.GetMessagesAsync(1, 5, default);
+        var result = new List<PostgresMessage<PostgresTestCommand>>();
+        await foreach (var m in messages)
+        {
+            result.Add(m);
+        }
+
         return new PostgresMessageStateHandler<PostgresTestCommand>(PostgresTestBase.TestNpgsqlDataSource,
-            m.First(), 5, new NewtonsoftSerializer(), null!);
+            result.First(), 5, new NewtonsoftSerializer(), null!);
     }
 }

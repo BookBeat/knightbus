@@ -100,7 +100,7 @@ WHERE queue_name = ($1);");
         return queueMeta;
     }
 
-    public async Task<List<PostgresMessage<DictionaryMessage>>> PeekMessagesAsync(PostgresQueueName queueName, int count, CancellationToken ct)
+    public async IAsyncEnumerable<PostgresMessage<DictionaryMessage>> PeekMessagesAsync(PostgresQueueName queueName, int count, CancellationToken ct)
     {
         await using var command = _npgsqlDataSource.CreateCommand(@$"
 SELECT message_id, enqueued_at, read_count, message, properties
@@ -112,11 +112,34 @@ LIMIT ($1);
         command.Parameters.Add(new NpgsqlParameter<int> { TypedValue = count });
 
         await using var reader = await command.ExecuteReaderAsync(ct);
-        var result = await reader.ReadMessageRows<DictionaryMessage>(_serializer, ct);
-        return result;
+        var propertiesOrdinal = reader.GetOrdinal("properties");
+        var messageIdOrdinal = reader.GetOrdinal("message_id");
+        var readCountOrdinal = reader.GetOrdinal("read_count");
+        var messageOrdinal = reader.GetOrdinal("message");
+
+        while (await reader.ReadAsync(ct))
+        {
+            var isPropertiesNull = reader.IsDBNull(propertiesOrdinal);
+
+            var postgresMessage = new PostgresMessage<DictionaryMessage>
+            {
+                Id = reader.GetInt64(messageIdOrdinal),
+                ReadCount = reader.GetInt32(readCountOrdinal),
+                Message = _serializer
+                    .Deserialize<DictionaryMessage>(reader.GetFieldValue<byte[]>(messageOrdinal)
+                        .AsMemory()),
+                Properties = isPropertiesNull
+                    ? new Dictionary<string, string>()
+                    : _serializer
+                        .Deserialize<Dictionary<string, string>>(
+                            reader.GetFieldValue<byte[]>(propertiesOrdinal)
+                                .AsMemory())
+            };
+            yield return postgresMessage;
+        }
     }
 
-    public async Task<List<PostgresMessage<DictionaryMessage>>> PeekDeadLettersAsync(PostgresQueueName queueName, int count, CancellationToken ct)
+    public async IAsyncEnumerable<PostgresMessage<DictionaryMessage>> PeekDeadLettersAsync(PostgresQueueName queueName, int count, CancellationToken ct)
     {
         await using var command = _npgsqlDataSource.CreateCommand(@$"
 SELECT message_id, enqueued_at, created_at, message, properties
@@ -127,10 +150,33 @@ LIMIT ($1);
 
         command.Parameters.Add(new NpgsqlParameter<int> { TypedValue = count });
         await using var reader = await command.ExecuteReaderAsync(ct);
-        return await reader.ReadDeadLetterRows<DictionaryMessage>(_serializer, ct);
+
+        var propertiesOrdinal = reader.GetOrdinal("properties");
+        var messageIdOrdinal = reader.GetOrdinal("message_id");
+        var messageOrdinal = reader.GetOrdinal("message");
+
+        while (await reader.ReadAsync(ct))
+        {
+            var isPropertiesNull = reader.IsDBNull(propertiesOrdinal);
+
+            var postgresMessage = new PostgresMessage<DictionaryMessage>
+            {
+                Id = reader.GetInt64(messageIdOrdinal),
+                Message = _serializer
+                    .Deserialize<DictionaryMessage>(reader.GetFieldValue<byte[]>(messageOrdinal)
+                        .AsMemory()),
+                Properties = isPropertiesNull
+                    ? new Dictionary<string, string>()
+                    : _serializer
+                        .Deserialize<Dictionary<string, string>>(
+                            reader.GetFieldValue<byte[]>(propertiesOrdinal)
+                                .AsMemory())
+            };
+            yield return postgresMessage;
+        }
     }
 
-    public async Task<List<PostgresMessage<DictionaryMessage>>> ReadDeadLettersAsync(PostgresQueueName queueName, int count, CancellationToken ct)
+    public async IAsyncEnumerable<PostgresMessage<DictionaryMessage>> ReadDeadLettersAsync(PostgresQueueName queueName, int count, CancellationToken ct)
     {
         await using var command = _npgsqlDataSource.CreateCommand(@$"
 WITH deleted_rows AS (
@@ -150,7 +196,30 @@ FROM deleted_rows;
 
         command.Parameters.Add(new NpgsqlParameter<int> { TypedValue = count });
         await using var reader = await command.ExecuteReaderAsync(ct);
-        return await reader.ReadDeadLetterRows<DictionaryMessage>(_serializer, default);
+
+        var propertiesOrdinal = reader.GetOrdinal("properties");
+        var messageIdOrdinal = reader.GetOrdinal("message_id");
+        var messageOrdinal = reader.GetOrdinal("message");
+
+        while (await reader.ReadAsync(ct))
+        {
+            var isPropertiesNull = reader.IsDBNull(propertiesOrdinal);
+
+            var postgresMessage = new PostgresMessage<DictionaryMessage>
+            {
+                Id = reader.GetInt64(messageIdOrdinal),
+                Message = _serializer
+                    .Deserialize<DictionaryMessage>(reader.GetFieldValue<byte[]>(messageOrdinal)
+                        .AsMemory()),
+                Properties = isPropertiesNull
+                    ? new Dictionary<string, string>()
+                    : _serializer
+                        .Deserialize<Dictionary<string, string>>(
+                            reader.GetFieldValue<byte[]>(propertiesOrdinal)
+                                .AsMemory())
+            };
+            yield return postgresMessage;
+        }
     }
 
     public async Task<long> RequeueDeadLettersAsync(PostgresQueueName queueName, int count, CancellationToken ct)

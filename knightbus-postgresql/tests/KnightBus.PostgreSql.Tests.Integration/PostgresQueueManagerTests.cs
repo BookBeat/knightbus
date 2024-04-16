@@ -47,9 +47,15 @@ public class PostgresQueueManagerTests : QueueManagerTests<PostgresTestCommand>
 
     public override async Task<IMessageStateHandler<PostgresTestCommand>> GetMessageStateHandler(string queueName)
     {
-        var message = await _postgresQueueClient.GetMessagesAsync(1, 10, default);
+        var messages = _postgresQueueClient.GetMessagesAsync(1, 10, default);
+        var result = new List<PostgresMessage<PostgresTestCommand>>();
+        await foreach (var m in messages)
+        {
+            result.Add(m);
+        }
+
         return new PostgresMessageStateHandler<PostgresTestCommand>(
-            PostgresTestBase.TestNpgsqlDataSource, message.First(), 5, new NewtonsoftSerializer(), null!);
+            PostgresTestBase.TestNpgsqlDataSource, result.First(), 5, new NewtonsoftSerializer(), null!);
     }
 
     private async Task CleanUpTestData()
