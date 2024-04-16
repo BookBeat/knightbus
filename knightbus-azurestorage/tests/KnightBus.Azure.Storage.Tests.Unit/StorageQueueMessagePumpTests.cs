@@ -38,7 +38,7 @@ public class StorageQueueMessagePumpTests
 
         _clientMock.Setup(x => x.GetMessagesAsync<LongRunningTestCommand>(10, It.IsAny<TimeSpan?>()))
             .ReturnsAsync(messages);
-        var pump = new StorageQueueMessagePump(_clientMock.Object, settings, Mock.Of<ILogger>());
+        var pump = new StorageQueueMessagePump(settings, Mock.Of<ILogger>(), _clientMock.Object);
         var invocations = 0;
 
         Task Function(StorageQueueMessage a, CancellationToken b) => Task.FromResult(invocations++);
@@ -64,7 +64,7 @@ public class StorageQueueMessagePumpTests
 
         _clientMock.Setup(x => x.GetMessagesAsync<LongRunningTestCommand>(1, It.IsAny<TimeSpan?>()))
             .ReturnsAsync(messages);
-        var pump = new StorageQueueMessagePump(_clientMock.Object, settings, Mock.Of<ILogger>());
+        var pump = new StorageQueueMessagePump(settings, Mock.Of<ILogger>(), _clientMock.Object);
         var invocations = 0;
 
         async Task Function(StorageQueueMessage a, CancellationToken b)
@@ -100,7 +100,7 @@ public class StorageQueueMessagePumpTests
 
         _clientMock.Setup(x => x.GetMessagesAsync<LongRunningTestCommand>(messageCount, It.IsAny<TimeSpan?>()))
             .ReturnsAsync(messages);
-        var pump = new StorageQueueMessagePump(_clientMock.Object, settings, Mock.Of<ILogger>());
+        var pump = new StorageQueueMessagePump(settings, Mock.Of<ILogger>(), _clientMock.Object);
         Func<StorageQueueMessage, CancellationToken, Task> function = (a, b) =>
         {
             return Task.FromException<Exception>(new Exception());
@@ -109,7 +109,7 @@ public class StorageQueueMessagePumpTests
         await pump.PumpAsync<LongRunningTestCommand>(function, CancellationToken.None);
         await Task.Delay(100);
         //assert
-        pump._maxConcurrent.CurrentCount.Should().Be(1);
+        pump.AvailableThreads.Should().Be(1);
 
     }
     [Test]
@@ -128,7 +128,7 @@ public class StorageQueueMessagePumpTests
 
 
         _clientMock.Setup(x => x.GetMessagesAsync<LongRunningTestCommand>(1, It.IsAny<TimeSpan?>())).ReturnsAsync(messages);
-        var pump = new StorageQueueMessagePump(_clientMock.Object, settings, Mock.Of<ILogger>());
+        var pump = new StorageQueueMessagePump(settings, Mock.Of<ILogger>(), _clientMock.Object);
         var invokations = 0;
         Func<StorageQueueMessage, CancellationToken, Task> function = (a, b) => Task.FromResult(invokations++);
         //act
@@ -156,7 +156,7 @@ public class StorageQueueMessagePumpTests
 
         _clientMock.Setup(x => x.GetMessagesAsync<LongRunningTestCommand>(20, It.IsAny<TimeSpan?>()))
             .ReturnsAsync(messages);
-        var pump = new StorageQueueMessagePump(_clientMock.Object, settings, Mock.Of<ILogger>());
+        var pump = new StorageQueueMessagePump(settings, Mock.Of<ILogger>(), _clientMock.Object);
         var invocations = 0;
         Task Function(StorageQueueMessage a, CancellationToken b)
         {
@@ -191,7 +191,7 @@ public class StorageQueueMessagePumpTests
 
         _clientMock.Setup(x => x.GetMessagesAsync<LongRunningTestCommand>(messageCount, It.IsAny<TimeSpan?>()))
             .ReturnsAsync(messages);
-        var pump = new StorageQueueMessagePump(_clientMock.Object, settings, Mock.Of<ILogger>());
+        var pump = new StorageQueueMessagePump(settings, Mock.Of<ILogger>(), _clientMock.Object);
         Task Function(StorageQueueMessage a, CancellationToken b)
         {
             return Task.Delay(1000);
@@ -202,7 +202,7 @@ public class StorageQueueMessagePumpTests
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
         await Task.Delay(100);
         //assert
-        pump._maxConcurrent.CurrentCount.Should().Be(0);
+        pump.AvailableThreads.Should().Be(0);
     }
 
     [Test]
@@ -226,7 +226,7 @@ public class StorageQueueMessagePumpTests
         _clientMock.Setup(x => x.GetMessagesAsync<LongRunningTestCommand>(messageCount, It.IsAny<TimeSpan?>()))
             .ReturnsAsync(messages);
         var countable = new Mock<ICountable>();
-        var pump = new StorageQueueMessagePump(_clientMock.Object, settings, Mock.Of<ILogger>());
+        var pump = new StorageQueueMessagePump(settings, Mock.Of<ILogger>(), _clientMock.Object);
         async Task Function(StorageQueueMessage a, CancellationToken b)
         {
             await Task.Delay(100, b);
@@ -238,7 +238,7 @@ public class StorageQueueMessagePumpTests
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
         await Task.Delay(150);
         //assert
-        pump._maxConcurrent.CurrentCount.Should().Be(1);
+        pump.AvailableThreads.Should().Be(1);
         countable.Verify(x => x.Count(), Times.Never);
     }
 
@@ -254,7 +254,7 @@ public class StorageQueueMessagePumpTests
 
         _clientMock.Setup(x => x.GetMessagesAsync<LongRunningTestCommand>(It.IsAny<int>(), It.IsAny<TimeSpan?>()))
             .ThrowsAsync(new RequestFailedException(404, "not found", "QueueNotFound", null));
-        var pump = new StorageQueueMessagePump(_clientMock.Object, settings, Mock.Of<ILogger>());
+        var pump = new StorageQueueMessagePump(settings, Mock.Of<ILogger>(), _clientMock.Object);
 
         Task Function(StorageQueueMessage a, CancellationToken b) => Task.CompletedTask;
 
@@ -277,7 +277,7 @@ public class StorageQueueMessagePumpTests
 
         _clientMock.Setup(x => x.GetMessagesAsync<LongRunningTestCommand>(It.IsAny<int>(), It.IsAny<TimeSpan?>()))
             .ReturnsAsync(new List<StorageQueueMessage>());
-        var pump = new StorageQueueMessagePump(_clientMock.Object, settings, Mock.Of<ILogger>());
+        var pump = new StorageQueueMessagePump(settings, Mock.Of<ILogger>(), _clientMock.Object);
 
         Task Function(StorageQueueMessage a, CancellationToken b) => Task.CompletedTask;
 

@@ -27,7 +27,7 @@ public class StorageQueueMessagePumpTests
             $"{GetType().Name}-{DateTime.UtcNow.Ticks}".ToLower());
         var settings = new TestMessageSettings();
         var log = new Mock<ILogger>();
-        _pump = new StorageQueueMessagePump(_storageQueueClient, settings, log.Object);
+        _pump = new StorageQueueMessagePump(settings, log.Object, _storageQueueClient);
     }
 
     [Test]
