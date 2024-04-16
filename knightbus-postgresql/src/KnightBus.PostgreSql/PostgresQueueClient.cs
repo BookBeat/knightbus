@@ -1,4 +1,5 @@
-﻿using KnightBus.Core;
+﻿using System.Runtime.CompilerServices;
+using KnightBus.Core;
 using KnightBus.Messages;
 using KnightBus.PostgreSql.Messages;
 using Npgsql;
@@ -20,7 +21,7 @@ public class PostgresQueueClient<T> where T : class, IPostgresCommand
         _queueName = PostgresQueueName.Create(AutoMessageMapper.GetQueueName<T>());
     }
 
-    public async IAsyncEnumerable<PostgresMessage<T>> GetMessagesAsync(int count, int visibilityTimeout, CancellationToken ct)
+    public async IAsyncEnumerable<PostgresMessage<T>> GetMessagesAsync(int count, int visibilityTimeout, [EnumeratorCancellation] CancellationToken ct)
     {
         await using var connection = await _npgsqlDataSource.OpenConnectionAsync(ct);
         await using var command = new NpgsqlCommand(@$"

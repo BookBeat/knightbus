@@ -1,4 +1,5 @@
-﻿using KnightBus.Messages;
+﻿using System.Runtime.CompilerServices;
+using KnightBus.Messages;
 using Npgsql;
 using static KnightBus.PostgreSql.PostgresConstants;
 
@@ -100,7 +101,7 @@ WHERE queue_name = ($1);");
         return queueMeta;
     }
 
-    public async IAsyncEnumerable<PostgresMessage<DictionaryMessage>> PeekMessagesAsync(PostgresQueueName queueName, int count, CancellationToken ct)
+    public async IAsyncEnumerable<PostgresMessage<DictionaryMessage>> PeekMessagesAsync(PostgresQueueName queueName, int count, [EnumeratorCancellation] CancellationToken ct)
     {
         await using var command = _npgsqlDataSource.CreateCommand(@$"
 SELECT message_id, enqueued_at, read_count, message, properties
@@ -139,7 +140,7 @@ LIMIT ($1);
         }
     }
 
-    public async IAsyncEnumerable<PostgresMessage<DictionaryMessage>> PeekDeadLettersAsync(PostgresQueueName queueName, int count, CancellationToken ct)
+    public async IAsyncEnumerable<PostgresMessage<DictionaryMessage>> PeekDeadLettersAsync(PostgresQueueName queueName, int count, [EnumeratorCancellation] CancellationToken ct)
     {
         await using var command = _npgsqlDataSource.CreateCommand(@$"
 SELECT message_id, enqueued_at, created_at, message, properties
@@ -176,7 +177,7 @@ LIMIT ($1);
         }
     }
 
-    public async IAsyncEnumerable<PostgresMessage<DictionaryMessage>> ReadDeadLettersAsync(PostgresQueueName queueName, int count, CancellationToken ct)
+    public async IAsyncEnumerable<PostgresMessage<DictionaryMessage>> ReadDeadLettersAsync(PostgresQueueName queueName, int count, [EnumeratorCancellation] CancellationToken ct)
     {
         await using var command = _npgsqlDataSource.CreateCommand(@$"
 WITH deleted_rows AS (
