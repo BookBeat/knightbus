@@ -36,7 +36,7 @@ public class StorageQueueMessagePumpTests
             messages.Add(new StorageQueueMessage(new LongRunningTestCommand { Message = i.ToString() }));
         }
 
-        _clientMock.Setup(x => x.GetMessagesAsync<LongRunningTestCommand>(10, It.IsAny<TimeSpan?>()))
+        _clientMock.Setup(x => x.GetMessagesAsync<LongRunningTestCommand>(11, It.IsAny<TimeSpan?>()))
             .ReturnsAsync(messages);
         var pump = new StorageQueueMessagePump(_clientMock.Object, settings, Mock.Of<ILogger>());
         var invocations = 0;
@@ -59,7 +59,7 @@ public class StorageQueueMessagePumpTests
             PrefetchCount = 0,
             MaxConcurrentCalls = 1
         };
-        var messages = new List<StorageQueueMessage> { new StorageQueueMessage(new LongRunningTestCommand { Message = 1.ToString() }) };
+        var messages = new List<StorageQueueMessage> { new(new LongRunningTestCommand { Message = 1.ToString() }) };
 
 
         _clientMock.Setup(x => x.GetMessagesAsync<LongRunningTestCommand>(1, It.IsAny<TimeSpan?>()))
@@ -75,10 +75,11 @@ public class StorageQueueMessagePumpTests
 
         //act
         await pump.PumpAsync<LongRunningTestCommand>(Function, CancellationToken.None);
-        await pump.PumpAsync<LongRunningTestCommand>(Function, CancellationToken.None);
+        var secondTask = pump.PumpAsync<LongRunningTestCommand>(Function, CancellationToken.None);
         await Task.Delay(100);
         //assert
         invocations.Should().Be(1, "Max concurrent = 1, and Prefetch = 0");
+        await secondTask;
     }
 
     [Test]
@@ -109,7 +110,7 @@ public class StorageQueueMessagePumpTests
         await pump.PumpAsync<LongRunningTestCommand>(function, CancellationToken.None);
         await Task.Delay(100);
         //assert
-        pump._maxConcurrent.CurrentCount.Should().Be(1);
+        pump.AvailableThreads.Should().Be(1);
 
     }
     [Test]
@@ -154,7 +155,7 @@ public class StorageQueueMessagePumpTests
             messages.Add(new StorageQueueMessage(new LongRunningTestCommand { Message = i.ToString() }));
         }
 
-        _clientMock.Setup(x => x.GetMessagesAsync<LongRunningTestCommand>(20, It.IsAny<TimeSpan?>()))
+        _clientMock.Setup(x => x.GetMessagesAsync<LongRunningTestCommand>(30, It.IsAny<TimeSpan?>()))
             .ReturnsAsync(messages);
         var pump = new StorageQueueMessagePump(_clientMock.Object, settings, Mock.Of<ILogger>());
         var invocations = 0;
@@ -179,7 +180,7 @@ public class StorageQueueMessagePumpTests
         var settings = new TestMessageSettings
         {
             DeadLetterDeliveryLimit = 1,
-            PrefetchCount = 1,
+            PrefetchCount = 0,
             MaxConcurrentCalls = 1
         };
         var messageCount = 1;
@@ -202,7 +203,7 @@ public class StorageQueueMessagePumpTests
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
         await Task.Delay(100);
         //assert
-        pump._maxConcurrent.CurrentCount.Should().Be(0);
+        pump.AvailableThreads.Should().Be(0);
     }
 
     [Test]
@@ -238,7 +239,7 @@ public class StorageQueueMessagePumpTests
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
         await Task.Delay(150);
         //assert
-        pump._maxConcurrent.CurrentCount.Should().Be(1);
+        pump.AvailableThreads.Should().Be(1);
         countable.Verify(x => x.Count(), Times.Never);
     }
 

@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -7,6 +8,7 @@ namespace KnightBus.Core;
 /// <summary>
 /// Guarantees FIFO ordering of waiting tasks
 /// </summary>
+[Obsolete("Use a regular SemaphoreSlim instead")]
 public class SemaphoreQueue
 {
     private readonly SemaphoreSlim _semaphore;
