@@ -7,12 +7,12 @@ namespace KnightBus.Core.DefaultMiddlewares;
 
 public class ThrottlingMiddleware : IMessageProcessorMiddleware
 {
-    private readonly SemaphoreQueue _semaphoreQueue;
+    private readonly SemaphoreSlim _semaphoreQueue;
     public int CurrentCount => _semaphoreQueue.CurrentCount;
 
     public ThrottlingMiddleware(int maxConcurrent)
     {
-        _semaphoreQueue = new SemaphoreQueue(maxConcurrent);
+        _semaphoreQueue = new SemaphoreSlim(maxConcurrent);
     }
     public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, IPipelineInformation pipelineInformation, IMessageProcessor next, CancellationToken cancellationToken) where T : class, IMessage
     {
