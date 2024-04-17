@@ -75,10 +75,11 @@ public class StorageQueueMessagePumpTests
 
         //act
         await pump.PumpAsync<LongRunningTestCommand>(Function, CancellationToken.None);
-        await pump.PumpAsync<LongRunningTestCommand>(Function, CancellationToken.None);
+        var secondTask = pump.PumpAsync<LongRunningTestCommand>(Function, CancellationToken.None);
         await Task.Delay(100);
         //assert
         invocations.Should().Be(1, "Max concurrent = 1, and Prefetch = 0");
+        await secondTask;
     }
 
     [Test]
