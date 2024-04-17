@@ -68,7 +68,8 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
             }
 
             //Fetch enough messages to fill all AvailableThreads and add Prefetch on top of that as a buffer
-            var prefetchCount = _settings.PrefetchCount + AvailableThreads;
+            var fetchCount = _settings.PrefetchCount + AvailableThreads;
+            fetchCount = Math.Min(fetchCount, MaxFetch);
 
             TimeSpan visibilityTimeout;
             if (_settings is IExtendMessageLockTimeout extendMessageLockTimeout)
@@ -81,7 +82,7 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
             }
 
             var stopWatch = Stopwatch.StartNew();
-            var messages = GetMessagesAsync<TMessage>(prefetchCount, visibilityTimeout);
+            var messages = GetMessagesAsync<TMessage>(fetchCount, visibilityTimeout);
 
 
             await foreach (var message in messages.ConfigureAwait(false))
@@ -100,13 +101,19 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
                 await _maxConcurrent.WaitAsync(linkedToken.Token).ConfigureAwait(false);
 
 #pragma warning disable 4014 //No need to await the result, let's keep the pump going
-                Task.Run(async () => await action.Invoke(message, linkedToken.Token).ConfigureAwait(false), timeoutToken.Token)
-                    .ContinueWith(_ =>
+                Task.Run(async () =>
                     {
-                        _maxConcurrent.Release();
-                        timeoutToken.Dispose();
-                        linkedToken.Dispose();
-                    }, CancellationToken.None).ConfigureAwait(false);
+                        try
+                        {
+                            await action.Invoke(message, linkedToken.Token).ConfigureAwait(false);
+                        }
+                        finally
+                        {
+                            _maxConcurrent.Release();
+                            timeoutToken.Dispose();
+                            linkedToken.Dispose();
+                        }
+                    }, timeoutToken.Token).ConfigureAwait(false);
 #pragma warning restore 4014
             }
             _log.LogDebug("Prefetched {MessageCount} messages from {QueueName} in {Name}", messageCount, _queueName,
@@ -155,6 +162,12 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
     /// How long should the pump wait if no messages were found before trying again
     /// </summary>
     protected abstract TimeSpan PollingDelay { get; }
+
+    /// <summary>
+    /// The maximum number of messages to get at one time from the transport channel.
+    /// If there are no limitations on the transport set <see cref="int.MaxValue"/>
+    /// </summary>
+    protected abstract int MaxFetch { get; }
 
     public virtual int AvailableThreads => _maxConcurrent.CurrentCount;
 

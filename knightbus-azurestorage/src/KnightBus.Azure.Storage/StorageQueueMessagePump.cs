@@ -44,4 +44,5 @@ internal class StorageQueueMessagePump : GenericMessagePump<StorageQueueMessage,
     }
 
     protected override TimeSpan PollingDelay => TimeSpan.FromSeconds(5);
+    protected override int MaxFetch => 32;
 }
