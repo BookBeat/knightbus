@@ -15,8 +15,8 @@ namespace KnightBus.Core;
 /// <typeparam name="TMessageInterface">The interface required by the KnightBus transport implementation that implements <see cref="IMessage"/></typeparam>
 public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterface> where TMessageInterface : IMessage
 {
-    private readonly IProcessingSettings _settings;
-    private readonly ILogger _log;
+    protected readonly IProcessingSettings Settings;
+    protected readonly ILogger Log;
     private readonly SemaphoreSlim _maxConcurrent;
     private Task _runningTask;
     private CancellationTokenSource _pumpDelayCancellationTokenSource = new();
@@ -24,9 +24,9 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
 
     protected GenericMessagePump(IProcessingSettings settings, ILogger log)
     {
-        _settings = settings;
-        _log = log;
-        _maxConcurrent = new SemaphoreSlim(_settings.MaxConcurrentCalls);
+        Settings = settings;
+        Log = log;
+        _maxConcurrent = new SemaphoreSlim(Settings.MaxConcurrentCalls);
     }
 
     /// <summary>
@@ -68,17 +68,17 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
             }
 
             //Fetch enough messages to fill all AvailableThreads and add Prefetch on top of that as a buffer
-            var fetchCount = _settings.PrefetchCount + AvailableThreads;
+            var fetchCount = Settings.PrefetchCount + AvailableThreads;
             fetchCount = Math.Min(fetchCount, MaxFetch);
 
             TimeSpan visibilityTimeout;
-            if (_settings is IExtendMessageLockTimeout extendMessageLockTimeout)
+            if (Settings is IExtendMessageLockTimeout extendMessageLockTimeout)
             {
                 visibilityTimeout = extendMessageLockTimeout.ExtensionDuration;
             }
             else
             {
-                visibilityTimeout = _settings.MessageLockTimeout;
+                visibilityTimeout = Settings.MessageLockTimeout;
             }
 
             var stopWatch = Stopwatch.StartNew();
@@ -88,7 +88,7 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
             await foreach (var message in messages.ConfigureAwait(false))
             {
                 if (message == null) continue;
-                var remainingLockDuration = _settings.MessageLockTimeout - stopWatch.Elapsed;
+                var remainingLockDuration = Settings.MessageLockTimeout - stopWatch.Elapsed;
                 if (remainingLockDuration <= TimeSpan.Zero)
                 {
                     // We've waited for longer than the lock duration so exit and resume immediate polling to get messages with renewed locks
@@ -116,19 +116,19 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
                     }, timeoutToken.Token).ConfigureAwait(false);
 #pragma warning restore 4014
             }
-            _log.LogDebug("Prefetched {MessageCount} messages from {QueueName} in {Name}", messageCount, _queueName,
+            Log.LogDebug("Prefetched {MessageCount} messages from {QueueName} in {Name}", messageCount, _queueName,
                 nameof(GenericMessagePump<TInternalRepresentation, TMessageInterface>));
         }
         catch (Exception e)
         {
             if (ShouldCreateChannel(e))
             {
-                _log.LogInformation("{MessageType} not found. Creating.", typeof(TMessage).Name);
+                Log.LogInformation("{MessageType} not found. Creating.", typeof(TMessage).Name);
                 await CreateChannel(typeof(TMessage));
                 return false;
             }
 
-            _log.LogError(e, "GenericMessagePump error in {MessageType}", typeof(TMessage));
+            Log.LogError(e, "GenericMessagePump error in {MessageType}", typeof(TMessage));
         }
 
         return messageCount > 0;
