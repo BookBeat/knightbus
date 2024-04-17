@@ -26,7 +26,7 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
     {
         Settings = settings;
         Log = log;
-        _maxConcurrent = new SemaphoreSlim(Settings.MaxConcurrentCalls);
+        _maxConcurrent = new SemaphoreSlim(Settings.MaxConcurrentCalls, Settings.MaxConcurrentCalls);
     }
 
     /// <summary>
@@ -56,16 +56,9 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
         var messageCount = 0;
         try
         {
-
-            try
-            {
-                //Do not fetch and lock messages if we won't be able to process them
-                await _maxConcurrent.WaitAsync(cancellationToken).ConfigureAwait(false);
-            }
-            finally
-            {
-                _maxConcurrent.Release();
-            }
+            //Do not fetch and lock messages if we won't be able to process them
+            await _maxConcurrent.WaitAsync(cancellationToken).ConfigureAwait(false);
+            _maxConcurrent.Release();
 
             //Fetch enough messages to fill all AvailableThreads and add Prefetch on top of that as a buffer
             var fetchCount = Settings.PrefetchCount + AvailableThreads;
@@ -97,25 +90,35 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
 
                 var timeoutToken = new CancellationTokenSource(remainingLockDuration);
                 var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutToken.Token);
-                messageCount++;
-                await _maxConcurrent.WaitAsync(linkedToken.Token).ConfigureAwait(false);
+                try
+                {
+                    await _maxConcurrent.WaitAsync(linkedToken.Token).ConfigureAwait(false);
+                }
+                catch
+                {
+                    timeoutToken.Dispose();
+                    linkedToken.Dispose();
+                    return true;
+                }
 
+                messageCount++;
 #pragma warning disable 4014 //No need to await the result, let's keep the pump going
                 Task.Run(async () =>
+                {
+                    try
                     {
-                        try
-                        {
-                            await action.Invoke(message, linkedToken.Token).ConfigureAwait(false);
-                        }
-                        finally
-                        {
-                            _maxConcurrent.Release();
-                            timeoutToken.Dispose();
-                            linkedToken.Dispose();
-                        }
-                    }, timeoutToken.Token).ConfigureAwait(false);
+                        await action.Invoke(message, linkedToken.Token).ConfigureAwait(false);
+                    }
+                    finally
+                    {
+                        _maxConcurrent.Release();
+                        timeoutToken.Dispose();
+                        linkedToken.Dispose();
+                    }
+                }, timeoutToken.Token).ConfigureAwait(false);
 #pragma warning restore 4014
             }
+
             Log.LogDebug("Prefetched {MessageCount} messages from {QueueName} in {Name}", messageCount, _queueName,
                 nameof(GenericMessagePump<TInternalRepresentation, TMessageInterface>));
         }
@@ -148,6 +151,7 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
     /// </summary>
     /// <param name="messageType">Type of message</param>
     protected abstract Task CreateChannel(Type messageType);
+
     /// <summary>
     /// Determines if the exception indicates that a new channel should be created
     /// </summary>

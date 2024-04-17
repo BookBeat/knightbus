@@ -34,7 +34,7 @@ public class NatsQueueChannelReceiver<T> : IChannelReceiver
         _subscription = subscription;
         _log = hostConfiguration.Log;
         _factory = new ConnectionFactory();
-        _maxConcurrent = new SemaphoreSlim(Settings.MaxConcurrentCalls);
+        _maxConcurrent = new SemaphoreSlim(Settings.MaxConcurrentCalls, Settings.MaxConcurrentCalls);
     }
     public Task StartAsync(CancellationToken cancellationToken)
     {
@@ -77,28 +77,35 @@ public class NatsQueueChannelReceiver<T> : IChannelReceiver
     {
         while (!_cancellationToken.IsCancellationRequested)
         {
-            var messageExpiration = new CancellationTokenSource(Settings.MessageLockTimeout);
-            var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(messageExpiration.Token, _cancellationToken);
-            await _maxConcurrent.WaitAsync(linkedToken.Token);
+
+            await _maxConcurrent.WaitAsync(_cancellationToken);
             try
             {
                 var msg = subscription.NextMessage();
+                var messageExpiration = new CancellationTokenSource(Settings.MessageLockTimeout);
+                var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(messageExpiration.Token, _cancellationToken);
 
 #pragma warning disable CS4014
-                Task.Run(
-                    () => ProcessMessage(msg, linkedToken.Token).ContinueWith(t =>
+                Task.Run(async () =>
                     {
-                        _maxConcurrent.Release();
-                        messageExpiration.Dispose();
-                        linkedToken.Dispose();
+                        try
+                        {
+                            await ProcessMessage(msg, linkedToken.Token).ConfigureAwait(false);
+                        }
+                        finally
+                        {
+                            _maxConcurrent.Release();
+                            messageExpiration.Dispose();
+                            linkedToken.Dispose();
+                        }
 
-                    }, CancellationToken.None).ConfigureAwait(false), linkedToken.Token);
+                    }, messageExpiration.Token);
+#pragma warning restore CS4014
             }
             catch (Exception e)
             {
                 _log.LogError(e, "Error to read message from Nats");
             }
-#pragma warning restore CS4014
         }
     }
 
