@@ -121,7 +121,7 @@ FROM DeadLetter;
         await command.ExecuteNonQueryAsync();
     }
 
-    public async IAsyncEnumerable<PostgresMessage<T>> PeekDeadLetterMessagesAsync(int count, CancellationToken ct)
+    public async IAsyncEnumerable<PostgresMessage<T>> PeekDeadLetterMessagesAsync(int count, [EnumeratorCancellation] CancellationToken ct)
     {
         await using var command = _npgsqlDataSource.CreateCommand(@$"
 SELECT message_id, enqueued_at, created_at, message, properties
