@@ -34,7 +34,7 @@ class Program
                     .UsePostgres(configuration =>
                     {
                         configuration.ConnectionString = connectionString;
-                        configuration.PollingSleepInterval = TimeSpan.FromMilliseconds(250);
+                        configuration.PollingDelay = TimeSpan.FromMilliseconds(250);
                     })
                     .RegisterProcessors(typeof(SamplePostgresMessage).Assembly)
                     //Enable the postgres Transport
@@ -108,7 +108,7 @@ class PostgresCommandProcessor :
 
 class PostgresProcessingSetting : IProcessingSettings
 {
-    public int MaxConcurrentCalls => 20;
+    public int MaxConcurrentCalls => 10;
     public int PrefetchCount => 50;
     public TimeSpan MessageLockTimeout => TimeSpan.FromMinutes(5);
     public int DeadLetterDeliveryLimit => 2;

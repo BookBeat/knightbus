@@ -5,7 +5,7 @@ namespace KnightBus.PostgreSql;
 
 public interface IPostgresConfiguration : ITransportConfiguration
 {
-    TimeSpan PollingSleepInterval { get; set; }
+    TimeSpan PollingDelay { get; set; }
 }
 
 public class PostgresConfiguration : IPostgresConfiguration
@@ -20,5 +20,5 @@ public class PostgresConfiguration : IPostgresConfiguration
 
     public string ConnectionString { get; set; } = null!;
     public IMessageSerializer MessageSerializer { get; set; } = new MicrosoftJsonSerializer();
-    public TimeSpan PollingSleepInterval { get; set; } = TimeSpan.FromSeconds(5);
+    public TimeSpan PollingDelay { get; set; } = TimeSpan.FromSeconds(5);
 }

@@ -1,7 +1,6 @@
 ﻿using KnightBus.Core;
 using KnightBus.Messages;
 using KnightBus.PostgreSql.Messages;
-using Microsoft.Extensions.Logging;
 using Npgsql;
 
 namespace KnightBus.PostgreSql;
@@ -14,10 +13,7 @@ public class PostgresChannelReceiver<T> : IChannelReceiver
     private readonly IMessageProcessor _processor;
     private readonly IHostConfiguration _hostConfiguration;
     private readonly IMessageSerializer _serializer;
-    private readonly SemaphoreSlim _maxConcurrent;
-    private CancellationTokenSource _pumpDelayCancellationTokenSource = new();
-    private readonly TimeSpan _pollingSleepInterval;
-    private Task _messagePumpTask;
+    private readonly IPostgresConfiguration _postgresConfiguration;
 
     public PostgresChannelReceiver(
         NpgsqlDataSource npgsqlDataSource,
@@ -32,95 +28,14 @@ public class PostgresChannelReceiver<T> : IChannelReceiver
         Settings = settings;
         _hostConfiguration = hostConfiguration;
         _serializer = serializer;
-        _maxConcurrent = new SemaphoreSlim(settings.MaxConcurrentCalls);
-        _pollingSleepInterval = postgresConfiguration.PollingSleepInterval;
+        _postgresConfiguration = postgresConfiguration;
     }
 
-    public Task StartAsync(CancellationToken cancellationToken)
+    public async Task StartAsync(CancellationToken cancellationToken)
     {
         _queueClient = new PostgresQueueClient<T>(_npgsqlDataSource, _serializer);
-
-        // TODO: Use NOTIFY + LISTEN to cancel delay token?
-        _messagePumpTask = Task.Factory.StartNew(async () =>
-        {
-            while (!cancellationToken.IsCancellationRequested)
-            {
-                if (!await PumpAsync(cancellationToken).ConfigureAwait(false))
-                    await Delay(_pumpDelayCancellationTokenSource.Token).ConfigureAwait(false);
-            }
-
-            _hostConfiguration.Log.LogInformation("Postgres receiver cancellation requested. Disposing npgsql data source");
-            await _npgsqlDataSource.DisposeAsync();
-        });
-
-        return Task.CompletedTask;
-    }
-
-    private async Task<bool> PumpAsync(CancellationToken cancellationToken)
-    {
-        try
-        {
-            var prefetchCount = Settings.PrefetchCount > 0 ? Settings.PrefetchCount : 1;
-            var messages = _queueClient
-                .GetMessagesAsync(prefetchCount, (int)Settings.MessageLockTimeout.TotalSeconds, cancellationToken)
-                .ConfigureAwait(false);
-
-            var startTime = DateTime.UtcNow;
-
-            var messageCount = 0;
-            await foreach (var postgresMessage in messages)
-            {
-                await _maxConcurrent.WaitAsync(cancellationToken).ConfigureAwait(false);
-
-                var remainingLockDuration = startTime - DateTime.UtcNow + Settings.MessageLockTimeout;
-                if (remainingLockDuration <= TimeSpan.Zero)
-                {
-                    // We've waited for longer than the lock duration so exit and resume immediate polling to get messages with renewed locks
-                    return true;
-                }
-
-                var timeoutToken = new CancellationTokenSource(remainingLockDuration);
-                var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutToken.Token);
-#pragma warning disable 4014
-                Task.Run(
-                        async () => await ProcessMessageAsync(postgresMessage, linkedToken.Token).ConfigureAwait(false),
-                        timeoutToken.Token)
-                    .ContinueWith(task2 =>
-                    {
-                        _maxConcurrent.Release();
-                        timeoutToken.Dispose();
-                        linkedToken.Dispose();
-                    }).ConfigureAwait(false);
-#pragma warning restore 4014
-
-                messageCount++;
-            }
-
-            return messageCount > 0;
-        }
-        catch (PostgresException e) when (e.SqlState == "42P01")
-        {
-            await QueueInitializer.InitQueue(
-                PostgresQueueName.Create(AutoMessageMapper.GetQueueName<T>()), _npgsqlDataSource);
-            return false;
-        }
-        catch (Exception e)
-        {
-            _hostConfiguration.Log.LogError(e, "Postgres message pump error");
-            return false;
-        }
-    }
-
-    private async Task Delay(CancellationToken cancellationToken)
-    {
-        try
-        {
-            await Task.Delay(_pollingSleepInterval, cancellationToken).ConfigureAwait(false);
-        }
-        catch (TaskCanceledException)
-        {
-            _pumpDelayCancellationTokenSource = new CancellationTokenSource();
-        }
+        var pump = new PostgresMessagePump<T>(Settings, _queueClient, _npgsqlDataSource, _postgresConfiguration, _hostConfiguration.Log);
+        await pump.StartAsync<T>(ProcessMessageAsync, cancellationToken);
     }
 
     private async Task ProcessMessageAsync(PostgresMessage<T> postgresMessage, CancellationToken cancellationToken)
