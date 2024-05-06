@@ -47,7 +47,7 @@ public class RedisQueueManager : IQueueManager
         await foreach (var message in redisMessages)
         {
             var body = Encoding.UTF8.GetString(_configuration.MessageSerializer.Serialize(message.Message));
-            messages.Add(new QueueMessage(body, message.Error, message.LastProcessed, message.DeliveryCount, message.Id, message.HashEntries.AsReadOnly()));
+            messages.Add(new QueueMessage(body, message.Error, message.LastProcessed, null, message.DeliveryCount, message.Id, message.HashEntries.AsReadOnly()));
         }
 
         return messages;
@@ -60,7 +60,7 @@ public class RedisQueueManager : IQueueManager
         await foreach (var deadLetter in deadLetters)
         {
             var body = Encoding.UTF8.GetString(_configuration.MessageSerializer.Serialize(deadLetter.Message.Body));
-            messages.Add(new QueueMessage(body, deadLetter.Error, deadLetter.LastProcessed, deadLetter.DeliveryCount, deadLetter.Message.Id, deadLetter.HashEntries.AsReadOnly()));
+            messages.Add(new QueueMessage(body, deadLetter.Error, deadLetter.LastProcessed, null, deadLetter.DeliveryCount, deadLetter.Message.Id, deadLetter.HashEntries.AsReadOnly()));
         }
 
         return messages;
@@ -73,7 +73,7 @@ public class RedisQueueManager : IQueueManager
         await foreach (var deadLetter in deadLetters)
         {
             var body = Encoding.UTF8.GetString(_configuration.MessageSerializer.Serialize(deadLetter.Message.Body));
-            messages.Add(new QueueMessage(body, deadLetter.Error, deadLetter.LastProcessed, deadLetter.DeliveryCount, deadLetter.Message.Id, deadLetter.HashEntries.AsReadOnly()));
+            messages.Add(new QueueMessage(body, deadLetter.Error, deadLetter.LastProcessed, null, deadLetter.DeliveryCount, deadLetter.Message.Id, deadLetter.HashEntries.AsReadOnly()));
         }
 
         return messages;

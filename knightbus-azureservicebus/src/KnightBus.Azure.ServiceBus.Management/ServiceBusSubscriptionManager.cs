@@ -50,7 +50,14 @@ public class ServiceBusSubscriptionManager : IQueueManager
         return messages.Select(m =>
         {
             m.ApplicationProperties.TryGetValue("Exception", out var error);
-            return new QueueMessage(Encoding.UTF8.GetString(m.Body), error?.ToString() ?? string.Empty, m.EnqueuedTime, m.DeliveryCount, m.MessageId, m.ApplicationProperties);
+            return new QueueMessage(
+                Encoding.UTF8.GetString(m.Body),
+                error?.ToString() ?? string.Empty,
+                m.EnqueuedTime,
+                m.ScheduledEnqueueTime != default ? m.ScheduledEnqueueTime : null,
+                m.DeliveryCount,
+                m.MessageId,
+                m.ApplicationProperties);
         }).ToList();
     }
 
@@ -61,7 +68,14 @@ public class ServiceBusSubscriptionManager : IQueueManager
         return messages.Select(m =>
         {
             m.ApplicationProperties.TryGetValue("Exception", out var error);
-            return new QueueMessage(Encoding.UTF8.GetString(m.Body), error?.ToString() ?? string.Empty, m.EnqueuedTime, m.DeliveryCount, m.MessageId, m.ApplicationProperties);
+            return new QueueMessage(
+                Encoding.UTF8.GetString(m.Body),
+                error?.ToString() ?? string.Empty,
+                m.EnqueuedTime,
+                m.ScheduledEnqueueTime != default ? m.ScheduledEnqueueTime : null,
+                m.DeliveryCount,
+                m.MessageId,
+                m.ApplicationProperties);
         }).ToList();
     }
 
@@ -86,6 +100,7 @@ public class ServiceBusSubscriptionManager : IQueueManager
                             Encoding.UTF8.GetString(m.Body),
                             error?.ToString() ?? string.Empty,
                             m.EnqueuedTime,
+                            m.ScheduledEnqueueTime != default ? m.ScheduledEnqueueTime : null,
                             m.DeliveryCount,
                             m.MessageId, m.ApplicationProperties);
                     }));

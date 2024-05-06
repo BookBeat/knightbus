@@ -57,8 +57,10 @@ public class ServiceBusQueueManager : IQueueManager
                     Encoding.UTF8.GetString(m.Body),
                     error?.ToString() ?? string.Empty,
                     m.EnqueuedTime,
+                    m.ScheduledEnqueueTime != default ? m.ScheduledEnqueueTime : null,
                     m.DeliveryCount,
-                    m.MessageId, m.ApplicationProperties);
+                    m.MessageId,
+                    m.ApplicationProperties);
             }).ToList();
     }
 
@@ -77,6 +79,7 @@ public class ServiceBusQueueManager : IQueueManager
                     Encoding.UTF8.GetString(m.Body),
                     error?.ToString() ?? string.Empty,
                     m.EnqueuedTime,
+                    m.ScheduledEnqueueTime != default ? m.ScheduledEnqueueTime : null,
                     m.DeliveryCount,
                     m.MessageId, m.ApplicationProperties);
             }).ToList();
@@ -109,6 +112,7 @@ public class ServiceBusQueueManager : IQueueManager
                             Encoding.UTF8.GetString(m.Body),
                             error?.ToString() ?? string.Empty,
                             m.EnqueuedTime,
+                            m.ScheduledEnqueueTime != default ? m.ScheduledEnqueueTime : null,
                             m.DeliveryCount,
                             m.MessageId, m.ApplicationProperties);
                     }));
