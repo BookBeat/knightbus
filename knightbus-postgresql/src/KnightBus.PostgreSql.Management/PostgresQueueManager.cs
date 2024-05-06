@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using KnightBus.Core.Management;
 using KnightBus.Messages;
 
@@ -55,6 +55,7 @@ public class PostgresQueueManager : IQueueManager
                 Encoding.UTF8.GetString(_messageSerializer.Serialize(m.Message)),
                 error ?? string.Empty,
                 null,
+                null,
                 m.ReadCount,
                 m.Id.ToString(),
                 m.Properties));
@@ -76,6 +77,7 @@ public class PostgresQueueManager : IQueueManager
                 Encoding.UTF8.GetString(_messageSerializer.Serialize(m.Message)),
                 error ?? string.Empty,
                 null,
+                null,
                 m.ReadCount,
                 m.Id.ToString(),
                 m.Properties));
@@ -96,6 +98,7 @@ public class PostgresQueueManager : IQueueManager
             result.Add(new QueueMessage(
                 Encoding.UTF8.GetString(_messageSerializer.Serialize(m.Message)),
                 error ?? string.Empty,
+                null,
                 null,
                 m.ReadCount,
                 m.Id.ToString(),
