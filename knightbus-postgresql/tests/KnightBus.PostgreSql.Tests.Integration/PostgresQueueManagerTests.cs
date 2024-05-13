@@ -18,7 +18,8 @@ public class PostgresQueueManagerTests : QueueManagerTests<PostgresTestCommand>
         _postgresManagementClient = new PostgresManagementClient(PostgresTestBase.TestNpgsqlDataSource,
             new PostgresConfiguration { MessageSerializer = new MicrosoftJsonSerializer() });
         _postgresQueueClient = new PostgresQueueClient<PostgresTestCommand>(PostgresTestBase.TestNpgsqlDataSource, new MicrosoftJsonSerializer());
-        QueueManager = new PostgresQueueManager(_postgresManagementClient, new MicrosoftJsonSerializer());
+        QueueManager = new PostgresQueueManager(_postgresManagementClient,
+            new PostgresConfiguration { MessageSerializer = new MicrosoftJsonSerializer() });
         QueueType = QueueType.Queue;
         _bus = new PostgresBus(PostgresTestBase.TestNpgsqlDataSource,
             new PostgresConfiguration { MessageSerializer = new MicrosoftJsonSerializer() });
