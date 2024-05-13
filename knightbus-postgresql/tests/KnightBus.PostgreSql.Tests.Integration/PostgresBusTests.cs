@@ -19,7 +19,8 @@ public class PostgresBusTests
     {
         _postgresBus = new PostgresBus(PostgresTestBase.TestNpgsqlDataSource, new PostgresConfiguration());
         _postgresQueueClient = new PostgresQueueClient<TestCommand>(PostgresTestBase.TestNpgsqlDataSource, new MicrosoftJsonSerializer());
-        _postgresManagementClient = new PostgresManagementClient(PostgresTestBase.TestNpgsqlDataSource, new MicrosoftJsonSerializer());
+        _postgresManagementClient = new PostgresManagementClient(PostgresTestBase.TestNpgsqlDataSource,
+            new PostgresConfiguration { MessageSerializer = new MicrosoftJsonSerializer() });
         await QueueInitializer.InitQueue(
             PostgresQueueName.Create(AutoMessageMapper.GetQueueName<TestCommand>()),
             PostgresTestBase.TestNpgsqlDataSource);
@@ -183,7 +184,7 @@ WHERE message_id = {message[0].Id}")
                 PostgresQueueName.Create(AutoMessageMapper.GetQueueName<TestCommand>()), 10, default)
             .ToBlockingEnumerable()
             .ToList();
-        deadLetters[0].Message["MessageBody"].Should().BeEquivalentTo(message[0].Message.MessageBody);
+        deadLetters[0].Message["MessageBody"].ToString().Should().BeEquivalentTo(message[0].Message.MessageBody);
         deadLetters[0].Id.Should().Be(message[0].Id);
     }
 

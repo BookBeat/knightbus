@@ -14,7 +14,8 @@ public class PostgresMessageStateHandlerTests : MessageStateHandlerTests<Postgre
     public override async Task Setup()
     {
         _postgresManagementClient = new PostgresManagementClient(
-            PostgresTestBase.TestNpgsqlDataSource, new MicrosoftJsonSerializer());
+            PostgresTestBase.TestNpgsqlDataSource,
+            new PostgresConfiguration { MessageSerializer = new MicrosoftJsonSerializer() });
         _postgresQueueClient = new PostgresQueueClient<PostgresTestCommand>(
             PostgresTestBase.TestNpgsqlDataSource, new MicrosoftJsonSerializer());
         _bus = new PostgresBus(

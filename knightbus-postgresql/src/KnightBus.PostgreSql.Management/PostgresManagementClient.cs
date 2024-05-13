@@ -10,10 +10,10 @@ public class PostgresManagementClient
     private readonly NpgsqlDataSource _npgsqlDataSource;
     private readonly IMessageSerializer _serializer;
 
-    public PostgresManagementClient(NpgsqlDataSource npgsqlDataSource, IMessageSerializer serializer)
+    public PostgresManagementClient(NpgsqlDataSource npgsqlDataSource, IPostgresConfiguration configuration)
     {
         _npgsqlDataSource = npgsqlDataSource;
-        _serializer = serializer;
+        _serializer = configuration.MessageSerializer;
     }
 
     public async Task<List<PostgresQueueMetadata>> ListQueues(CancellationToken ct)
