@@ -15,7 +15,8 @@ public class PostgresQueueManagerTests : QueueManagerTests<PostgresTestCommand>
 
     public override async Task Setup()
     {
-        _postgresManagementClient = new PostgresManagementClient(PostgresTestBase.TestNpgsqlDataSource, new MicrosoftJsonSerializer());
+        _postgresManagementClient = new PostgresManagementClient(PostgresTestBase.TestNpgsqlDataSource,
+            new PostgresConfiguration { MessageSerializer = new MicrosoftJsonSerializer() });
         _postgresQueueClient = new PostgresQueueClient<PostgresTestCommand>(PostgresTestBase.TestNpgsqlDataSource, new MicrosoftJsonSerializer());
         QueueManager = new PostgresQueueManager(_postgresManagementClient, new MicrosoftJsonSerializer());
         QueueType = QueueType.Queue;
