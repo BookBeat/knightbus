@@ -9,10 +9,10 @@ public class PostgresQueueManager : IQueueManager
     private readonly PostgresManagementClient _managementClient;
     private readonly IMessageSerializer _messageSerializer;
 
-    public PostgresQueueManager(PostgresManagementClient managementClient, IMessageSerializer messageSerializer)
+    public PostgresQueueManager(PostgresManagementClient managementClient, IPostgresConfiguration configuration)
     {
         _managementClient = managementClient;
-        _messageSerializer = messageSerializer;
+        _messageSerializer = configuration.MessageSerializer;
     }
 
     public async Task<IEnumerable<QueueProperties>> List(CancellationToken ct)
