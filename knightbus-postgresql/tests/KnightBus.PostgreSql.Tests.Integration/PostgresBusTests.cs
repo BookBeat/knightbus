@@ -17,13 +17,13 @@ public class PostgresBusTests
     [OneTimeSetUp]
     public async Task OneTimeSetUp()
     {
-        _postgresBus = new PostgresBus(PostgresTestBase.TestNpgsqlDataSource, new PostgresConfiguration());
-        _postgresQueueClient = new PostgresQueueClient<TestCommand>(PostgresTestBase.TestNpgsqlDataSource, new MicrosoftJsonSerializer());
-        _postgresManagementClient = new PostgresManagementClient(PostgresTestBase.TestNpgsqlDataSource,
+        _postgresBus = new PostgresBus(PostgresSetup.DataSource, new PostgresConfiguration());
+        _postgresQueueClient = new PostgresQueueClient<TestCommand>(PostgresSetup.DataSource, new MicrosoftJsonSerializer());
+        _postgresManagementClient = new PostgresManagementClient(PostgresSetup.DataSource,
             new PostgresConfiguration { MessageSerializer = new MicrosoftJsonSerializer() });
         await QueueInitializer.InitQueue(
             PostgresQueueName.Create(AutoMessageMapper.GetQueueName<TestCommand>()),
-            PostgresTestBase.TestNpgsqlDataSource);
+            PostgresSetup.DataSource);
     }
 
     [OneTimeTearDown]
@@ -61,7 +61,7 @@ public class PostgresBusTests
         ], default);
 
         var messagesCount = (long)
-            (await PostgresTestBase.TestNpgsqlDataSource
+            (await PostgresSetup.DataSource
                 .CreateCommand(
                     $"SELECT COUNT(*) FROM knightbus.q_{AutoMessageMapper.GetQueueName<TestCommand>()};")
                 .ExecuteScalarAsync() ?? 0);
@@ -128,7 +128,7 @@ public class PostgresBusTests
         await _postgresQueueClient.CompleteAsync(message[0]);
 
         var deleted = (long)
-            (await PostgresTestBase.TestNpgsqlDataSource
+            (await PostgresSetup.DataSource
                 .CreateCommand(@$"
 SELECT COUNT(*) FROM knightbus.q_{AutoMessageMapper.GetQueueName<TestCommand>()}
 WHERE message_id = {message[0].Id}")
@@ -172,7 +172,7 @@ WHERE message_id = {message[0].Id}")
         await _postgresQueueClient.DeadLetterMessageAsync(message[0]);
 
         var originalMessage = (long)
-            (await PostgresTestBase.TestNpgsqlDataSource
+            (await PostgresSetup.DataSource
                 .CreateCommand(@$"
 SELECT COUNT(*) FROM knightbus.q_{AutoMessageMapper.GetQueueName<TestCommand>()}
 WHERE message_id = {message[0].Id}")
