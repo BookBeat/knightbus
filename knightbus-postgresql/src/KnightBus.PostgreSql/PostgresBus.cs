@@ -99,17 +99,15 @@ VALUES {stringValues};
     private async Task PublishAsyncInternal<T>(IEnumerable<T> messages, CancellationToken ct) where T : IPostgresEvent
     {
         var topicName = AutoMessageMapper.GetQueueName<T>();
-        var topicTableName = $"{TopicPrefix}_{topicName}";
         await using var connection = await _npgsqlDataSource.OpenConnectionAsync(ct);
 
-
-        await using var cmd = new NpgsqlCommand($"select {SchemaName}.publish_events(@topic_table_name, @messages)", connection);
+        await using var cmd = new NpgsqlCommand($"select {SchemaName}.publish_events(@topic, @messages)", connection);
 
         var serialized = messages.Select(m => _serializer.Serialize(m)).ToArray();
-        
+
         cmd.CommandType = CommandType.Text;
-        cmd.Parameters.Add(new NpgsqlParameter {  ParameterName = "topic_table_name", Value = topicTableName, NpgsqlDbType = NpgsqlDbType.Text});
-        cmd.Parameters.Add(new NpgsqlParameter {  ParameterName = "messages", Value = serialized, NpgsqlDbType = NpgsqlDbType.Array | NpgsqlDbType.Jsonb});
+        cmd.Parameters.Add(new NpgsqlParameter { ParameterName = "topic", Value = topicName, NpgsqlDbType = NpgsqlDbType.Text });
+        cmd.Parameters.Add(new NpgsqlParameter { ParameterName = "messages", Value = serialized, NpgsqlDbType = NpgsqlDbType.Array | NpgsqlDbType.Jsonb });
         await cmd.PrepareAsync(ct);
         await cmd.ExecuteNonQueryAsync(ct);
     }
