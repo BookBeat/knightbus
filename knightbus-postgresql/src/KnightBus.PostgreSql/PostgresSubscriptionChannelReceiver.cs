@@ -11,6 +11,7 @@ public class PostgresSubscriptionChannelReceiver<T> : IChannelReceiver
     private PostgresSubscriptionClient<T> _queueClient;
     private readonly NpgsqlDataSource _npgsqlDataSource;
     private readonly IMessageProcessor _processor;
+    private readonly IEventSubscription? _subscription;
     private readonly IHostConfiguration _hostConfiguration;
     private readonly IMessageSerializer _serializer;
     private readonly IPostgresConfiguration _postgresConfiguration;
@@ -18,6 +19,7 @@ public class PostgresSubscriptionChannelReceiver<T> : IChannelReceiver
     public PostgresSubscriptionChannelReceiver(
         NpgsqlDataSource npgsqlDataSource,
         IMessageProcessor processor,
+        IEventSubscription? subscription,
         IProcessingSettings settings,
         IHostConfiguration hostConfiguration,
         IMessageSerializer serializer,
@@ -25,6 +27,7 @@ public class PostgresSubscriptionChannelReceiver<T> : IChannelReceiver
     {
         _npgsqlDataSource = npgsqlDataSource;
         _processor = processor;
+        _subscription = subscription;
         Settings = settings;
         _hostConfiguration = hostConfiguration;
         _serializer = serializer;
@@ -34,7 +37,7 @@ public class PostgresSubscriptionChannelReceiver<T> : IChannelReceiver
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         _queueClient = new PostgresSubscriptionClient<T>(_npgsqlDataSource, _serializer);
-        var pump = new PostgresMessagePump<T>(Settings, _queueClient, _npgsqlDataSource, _postgresConfiguration, _hostConfiguration.Log);
+        var pump = new PostgresMessagePump<T>(Settings, _subscription, _queueClient, _npgsqlDataSource, _postgresConfiguration, _hostConfiguration.Log);
         await pump.StartAsync<T>(ProcessMessageAsync, cancellationToken);
     }
 

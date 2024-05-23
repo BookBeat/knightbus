@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Data;
+using System.Text;
 using KnightBus.Core;
 using KnightBus.Messages;
 using KnightBus.PostgreSql.Messages;
@@ -11,7 +12,9 @@ namespace KnightBus.PostgreSql;
 public interface IPostgresBus
 {
     Task SendAsync<T>(T message, CancellationToken ct) where T : IPostgresCommand;
+    Task PublishAsync<T>(T message, CancellationToken ct) where T : IPostgresEvent;
     Task SendAsync<T>(IEnumerable<T> messages, CancellationToken ct) where T : IPostgresCommand;
+    Task PublishAsync<T>(IEnumerable<T> messages, CancellationToken ct) where T : IPostgresEvent;
     Task ScheduleAsync<T>(T message, TimeSpan delay, CancellationToken ct) where T : IPostgresCommand;
     Task ScheduleAsync<T>(IEnumerable<T> messages, TimeSpan delay, CancellationToken ct) where T : IPostgresCommand;
 }
@@ -32,9 +35,19 @@ public class PostgresBus : IPostgresBus
         return SendAsync([message], ct);
     }
 
-    public async Task SendAsync<T>(IEnumerable<T> messages, CancellationToken ct) where T : IPostgresCommand
+    public Task PublishAsync<T>(T message, CancellationToken ct) where T : IPostgresEvent
     {
-        await SendAsyncInternal(messages, null, ct);
+        return PublishAsyncInternal([message], ct);
+    }
+
+    public Task SendAsync<T>(IEnumerable<T> messages, CancellationToken ct) where T : IPostgresCommand
+    {
+        return SendAsyncInternal(messages, null, ct);
+    }
+
+    public Task PublishAsync<T>(IEnumerable<T> messages, CancellationToken ct) where T : IPostgresEvent
+    {
+        return PublishAsyncInternal(messages, ct);
     }
 
     public Task ScheduleAsync<T>(T message, TimeSpan delay, CancellationToken ct) where T : IPostgresCommand
@@ -82,5 +95,20 @@ VALUES {stringValues};
 ";
         await command.PrepareAsync(ct);
         await command.ExecuteNonQueryAsync(ct);
+    }
+    private async Task PublishAsyncInternal<T>(IEnumerable<T> messages, CancellationToken ct) where T : IPostgresEvent
+    {
+        var topicName = AutoMessageMapper.GetQueueName<T>();
+        var topicTableName = $"{SchemaName}.{TopicPrefix}_{topicName}";
+        await using var connection = await _npgsqlDataSource.OpenConnectionAsync(ct);
+
+
+        await using var cmd = new NpgsqlCommand("publish_events", connection);
+    
+        cmd.CommandType = CommandType.StoredProcedure;
+        cmd.Parameters.Add(new NpgsqlParameter {  ParameterName = "topic_table_name", Value = topicTableName, NpgsqlDbType = NpgsqlDbType.Text});
+        cmd.Parameters.Add(new NpgsqlParameter {  ParameterName = "messages", Value = messages.Select(m => _serializer.Serialize(m)), NpgsqlDbType = NpgsqlDbType.Array | NpgsqlDbType.Jsonb});
+        await cmd.PrepareAsync(ct);
+        await cmd.ExecuteNonQueryAsync(ct);
     }
 }

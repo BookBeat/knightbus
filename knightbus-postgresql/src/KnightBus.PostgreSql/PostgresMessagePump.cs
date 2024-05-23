@@ -7,13 +7,15 @@ namespace KnightBus.PostgreSql;
 
 public class PostgresMessagePump<T> : GenericMessagePump<PostgresMessage<T>, IMessage> where T : class, IMessage
 {
+    private readonly IEventSubscription? _subscription;
     private readonly PostgresBaseClient<T> _queueClient;
     private readonly NpgsqlDataSource _npgsqlDataSource;
     private readonly IPostgresConfiguration _postgresConfiguration;
 
-    public PostgresMessagePump(IProcessingSettings settings, PostgresBaseClient<T> queueClient, NpgsqlDataSource npgsqlDataSource, IPostgresConfiguration postgresConfiguration, ILogger log)
+    public PostgresMessagePump(IProcessingSettings settings, IEventSubscription? subscription, PostgresBaseClient<T> queueClient, NpgsqlDataSource npgsqlDataSource, IPostgresConfiguration postgresConfiguration, ILogger log)
         : base(settings, log)
     {
+        _subscription = subscription;
         _queueClient = queueClient;
         _npgsqlDataSource = npgsqlDataSource;
         _postgresConfiguration = postgresConfiguration;
@@ -29,9 +31,19 @@ public class PostgresMessagePump<T> : GenericMessagePump<PostgresMessage<T>, IMe
 
     protected override async Task CreateChannel(Type messageType)
     {
-        await QueueInitializer.InitQueue(
-            PostgresQueueName.Create(AutoMessageMapper.GetQueueName(messageType)),
-            _npgsqlDataSource);
+        if (_subscription is null)
+        {
+            await QueueInitializer.InitQueue(
+                PostgresQueueName.Create(AutoMessageMapper.GetQueueName(messageType)),
+                _npgsqlDataSource);    
+        }
+        else
+        {
+            await QueueInitializer.InitSubscription(
+                PostgresQueueName.Create(AutoMessageMapper.GetQueueName(messageType)),
+                PostgresQueueName.Create(_subscription.Name),
+                _npgsqlDataSource);
+        }
     }
 
     protected override bool ShouldCreateChannel(Exception e)

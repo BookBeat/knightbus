@@ -34,7 +34,7 @@ public class PostgresChannelReceiver<T> : IChannelReceiver
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         _queueClient = new PostgresQueueClient<T>(_npgsqlDataSource, _serializer);
-        var pump = new PostgresMessagePump<T>(Settings, _queueClient, _npgsqlDataSource, _postgresConfiguration, _hostConfiguration.Log);
+        var pump = new PostgresMessagePump<T>(Settings, null, _queueClient, _npgsqlDataSource, _postgresConfiguration, _hostConfiguration.Log);
         await pump.StartAsync<T>(ProcessMessageAsync, cancellationToken);
     }
 

@@ -32,6 +32,7 @@ public class PostgresSubscriptionChannelFactory : ITransportChannelFactory
             queueReaderType,
             _npgsqlDataSource,
             processor,
+            subscription,
             processingSettings,
             configuration,
             serializer,

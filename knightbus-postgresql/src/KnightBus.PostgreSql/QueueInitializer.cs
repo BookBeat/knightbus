@@ -11,15 +11,27 @@ public static class QueueInitializer
         await using var connection = await npgsqlDataSource.OpenConnectionAsync();
         await using var transaction = await connection.BeginTransactionAsync();
 
-        await using var createTopicCmd = CreateTopicTableCmd(topic, connection);
-        await using var insertTopicCmd = InsertTopicCmd(topic, connection);
+        await using var createSchema = new NpgsqlCommand(@$"
+ CREATE SCHEMA IF NOT EXISTS {SchemaName};
+", connection);
         
-        await using var createQueueCmd =  CreateQueueCmd(SubscriptionPrefix, subscription, connection);
-        await using var createIndexCmd =  CreateQueueIndexCmd(SubscriptionPrefix, subscription, connection);
-        await using var createDlQueueCmd =  CreateDlQueueCmd(DlQueuePrefix, subscription, connection);
+        var topicSubscriptionQueueName = PostgresQueueName.Create($"{topic}_{subscription}");
 
+        await using var createPublishFunctionCmd = CreatePublishFunction(connection);
+        await using var createTopicCmd = CreateTopicTableCmd(topic, connection);
+        await using var insertTopicCmd = InsertTopicCmd(topic, topicSubscriptionQueueName, connection);
+        
+        await using var createQueueCmd =  CreateQueueCmd(SubscriptionPrefix, topicSubscriptionQueueName, connection);
+        await using var createIndexCmd =  CreateQueueIndexCmd(SubscriptionPrefix, topicSubscriptionQueueName, connection);
+        await using var createDlQueueCmd =  CreateDlQueueCmd(DlQueuePrefix, topicSubscriptionQueueName, connection);
+
+        await createSchema.ExecuteNonQueryAsync();
         await createTopicCmd.ExecuteNonQueryAsync();
         await insertTopicCmd.ExecuteNonQueryAsync();
+        await createQueueCmd.ExecuteNonQueryAsync();
+        await createIndexCmd.ExecuteNonQueryAsync();
+        await createDlQueueCmd.ExecuteNonQueryAsync();
+        await createPublishFunctionCmd.ExecuteNonQueryAsync();
         
         await transaction.CommitAsync();
     }
@@ -54,22 +66,52 @@ public static class QueueInitializer
     {
         var createTopicTableCmd =  new NpgsqlCommand($@"
 CREATE TABLE IF NOT EXISTS {SchemaName}.{TopicPrefix}_{topic} (
-    topic_name VARCHAR UNIQUE NOT NULL,
+    subscription_name VARCHAR UNIQUE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
 );", connection);
             return createTopicTableCmd;
     }
     
-    private static NpgsqlCommand InsertTopicCmd(PostgresQueueName topic, NpgsqlConnection connection)
+    private static NpgsqlCommand InsertTopicCmd(PostgresQueueName topic, PostgresQueueName topicSubscription, NpgsqlConnection connection)
     {
         var insertMetadataCmd = new NpgsqlCommand(@$"
-INSERT INTO {SchemaName}.{TopicPrefix}_{topic}(topic_name)
-VALUES ('{topic}')
+INSERT INTO {SchemaName}.{TopicPrefix}_{topic}(subscription_name)
+VALUES ('{SubscriptionPrefix}_{topicSubscription}')
 ON CONFLICT
 DO NOTHING;",
             connection);
         return insertMetadataCmd;
     }
+    
+    private static NpgsqlCommand CreatePublishFunction(NpgsqlConnection connection)
+    {
+        var publishFunction = new NpgsqlCommand(@$"
+CREATE OR REPLACE FUNCTION publish_events(
+    topic_table_name TEXT,
+    messages JSONB[]
+)
+RETURNS VOID AS $$
+DECLARE
+    subscription_name TEXT;
+    queue_table_name TEXT;
+BEGIN
+    FOR subscription_name IN
+        EXECUTE format('SELECT subscription_name FROM %I', topic_table_name)
+    LOOP
+        -- Construct the queue table name from the subscription name
+        queue_table_name := format('%s.%s', current_schema(), subscription_name);
+
+        -- Insert all messages into the queue table in a single statement
+        EXECUTE format('
+            INSERT INTO %I (visibility_timeout, message)
+            SELECT now(), unnest($1
+        ', queue_table_name) USING messages;
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;",
+            connection);
+        return publishFunction;
+    } 
 
     private static NpgsqlCommand InsertMetadataCmd(PostgresQueueName queueName, NpgsqlConnection connection)
     {
