@@ -7,17 +7,18 @@ namespace KnightBus.PostgreSql;
 public class PostgresMessageStateHandler<T> :
     IMessageStateHandler<T> where T : class, IMessage
 {
-    private readonly PostgresQueueClient<T> _queueClient;
+    private readonly PostgresBaseClient<T> _queueClient;
     private readonly PostgresMessage<T> _message;
 
     public PostgresMessageStateHandler(
         NpgsqlDataSource npgsqlDataSource,
+        PostgresBaseClient<T> queueClient,
         PostgresMessage<T> message,
         int deadLetterDeliveryLimit,
         IMessageSerializer serializer,
         IDependencyInjection messageScope)
     {
-        _queueClient = new PostgresQueueClient<T>(npgsqlDataSource, serializer);
+        _queueClient = queueClient;
         _message = message;
         DeadLetterDeliveryLimit = deadLetterDeliveryLimit;
         MessageScope = messageScope;

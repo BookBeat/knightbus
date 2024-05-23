@@ -56,7 +56,7 @@ public class PostgresQueueManagerTests : QueueManagerTests<PostgresTestCommand>
         }
 
         return new PostgresMessageStateHandler<PostgresTestCommand>(
-            PostgresTestBase.TestNpgsqlDataSource, result.First(), 5,new MicrosoftJsonSerializer(), null!);
+            PostgresTestBase.TestNpgsqlDataSource, _postgresQueueClient, result.First(), 5,new MicrosoftJsonSerializer(), null!);
     }
 
     private async Task CleanUpTestData()

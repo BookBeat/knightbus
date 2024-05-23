@@ -73,8 +73,9 @@ public class PostgresMessageStateHandlerTests : MessageStateHandlerTests<Postgre
         {
             result.Add(m);
         }
+        
 
-        return new PostgresMessageStateHandler<PostgresTestCommand>(PostgresTestBase.TestNpgsqlDataSource,
+        return new PostgresMessageStateHandler<PostgresTestCommand>(PostgresTestBase.TestNpgsqlDataSource, _postgresQueueClient,
             result.First(), 5, new MicrosoftJsonSerializer(), null!);
     }
 }

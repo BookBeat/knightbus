@@ -19,7 +19,7 @@ public static class QueueInitializer
 
         await using var createPublishFunctionCmd = CreatePublishFunction(connection);
         await using var createTopicCmd = CreateTopicTableCmd(topic, connection);
-        await using var insertTopicCmd = InsertTopicCmd(topic, topicSubscriptionQueueName, connection);
+        await using var insertTopicCmd = InsertTopicSubscriptionCmd(topic, topicSubscriptionQueueName, connection);
         
         await using var createQueueCmd =  CreateQueueCmd(SubscriptionPrefix, topicSubscriptionQueueName, connection);
         await using var createIndexCmd =  CreateQueueIndexCmd(SubscriptionPrefix, topicSubscriptionQueueName, connection);
@@ -72,7 +72,7 @@ CREATE TABLE IF NOT EXISTS {SchemaName}.{TopicPrefix}_{topic} (
             return createTopicTableCmd;
     }
     
-    private static NpgsqlCommand InsertTopicCmd(PostgresQueueName topic, PostgresQueueName topicSubscription, NpgsqlConnection connection)
+    private static NpgsqlCommand InsertTopicSubscriptionCmd(PostgresQueueName topic, PostgresQueueName topicSubscription, NpgsqlConnection connection)
     {
         var insertMetadataCmd = new NpgsqlCommand(@$"
 INSERT INTO {SchemaName}.{TopicPrefix}_{topic}(subscription_name)
@@ -86,26 +86,23 @@ DO NOTHING;",
     private static NpgsqlCommand CreatePublishFunction(NpgsqlConnection connection)
     {
         var publishFunction = new NpgsqlCommand(@$"
-CREATE OR REPLACE FUNCTION publish_events(
+CREATE OR REPLACE FUNCTION {SchemaName}.publish_events(
     topic_table_name TEXT,
     messages JSONB[]
 )
 RETURNS VOID AS $$
 DECLARE
     subscription_name TEXT;
-    queue_table_name TEXT;
 BEGIN
     FOR subscription_name IN
-        EXECUTE format('SELECT subscription_name FROM %I', topic_table_name)
-    LOOP
-        -- Construct the queue table name from the subscription name
-        queue_table_name := format('%s.%s', current_schema(), subscription_name);
+        EXECUTE format('SELECT subscription_name FROM %I.%I', '{SchemaName}', topic_table_name)
+    LOOP      
 
         -- Insert all messages into the queue table in a single statement
         EXECUTE format('
-            INSERT INTO %I (visibility_timeout, message)
-            SELECT now(), unnest($1
-        ', queue_table_name) USING messages;
+            INSERT INTO %I.%I (visibility_timeout, message)
+            SELECT now(), unnest($1)
+        ', '{SchemaName}', subscription_name) USING messages;
     END LOOP;
 END;
 $$ LANGUAGE plpgsql;",
@@ -138,7 +135,7 @@ CREATE TABLE IF NOT EXISTS {SchemaName}.metadata (
     {
         var createIndexCmd = new NpgsqlCommand(@$"
 CREATE INDEX IF NOT EXISTS {SchemaName}_{prefix}_{queueName}_visibility_timeout_idx
-ON {SchemaName}.{QueuePrefix}_{queueName} (visibility_timeout ASC);",
+ON {SchemaName}.{prefix}_{queueName} (visibility_timeout ASC);",
                 connection);
             return createIndexCmd;
     }

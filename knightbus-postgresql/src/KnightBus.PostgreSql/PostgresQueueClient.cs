@@ -14,7 +14,7 @@ public class PostgresQueueClient<T> : PostgresBaseClient<T> where T : class, IMe
 
 public class PostgresSubscriptionClient<T> : PostgresBaseClient<T> where T : class, IMessage
 {
-    public PostgresSubscriptionClient(NpgsqlDataSource npgsqlDataSource, IMessageSerializer serializer)
-        :base(npgsqlDataSource, serializer, SubscriptionPrefix, PostgresQueueName.Create(AutoMessageMapper.GetQueueName<T>()))
+    public PostgresSubscriptionClient(NpgsqlDataSource npgsqlDataSource, IMessageSerializer serializer, IEventSubscription subscription)
+        :base(npgsqlDataSource, serializer, SubscriptionPrefix, PostgresQueueName.Create( $"{AutoMessageMapper.GetQueueName<T>()}_{subscription.Name}"))
     { }
 }
