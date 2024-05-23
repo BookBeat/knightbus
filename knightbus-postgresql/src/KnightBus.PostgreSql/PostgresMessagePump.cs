@@ -1,17 +1,17 @@
 using KnightBus.Core;
-using KnightBus.PostgreSql.Messages;
+using KnightBus.Messages;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 
 namespace KnightBus.PostgreSql;
 
-public class PostgresMessagePump<T> : GenericMessagePump<PostgresMessage<T>, IPostgresCommand> where T : class, IPostgresCommand
+public class PostgresMessagePump<T> : GenericMessagePump<PostgresMessage<T>, IMessage> where T : class, IMessage
 {
-    private readonly PostgresQueueClient<T> _queueClient;
+    private readonly PostgresBaseClient<T> _queueClient;
     private readonly NpgsqlDataSource _npgsqlDataSource;
     private readonly IPostgresConfiguration _postgresConfiguration;
 
-    public PostgresMessagePump(IProcessingSettings settings, PostgresQueueClient<T> queueClient, NpgsqlDataSource npgsqlDataSource, IPostgresConfiguration postgresConfiguration, ILogger log)
+    public PostgresMessagePump(IProcessingSettings settings, PostgresBaseClient<T> queueClient, NpgsqlDataSource npgsqlDataSource, IPostgresConfiguration postgresConfiguration, ILogger log)
         : base(settings, log)
     {
         _queueClient = queueClient;

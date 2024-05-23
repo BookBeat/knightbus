@@ -1,12 +1,11 @@
 ﻿using KnightBus.Core;
 using KnightBus.Messages;
-using KnightBus.PostgreSql.Messages;
 using Npgsql;
 
 namespace KnightBus.PostgreSql;
 
 public class PostgresMessageStateHandler<T> :
-    IMessageStateHandler<T> where T : class, IPostgresCommand
+    IMessageStateHandler<T> where T : class, IMessage
 {
     private readonly PostgresQueueClient<T> _queueClient;
     private readonly PostgresMessage<T> _message;
