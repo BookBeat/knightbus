@@ -64,6 +64,54 @@ SELECT COUNT(*) FROM {SchemaName}.{DlQueuePrefix}_{queueMetadata.Name};")
         return queueMetas;
     }
 
+    public async Task<List<PostgresQueueMetadata>> ListSubscriptions(string topic, CancellationToken ct)
+    {
+        await using var command = _npgsqlDataSource.CreateCommand(@$"
+SELECT subscription_name, created_at
+FROM {SchemaName}.{TopicPrefix}_topic;
+");
+
+        await using var reader = await command.ExecuteReaderAsync(ct);
+        var queueMetas = new List<PostgresQueueMetadata>();
+        while (await reader.ReadAsync(ct))
+        {
+            queueMetas.Add(new PostgresQueueMetadata
+            {
+                Name = reader.GetString(0),
+                CreatedAt = reader.GetFieldValue<DateTimeOffset>(1)
+            });
+        }
+
+        await using var conn = await _npgsqlDataSource.OpenConnectionAsync(ct);
+        foreach (var queueMetadata in queueMetas)
+        {
+            await using var batch = new NpgsqlBatch(conn)
+            {
+                BatchCommands =
+                {
+                    new NpgsqlBatchCommand($@"
+SELECT COUNT(*) FROM {SchemaName}.{SubscriptionPrefix}_{topic}_{queueMetadata.Name};"),
+                    new NpgsqlBatchCommand($@"
+SELECT COUNT(*) FROM {SchemaName}.{DlQueuePrefix}_{topic}_{queueMetadata.Name};")
+
+                }
+            };
+
+            await batch.PrepareAsync(ct);
+
+            await using var batchReader = await batch.ExecuteReaderAsync(ct);
+            await batchReader.ReadAsync(ct);
+            queueMetadata.ActiveMessagesCount = batchReader.GetInt32(0);
+            await batchReader.NextResultAsync(ct);
+            await batchReader.ReadAsync(ct);
+            queueMetadata.DeadLetterMessagesCount = batchReader.GetInt32(0);
+            await batchReader.NextResultAsync(ct);
+            await batchReader.ReadAsync(ct);
+        }
+
+        return queueMetas;
+    }
+
     public async Task<PostgresQueueMetadata> GetQueue(PostgresQueueName queueName, CancellationToken ct)
     {
         await using var conn = await _npgsqlDataSource.OpenConnectionAsync(ct);
@@ -85,7 +133,7 @@ WHERE queue_name = ($1);");
 
         metadataCommand.Parameters.Add(new NpgsqlParameter<string> { TypedValue = queueName.Value });
         batch.BatchCommands.Add(metadataCommand);
-        
+
         await batch.PrepareAsync(ct);
 
         var queueMeta = new PostgresQueueMetadata { Name = queueName.Value };
