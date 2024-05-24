@@ -45,10 +45,13 @@ class Program
 
         //Start the KnightBus Host, it will now connect to the postgresql and listen
         await knightBusHost.StartAsync();
+        await Task.Delay(TimeSpan.FromSeconds(5));
+        
 
         var client =
             (PostgresBus)knightBusHost.Services.CreateScope().ServiceProvider.GetRequiredService<IPostgresBus>();
 
+        await client.PublishAsync(new SamplePostgresEvent() { MessageBody = "Yo" }, CancellationToken.None);
         var messages = new List<SamplePostgresMessage>();
         for (int i = 0; i < 10000; i++)
         {
@@ -69,6 +72,11 @@ class Program
     }
 }
 
+class SamplePostgresEvent : IPostgresEvent
+{
+    public required string MessageBody { get; set; }
+}
+
 class SamplePostgresMessage : IPostgresCommand
 {
     public required string MessageBody { get; set; }
@@ -79,6 +87,19 @@ class SamplePoisonPostgresMessage : IPostgresCommand
     public required string MessageBody { get; set; }
 }
 
+class SamplePostgresEventMapping : IMessageMapping<SamplePostgresEvent>
+{
+    public string QueueName => "sample_topic";
+}
+
+class SampleSubscription: IEventSubscription<SamplePostgresEvent>
+{
+    public string Name => "sample_subscription";
+}
+class SampleSubscription2: IEventSubscription<SamplePostgresEvent>
+{
+    public string Name => "sample_subscription_2";
+}
 class SamplePostgresMessageMapping : IMessageMapping<SamplePostgresMessage>
 {
     public string QueueName => "postgres_sample_message";
@@ -91,7 +112,9 @@ class SamplePoisonPostgresMessageMapping : IMessageMapping<SamplePoisonPostgresM
 
 class PostgresCommandProcessor :
     IProcessCommand<SamplePostgresMessage, PostgresProcessingSetting>,
-    IProcessCommand<SamplePoisonPostgresMessage, PostgresProcessingSetting>
+    IProcessCommand<SamplePoisonPostgresMessage, PostgresProcessingSetting>,
+    IProcessEvent<SamplePostgresEvent, SampleSubscription, PostgresProcessingSetting>,
+    IProcessEvent<SamplePostgresEvent, SampleSubscription2, PostgresProcessingSetting>
 {
     public Task ProcessAsync(SamplePostgresMessage message, CancellationToken cancellationToken)
     {
@@ -103,6 +126,12 @@ class PostgresCommandProcessor :
     {
         Console.WriteLine($"Handler 2: '{message.MessageBody}'");
         throw new InvalidOperationException();
+    }
+
+    public Task ProcessAsync(SamplePostgresEvent message, CancellationToken cancellationToken)
+    {
+        Console.WriteLine($"Event 1: '{message.MessageBody}'");
+        return Task.CompletedTask;
     }
 }
 

@@ -15,13 +15,13 @@ public class PostgresQueueManagerTests : QueueManagerTests<PostgresTestCommand>
 
     public override async Task Setup()
     {
-        _postgresManagementClient = new PostgresManagementClient(PostgresTestBase.TestNpgsqlDataSource,
+        _postgresManagementClient = new PostgresManagementClient(PostgresSetup.DataSource,
             new PostgresConfiguration { MessageSerializer = new MicrosoftJsonSerializer() });
-        _postgresQueueClient = new PostgresQueueClient<PostgresTestCommand>(PostgresTestBase.TestNpgsqlDataSource, new MicrosoftJsonSerializer());
+        _postgresQueueClient = new PostgresQueueClient<PostgresTestCommand>(PostgresSetup.DataSource, new MicrosoftJsonSerializer());
         QueueManager = new PostgresQueueManager(_postgresManagementClient,
             new PostgresConfiguration { MessageSerializer = new MicrosoftJsonSerializer() });
         QueueType = QueueType.Queue;
-        _bus = new PostgresBus(PostgresTestBase.TestNpgsqlDataSource,
+        _bus = new PostgresBus(PostgresSetup.DataSource,
             new PostgresConfiguration { MessageSerializer = new MicrosoftJsonSerializer() });
 
         await CleanUpTestData();
@@ -33,7 +33,7 @@ public class PostgresQueueManagerTests : QueueManagerTests<PostgresTestCommand>
     public override async Task<string> CreateQueue()
     {
         var queueName = Guid.NewGuid().ToString("N");
-        await QueueInitializer.InitQueue(PostgresQueueName.Create(queueName), PostgresTestBase.TestNpgsqlDataSource);
+        await QueueInitializer.InitQueue(PostgresQueueName.Create(queueName), PostgresSetup.DataSource);
         return queueName;
     }
 
@@ -41,7 +41,7 @@ public class PostgresQueueManagerTests : QueueManagerTests<PostgresTestCommand>
     {
         await QueueInitializer.InitQueue(
             PostgresQueueName.Create(AutoMessageMapper.GetQueueName<PostgresTestCommand>()),
-            PostgresTestBase.TestNpgsqlDataSource);
+            PostgresSetup.DataSource);
         await _bus.SendAsync(new PostgresTestCommand(message), default);
         return AutoMessageMapper.GetQueueName<PostgresTestCommand>();
     }
@@ -56,7 +56,7 @@ public class PostgresQueueManagerTests : QueueManagerTests<PostgresTestCommand>
         }
 
         return new PostgresMessageStateHandler<PostgresTestCommand>(
-            PostgresTestBase.TestNpgsqlDataSource, result.First(), 5,new MicrosoftJsonSerializer(), null!);
+            PostgresSetup.DataSource, _postgresQueueClient, result.First(), 5,new MicrosoftJsonSerializer(), null!);
     }
 
     private async Task CleanUpTestData()
