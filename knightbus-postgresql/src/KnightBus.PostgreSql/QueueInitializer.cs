@@ -19,7 +19,7 @@ public static class QueueInitializer
 
         await using var createPublishFunctionCmd = CreatePublishFunction(connection);
         await using var createTopicCmd = CreateTopicTableCmd(topic, connection);
-        await using var insertTopicCmd = InsertTopicSubscriptionCmd(topic, topicSubscriptionQueueName, connection);
+        await using var insertTopicCmd = InsertTopicSubscriptionCmd(topic, subscription, connection);
 
         await using var createQueueCmd = CreateQueueCmd(SubscriptionPrefix, topicSubscriptionQueueName, connection);
         await using var createIndexCmd = CreateQueueIndexCmd(SubscriptionPrefix, topicSubscriptionQueueName, connection);
@@ -95,7 +95,7 @@ DECLARE
     subscription_name TEXT;
 BEGIN
     FOR subscription_name IN
-        EXECUTE format('SELECT subscription_name FROM %I.t_%I', '{SchemaName}', topic_table_name)
+        EXECUTE format('SELECT subscription_name FROM %I.t_%I', '{SchemaName}', topic)
     LOOP      
 
         -- Insert all messages into the queue table in a single statement
