@@ -136,8 +136,13 @@ WHERE queue_name = ($1);");
 
         await batch.PrepareAsync(ct);
 
-        var queueMeta = new PostgresQueueMetadata { Name = queueName.Value };
         await using var reader = await batch.ExecuteReaderAsync(ct);
+        return await GetQueueMetadata(reader, queueName, ct);
+    }
+
+    private static async Task<PostgresQueueMetadata> GetQueueMetadata(NpgsqlDataReader reader, PostgresQueueName queueName, CancellationToken ct)
+    {
+        var queueMeta = new PostgresQueueMetadata { Name = queueName.Value };
         await reader.ReadAsync(ct);
         queueMeta.ActiveMessagesCount = reader.GetInt32(0);
         await reader.NextResultAsync(ct);
@@ -148,6 +153,7 @@ WHERE queue_name = ($1);");
         queueMeta.CreatedAt = reader.GetFieldValue<DateTimeOffset>(0);
         return queueMeta;
     }
+
     public async Task<PostgresQueueMetadata> GetSubscription(string topic, PostgresQueueName subscription, CancellationToken ct)
     {
         await using var conn = await _npgsqlDataSource.OpenConnectionAsync(ct);
@@ -171,18 +177,9 @@ WHERE subscription_name = ($1);");
         batch.BatchCommands.Add(metadataCommand);
 
         await batch.PrepareAsync(ct);
-
-        var queueMeta = new PostgresQueueMetadata { Name = subscription.Value };
+        
         await using var reader = await batch.ExecuteReaderAsync(ct);
-        await reader.ReadAsync(ct);
-        queueMeta.ActiveMessagesCount = reader.GetInt32(0);
-        await reader.NextResultAsync(ct);
-        await reader.ReadAsync(ct);
-        queueMeta.DeadLetterMessagesCount = reader.GetInt32(0);
-        await reader.NextResultAsync(ct);
-        await reader.ReadAsync(ct);
-        queueMeta.CreatedAt = reader.GetFieldValue<DateTimeOffset>(0);
-        return queueMeta;
+        return await GetQueueMetadata(reader, subscription, ct);
     }
 
     public async IAsyncEnumerable<PostgresMessage<DictionaryMessage>> PeekMessagesAsync(PostgresQueueName queueName, int count, [EnumeratorCancellation] CancellationToken ct)
@@ -197,9 +194,19 @@ LIMIT ($1);
         command.Parameters.Add(new NpgsqlParameter<int> { TypedValue = count });
 
         await using var reader = await command.ExecuteReaderAsync(ct);
+        await foreach (var p in ReadMessages(reader, false, ct))
+        {
+            yield return p;
+        }
+    }
+
+    private async IAsyncEnumerable<PostgresMessage<DictionaryMessage>> ReadMessages(NpgsqlDataReader reader, bool isDeadLetter,
+        [EnumeratorCancellation] CancellationToken ct)
+    {
+        
         var propertiesOrdinal = reader.GetOrdinal("properties");
         var messageIdOrdinal = reader.GetOrdinal("message_id");
-        var readCountOrdinal = reader.GetOrdinal("read_count");
+        var readCountOrdinal = !isDeadLetter ?  reader.GetOrdinal("read_count") : 0;
         var messageOrdinal = reader.GetOrdinal("message");
 
         while (await reader.ReadAsync(ct))
@@ -223,7 +230,7 @@ LIMIT ($1);
             yield return postgresMessage;
         }
     }
-    
+
     public async IAsyncEnumerable<PostgresMessage<DictionaryMessage>> PeekMessagesAsync(string topic, PostgresQueueName subscription, int count, [EnumeratorCancellation] CancellationToken ct)
     {
         await using var command = _npgsqlDataSource.CreateCommand(@$"
@@ -236,30 +243,9 @@ LIMIT ($1);
         command.Parameters.Add(new NpgsqlParameter<int> { TypedValue = count });
 
         await using var reader = await command.ExecuteReaderAsync(ct);
-        var propertiesOrdinal = reader.GetOrdinal("properties");
-        var messageIdOrdinal = reader.GetOrdinal("message_id");
-        var readCountOrdinal = reader.GetOrdinal("read_count");
-        var messageOrdinal = reader.GetOrdinal("message");
-
-        while (await reader.ReadAsync(ct))
+        await foreach (var p in ReadMessages(reader, false, ct))
         {
-            var isPropertiesNull = reader.IsDBNull(propertiesOrdinal);
-
-            var postgresMessage = new PostgresMessage<DictionaryMessage>
-            {
-                Id = reader.GetInt64(messageIdOrdinal),
-                ReadCount = reader.GetInt32(readCountOrdinal),
-                Message = _serializer
-                    .Deserialize<DictionaryMessage>(reader.GetFieldValue<byte[]>(messageOrdinal)
-                        .AsMemory()),
-                Properties = isPropertiesNull
-                    ? new Dictionary<string, string>()
-                    : _serializer
-                        .Deserialize<Dictionary<string, string>>(
-                            reader.GetFieldValue<byte[]>(propertiesOrdinal)
-                                .AsMemory())
-            };
-            yield return postgresMessage;
+            yield return p;
         }
     }
 
@@ -275,28 +261,9 @@ LIMIT ($1);
         command.Parameters.Add(new NpgsqlParameter<int> { TypedValue = count });
         await using var reader = await command.ExecuteReaderAsync(ct);
 
-        var propertiesOrdinal = reader.GetOrdinal("properties");
-        var messageIdOrdinal = reader.GetOrdinal("message_id");
-        var messageOrdinal = reader.GetOrdinal("message");
-
-        while (await reader.ReadAsync(ct))
+        await foreach (var p in ReadMessages(reader, true, ct))
         {
-            var isPropertiesNull = reader.IsDBNull(propertiesOrdinal);
-
-            var postgresMessage = new PostgresMessage<DictionaryMessage>
-            {
-                Id = reader.GetInt64(messageIdOrdinal),
-                Message = _serializer
-                    .Deserialize<DictionaryMessage>(reader.GetFieldValue<byte[]>(messageOrdinal)
-                        .AsMemory()),
-                Properties = isPropertiesNull
-                    ? new Dictionary<string, string>()
-                    : _serializer
-                        .Deserialize<Dictionary<string, string>>(
-                            reader.GetFieldValue<byte[]>(propertiesOrdinal)
-                                .AsMemory())
-            };
-            yield return postgresMessage;
+            yield return p;
         }
     }
     
@@ -312,28 +279,9 @@ LIMIT ($1);
         command.Parameters.Add(new NpgsqlParameter<int> { TypedValue = count });
         await using var reader = await command.ExecuteReaderAsync(ct);
 
-        var propertiesOrdinal = reader.GetOrdinal("properties");
-        var messageIdOrdinal = reader.GetOrdinal("message_id");
-        var messageOrdinal = reader.GetOrdinal("message");
-
-        while (await reader.ReadAsync(ct))
+        await foreach (var p in ReadMessages(reader, true, ct))
         {
-            var isPropertiesNull = reader.IsDBNull(propertiesOrdinal);
-
-            var postgresMessage = new PostgresMessage<DictionaryMessage>
-            {
-                Id = reader.GetInt64(messageIdOrdinal),
-                Message = _serializer
-                    .Deserialize<DictionaryMessage>(reader.GetFieldValue<byte[]>(messageOrdinal)
-                        .AsMemory()),
-                Properties = isPropertiesNull
-                    ? new Dictionary<string, string>()
-                    : _serializer
-                        .Deserialize<Dictionary<string, string>>(
-                            reader.GetFieldValue<byte[]>(propertiesOrdinal)
-                                .AsMemory())
-            };
-            yield return postgresMessage;
+            yield return p;
         }
     }
 
@@ -358,28 +306,9 @@ FROM deleted_rows;
         command.Parameters.Add(new NpgsqlParameter<int> { TypedValue = count });
         await using var reader = await command.ExecuteReaderAsync(ct);
 
-        var propertiesOrdinal = reader.GetOrdinal("properties");
-        var messageIdOrdinal = reader.GetOrdinal("message_id");
-        var messageOrdinal = reader.GetOrdinal("message");
-
-        while (await reader.ReadAsync(ct))
+        await foreach (var p in ReadMessages(reader, true, ct))
         {
-            var isPropertiesNull = reader.IsDBNull(propertiesOrdinal);
-
-            var postgresMessage = new PostgresMessage<DictionaryMessage>
-            {
-                Id = reader.GetInt64(messageIdOrdinal),
-                Message = _serializer
-                    .Deserialize<DictionaryMessage>(reader.GetFieldValue<byte[]>(messageOrdinal)
-                        .AsMemory()),
-                Properties = isPropertiesNull
-                    ? new Dictionary<string, string>()
-                    : _serializer
-                        .Deserialize<Dictionary<string, string>>(
-                            reader.GetFieldValue<byte[]>(propertiesOrdinal)
-                                .AsMemory())
-            };
-            yield return postgresMessage;
+            yield return p;
         }
     }
     
@@ -404,28 +333,9 @@ FROM deleted_rows;
         command.Parameters.Add(new NpgsqlParameter<int> { TypedValue = count });
         await using var reader = await command.ExecuteReaderAsync(ct);
 
-        var propertiesOrdinal = reader.GetOrdinal("properties");
-        var messageIdOrdinal = reader.GetOrdinal("message_id");
-        var messageOrdinal = reader.GetOrdinal("message");
-
-        while (await reader.ReadAsync(ct))
+        await foreach (var p in ReadMessages(reader, true, ct))
         {
-            var isPropertiesNull = reader.IsDBNull(propertiesOrdinal);
-
-            var postgresMessage = new PostgresMessage<DictionaryMessage>
-            {
-                Id = reader.GetInt64(messageIdOrdinal),
-                Message = _serializer
-                    .Deserialize<DictionaryMessage>(reader.GetFieldValue<byte[]>(messageOrdinal)
-                        .AsMemory()),
-                Properties = isPropertiesNull
-                    ? new Dictionary<string, string>()
-                    : _serializer
-                        .Deserialize<Dictionary<string, string>>(
-                            reader.GetFieldValue<byte[]>(propertiesOrdinal)
-                                .AsMemory())
-            };
-            yield return postgresMessage;
+            yield return p;
         }
     }
 
