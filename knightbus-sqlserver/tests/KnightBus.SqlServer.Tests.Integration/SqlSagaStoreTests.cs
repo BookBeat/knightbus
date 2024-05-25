@@ -8,6 +8,6 @@ public class SqlSagaStoreTests : SagaStoreTests
 {
     public override void Setup()
     {
-        SagaStore = new SqlServerSagaStore(DatabaseInitializer.ConnectionString);
+        SagaStore = new SqlServerSagaStore(SqlServerSetup.ConnectionString);
     }
 }
