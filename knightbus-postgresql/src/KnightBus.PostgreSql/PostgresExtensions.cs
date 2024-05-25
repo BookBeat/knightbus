@@ -1,3 +1,5 @@
+using KnightBus.Core.Sagas;
+using KnightBus.PostgreSql.Sagas;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 
@@ -16,6 +18,12 @@ public static class PostgresExtensions
                                                       throw new ArgumentException(
                                                           nameof(postgresConfiguration.ConnectionString))));
         services.AddScoped<IPostgresBus, PostgresBus>();
+        return services;
+    }
+
+    public static IServiceCollection UsePostgresSagaStore(this IServiceCollection services)
+    {
+        services.EnableSagas<PostgresSagaStore>();
         return services;
     }
 }
