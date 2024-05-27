@@ -24,8 +24,8 @@ public class PostgresSagaStore : ISagaStore
         const string query = $"""
                               CREATE SCHEMA IF NOT EXISTS {SchemaName};
                               CREATE TABLE IF NOT EXISTS {SchemaName}.{Table} (
-                                  partition_key VARCHAR(50) NOT NULL,
-                                  id VARCHAR(50) NOT NULL,
+                                  partition_key TEXT NOT NULL,
+                                  id TEXT NOT NULL,
                                   data BYTEA NOT NULL,
                                   expiration TIMESTAMP WITH TIME ZONE NOT NULL,
                                   PRIMARY KEY (partition_key, id)
