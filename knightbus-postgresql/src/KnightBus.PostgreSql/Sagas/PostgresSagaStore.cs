@@ -42,6 +42,7 @@ public class PostgresSagaStore : ISagaStore
         command.Parameters.Add(new NpgsqlParameter<string> { Value = partitionKey });
         command.Parameters.Add(new NpgsqlParameter<string> { Value = id });
         command.Parameters.Add(new NpgsqlParameter<DateTime> { Value = DateTime.UtcNow });
+        await command.PrepareAsync(ct);
 
         try
         {
@@ -75,7 +76,8 @@ public class PostgresSagaStore : ISagaStore
         command.Parameters.Add(new NpgsqlParameter<byte[]> { Value = _serializer.Serialize<T>(sagaData) });
         command.Parameters.Add(new NpgsqlParameter<DateTime> { Value = DateTime.UtcNow.Add(ttl) });
         command.Parameters.Add(new NpgsqlParameter<DateTime> { Value = DateTime.UtcNow });
-
+        await command.PrepareAsync(ct);
+        
         try
         {
             var affectedRows = await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
@@ -103,7 +105,8 @@ public class PostgresSagaStore : ISagaStore
         command.Parameters.Add(new NpgsqlParameter<byte[]> { Value = data });
         command.Parameters.Add(new NpgsqlParameter<string> { Value = partitionKey });
         command.Parameters.Add(new NpgsqlParameter<string> { Value = id });
-
+        await command.PrepareAsync(ct);
+        
         try
         {
             var affectedRows = await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
@@ -122,7 +125,8 @@ public class PostgresSagaStore : ISagaStore
         await using var command = _npgsqlDataSource.CreateCommand(query);
         command.Parameters.Add(new NpgsqlParameter<string> { Value = partitionKey });
         command.Parameters.Add(new NpgsqlParameter<string> { Value = id });
-
+        await command.PrepareAsync(ct);
+        
         try
         {
             var affectedRows = await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
@@ -141,7 +145,8 @@ public class PostgresSagaStore : ISagaStore
         await using var command = _npgsqlDataSource.CreateCommand(query);
         command.Parameters.Add(new NpgsqlParameter<string> { Value = partitionKey });
         command.Parameters.Add(new NpgsqlParameter<string> { Value = id });
-
+        await command.PrepareAsync(ct);
+        
         try
         {
             var affectedRows = await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
