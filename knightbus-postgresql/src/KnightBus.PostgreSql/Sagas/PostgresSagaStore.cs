@@ -41,9 +41,9 @@ public class PostgresSagaStore : ISagaStore
             $"SELECT data FROM {SchemaName}.{Table} WHERE partition_key = $1 AND id = $2 AND expiration > $3";
         await using var connection = await _npgsqlDataSource.OpenConnectionAsync(ct);
         await using var command = new NpgsqlCommand(query, connection);
-        command.Parameters.Add(new NpgsqlParameter<string> { Value = partitionKey });
-        command.Parameters.Add(new NpgsqlParameter<string> { Value = id });
-        command.Parameters.Add(new NpgsqlParameter<DateTime> { Value = DateTime.UtcNow });
+        command.Parameters.Add(new NpgsqlParameter<string> { TypedValue = partitionKey });
+        command.Parameters.Add(new NpgsqlParameter<string> { TypedValue = id });
+        command.Parameters.Add(new NpgsqlParameter<DateTime> { TypedValue = DateTime.UtcNow });
 
         try
         {
@@ -75,11 +75,11 @@ public class PostgresSagaStore : ISagaStore
         await using var connection = await _npgsqlDataSource.OpenConnectionAsync(ct);
         await using var command = new NpgsqlCommand(query, connection);
 
-        command.Parameters.Add(new NpgsqlParameter<string> { Value = partitionKey });
-        command.Parameters.Add(new NpgsqlParameter<string> { Value = id });
-        command.Parameters.Add(new NpgsqlParameter<byte[]> { Value = _serializer.Serialize<T>(sagaData) });
-        command.Parameters.Add(new NpgsqlParameter<DateTime> { Value = DateTime.UtcNow.Add(ttl) });
-        command.Parameters.Add(new NpgsqlParameter<DateTime> { Value = DateTime.UtcNow });
+        command.Parameters.Add(new NpgsqlParameter<string> { TypedValue = partitionKey });
+        command.Parameters.Add(new NpgsqlParameter<string> { TypedValue = id });
+        command.Parameters.Add(new NpgsqlParameter<byte[]> { TypedValue = _serializer.Serialize<T>(sagaData) });
+        command.Parameters.Add(new NpgsqlParameter<DateTime> { TypedValue = DateTime.UtcNow.Add(ttl) });
+        command.Parameters.Add(new NpgsqlParameter<DateTime> { TypedValue = DateTime.UtcNow });
 
         try
         {
@@ -107,9 +107,9 @@ public class PostgresSagaStore : ISagaStore
         await using var connection = await _npgsqlDataSource.OpenConnectionAsync(ct);
         await using var command = new NpgsqlCommand(query, connection);
         var data = _serializer.Serialize(sagaData.Data);
-        command.Parameters.Add(new NpgsqlParameter<byte[]> { Value = data });
-        command.Parameters.Add(new NpgsqlParameter<string> { Value = partitionKey });
-        command.Parameters.Add(new NpgsqlParameter<string> { Value = id });
+        command.Parameters.Add(new NpgsqlParameter<byte[]> { TypedValue = data });
+        command.Parameters.Add(new NpgsqlParameter<string> { TypedValue = partitionKey });
+        command.Parameters.Add(new NpgsqlParameter<string> { TypedValue = id });
 
         try
         {
@@ -129,8 +129,8 @@ public class PostgresSagaStore : ISagaStore
         const string query = $"DELETE FROM {SchemaName}.{Table} WHERE partition_key = $1 AND id = $2";
         await using var connection = await _npgsqlDataSource.OpenConnectionAsync(ct);
         await using var command = new NpgsqlCommand(query, connection);
-        command.Parameters.Add(new NpgsqlParameter<string> { Value = partitionKey });
-        command.Parameters.Add(new NpgsqlParameter<string> { Value = id });
+        command.Parameters.Add(new NpgsqlParameter<string> { TypedValue = partitionKey });
+        command.Parameters.Add(new NpgsqlParameter<string> { TypedValue = id });
 
         try
         {
@@ -150,8 +150,8 @@ public class PostgresSagaStore : ISagaStore
         const string query = $"DELETE FROM {SchemaName}.{Table} WHERE partition_key = $1 AND id = $2";
         await using var connection = await _npgsqlDataSource.OpenConnectionAsync(ct);
         await using var command = new NpgsqlCommand(query, connection);
-        command.Parameters.Add(new NpgsqlParameter<string> { Value = partitionKey });
-        command.Parameters.Add(new NpgsqlParameter<string> { Value = id });
+        command.Parameters.Add(new NpgsqlParameter<string> { TypedValue = partitionKey });
+        command.Parameters.Add(new NpgsqlParameter<string> { TypedValue = id });
 
         try
         {
