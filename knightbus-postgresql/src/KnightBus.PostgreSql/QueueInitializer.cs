@@ -25,13 +25,13 @@ public static class QueueInitializer
         await using var createIndexCmd = CreateQueueIndexCmd(SubscriptionPrefix, topicSubscriptionQueueName, connection);
         await using var createDlQueueCmd = CreateDlQueueCmd(DlQueuePrefix, topicSubscriptionQueueName, connection);
 
-        await createSchema.ExecuteNonQueryAsync();
-        await createTopicCmd.ExecuteNonQueryAsync();
-        await insertTopicCmd.ExecuteNonQueryAsync();
-        await createQueueCmd.ExecuteNonQueryAsync();
-        await createIndexCmd.ExecuteNonQueryAsync();
-        await createDlQueueCmd.ExecuteNonQueryAsync();
-        await createPublishFunctionCmd.ExecuteNonQueryAsync();
+        await createSchema.ExecuteNonQueryAsync().ConfigureAwait(false);
+        await createTopicCmd.ExecuteNonQueryAsync().ConfigureAwait(false);
+        await insertTopicCmd.ExecuteNonQueryAsync().ConfigureAwait(false);
+        await createQueueCmd.ExecuteNonQueryAsync().ConfigureAwait(false);
+        await createIndexCmd.ExecuteNonQueryAsync().ConfigureAwait(false);
+        await createDlQueueCmd.ExecuteNonQueryAsync().ConfigureAwait(false);
+        await createPublishFunctionCmd.ExecuteNonQueryAsync().ConfigureAwait(false);
 
         await transaction.CommitAsync();
     }
@@ -51,12 +51,12 @@ public static class QueueInitializer
         await using var createMetadataTableCmd = CreateMetadataTableCmd(connection);
         await using var insertMetadataCmd = InsertMetadataCmd(queueName, connection);
 
-        await createSchema.ExecuteNonQueryAsync();
-        await createQueueCmd.ExecuteNonQueryAsync();
-        await createDlQueueCmd.ExecuteNonQueryAsync();
-        await createIndexCmd.ExecuteNonQueryAsync();
-        await createMetadataTableCmd.ExecuteNonQueryAsync();
-        await insertMetadataCmd.ExecuteNonQueryAsync();
+        await createSchema.ExecuteNonQueryAsync().ConfigureAwait(false);
+        await createQueueCmd.ExecuteNonQueryAsync().ConfigureAwait(false);
+        await createDlQueueCmd.ExecuteNonQueryAsync().ConfigureAwait(false);
+        await createIndexCmd.ExecuteNonQueryAsync().ConfigureAwait(false);
+        await createMetadataTableCmd.ExecuteNonQueryAsync().ConfigureAwait(false);
+        await insertMetadataCmd.ExecuteNonQueryAsync().ConfigureAwait(false);
 
         await transaction.CommitAsync();
     }

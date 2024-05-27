@@ -65,7 +65,7 @@ public class PostgresBus : IPostgresBus
         var queueName = AutoMessageMapper.GetQueueName<T>();
         var messagesList = messages.ToList();
 
-        await using var connection = await _npgsqlDataSource.OpenConnectionAsync(ct);
+        await using var connection = await _npgsqlDataSource.OpenConnectionAsync(ct).ConfigureAwait(false);
         await using var command = new NpgsqlCommand(null, connection);
 
         /*
@@ -99,7 +99,7 @@ VALUES {stringValues};
     private async Task PublishAsyncInternal<T>(IEnumerable<T> messages, CancellationToken ct) where T : IPostgresEvent
     {
         var topicName = AutoMessageMapper.GetQueueName<T>();
-        await using var connection = await _npgsqlDataSource.OpenConnectionAsync(ct);
+        await using var connection = await _npgsqlDataSource.OpenConnectionAsync(ct).ConfigureAwait(false);
 
         await using var cmd = new NpgsqlCommand($"select {SchemaName}.publish_events($1, $2)", connection);
 

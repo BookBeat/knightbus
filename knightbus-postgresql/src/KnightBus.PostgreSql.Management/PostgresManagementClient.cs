@@ -23,9 +23,9 @@ SELECT queue_name, created_at
 FROM {SchemaName}.metadata;
 ");
 
-        await using var reader = await command.ExecuteReaderAsync(ct);
+        await using var reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
         var queueMetas = new List<PostgresQueueMetadata>();
-        while (await reader.ReadAsync(ct))
+        while (await reader.ReadAsync(ct).ConfigureAwait(false))
         {
             queueMetas.Add(new PostgresQueueMetadata
             {
@@ -34,7 +34,7 @@ FROM {SchemaName}.metadata;
             });
         }
 
-        await using var conn = await _npgsqlDataSource.OpenConnectionAsync(ct);
+        await using var conn = await _npgsqlDataSource.OpenConnectionAsync(ct).ConfigureAwait(false);
         foreach (var queueMetadata in queueMetas)
         {
             await using var batch = new NpgsqlBatch(conn)
@@ -51,7 +51,7 @@ SELECT COUNT(*) FROM {SchemaName}.{DlQueuePrefix}_{queueMetadata.Name};")
 
             await batch.PrepareAsync(ct);
 
-            await using var batchReader = await batch.ExecuteReaderAsync(ct);
+            await using var batchReader = await batch.ExecuteReaderAsync(ct).ConfigureAwait(false);
             await batchReader.ReadAsync(ct);
             queueMetadata.ActiveMessagesCount = batchReader.GetInt32(0);
             await batchReader.NextResultAsync(ct);
@@ -71,9 +71,9 @@ SELECT subscription_name, created_at
 FROM {SchemaName}.{TopicPrefix}_{topic};
 ");
 
-        await using var reader = await command.ExecuteReaderAsync(ct);
+        await using var reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
         var queueMetas = new List<PostgresQueueMetadata>();
-        while (await reader.ReadAsync(ct))
+        while (await reader.ReadAsync(ct).ConfigureAwait(false))
         {
             queueMetas.Add(new PostgresQueueMetadata
             {
@@ -82,7 +82,7 @@ FROM {SchemaName}.{TopicPrefix}_{topic};
             });
         }
 
-        await using var conn = await _npgsqlDataSource.OpenConnectionAsync(ct);
+        await using var conn = await _npgsqlDataSource.OpenConnectionAsync(ct).ConfigureAwait(false);
         foreach (var queueMetadata in queueMetas)
         {
             await using var batch = new NpgsqlBatch(conn)
@@ -99,7 +99,7 @@ SELECT COUNT(*) FROM {SchemaName}.{DlQueuePrefix}_{topic}_{queueMetadata.Name};"
 
             await batch.PrepareAsync(ct);
 
-            await using var batchReader = await batch.ExecuteReaderAsync(ct);
+            await using var batchReader = await batch.ExecuteReaderAsync(ct).ConfigureAwait(false);
             await batchReader.ReadAsync(ct);
             queueMetadata.ActiveMessagesCount = batchReader.GetInt32(0);
             await batchReader.NextResultAsync(ct);
@@ -114,7 +114,7 @@ SELECT COUNT(*) FROM {SchemaName}.{DlQueuePrefix}_{topic}_{queueMetadata.Name};"
 
     public async Task<PostgresQueueMetadata> GetQueue(PostgresQueueName queueName, CancellationToken ct)
     {
-        await using var conn = await _npgsqlDataSource.OpenConnectionAsync(ct);
+        await using var conn = await _npgsqlDataSource.OpenConnectionAsync(ct).ConfigureAwait(false);
         await using var batch = new NpgsqlBatch(conn)
         {
             BatchCommands =
@@ -136,7 +136,7 @@ WHERE queue_name = ($1);");
 
         await batch.PrepareAsync(ct);
 
-        await using var reader = await batch.ExecuteReaderAsync(ct);
+        await using var reader = await batch.ExecuteReaderAsync(ct).ConfigureAwait(false);
         return await GetQueueMetadata(reader, queueName, ct);
     }
 
@@ -156,7 +156,7 @@ WHERE queue_name = ($1);");
 
     public async Task<PostgresQueueMetadata> GetSubscription(string topic, PostgresQueueName subscription, CancellationToken ct)
     {
-        await using var conn = await _npgsqlDataSource.OpenConnectionAsync(ct);
+        await using var conn = await _npgsqlDataSource.OpenConnectionAsync(ct).ConfigureAwait(false);
         await using var batch = new NpgsqlBatch(conn)
         {
             BatchCommands =
@@ -178,7 +178,7 @@ WHERE subscription_name = ($1);");
 
         await batch.PrepareAsync(ct);
         
-        await using var reader = await batch.ExecuteReaderAsync(ct);
+        await using var reader = await batch.ExecuteReaderAsync(ct).ConfigureAwait(false);
         return await GetQueueMetadata(reader, subscription, ct);
     }
 
@@ -193,7 +193,7 @@ LIMIT ($1);
 
         command.Parameters.Add(new NpgsqlParameter<int> { TypedValue = count });
 
-        await using var reader = await command.ExecuteReaderAsync(ct);
+        await using var reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
         await foreach (var p in ReadMessages(reader, false, ct))
         {
             yield return p;
@@ -209,7 +209,7 @@ LIMIT ($1);
         var readCountOrdinal = !isDeadLetter ?  reader.GetOrdinal("read_count") : 0;
         var messageOrdinal = reader.GetOrdinal("message");
 
-        while (await reader.ReadAsync(ct))
+        while (await reader.ReadAsync(ct).ConfigureAwait(false))
         {
             var isPropertiesNull = reader.IsDBNull(propertiesOrdinal);
 
@@ -242,7 +242,7 @@ LIMIT ($1);
 
         command.Parameters.Add(new NpgsqlParameter<int> { TypedValue = count });
 
-        await using var reader = await command.ExecuteReaderAsync(ct);
+        await using var reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
         await foreach (var p in ReadMessages(reader, false, ct))
         {
             yield return p;
@@ -259,7 +259,7 @@ LIMIT ($1);
 ");
 
         command.Parameters.Add(new NpgsqlParameter<int> { TypedValue = count });
-        await using var reader = await command.ExecuteReaderAsync(ct);
+        await using var reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
 
         await foreach (var p in ReadMessages(reader, true, ct))
         {
@@ -277,7 +277,7 @@ LIMIT ($1);
 ");
 
         command.Parameters.Add(new NpgsqlParameter<int> { TypedValue = count });
-        await using var reader = await command.ExecuteReaderAsync(ct);
+        await using var reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
 
         await foreach (var p in ReadMessages(reader, true, ct))
         {
@@ -304,7 +304,7 @@ FROM deleted_rows;
 ");
 
         command.Parameters.Add(new NpgsqlParameter<int> { TypedValue = count });
-        await using var reader = await command.ExecuteReaderAsync(ct);
+        await using var reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
 
         await foreach (var p in ReadMessages(reader, true, ct))
         {
@@ -331,7 +331,7 @@ FROM deleted_rows;
 ");
 
         command.Parameters.Add(new NpgsqlParameter<int> { TypedValue = count });
-        await using var reader = await command.ExecuteReaderAsync(ct);
+        await using var reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
 
         await foreach (var p in ReadMessages(reader, true, ct))
         {
@@ -393,7 +393,7 @@ SELECT COUNT(*) FROM inserted_rows;
 
     public async Task DeleteQueue(PostgresQueueName queueName, CancellationToken ct)
     {
-        await using var connection = await _npgsqlDataSource.OpenConnectionAsync(ct);
+        await using var connection = await _npgsqlDataSource.OpenConnectionAsync(ct).ConfigureAwait(false);
         await using var transaction = await connection.BeginTransactionAsync(ct);
 
         await using var truncateQueue = _npgsqlDataSource.CreateCommand(@$"
@@ -415,7 +415,7 @@ WHERE queue_name = ($1);
     }
     public async Task DeleteSubscription(string topic, PostgresQueueName subscription, CancellationToken ct)
     {
-        await using var connection = await _npgsqlDataSource.OpenConnectionAsync(ct);
+        await using var connection = await _npgsqlDataSource.OpenConnectionAsync(ct).ConfigureAwait(false);
         await using var transaction = await connection.BeginTransactionAsync(ct);
 
         await using var truncateQueue = _npgsqlDataSource.CreateCommand(@$"
@@ -441,7 +441,7 @@ WHERE subscription_name = ($1);
         await using var command = _npgsqlDataSource.CreateCommand(@$"
 DELETE FROM {SchemaName}.{DlQueuePrefix}_{queueName};
 ");
-        await command.ExecuteNonQueryAsync();
+        await command.ExecuteNonQueryAsync().ConfigureAwait(false);
     }
 
     public async Task PurgeQueue(PostgresQueueName queueName)
@@ -449,7 +449,7 @@ DELETE FROM {SchemaName}.{DlQueuePrefix}_{queueName};
         await using var command = _npgsqlDataSource.CreateCommand(@$"
 DELETE FROM {SchemaName}.{QueuePrefix}_{queueName};
 ");
-        await command.ExecuteNonQueryAsync();
+        await command.ExecuteNonQueryAsync().ConfigureAwait(false);
     }
 }
 

@@ -23,7 +23,7 @@ public class PostgresBaseClient<T> where T : class, IMessage
 
     public async IAsyncEnumerable<PostgresMessage<T>> GetMessagesAsync(int count, int visibilityTimeout, [EnumeratorCancellation] CancellationToken ct)
     {
-        await using var connection = await _npgsqlDataSource.OpenConnectionAsync(ct);
+        await using var connection = await _npgsqlDataSource.OpenConnectionAsync(ct).ConfigureAwait(false);
         await using var command = new NpgsqlCommand(@$"
 WITH cte AS
     (
@@ -48,14 +48,14 @@ UPDATE {SchemaName}.{_prefix}_{_queueName} t
 
         await command.PrepareAsync(ct);
 
-        await using var reader = await command.ExecuteReaderAsync(ct);
+        await using var reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
 
         var propertiesOrdinal = reader.GetOrdinal("properties");
         var messageIdOrdinal = reader.GetOrdinal("message_id");
         var readCountOrdinal = reader.GetOrdinal("read_count");
         var messageOrdinal = reader.GetOrdinal("message");
 
-        while (await reader.ReadAsync(ct))
+        while (await reader.ReadAsync(ct).ConfigureAwait(false))
         {
             var isPropertiesNull = reader.IsDBNull(propertiesOrdinal);
 
@@ -84,7 +84,7 @@ DELETE FROM {SchemaName}.{_prefix}_{_queueName}
 WHERE message_id = ($1);
 ");
         command.Parameters.Add(new NpgsqlParameter<long> { Value = message.Id });
-        await command.ExecuteNonQueryAsync();
+        await command.ExecuteNonQueryAsync().ConfigureAwait(false);
     }
 
     public async Task AbandonByErrorAsync(PostgresMessage<T> message, Exception exception)
@@ -102,7 +102,7 @@ WHERE message_id = ($2);
             Value = _serializer.Serialize(message.Properties), NpgsqlDbType = NpgsqlDbType.Jsonb
         });
         command.Parameters.Add(new NpgsqlParameter<long> { Value = message.Id });
-        await command.ExecuteNonQueryAsync();
+        await command.ExecuteNonQueryAsync().ConfigureAwait(false);
     }
 
     public async Task DeadLetterMessageAsync(PostgresMessage<T> message)
@@ -118,7 +118,7 @@ SELECT message_id, enqueued_at, now(), message, properties
 FROM DeadLetter;
 ");
         command.Parameters.Add(new NpgsqlParameter<long> { Value = message.Id });
-        await command.ExecuteNonQueryAsync();
+        await command.ExecuteNonQueryAsync().ConfigureAwait(false);
     }
 
     public async IAsyncEnumerable<PostgresMessage<T>> PeekDeadLetterMessagesAsync(int count, [EnumeratorCancellation] CancellationToken ct)
@@ -132,13 +132,13 @@ LIMIT ($1);
 
         command.Parameters.Add(new NpgsqlParameter<int> { TypedValue = count });
 
-        await using var reader = await command.ExecuteReaderAsync(ct);
+        await using var reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
 
         var propertiesOrdinal = reader.GetOrdinal("properties");
         var messageIdOrdinal = reader.GetOrdinal("message_id");
         var messageOrdinal = reader.GetOrdinal("message");
 
-        while (await reader.ReadAsync(ct))
+        while (await reader.ReadAsync(ct).ConfigureAwait(false))
         {
             var isPropertiesNull = reader.IsDBNull(propertiesOrdinal);
 
