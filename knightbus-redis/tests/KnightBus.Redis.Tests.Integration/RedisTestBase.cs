@@ -14,7 +14,7 @@ public sealed class RedisTestBase
     [OneTimeSetUp]
     public void BaseSetup()
     {
-        Configuration = new RedisConfiguration("localhost:6379");
+        Configuration = new RedisConfiguration(RedisSetup.ConnectionString);
         Multiplexer = ConnectionMultiplexer.Connect($"{Configuration.ConnectionString},allowAdmin=true");
         Database = Multiplexer.GetDatabase(Configuration.DatabaseId);
     }

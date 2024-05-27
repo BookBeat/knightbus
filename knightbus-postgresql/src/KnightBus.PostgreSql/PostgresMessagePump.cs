@@ -48,7 +48,7 @@ public class PostgresMessagePump<T> : GenericMessagePump<PostgresMessage<T>, IMe
 
     protected override bool ShouldCreateChannel(Exception e)
     {
-        return e is PostgresException { SqlState: "42P01" };
+        return e is PostgresException { SqlState: PostgresErrorCodes.UndefinedTable };
     }
 
     protected override async Task CleanupResources()
