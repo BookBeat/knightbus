@@ -10,9 +10,9 @@ public static class PostgresQueueExtensions
     {
         services = services
             .AddScoped<PostgresQueueManager>()
-            .AddScoped<PostgresSubscriptionManager>()
+            .AddScoped<PostgresTopicManager>()
             .AddScoped<IQueueManager, PostgresQueueManager>()
-            .AddScoped<IQueueManager, PostgresSubscriptionManager>()
+            .AddScoped<IQueueManager, PostgresTopicManager>()
             .AddScoped<PostgresManagementClient>();
 
         return services.UsePostgres(c =>

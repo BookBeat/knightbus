@@ -111,6 +111,27 @@ SELECT COUNT(*) FROM {SchemaName}.{DlQueuePrefix}_{topic}_{queueMetadata.Name};"
 
         return queueMetas;
     }
+    
+    public async Task<List<PostgresQueueMetadata>> ListTopics(CancellationToken ct)
+    {
+        await using var command = _npgsqlDataSource.CreateCommand(@$"
+SELECT tablename
+FROM pg_catalog.pg_tables
+WHERE schemaname = '{SchemaName}' AND tablename LIKE '{TopicPrefix}_%';
+
+");
+
+        await using var reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        var queueMetas = new List<PostgresQueueMetadata>();
+        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+        {
+            queueMetas.Add(new PostgresQueueMetadata
+            {
+                Name = reader.GetString(0)[(TopicPrefix.Length+1)..]
+            });
+        }
+        return queueMetas;
+    }
 
     public async Task<PostgresQueueMetadata> GetQueue(PostgresQueueName queueName, CancellationToken ct)
     {
