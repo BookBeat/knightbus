@@ -16,13 +16,12 @@ public class PostgresTopicManager : IQueueManager
     {
         var topics = await _managementClient.ListTopics(ct);
         return topics.Select(t =>
-            new QueueProperties(t.Name, new PostgresSubscriptionManager(t.Name, _managementClient, _configuration), false,
-                QueueType.Topic));
+            new QueueProperties(t.Name, new PostgresSubscriptionManager(t.Name, _managementClient, _configuration), false, QueueType.Topic));
     }
 
     public Task<QueueProperties> Get(string path, CancellationToken ct)
     {
-        var topic = new QueueProperties(path, this, false, QueueType.Topic);
+        var topic = new QueueProperties(path, new PostgresSubscriptionManager(path, _managementClient, _configuration), false, QueueType.Topic);
         return Task.FromResult(topic);
     }
 
