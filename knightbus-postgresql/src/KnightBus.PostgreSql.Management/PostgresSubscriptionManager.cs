@@ -31,7 +31,7 @@ public class PostgresSubscriptionManager : IQueueManager
     public async Task<QueueProperties> Get(string path, CancellationToken ct)
     {
         var queue = await _managementClient.GetSubscription(_topic, PostgresQueueName.Create(path), ct);
-        return new QueueProperties(queue.Name, this, true)
+        return new SubscriptionQueueProperties(queue.Name, this, path, false)
         {
             ActiveMessageCount = queue.ActiveMessagesCount,
             DeadLetterMessageCount = queue.DeadLetterMessagesCount,
