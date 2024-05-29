@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using KnightBus.Core.Management;
 using KnightBus.Messages;
 
@@ -21,7 +21,7 @@ public class PostgresSubscriptionManager : IQueueManager
     {
         var queues = await _managementClient.ListSubscriptions(_topic, ct);
         return queues.Select(q =>
-            new QueueProperties(q.Name, this, true)
+            new SubscriptionQueueProperties(q.Name, this, _topic, false)
             {
                 ActiveMessageCount = q.ActiveMessagesCount,
                 DeadLetterMessageCount = q.DeadLetterMessagesCount
