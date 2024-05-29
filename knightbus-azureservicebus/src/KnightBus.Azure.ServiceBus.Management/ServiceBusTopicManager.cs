@@ -32,7 +32,7 @@ public class ServiceBusTopicManager : IQueueManager
     public async Task<QueueProperties> Get(string path, CancellationToken ct)
     {
         var topic = await _adminClient.GetTopicRuntimePropertiesAsync(path, ct).ConfigureAwait(false);
-        return topic.Value.ToQueueProperties(this);
+        return topic.Value.ToQueueProperties(new ServiceBusSubscriptionManager(path, _client, _adminClient));
     }
 
     public Task Delete(string path, CancellationToken ct)
