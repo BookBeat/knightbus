@@ -85,4 +85,8 @@ public class RedisQueueManager : IQueueManager
     }
 
     public QueueType QueueType => QueueType.Queue;
+    public Task SendMessage(string path, string jsonBody, CancellationToken cancellationToken)
+    {
+        throw new System.NotImplementedException();
+    }
 }

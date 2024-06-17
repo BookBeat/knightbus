@@ -1,4 +1,5 @@
-﻿using FluentAssertions;
+﻿using System.Text.Json;
+using FluentAssertions;
 using KnightBus.Core;
 using KnightBus.Messages;
 using KnightBus.PostgreSql.Management;
@@ -233,6 +234,21 @@ WHERE message_id = {message[0].Id}")
             .ToList();
         secondResult.Single().Id.Should().Be(message[0].Id);
         secondResult.Single().Message.Should().BeEquivalentTo(message[0].Message);
+    }
+
+    [Test]
+    public async Task ManagementClient_SendMessages()
+    {
+        var message = new { MessageBody = "hello, world!" };
+        var jsonBody = JsonSerializer.Serialize(message);
+        await _postgresManagementClient.SendMessage(PostgresQueueName.Create("my_queue"),
+            jsonBody, default);
+
+        var messages = _postgresQueueClient.GetMessagesAsync(1, 100, default)
+            .ToBlockingEnumerable()
+            .ToList();
+
+        messages[0].Message.MessageBody.Should().Be(message.MessageBody);
     }
 }
 

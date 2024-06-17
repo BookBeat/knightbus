@@ -39,4 +39,8 @@ public interface IQueueManager
     /// Type of queue <see cref="QueueType"/>
     /// </summary>
     QueueType QueueType { get; }
+    /// <summary>
+    /// Sends a message to the queue
+    /// </summary>
+    Task SendMessage(string path, string jsonBody, CancellationToken cancellationToken);
 }

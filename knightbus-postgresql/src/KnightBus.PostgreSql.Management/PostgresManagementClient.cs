@@ -1,6 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
 using KnightBus.Messages;
 using Npgsql;
+using NpgsqlTypes;
 using static KnightBus.PostgreSql.PostgresConstants;
 
 namespace KnightBus.PostgreSql.Management;
@@ -472,5 +473,14 @@ DELETE FROM {SchemaName}.{QueuePrefix}_{queueName};
 ");
         await command.ExecuteNonQueryAsync().ConfigureAwait(false);
     }
-}
 
+    public async Task SendMessage(PostgresQueueName queueName, string jsonBody, CancellationToken cancellationToken)
+    {
+        await using var command = _npgsqlDataSource.CreateCommand(@$"
+INSERT INTO {SchemaName}.{QueuePrefix}_{queueName} (visibility_timeout, message)
+VALUES (now(), $1);
+");
+        command.Parameters.Add(new NpgsqlParameter { Value = jsonBody, NpgsqlDbType = NpgsqlDbType.Jsonb });
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+}

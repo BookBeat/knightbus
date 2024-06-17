@@ -129,4 +129,8 @@ public class ServiceBusSubscriptionManager : IQueueManager
         return ServiceBusQueueManager.MoveMessages(sender, receiver, count, 10);
     }
     public QueueType QueueType => QueueType.Subscription;
+    public Task SendMessage(string path, string jsonBody, CancellationToken cancellationToken)
+    {
+        throw new System.NotImplementedException();
+    }
 }

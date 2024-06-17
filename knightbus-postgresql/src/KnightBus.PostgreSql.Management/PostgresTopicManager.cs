@@ -51,4 +51,8 @@ public class PostgresTopicManager : IQueueManager
     }
 
     public QueueType QueueType => QueueType.Topic;
+    public Task SendMessage(string path, string jsonBody, CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
+    }
 }

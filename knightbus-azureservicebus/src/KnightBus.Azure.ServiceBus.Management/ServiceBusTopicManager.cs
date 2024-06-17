@@ -60,4 +60,8 @@ public class ServiceBusTopicManager : IQueueManager
         throw new NotImplementedException();
     }
     public QueueType QueueType => QueueType.Topic;
+    public Task SendMessage(string path, string jsonBody, CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
+    }
 }

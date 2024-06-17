@@ -147,6 +147,10 @@ public class ServiceBusQueueManager : IQueueManager
             10);
     }
     public QueueType QueueType => QueueType.Queue;
+    public Task SendMessage(string path, string jsonBody, CancellationToken cancellationToken)
+    {
+        throw new System.NotImplementedException();
+    }
 
     internal static async Task<int> MoveMessages(
         ServiceBusSender sender,

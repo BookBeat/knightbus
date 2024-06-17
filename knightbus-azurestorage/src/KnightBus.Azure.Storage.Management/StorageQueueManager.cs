@@ -138,4 +138,8 @@ public class StorageQueueManager : IQueueManager
         return count;
     }
     public QueueType QueueType => QueueType.Queue;
+    public Task SendMessage(string path, string jsonBody, CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
+    }
 }
