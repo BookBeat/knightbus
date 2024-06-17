@@ -147,9 +147,11 @@ public class ServiceBusQueueManager : IQueueManager
             10);
     }
     public QueueType QueueType => QueueType.Queue;
-    public Task SendMessage(string path, string jsonBody, CancellationToken cancellationToken)
+
+    public async Task SendMessage(string path, string jsonBody, CancellationToken cancellationToken)
     {
-        throw new System.NotImplementedException();
+        var sender = _client.CreateSender(path);
+        await sender.SendMessageAsync(new ServiceBusMessage(jsonBody) { ContentType = "application/json" }, cancellationToken);
     }
 
     internal static async Task<int> MoveMessages(
