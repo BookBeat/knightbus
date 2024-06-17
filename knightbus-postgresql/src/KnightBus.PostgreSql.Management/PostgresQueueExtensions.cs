@@ -12,6 +12,7 @@ public static class PostgresQueueExtensions
             .AddScoped<PostgresQueueManager>()
             .AddScoped<PostgresTopicManager>()
             .AddScoped<IQueueManager, PostgresQueueManager>()
+            .AddScoped<IQueueMessageSender, PostgresQueueManager>()
             .AddScoped<IQueueManager, PostgresTopicManager>()
             .AddScoped<PostgresManagementClient>();
 
