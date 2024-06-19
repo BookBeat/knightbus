@@ -53,6 +53,7 @@ public static class ServiceBusExtensions
     public static IServiceCollection AddServiceBusManagement(this IServiceCollection services, string connectionString)
     {
         return services
+            .AddScoped<IQueueMessageSender, ServiceBusQueueManager>()
             .AddScoped<IQueueManager, ServiceBusQueueManager>()
             .AddScoped<IQueueManager, ServiceBusTopicManager>()
             .AddScoped<ServiceBusQueueManager>()

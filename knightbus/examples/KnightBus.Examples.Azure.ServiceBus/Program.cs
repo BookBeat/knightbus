@@ -44,17 +44,22 @@ class Program
         { MessageSerializer = new ProtobufNetSerializer() }, new ClientFactory(new ServiceBusConfiguration(serviceBusConnection)), Enumerable.Empty<IMessagePreProcessor>());
         var jsonClient = new KnightBus.Azure.ServiceBus.ServiceBus(new ServiceBusConfiguration(serviceBusConnection), new ClientFactory(new ServiceBusConfiguration(serviceBusConnection)),
             Enumerable.Empty<IMessagePreProcessor>());
+        var managementClient =
+            new KnightBus.Azure.ServiceBus.Management.ServiceBusQueueManager(
+                new ServiceBusConfiguration(serviceBusConnection));
+
         //Send some Messages and watch them print in the console
         for (var i = 0; i < 10; i++)
         {
             await protoClient.SendAsync(new SampleServiceBusMessage { Message = $"Hello from command {i}" });
         }
-
         for (var i = 0; i < 10; i++)
         {
             await jsonClient.PublishEventAsync(new SampleServiceBusEvent { Message = $"Hello from event {i}" });
         }
 
+        // Send a message with management client
+        await managementClient.SendMessage("other-queue", "{\"SomeProperty\": \"hello, world!\"}", default);
 
         Console.ReadKey();
     }
@@ -68,6 +73,16 @@ class Program
     class SampleServiceBusEvent : IServiceBusEvent
     {
         public string Message { get; set; }
+    }
+
+    class OtherSampleServiceBusMessage : IServiceBusCommand
+    {
+        public string SomeProperty { get; set; }
+    }
+
+    class OtherSampleServiceBusMessageMapping : IMessageMapping<OtherSampleServiceBusMessage>
+    {
+        public string QueueName => "other-queue";
     }
 
     class SampleServiceBusMessageMapping : IMessageMapping<SampleServiceBusMessage>, IServiceBusCreationOptions, ICustomMessageSerializer
@@ -86,6 +101,7 @@ class Program
 
     class SampleServiceBusMessageProcessor :
         IProcessCommand<SampleServiceBusMessage, ProtoBufProcessingSetting>,
+        IProcessCommand<OtherSampleServiceBusMessage, ProtoBufProcessingSetting>,
         IProcessEvent<SampleServiceBusEvent, EventSubscriptionOne, SomeProcessingSetting>
     {
         public Task ProcessAsync(SampleServiceBusMessage message, CancellationToken cancellationToken)
@@ -97,6 +113,12 @@ class Program
         public Task ProcessAsync(SampleServiceBusEvent message, CancellationToken cancellationToken)
         {
             Console.WriteLine($"Received event: '{message.Message}'");
+            return Task.CompletedTask;
+        }
+
+        public Task ProcessAsync(OtherSampleServiceBusMessage message, CancellationToken cancellationToken)
+        {
+            Console.WriteLine($"Received command: '{message.SomeProperty}'");
             return Task.CompletedTask;
         }
     }

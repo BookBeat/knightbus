@@ -4,7 +4,7 @@ using KnightBus.Messages;
 
 namespace KnightBus.PostgreSql.Management;
 
-public class PostgresQueueManager : IQueueManager
+public class PostgresQueueManager : IQueueManager, IQueueMessageSender
 {
     private readonly PostgresManagementClient _managementClient;
     private readonly IMessageSerializer _messageSerializer;
@@ -112,6 +112,11 @@ public class PostgresQueueManager : IQueueManager
     {
         var result = await _managementClient.RequeueDeadLettersAsync(PostgresQueueName.Create(path), count, ct);
         return (int)result;
+    }
+
+    public async Task SendMessage(string path, string jsonBody, CancellationToken cancellationToken)
+    {
+        await _managementClient.SendMessage(PostgresQueueName.Create(path), jsonBody, cancellationToken);
     }
 
     public QueueType QueueType => QueueType.Queue;
