@@ -1,11 +1,12 @@
 ﻿using KnightBus.Core;
+using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 
 namespace KnightBus.PostgreSql;
 
 public class PostgresTransport : ITransport
 {
-    public PostgresTransport(IPostgresConfiguration postgresConfiguration, NpgsqlDataSource npgsqlDataSource)
+    public PostgresTransport(IPostgresConfiguration postgresConfiguration, [FromKeyedServices(PostgresConstants.NpgsqlDataSourceContainerKey)]NpgsqlDataSource npgsqlDataSource)
     {
         TransportChannelFactories = [
             new PostgresChannelFactory(npgsqlDataSource, postgresConfiguration),

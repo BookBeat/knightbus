@@ -1,6 +1,7 @@
 ﻿using KnightBus.Core.Sagas;
 using KnightBus.Core.Sagas.Exceptions;
 using KnightBus.Messages;
+using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using static KnightBus.PostgreSql.PostgresConstants;
 
@@ -13,7 +14,7 @@ public class PostgresSagaStore : ISagaStore
 
     private const string Table = "sagas";
 
-    public PostgresSagaStore(NpgsqlDataSource npgsqlDataSource, IPostgresConfiguration configuration)
+    public PostgresSagaStore([FromKeyedServices(PostgresConstants.NpgsqlDataSourceContainerKey)] NpgsqlDataSource npgsqlDataSource, IPostgresConfiguration configuration)
     {
         _npgsqlDataSource = npgsqlDataSource;
         _serializer = configuration.MessageSerializer;
