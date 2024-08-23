@@ -5,6 +5,7 @@
     <Authors>BookBeat</Authors>
     <Copyright>Copyright © BookBeat 2020</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="FluentAssertions" Version="6.12.0" />
