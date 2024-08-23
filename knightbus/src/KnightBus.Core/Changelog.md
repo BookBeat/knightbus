@@ -1,4 +1,8 @@
 # KnightBus.Core Changelog
+
+# 16.1.3
+* (patch) Updated System.Text.Json version
+
 # 15.0.0
 * Throw if etag differs when updating blob saga data
 
