@@ -3,6 +3,7 @@ using System.Text;
 using KnightBus.Core;
 using KnightBus.Messages;
 using KnightBus.PostgreSql.Messages;
+using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using NpgsqlTypes;
 using static KnightBus.PostgreSql.PostgresConstants;
@@ -24,7 +25,7 @@ public class PostgresBus : IPostgresBus
     private readonly NpgsqlDataSource _npgsqlDataSource;
     private readonly IMessageSerializer _serializer;
 
-    public PostgresBus(NpgsqlDataSource npgsqlDataSource, IPostgresConfiguration postgresConfiguration)
+    public PostgresBus([FromKeyedServices(PostgresConstants.NpgsqlDataSourceContainerKey)]NpgsqlDataSource npgsqlDataSource, IPostgresConfiguration postgresConfiguration)
     {
         _npgsqlDataSource = npgsqlDataSource;
         _serializer = postgresConfiguration.MessageSerializer;
