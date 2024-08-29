@@ -1,5 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 using KnightBus.Messages;
+using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using NpgsqlTypes;
 using static KnightBus.PostgreSql.PostgresConstants;
@@ -11,7 +12,7 @@ public class PostgresManagementClient
     private readonly NpgsqlDataSource _npgsqlDataSource;
     private readonly IMessageSerializer _serializer;
 
-    public PostgresManagementClient(NpgsqlDataSource npgsqlDataSource, IPostgresConfiguration configuration)
+    public PostgresManagementClient([FromKeyedServices(NpgsqlDataSourceContainerKey)] NpgsqlDataSource npgsqlDataSource, IPostgresConfiguration configuration)
     {
         _npgsqlDataSource = npgsqlDataSource;
         _serializer = configuration.MessageSerializer;
