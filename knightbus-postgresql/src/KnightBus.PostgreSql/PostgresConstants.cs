@@ -7,6 +7,6 @@ public static class PostgresConstants
     public const string SubscriptionPrefix = "s";
     public const string DlQueuePrefix = "dlq";
     public const string SchemaName = "knightbus";
-    
-    internal const string NpgsqlDataSourceContainerKey = "knightbus-postgres";
+
+    public const string NpgsqlDataSourceContainerKey = "knightbus-postgres";
 }
