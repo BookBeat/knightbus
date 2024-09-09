@@ -87,27 +87,29 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Examples.Nats", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Nats.Messages", "knightbus-nats\src\KnightBus.Nats.Messages\KnightBus.Nats.Messages.csproj", "{BC97493B-C23A-40A9-AB96-51D93ED689C3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.Nats.Tests.Unit", "knightbus-nats\tests\KnightBus.Nats.Tests.Unit\KnightBus.Nats.Tests.Unit.csproj", "{4E160CA8-3B3F-404B-ACE5-FA9B696BC921}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Nats.Tests.Unit", "knightbus-nats\tests\KnightBus.Nats.Tests.Unit\KnightBus.Nats.Tests.Unit.csproj", "{4E160CA8-3B3F-404B-ACE5-FA9B696BC921}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.Azure.ServiceBus.Management", "knightbus-azureservicebus\src\KnightBus.Azure.ServiceBus.Management\KnightBus.Azure.ServiceBus.Management.csproj", "{DA091C7C-9CDE-422A-9F59-121CD5A629D4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Azure.ServiceBus.Management", "knightbus-azureservicebus\src\KnightBus.Azure.ServiceBus.Management\KnightBus.Azure.ServiceBus.Management.csproj", "{DA091C7C-9CDE-422A-9F59-121CD5A629D4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.Azure.Storage.Management", "knightbus-azurestorage\src\KnightBus.Azure.Storage.Management\KnightBus.Azure.Storage.Management.csproj", "{90D75832-70E2-46A6-A74D-BEB147F9BDC6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Azure.Storage.Management", "knightbus-azurestorage\src\KnightBus.Azure.Storage.Management\KnightBus.Azure.Storage.Management.csproj", "{90D75832-70E2-46A6-A74D-BEB147F9BDC6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.Core.Management", "knightbus\src\KnightBus.Core.Management\KnightBus.Core.Management.csproj", "{8BDDA52E-B63E-479C-AF09-CFF10BBD79ED}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Core.Management", "knightbus\src\KnightBus.Core.Management\KnightBus.Core.Management.csproj", "{8BDDA52E-B63E-479C-AF09-CFF10BBD79ED}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.Redis.Management", "knightbus-redis\src\KnightBus.Redis.Management\KnightBus.Redis.Management.csproj", "{11EE47A1-3F42-4ADE-9DC7-73F9DFD710D4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Redis.Management", "knightbus-redis\src\KnightBus.Redis.Management\KnightBus.Redis.Management.csproj", "{11EE47A1-3F42-4ADE-9DC7-73F9DFD710D4}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "PostgreSql", "PostgreSql", "{F4BD90E0-18D9-43A4-B9C1-E8CD2CEDCECA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.PostgreSql", "knightbus-postgresql\src\KnightBus.PostgreSql\KnightBus.PostgreSql.csproj", "{782E171C-B08B-4788-BE39-F85CCD09DF5F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.PostgreSql", "knightbus-postgresql\src\KnightBus.PostgreSql\KnightBus.PostgreSql.csproj", "{782E171C-B08B-4788-BE39-F85CCD09DF5F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.PostgreSql.Messages", "knightbus-postgresql\src\KnightBus.PostgreSql.Messages\KnightBus.PostgreSql.Messages.csproj", "{8AA6DAD6-CA65-430A-A040-5FED474C5787}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.PostgreSql.Messages", "knightbus-postgresql\src\KnightBus.PostgreSql.Messages\KnightBus.PostgreSql.Messages.csproj", "{8AA6DAD6-CA65-430A-A040-5FED474C5787}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.PostgreSql.Tests.Integration", "knightbus-postgresql\tests\KnightBus.PostgreSql.Tests.Integration\KnightBus.PostgreSql.Tests.Integration.csproj", "{CF38E1C2-9D42-4EEE-8E9A-C92CC7BEE310}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.PostgreSql.Tests.Integration", "knightbus-postgresql\tests\KnightBus.PostgreSql.Tests.Integration\KnightBus.PostgreSql.Tests.Integration.csproj", "{CF38E1C2-9D42-4EEE-8E9A-C92CC7BEE310}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.Examples.PostgreSql", "knightbus\examples\KnightBus.Examples.PostgreSql\KnightBus.Examples.PostgreSql.csproj", "{09E9604D-DCE1-4A8A-BEE0-3E7526FFABC0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Examples.PostgreSql", "knightbus\examples\KnightBus.Examples.PostgreSql\KnightBus.Examples.PostgreSql.csproj", "{09E9604D-DCE1-4A8A-BEE0-3E7526FFABC0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.PostgreSql.Management", "knightbus-postgresql\src\KnightBus.PostgreSql.Management\KnightBus.PostgreSql.Management.csproj", "{99549151-DE4A-4380-923B-BF45C536A1A0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.PostgreSql.Management", "knightbus-postgresql\src\KnightBus.PostgreSql.Management\KnightBus.PostgreSql.Management.csproj", "{99549151-DE4A-4380-923B-BF45C536A1A0}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Health", "knightbus-health\src\KnightBus.Health\KnightBus.Health.csproj", "{9394C51E-615B-4F0E-959D-AFAF5F7D6649}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -283,6 +285,10 @@ Global
 		{99549151-DE4A-4380-923B-BF45C536A1A0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{99549151-DE4A-4380-923B-BF45C536A1A0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{99549151-DE4A-4380-923B-BF45C536A1A0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9394C51E-615B-4F0E-959D-AFAF5F7D6649}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9394C51E-615B-4F0E-959D-AFAF5F7D6649}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9394C51E-615B-4F0E-959D-AFAF5F7D6649}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9394C51E-615B-4F0E-959D-AFAF5F7D6649}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
