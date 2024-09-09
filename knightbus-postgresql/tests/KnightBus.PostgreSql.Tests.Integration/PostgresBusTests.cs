@@ -69,6 +69,30 @@ public class PostgresBusTests
 
         messagesCount.Should().Be(2);
     }
+    
+    [Test]
+    public async Task InsertALotOfMessages()
+    {
+        static IEnumerable<TestCommand> GenerateCommands()
+        {
+            for (var i = 0; i < 100_000; i++)
+            {
+                yield return new TestCommand { MessageBody = $"Hello from {i}" };
+            }
+        }
+
+        await _postgresBus.SendAsync(GenerateCommands(), default);
+
+        var messagesCount = (long)(
+            await PostgresSetup
+                .DataSource.CreateCommand(
+                    $"SELECT COUNT(*) FROM knightbus.q_{AutoMessageMapper.GetQueueName<TestCommand>()};"
+                )
+                .ExecuteScalarAsync() ?? 0
+        );
+
+        messagesCount.Should().Be(100_000);
+    }
 
     [Test]
     public async Task GetMessages()
@@ -208,6 +232,36 @@ WHERE message_id = {message[0].Id}")
             .ToBlockingEnumerable()
             .ToList();;
         result[0].Message.MessageBody.Should().Be("for future");
+    }
+    
+    [Test]
+    public async Task ScheduleALotOfMessages()
+    {
+        static IEnumerable<TestCommand> GenerateCommands()
+        {
+            for (var i = 0; i < 100_000; i++)
+            {
+                yield return new TestCommand { MessageBody = $"For future from {i}" };
+            }
+        }
+
+        await _postgresBus.ScheduleAsync(GenerateCommands(), TimeSpan.FromSeconds(3), default);
+
+        var messages = _postgresQueueClient
+            .GetMessagesAsync(100_000, 10, default)
+            .ToBlockingEnumerable()
+            .ToList();
+        messages.Count.Should().Be(0);
+
+        await Task.Delay(3000);
+
+        var result = _postgresQueueClient
+            .GetMessagesAsync(100_000, 10, default)
+            .ToBlockingEnumerable()
+            .ToList();
+
+        result[0].Message.MessageBody.Should().Be("For future from 0");
+        result.Count.Should().Be(100_000);
     }
 
     [Test]
