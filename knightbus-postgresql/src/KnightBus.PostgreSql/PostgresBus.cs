@@ -1,5 +1,4 @@
 ﻿using System.Data;
-using System.Text;
 using KnightBus.Core;
 using KnightBus.Messages;
 using KnightBus.PostgreSql.Messages;
@@ -25,7 +24,7 @@ public class PostgresBus : IPostgresBus
     private readonly NpgsqlDataSource _npgsqlDataSource;
     private readonly IMessageSerializer _serializer;
 
-    public PostgresBus([FromKeyedServices(PostgresConstants.NpgsqlDataSourceContainerKey)]NpgsqlDataSource npgsqlDataSource, IPostgresConfiguration postgresConfiguration)
+    public PostgresBus([FromKeyedServices(NpgsqlDataSourceContainerKey)] NpgsqlDataSource npgsqlDataSource, IPostgresConfiguration postgresConfiguration)
     {
         _npgsqlDataSource = npgsqlDataSource;
         _serializer = postgresConfiguration.MessageSerializer;
@@ -66,37 +65,34 @@ public class PostgresBus : IPostgresBus
         var queueName = AutoMessageMapper.GetQueueName<T>();
         var messagesList = messages.ToList();
 
-        await using var connection = await _npgsqlDataSource.OpenConnectionAsync(ct).ConfigureAwait(false);
-        await using var command = new NpgsqlCommand(null, connection);
+        await using var connection = await _npgsqlDataSource
+            .OpenConnectionAsync(ct)
+            .ConfigureAwait(false);
+        await using var batch = new NpgsqlBatch(connection);
 
-        /*
-         * Build a cmd text with multirow VALUES syntax and parameter placeholders
-         * INSERT INTO queue (visibility_timeout, message) VALUES
-         * ('now() + optional delay', ($1)),
-         * ('now() + optional delay', ($2)),
-         * ('now() + optional delay', ($3));
-         */
-        var values = new StringBuilder();
-        for (int i = 0; i < messagesList.Count; i++)
+        foreach (var message in messagesList)
         {
-            var oneBasedIndex = i + 1;
-            var trailingComma = oneBasedIndex == messagesList.Count ? string.Empty : ",";
-            values.AppendFormat("((now() + interval '{0} seconds'), (${1})){2}",
-                delay?.TotalSeconds ?? 0, oneBasedIndex, trailingComma);
+            var mBody = _serializer.Serialize(message);
 
-            var mBody = _serializer.Serialize(messagesList[i]);
-            command.Parameters.Add(new NpgsqlParameter { Value = mBody, NpgsqlDbType = NpgsqlDbType.Jsonb });
+            var visibilityTimeout = $"now() + INTERVAL '{delay?.TotalSeconds ?? 0}'";
+            var cmd = new NpgsqlBatchCommand(
+                $"""
+                    INSERT INTO {SchemaName}.{QueuePrefix}_{queueName} (visibility_timeout, message)
+                    VALUES ({visibilityTimeout}, $1::JSONB);
+                """
+            );
+
+            cmd.Parameters.Add(
+                new NpgsqlParameter { Value = mBody, NpgsqlDbType = NpgsqlDbType.Jsonb }
+            );
+
+            batch.BatchCommands.Add(cmd);
         }
 
-        var stringValues = values.ToString();
-
-        command.CommandText = @$"
-INSERT INTO {SchemaName}.{QueuePrefix}_{queueName} (visibility_timeout, message)
-VALUES {stringValues};
-";
-        await command.PrepareAsync(ct);
-        await command.ExecuteNonQueryAsync(ct);
+        await batch.PrepareAsync(ct).ConfigureAwait(false);
+        await batch.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
+
     private async Task PublishAsyncInternal<T>(IEnumerable<T> messages, CancellationToken ct) where T : IPostgresEvent
     {
         var topicName = AutoMessageMapper.GetQueueName<T>();
