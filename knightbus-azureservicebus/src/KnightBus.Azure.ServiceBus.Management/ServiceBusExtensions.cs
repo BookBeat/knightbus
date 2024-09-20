@@ -7,7 +7,10 @@ namespace KnightBus.Azure.ServiceBus.Management;
 
 public static class ServiceBusExtensions
 {
-    internal static QueueProperties ToQueueProperties(this QueueRuntimeProperties properties, IQueueManager manager)
+    internal static QueueProperties ToQueueProperties(
+        this QueueRuntimeProperties properties,
+        IQueueManager manager
+    )
     {
         return new QueueProperties(properties.Name, manager, true)
         {
@@ -23,7 +26,12 @@ public static class ServiceBusExtensions
             UpdatedAt = properties.UpdatedAt
         };
     }
-    internal static SubscriptionQueueProperties ToQueueProperties(this SubscriptionRuntimeProperties properties, IQueueManager manager, string topic)
+
+    internal static SubscriptionQueueProperties ToQueueProperties(
+        this SubscriptionRuntimeProperties properties,
+        IQueueManager manager,
+        string topic
+    )
     {
         return new SubscriptionQueueProperties(properties.SubscriptionName, manager, topic, false)
         {
@@ -38,7 +46,10 @@ public static class ServiceBusExtensions
         };
     }
 
-    internal static QueueProperties ToQueueProperties(this TopicRuntimeProperties properties, IQueueManager manager)
+    internal static QueueProperties ToQueueProperties(
+        this TopicRuntimeProperties properties,
+        IQueueManager manager
+    )
     {
         return new QueueProperties(properties.Name, manager, false, QueueType.Topic)
         {
@@ -50,7 +61,10 @@ public static class ServiceBusExtensions
         };
     }
 
-    public static IServiceCollection AddServiceBusManagement(this IServiceCollection services, string connectionString)
+    public static IServiceCollection AddServiceBusManagement(
+        this IServiceCollection services,
+        string connectionString
+    )
     {
         return services
             .AddScoped<IQueueMessageSender, ServiceBusQueueManager>()
@@ -59,5 +73,10 @@ public static class ServiceBusExtensions
             .AddScoped<ServiceBusQueueManager>()
             .AddScoped<ServiceBusTopicManager>()
             .UseServiceBus(c => c.ConnectionString = connectionString);
+    }
+
+    public static IServiceCollection AddTopicCreator(this IServiceCollection services)
+    {
+        return services.AddScoped<IServiceBusTopicCreator, ServiceBusTopicManager>();
     }
 }
