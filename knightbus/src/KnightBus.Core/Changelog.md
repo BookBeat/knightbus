@@ -1,5 +1,8 @@
 # KnightBus.Core Changelog
 
+# 16.1.4
+* (patch) Updated System.Text.Json version
+
 # 16.1.3
 * (patch) Updated System.Text.Json version
 
