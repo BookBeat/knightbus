@@ -14,12 +14,13 @@ using KnightBus.Redis.Messages;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace KnightBus.Examples.Redis;
+using StackExchange.Redis;
 
 class Program
 {
     static async Task Main(string[] args)
     {
+        
         var redisConnection = "localhost:6379";
 
         var knightBusHost = global::Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
@@ -47,7 +48,8 @@ class Program
         await knightBusHost.StartAsync(CancellationToken.None);
 
         //Start the saga
-        var client = knightBusHost.Services.GetRequiredService<IRedisBus>();
+        var scope = knightBusHost.Services.CreateScope();
+        var client = scope.ServiceProvider.GetRequiredService<IRedisBus>();
         await client.SendAsync(new SampleRedisSagaStarterCommand());
 
 
@@ -63,7 +65,6 @@ class Program
         sw.Start();
         await client.SendAsync<SampleRedisCommand>(commands);
         Console.WriteLine($"Elapsed {sw.Elapsed}");
-
 
         Console.ReadKey();
     }
@@ -124,6 +125,7 @@ class Program
     {
         public Task ProcessAsync(SampleRedisCommand command, CancellationToken cancellationToken)
         {
+            Console.WriteLine($"Processing command {command.Message}");
             return Task.CompletedTask;
         }
     }
