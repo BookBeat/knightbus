@@ -9,7 +9,14 @@
 
     <ItemGroup>
       <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.46.1" />
+      <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.1" />
       <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\..\knightbus-cosmos\src\KnightBus.Cosmos\KnightBus.Cosmos.csproj" />
+      <ProjectReference Include="..\..\..\knightbus-newtonsoft\src\KnightBus.Newtonsoft\KnightBus.Newtonsoft.csproj" />
+      <ProjectReference Include="..\..\src\KnightBus.Host\KnightBus.Host.csproj" />
     </ItemGroup>
 
 </Project>

@@ -1,4 +1,5 @@
 ﻿using KnightBus.Cosmos.Messages;
+using Microsoft.Azure.Cosmos;
 
 namespace KnightBus.Cosmos;
 public interface ICosmosBus
@@ -25,10 +26,25 @@ public interface ICosmosBus
 
 public class CosmosBus : ICosmosBus
 {
+    public CosmosClient _client;
+    //Constructor
+    public CosmosBus(string? connectionString)
+    {
+        ArgumentNullException.ThrowIfNull(connectionString);
+        //Instantiate CosmosClient
+        _client = new CosmosClient(connectionString,
+            new CosmosClientOptions() { ApplicationName = "Sender" });
+    }
+
+    public void cleanUp()
+    {
+        _client.Dispose();
+    }
+    
     //Send a single command
     public Task SendAsync<T>(T message, CancellationToken ct) where T : ICosmosCommand
     {
-        //To be implemented
+        Console.WriteLine("CosmosBus SendAsync called");
         return Task.CompletedTask;
     }
 

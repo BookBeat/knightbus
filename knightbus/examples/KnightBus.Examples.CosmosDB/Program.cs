@@ -6,7 +6,13 @@ using System.Collections.Generic;
 using System.Net;
 using System.Runtime.CompilerServices;
 using Azure;
+using KnightBus.Core.DependencyInjection;
 using Microsoft.Azure.Cosmos;
+using KnightBus.Cosmos;
+using KnightBus.Cosmos.Messages;
+using Microsoft.Extensions.Hosting;
+using KnightBus.Core;
+using KnightBus.Host;
 
 namespace KnightBus.Examples.CosmosDB
 {
@@ -17,16 +23,40 @@ namespace KnightBus.Examples.CosmosDB
             Console.WriteLine("Starting CosmosDB example");
 
             //Connection string found in CosmosDB
-            string? connectionString = Environment.GetEnvironmentVariable("CosmosString");
-            Console.WriteLine("str: {0}",connectionString);
+            string? connectionString = Environment.GetEnvironmentVariable("CosmosString"); 
             const string databaseId = "db";
             const string containerId = "items";
 
+            var knightBusHost = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
+                .UseDefaultServiceProvider(options =>
+                {
+                    options.ValidateScopes = true;
+                    options.ValidateOnBuild = true;
+                })
+                .ConfigureServices(services =>
+                {
+                    services.UseCosmos(configuration =>
+                        {
+                            configuration.ConnectionString = connectionString;
+                            configuration.PollingDelay = TimeSpan.FromMilliseconds(250);
+                        })
+                        .RegisterProcessors(typeof(Program).Assembly) //Can be any class name in this project
+                        .UseTransport<CosmosTransport>();
+                })
+                .UseKnightBus()
+                .Build();
+
+            
+            
+            
+            
             Program p = new Program();
             
             //Initialize cosmos Client
             var cosmosClient = new CosmosClient(connectionString,
                 new CosmosClientOptions() { ApplicationName = "ChangeFeedHost" });
+
+            CosmosBus c = new CosmosBus(connectionString);
             
             //Set up database and containers
             await p.CreateDatabaseAsync(cosmosClient, databaseId);
@@ -45,21 +75,15 @@ namespace KnightBus.Examples.CosmosDB
 
             await changeFeedProcessor.StartAsync();
             Console.WriteLine("Change Feed Processor started \n");
-
-
-            Messenger m = new Messenger();
-            m.cosmosClient = new CosmosClient(connectionString,
-                new CosmosClientOptions() { ApplicationName = "Client" });
-
-
-            for (int i = 0; i < 10; i++)
+            
+            //Send messages
+            for (int i = 0; i < 2; i++)
             {
-                await m.SendAsync(i, databaseId, containerId);
+                await c.SendAsync(new SampleCosmosCommand(), CancellationToken.None);
             }
-
-
+            
             //Clean-up
-            m.cosmosClient.Dispose();
+            c.cleanUp();
             Console.WriteLine("End of program, press any key to exit.");
             Console.ReadKey();
             
@@ -153,4 +177,10 @@ namespace KnightBus.Examples.CosmosDB
             }
         }
     }
+
+    public class SampleCosmosCommand : ICosmosCommand
+    {
+        public string message_id => "123";
+    }
+    
 }
