@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
+using FluentAssertions.Execution;
 using KnightBus.Core;
 using KnightBus.Core.Management;
 using KnightBus.Messages;
@@ -60,8 +61,10 @@ public abstract class QueueManagerTests<TCommand> where TCommand : class, IMessa
         //act
         var messages = await QueueManager.Peek(queueName, 10, CancellationToken.None);
         //assert
+        using var scope = new AssertionScope();
         messages.Should().HaveCount(1);
         messages[0].Body.Should().Contain(messageText);
+        messages[0].Time.Should().NotBeNull();
         var verifyStillAvailable = await QueueManager.Peek(queueName, 1, CancellationToken.None);
         verifyStillAvailable[0].Body.Should().Contain(messageText, "The message should still be available after peeking");
     }
@@ -76,8 +79,10 @@ public abstract class QueueManagerTests<TCommand> where TCommand : class, IMessa
         //act
         var messages = await QueueManager.PeekDeadLetter(queueName, 10, CancellationToken.None);
         //assert
+        using var scope = new AssertionScope();
         messages.Should().HaveCount(1);
         messages[0].Body.Should().Contain(messageText);
+        messages[0].Time.Should().NotBeNull();
         var verifyStillAvailable = await QueueManager.PeekDeadLetter(queueName, 1, CancellationToken.None);
         verifyStillAvailable[0].Body.Should().Contain(messageText, "The message should still be available after peeking");
     }
@@ -93,8 +98,10 @@ public abstract class QueueManagerTests<TCommand> where TCommand : class, IMessa
         //act
         var messages = await QueueManager.ReadDeadLetter(queueName, 10, CancellationToken.None);
         //assert
+        using var scope = new AssertionScope();
         messages.Should().HaveCount(1);
         messages[0].Body.Should().Contain(messageText);
+        messages[0].Time.Should().NotBeNull();
         var verifyStillAvailable = await QueueManager.PeekDeadLetter(queueName, 1, CancellationToken.None);
         verifyStillAvailable.Should().BeEmpty("The message should be deleted after reading");
     }
@@ -110,12 +117,14 @@ public abstract class QueueManagerTests<TCommand> where TCommand : class, IMessa
         //act
         var noMoved = await QueueManager.MoveDeadLetters(queueName, 1, CancellationToken.None);
         //assert
+        using var scope = new AssertionScope();
         noMoved.Should().Be(1);
         var deadLetterMessages = await QueueManager.PeekDeadLetter(queueName, 10, CancellationToken.None);
         deadLetterMessages.Count.Should().Be(0);
         var messages = await QueueManager.Peek(queueName, 10, CancellationToken.None);
         messages.Count.Should().Be(1);
         messages[0].Body.Should().Contain(messageText);
+        messages[0].Time.Should().NotBeNull();
     }
 
     [Test]
@@ -129,6 +138,7 @@ public abstract class QueueManagerTests<TCommand> where TCommand : class, IMessa
         //act
         var state = await QueueManager.Get(queueName, CancellationToken.None);
         //assert
+        using var scope = new AssertionScope();
         state.Name.Should().Be(queueName);
         state.ActiveMessageCount.Should().Be(1);
         state.DeadLetterMessageCount.Should().Be(1);

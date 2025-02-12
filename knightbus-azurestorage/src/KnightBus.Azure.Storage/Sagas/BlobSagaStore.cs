@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Text.Json;
 using System.Threading;
@@ -89,7 +90,7 @@ public class BlobSagaStore : ISagaStore
                     },
                     Metadata = new Dictionary<string, string>
                     {
-                        {ExpirationField, DateTimeOffset.UtcNow.Add(ttl).ToString()}
+                        {ExpirationField, DateTimeOffset.UtcNow.Add(ttl).ToString(CultureInfo.InvariantCulture)}
                     },
                     Conditions = requestConditions
                 }, ct).ConfigureAwait(false);

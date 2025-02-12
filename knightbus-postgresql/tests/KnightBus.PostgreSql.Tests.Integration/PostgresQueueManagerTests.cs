@@ -24,6 +24,9 @@ public class PostgresQueueManagerTests : QueueManagerTests<PostgresTestCommand>
         _bus = new PostgresBus(PostgresSetup.DataSource,
             new PostgresConfiguration { MessageSerializer = new MicrosoftJsonSerializer() });
 
+        await QueueInitializer.InitQueue(
+            PostgresQueueName.Create(AutoMessageMapper.GetQueueName<PostgresTestCommand>()), PostgresSetup.DataSource);
+
         await CleanUpTestData();
     }
 

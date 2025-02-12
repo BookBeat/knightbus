@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -89,7 +88,7 @@ public class StorageQueueManager : IQueueManager
         {
             m.Properties.TryGetValue("Error", out var error);
             return new QueueMessage(Encoding.UTF8.GetString(_configuration.MessageSerializer.Serialize(m.Message)),
-                error ?? string.Empty, null, null, m.DequeueCount, m.BlobMessageId, m.Properties.AsReadOnly());
+                error ?? string.Empty, m.Time, null, m.DequeueCount, m.BlobMessageId, m.Properties.AsReadOnly());
         }).ToList();
     }
 
@@ -103,7 +102,7 @@ public class StorageQueueManager : IQueueManager
         {
             m.Properties.TryGetValue("Error", out var error);
             return new QueueMessage(Encoding.UTF8.GetString(_configuration.MessageSerializer.Serialize(m.Message)),
-                error ?? string.Empty, null, null, m.DequeueCount, m.BlobMessageId, m.Properties);
+                error ?? string.Empty, m.Time, null, m.DequeueCount, m.BlobMessageId, m.Properties);
         }).ToList();
     }
 
@@ -121,7 +120,7 @@ public class StorageQueueManager : IQueueManager
                 new QueueMessage(
                     Encoding.UTF8.GetString(_configuration.MessageSerializer.Serialize(message.Message)),
                     message.Properties.TryGetValue("Error", out var error) ? error : string.Empty,
-                    null,
+                    message.Time,
                     null,
                     message.DequeueCount,
                     message.BlobMessageId,

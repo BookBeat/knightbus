@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
@@ -15,9 +13,8 @@ public class RedisAttachmentProvider : IMessageAttachmentProvider
     private readonly IConnectionMultiplexer _multiplexer;
     private readonly IRedisConfiguration _configuration;
 
-    internal const string ContentType = "contenttype";
-    internal const string FileName = "filename";
-    private static readonly HashSet<string> Keys = [FileName, ContentType];
+    private const string ContentType = "contenttype";
+    private const string FileName = "filename";
 
     public RedisAttachmentProvider(IConnectionMultiplexer multiplexer, IRedisConfiguration configuration)
     {
@@ -31,29 +28,26 @@ public class RedisAttachmentProvider : IMessageAttachmentProvider
         var metadataHash = await db.HashGetAllAsync(RedisQueueConventions.GetAttachmentMetadataKey(queueName, id)).ConfigureAwait(false);
         var data = await db.StringGetAsync(RedisQueueConventions.GetAttachmentBinaryKey(queueName, id)).ConfigureAwait(false);
         var metadata = metadataHash.ToStringDictionary();
-        return new MessageAttachment(metadata[FileName], metadata[ContentType], new MemoryStream(data), metadata);
+        return new MessageAttachment(metadata[FileName], metadata[ContentType], new MemoryStream(data));
     }
 
     public async Task UploadAttachmentAsync(string queueName, string id, IMessageAttachment attachment, CancellationToken cancellationToken = default(CancellationToken))
     {
         var db = _multiplexer.GetDatabase(_configuration.DatabaseId);
 
-        var hash = new List<HashEntry>
+        var hash = new HashEntry[]
         {
             new HashEntry(FileName, attachment.Filename),
             new HashEntry(ContentType, attachment.ContentType),
         };
 
-        foreach (var metadata in attachment.Metadata.Where(x => !Keys.Contains(x.Key)))
-        {
-            hash.Add(new HashEntry(metadata.Key, metadata.Value));
-        }
+
 
         using (var memoryStream = new MemoryStream())
         {
             await attachment.Stream.CopyToAsync(memoryStream).ConfigureAwait(false);
             await Task.WhenAll(
-                    db.HashSetAsync(RedisQueueConventions.GetAttachmentMetadataKey(queueName, id), hash.ToArray()),
+                    db.HashSetAsync(RedisQueueConventions.GetAttachmentMetadataKey(queueName, id), hash),
                     db.StringSetAsync(RedisQueueConventions.GetAttachmentBinaryKey(queueName, id), memoryStream.ToArray()))
                 .ConfigureAwait(false);
         }

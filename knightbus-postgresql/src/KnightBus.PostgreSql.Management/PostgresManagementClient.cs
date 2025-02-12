@@ -231,6 +231,7 @@ LIMIT ($1);
         var messageIdOrdinal = reader.GetOrdinal("message_id");
         var readCountOrdinal = !isDeadLetter ?  reader.GetOrdinal("read_count") : 0;
         var messageOrdinal = reader.GetOrdinal("message");
+        var enqueuedAtOrdinal = reader.GetOrdinal("enqueued_at");
 
         while (await reader.ReadAsync(ct).ConfigureAwait(false))
         {
@@ -248,7 +249,8 @@ LIMIT ($1);
                     : _serializer
                         .Deserialize<Dictionary<string, string>>(
                             reader.GetFieldValue<byte[]>(propertiesOrdinal)
-                                .AsMemory())
+                                .AsMemory()),
+                Time = reader.GetDateTime(enqueuedAtOrdinal)
             };
             yield return postgresMessage;
         }

@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\knightbus-azurestorage\src\KnightBus.Azure.Storage.Management\KnightBus.Azure.Storage.Management.csproj" />
     <ProjectReference Include="..\..\..\knightbus-azurestorage\src\KnightBus.Azure.Storage\KnightBus.Azure.Storage.csproj" />
     <ProjectReference Include="..\..\src\KnightBus.Host\KnightBus.Host.csproj" />
   </ItemGroup>
