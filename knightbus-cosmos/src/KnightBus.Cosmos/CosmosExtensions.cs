@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Azure.Cosmos;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace KnightBus.Cosmos;
 
@@ -10,9 +11,10 @@ public static class CosmosExtensions
     {
         var configuration = new CosmosConfiguration();
         config?.Invoke(configuration);
-        collection.AddSingleton<ICosmosConfiguration>(configuration);
+        collection.AddSingleton<ICosmosConfiguration>(_ => configuration);
         collection.AddScoped<ICosmosBus, CosmosBus>();
+        collection.AddScoped<CosmosBus>();
+        
         return collection;
     }
-    
 }

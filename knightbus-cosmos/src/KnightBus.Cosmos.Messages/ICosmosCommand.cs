@@ -4,4 +4,8 @@ namespace KnightBus.Cosmos.Messages;
 
 public interface ICosmosCommand : ICommand;
 
-public interface ICosmosEvent : IEvent;
+public interface ICosmosEvent : IEvent
+{
+    string id { get;  }
+    string topic { get; }
+}

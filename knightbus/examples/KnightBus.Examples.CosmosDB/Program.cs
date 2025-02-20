@@ -13,6 +13,7 @@ using KnightBus.Cosmos.Messages;
 using Microsoft.Extensions.Hosting;
 using KnightBus.Core;
 using KnightBus.Host;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace KnightBus.Examples.CosmosDB
 {
@@ -22,7 +23,7 @@ namespace KnightBus.Examples.CosmosDB
         {
             Console.WriteLine("Starting CosmosDB example");
 
-            //Connection string found in CosmosDB
+            //Connection string should be saved as environment variable named "CosmosString"
             string? connectionString = Environment.GetEnvironmentVariable("CosmosString"); 
             const string databaseId = "db";
             const string containerId = "items";
@@ -44,28 +45,30 @@ namespace KnightBus.Examples.CosmosDB
                         .UseTransport<CosmosTransport>();
                 })
                 .UseKnightBus()
-                .Build();
-
+            .Build();
             
             
+            //Start the KnightBus Host
+            await knightBusHost.StartAsync();
+            await Task.Delay(TimeSpan.FromSeconds(1));
+            Console.WriteLine("Started host");
             
             
+            //Old, should be removed
             Program p = new Program();
+            var cosmosClient = new CosmosClient(connectionString, new CosmosClientOptions() { ApplicationName = "ChangeFeedHost" });
             
-            //Initialize cosmos Client
-            var cosmosClient = new CosmosClient(connectionString,
-                new CosmosClientOptions() { ApplicationName = "ChangeFeedHost" });
-
-            CosmosBus c = new CosmosBus(connectionString);
+            var client =
+                (CosmosBus)knightBusHost.Services.CreateScope().ServiceProvider.GetRequiredService<CosmosBus>();
             
             //Set up database and containers
             await p.CreateDatabaseAsync(cosmosClient, databaseId);
-            Container queue = await p.CreateContainerAsync(cosmosClient, databaseId, containerId, "/Topic");
+            Container queue = await p.CreateContainerAsync(cosmosClient, databaseId, containerId, "/topic");
 
-            //Create Host with ChangeFeed
+            //Create Host with ChangeFeed - should be moved to host that is created using DI
             Container leaseContainer = await p.CreateContainerAsync(cosmosClient, databaseId, "lease", "/id");
             ChangeFeedProcessor changeFeedProcessor = queue
-                .GetChangeFeedProcessorBuilder<Message>(
+                .GetChangeFeedProcessorBuilder<CosmosEvent>(
                     processorName: "changeFeedSample",
                     onChangesDelegate: HandleChangesAsync)
                 .WithInstanceName("consoleHost")
@@ -79,11 +82,11 @@ namespace KnightBus.Examples.CosmosDB
             //Send messages
             for (int i = 0; i < 2; i++)
             {
-                await c.SendAsync(new SampleCosmosCommand(), CancellationToken.None);
+                await client.PublishAsync(new CosmosEvent(i.ToString(), "testTopic"), CancellationToken.None);
             }
             
             //Clean-up
-            c.cleanUp();
+            client.cleanUp();
             Console.WriteLine("End of program, press any key to exit.");
             Console.ReadKey();
             
@@ -107,14 +110,14 @@ namespace KnightBus.Examples.CosmosDB
             }
         }
 
-        //Create Container if it does not exist
+        //Create Container if it does not exist, old containers with incompatible settings to the new one crash server
         public async Task<Container> CreateContainerAsync(CosmosClient cosmosClient, string databaseId, string containerId, string partitionKey)
         {
             //Create a new container
             Database database = cosmosClient.GetDatabase(databaseId);
             
             var response = await database.CreateContainerIfNotExistsAsync(
-                new ContainerProperties(containerId, partitionKey) {DefaultTimeToLive = 30});
+                new ContainerProperties(containerId, partitionKey) {DefaultTimeToLive = 60});
             if (response.StatusCode == HttpStatusCode.Created)
             {
                 Console.WriteLine("Created container: {0}\n", containerId);
@@ -132,55 +135,39 @@ namespace KnightBus.Examples.CosmosDB
         
         //Change Feed Handler
         private static Task HandleChangesAsync(
-            IReadOnlyCollection<Message> changes, 
+            IReadOnlyCollection<CosmosEvent> changes, 
             CancellationToken cancellationToken)
         {
             foreach (var change in changes)
             {
                 // Print the message_data received
-                Console.WriteLine("Message Data received: {0}",change.Value);
+                Console.WriteLine("Message Data received: {0}",change.id);
             }
             return Task.CompletedTask;
         }
         
     }
 
-    class Messenger
+    public class SampleCosmosEvent : ICosmosEvent
     {
-        public CosmosClient cosmosClient { get; set; }
-
-        public async Task SendAsync(int id, string databaseId, string containerId)
-        {
-            // Create a Message object
-            Message message = new Message
-            {
-                id = id.ToString(),
-                Topic = "Topic",
-                Value = "Hello from message " + id
-            };
-
-            try
-            {
-                // Read the item to see if it exists.  
-                Container container = this.cosmosClient.GetContainer(databaseId, containerId);
-                ItemResponse<Message> messageResponse = await container.ReadItemAsync<Message>(message.id, new PartitionKey(message.Topic));
-                Console.WriteLine("Item in database with id: {0} already exists\n", messageResponse.Resource.id);
-            }
-            catch(CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
-            {
-                // Create an item in the container on topic
-                Container container = this.cosmosClient.GetContainer(databaseId, containerId);
-                ItemResponse<Message> messageResponse = await container.CreateItemAsync<Message>(message, new PartitionKey(message.Topic));
-
-                // Note that after creating the item, we can access the body of the item with the Resource property off the ItemResponse. We can also access the RequestCharge property to see the amount of RUs consumed on this request.
-                Console.WriteLine("Created item in database with id: {0} Operation consumed {1} RUs.\n", messageResponse.Resource.id, messageResponse.RequestCharge);
-            }
-        }
+        public string id => "123";
+        public string topic => "test";
     }
-
-    public class SampleCosmosCommand : ICosmosCommand
+    
+    public class CosmosEvent : ICosmosEvent
     {
-        public string message_id => "123";
+        public string id { get; }
+        public string topic { get; }
+
+        public CosmosEvent(string id, string topic)
+        {
+            //Throw exception if either of args are null
+            ArgumentException.ThrowIfNullOrWhiteSpace(id);
+            ArgumentException.ThrowIfNullOrWhiteSpace(topic);
+            //Assign values
+            this.id = id;
+            this.topic = topic;
+        }
     }
     
 }

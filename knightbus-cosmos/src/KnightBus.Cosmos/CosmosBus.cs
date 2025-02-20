@@ -1,4 +1,5 @@
-﻿using KnightBus.Cosmos.Messages;
+﻿using System.Net;
+using KnightBus.Cosmos.Messages;
 using Microsoft.Azure.Cosmos;
 
 namespace KnightBus.Cosmos;
@@ -28,8 +29,10 @@ public class CosmosBus : ICosmosBus
 {
     public CosmosClient _client;
     //Constructor
-    public CosmosBus(string? connectionString)
+    public CosmosBus(ICosmosConfiguration config)
     {
+        Console.WriteLine("CosmosConfig constructor used");
+        string? connectionString = config.ConnectionString;
         ArgumentNullException.ThrowIfNull(connectionString);
         //Instantiate CosmosClient
         _client = new CosmosClient(connectionString,
@@ -44,7 +47,6 @@ public class CosmosBus : ICosmosBus
     //Send a single command
     public Task SendAsync<T>(T message, CancellationToken ct) where T : ICosmosCommand
     {
-        Console.WriteLine("CosmosBus SendAsync called");
         return Task.CompletedTask;
     }
 
@@ -56,9 +58,25 @@ public class CosmosBus : ICosmosBus
     }
 
     //Publish a single event
-    public Task PublishAsync<T>(T message, CancellationToken ct) where T : ICosmosEvent
+    public async Task PublishAsync<T>(T message, CancellationToken ct) where T : ICosmosEvent
     {
-        return Task.CompletedTask;
+        Console.WriteLine("CosmosBus publishAsync called");
+        try
+        {
+            // Read the item to see if it exists.  
+            Container container = _client.GetContainer("db", "items");
+            ItemResponse<T> messageResponse = await container.ReadItemAsync<T>(message.id, new PartitionKey(message.topic), null, ct );
+            Console.WriteLine("Item in database with id: {0} already exists\n", messageResponse.Resource.id);
+        }
+        catch(CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            // Create an item in the container on topic
+            Container container = _client.GetContainer("db", "items");
+            ItemResponse<T> messageResponse = await container.CreateItemAsync<T>(message, new PartitionKey(message.topic), null, ct);
+
+            // Note that after creating the item, we can access the body of the item with the Resource property off the ItemResponse. We can also access the RequestCharge property to see the amount of RUs consumed on this request.
+            Console.WriteLine("Created item in database with id: {0} Operation consumed {1} RUs.\n", messageResponse.Resource.id, messageResponse.RequestCharge);
+        }
     }
     
     //Publish multiple events
