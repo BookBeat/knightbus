@@ -39,6 +39,8 @@ namespace KnightBus.Examples.CosmosDB
                     services.UseCosmos(configuration =>
                         {
                             configuration.ConnectionString = connectionString;
+                            //configuration.DatabaseId = databaseId;
+                            //configuration.ContainerId = containerId;
                             configuration.PollingDelay = TimeSpan.FromMilliseconds(250);
                         })
                         .RegisterProcessors(typeof(Program).Assembly) //Can be any class name in this project
@@ -141,7 +143,7 @@ namespace KnightBus.Examples.CosmosDB
             foreach (var change in changes)
             {
                 // Print the message_data received
-                Console.WriteLine("Message Data received: {0}",change.id);
+                Console.WriteLine("Message {0} received with data: {1}",change.id, change.data);
             }
             return Task.CompletedTask;
         }
@@ -152,6 +154,8 @@ namespace KnightBus.Examples.CosmosDB
     {
         public string id => "123";
         public string topic => "test";
+
+        public string data => "testdata";
     }
     
     public class CosmosEvent : ICosmosEvent
@@ -159,7 +163,9 @@ namespace KnightBus.Examples.CosmosDB
         public string id { get; }
         public string topic { get; }
 
-        public CosmosEvent(string id, string topic)
+        public string? data { get; }
+
+        public CosmosEvent(string id, string topic, string? data = null)
         {
             //Throw exception if either of args are null
             ArgumentException.ThrowIfNullOrWhiteSpace(id);
@@ -167,6 +173,7 @@ namespace KnightBus.Examples.CosmosDB
             //Assign values
             this.id = id;
             this.topic = topic;
+            this.data = data;
         }
     }
     

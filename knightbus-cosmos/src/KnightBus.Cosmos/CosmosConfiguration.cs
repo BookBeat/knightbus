@@ -21,4 +21,8 @@ public class CosmosConfiguration : ICosmosConfiguration
     public string ConnectionString { get; set; } = null!;
     public IMessageSerializer MessageSerializer { get; set; } = new MicrosoftJsonSerializer();
     public TimeSpan PollingDelay { get; set; } = TimeSpan.FromSeconds(5);
+
+    public string DatabaseId { get; set; } = "sampleDb";
+    
+    public string ContainerId { get; set; } = "sampleContainer";
 }

@@ -3,7 +3,7 @@ using KnightBus.Cosmos.Messages;
 
 namespace KnightBus.Cosmos;
 
-public class CosmosQueueChannelReceiver<T> : IChannelReceiver where T : class, ICosmosEvent
+public class CosmosSubscriptionChannelReceiver<T> : IChannelReceiver where T : class, ICosmosEvent
 {
     public Task StartAsync(CancellationToken cancellationToken)
     {
