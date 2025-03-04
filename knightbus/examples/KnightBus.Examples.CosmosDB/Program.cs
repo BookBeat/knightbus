@@ -13,6 +13,7 @@ using KnightBus.Cosmos.Messages;
 using Microsoft.Extensions.Hosting;
 using KnightBus.Core;
 using KnightBus.Host;
+using KnightBus.Messages;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace KnightBus.Examples.CosmosDB
@@ -70,7 +71,7 @@ namespace KnightBus.Examples.CosmosDB
             //Create Host with ChangeFeed - should be moved to host that is created using DI
             Container leaseContainer = await p.CreateContainerAsync(cosmosClient, databaseId, "lease", "/id");
             ChangeFeedProcessor changeFeedProcessor = queue
-                .GetChangeFeedProcessorBuilder<CosmosEvent>(
+                .GetChangeFeedProcessorBuilder<SampleCosmosEvent>(
                     processorName: "changeFeedSample",
                     onChangesDelegate: HandleChangesAsync)
                 .WithInstanceName("consoleHost")
@@ -79,12 +80,12 @@ namespace KnightBus.Examples.CosmosDB
                 .Build();
 
             await changeFeedProcessor.StartAsync();
-            Console.WriteLine("Change Feed Processor started \n");
+            Console.WriteLine("Change Feed Processor started (from program.cs) \n");
             
             //Send messages
             for (int i = 0; i < 2; i++)
             {
-                await client.PublishAsync(new CosmosEvent(i.ToString(), "testTopic"), CancellationToken.None);
+                await client.PublishAsync(new SampleCosmosEvent(i.ToString(), "testTopic"), CancellationToken.None);
             }
             
             //Clean-up
@@ -137,7 +138,7 @@ namespace KnightBus.Examples.CosmosDB
         
         //Change Feed Handler
         private static Task HandleChangesAsync(
-            IReadOnlyCollection<CosmosEvent> changes, 
+            IReadOnlyCollection<SampleCosmosEvent> changes, 
             CancellationToken cancellationToken)
         {
             foreach (var change in changes)
@@ -149,23 +150,46 @@ namespace KnightBus.Examples.CosmosDB
         }
         
     }
-
-    public class SampleCosmosEvent : ICosmosEvent
+    
+    
+    class CosmosEventProcessor :
+        IProcessEvent<SampleCosmosEvent, SampleSubscription, CosmosProcessingSetting>
     {
-        public string id => "123";
-        public string topic => "test";
 
-        public string data => "testdata";
+        public Task ProcessAsync(SampleCosmosEvent message, CancellationToken cancellationToken)
+        {
+            Console.WriteLine($"Event 1: '{message.data}'");
+            return Task.CompletedTask;
+        }
     }
     
-    public class CosmosEvent : ICosmosEvent
+    class SamplePostgresEventMapping : IMessageMapping<SampleCosmosEvent>
+    {
+        public string QueueName => "sample_topic";
+    }
+    
+    class CosmosProcessingSetting : IProcessingSettings
+    {
+        public int MaxConcurrentCalls => 10;
+        public int PrefetchCount => 50;
+        public TimeSpan MessageLockTimeout => TimeSpan.FromMinutes(5);
+        public int DeadLetterDeliveryLimit => 2;
+    }
+
+    class SampleSubscription: IEventSubscription<SampleCosmosEvent>
+    {
+        public string Name => "sample_subscription";
+    }
+    
+    
+    
+    public class SampleCosmosEvent : ICosmosEvent
     {
         public string id { get; }
         public string topic { get; }
-
         public string? data { get; }
 
-        public CosmosEvent(string id, string topic, string? data = null)
+        public SampleCosmosEvent(string id, string topic, string? data = null)
         {
             //Throw exception if either of args are null
             ArgumentException.ThrowIfNullOrWhiteSpace(id);

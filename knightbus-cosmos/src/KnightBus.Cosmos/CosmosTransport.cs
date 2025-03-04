@@ -4,17 +4,16 @@ namespace KnightBus.Cosmos;
 
 public class CosmosTransport : ITransport
 {
-    public CosmosTransport(string connectionString) : this(new CosmosConfiguration(connectionString))
-    {
-    }
+    //public CosmosTransport(string connectionString) : this(new CosmosConfiguration(connectionString))
 
     public CosmosTransport(ICosmosConfiguration configuration)
     {
-        TransportChannelFactories = new ITransportChannelFactory[]
-        {
-            new CosmosSubscriptionChannelFactory(configuration),
+        Console.WriteLine("CosmosTransport initialized");
+        TransportChannelFactories =
+        [
+            new CosmosSubscriptionChannelFactory(configuration)
             //new CosmosQueueChannelFactory(configuration)
-        };
+        ];
     }
 
     public ITransportChannelFactory[] TransportChannelFactories { get; }

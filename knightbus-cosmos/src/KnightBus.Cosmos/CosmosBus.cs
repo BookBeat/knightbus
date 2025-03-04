@@ -31,7 +31,6 @@ public class CosmosBus : ICosmosBus
     //Constructor
     public CosmosBus(ICosmosConfiguration config)
     {
-        Console.WriteLine("CosmosConfig constructor used");
         string? connectionString = config.ConnectionString;
         ArgumentNullException.ThrowIfNull(connectionString);
         //Instantiate CosmosClient

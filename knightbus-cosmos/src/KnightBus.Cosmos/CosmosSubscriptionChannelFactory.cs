@@ -9,29 +9,36 @@ public class CosmosSubscriptionChannelFactory : ITransportChannelFactory
 {
     public CosmosSubscriptionChannelFactory(ICosmosConfiguration configuration)
     {
+        Console.WriteLine("CosmosSubscriptionChannelFactory initialized");
         Configuration = configuration;
     }
 
     public ITransportConfiguration Configuration { get; set; }
 
     public IChannelReceiver Create(Type messageType,
-                                IEventSubscription subscription,
-                                IProcessingSettings processingSettings,
-                                IMessageSerializer serializer,
-                                IHostConfiguration configuration,
-                                IMessageProcessor processor)
+        IEventSubscription subscription,
+        IProcessingSettings processingSettings,
+        IMessageSerializer serializer,
+        IHostConfiguration configuration,
+        IMessageProcessor processor)
     {
-        Console.WriteLine("create IChannelReceiver called\n\n");
+        Console.WriteLine("Create cosmosSubscriptionChannelReceiver called");
         // Dynamically create the Cosmos-specific channel receiver
         var queueReaderType = typeof(CosmosSubscriptionChannelReceiver<>).MakeGenericType(messageType);
-        var queueReader = (IChannelReceiver)Activator.CreateInstance(queueReaderType, processingSettings, serializer, subscription, Configuration, configuration, processor);
+        var queueReader = Activator.CreateInstance(
+            queueReaderType,
+            processingSettings,
+            serializer,
+            subscription,
+            configuration,
+            processor) as IChannelReceiver;
+        Console.WriteLine(queueReader);
+        Console.WriteLine($"null? : {queueReader == null}");
         return queueReader;
     }
 
     public bool CanCreate(Type messageType)
     {
-        // This checks whether the message type is compatible with Cosmos commands
-        return typeof(ICosmosCommand).IsAssignableFrom(messageType) ||
-               typeof(ICosmosEvent).IsAssignableFrom(messageType);
+        return typeof(ICosmosEvent).IsAssignableFrom(messageType);
     }
 }

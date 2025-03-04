@@ -21,33 +21,16 @@ public class CosmosBaseClient<T> where T : class, IMessage
     }
 
     //Gets all messages in changeFeed?
-    public async IAsyncEnumerable<CosmosMessage<T>> GetMessagesAsync(int count, int visibilityTimeout,
+    public IAsyncEnumerable<CosmosMessage<T>> GetMessagesAsync(int count, int visibilityTimeout,
         [EnumeratorCancellation] CancellationToken ct)
     {
         throw new NotImplementedException("Cosmos GetMessagesAsync not implemented");
     }
 
     //Marks task as complete
-    public async Task CompleteAsync(CosmosMessage<T> message)
+    public Task CompleteAsync(CosmosMessage<T> message)
     {
         throw new NotImplementedException("Cosmos completeAsync not implemented");
     }
-
-    //These three are not necessary for mvp
-    public async Task AbandonByErrorAsync(CosmosMessage<T> message, Exception exception)
-    {
-        throw new NotImplementedException("Cosmos AbandonByErrorAsync not implemented");
-    }
-
-    public async Task DeadLetterMessageAsync(CosmosMessage<T> message)
-    {
-        throw new NotImplementedException("Cosmos DeadLetterAsync not implemented");
-    }
-
-    public async IAsyncEnumerable<CosmosMessage<T>> PeekDeadLetterMessagesAsync(int count,
-        [EnumeratorCancellation] CancellationToken ct)
-    {
-        throw new NotImplementedException("Cosmos PeekDeadLetterMessagesAsync not implemented");
-    }
-
+    
 }

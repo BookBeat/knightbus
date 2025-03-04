@@ -35,10 +35,7 @@ public class CosmosMessagePump<T> : GenericMessagePump<CosmosMessage<T>, IMessag
         }
         else
         {
-            await QueueInitializer.InitSubscription(
-                PostgresQueueName.Create(AutoMessageMapper.GetQueueName(messageType)),
-                PostgresQueueName.Create(_subscription.Name),
-                _npgsqlDataSource);
+            throw new NotImplementedException("Cosmos channels not implemented");
         }
     }
 
