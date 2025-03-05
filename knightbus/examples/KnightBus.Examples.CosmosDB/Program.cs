@@ -60,30 +60,8 @@ namespace KnightBus.Examples.CosmosDB
             var client =
                 (CosmosBus)knightBusHost.Services.CreateScope().ServiceProvider.GetRequiredService<CosmosBus>();
             
-            
-            ChangeFeedProcessor changeFeedProcessor = items
-                .GetChangeFeedProcessorBuilder<ICosmosEvent>(
-                    processorName: "changeFeed",
-                    onChangesDelegate: HandleChangesAsync)
-                .WithInstanceName("consoleHost")
-                .WithLeaseContainer(leaseContainer)
-                .WithPollInterval(System.TimeSpan.FromMilliseconds(50))
-                .Build();
-
-            try
-            {
-                await changeFeedProcessor.StartAsync();
-                Console.WriteLine("Change feed processor started.");
-            }
-            catch
-            {
-                Console.WriteLine("Failed to start change feed processor");
-            }
-        }
-            
-            
             //Send messages
-            for (int i = 0; i < 1; i++)
+            for (int i = 0; i < 10; i++)
             {
                 await client.PublishAsync(new SampleCosmosEvent(i.ToString(), "topic1"), CancellationToken.None);
             }

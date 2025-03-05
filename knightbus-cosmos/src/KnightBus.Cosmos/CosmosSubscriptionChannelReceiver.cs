@@ -50,7 +50,7 @@ public class CosmosSubscriptionChannelReceiver<T> : IChannelReceiver where T : c
         Container leaseContainer = await CreateContainerIfNotExistsOrIncompatibleAsync(client, database, "lease", "/id", _cosmosConfiguration.DefaultTimeToLive);
 
          ChangeFeedProcessor changeFeedProcessor = items
-            .GetChangeFeedProcessorBuilder<ICosmosEvent>(
+            .GetChangeFeedProcessorBuilder<CosmosEvent>(
                 processorName: "changeFeed",
                 onChangesDelegate: HandleChangesAsync)
             .WithInstanceName("consoleHost")
@@ -72,7 +72,7 @@ public class CosmosSubscriptionChannelReceiver<T> : IChannelReceiver where T : c
 
     //Change Feed Handler
     private async Task HandleChangesAsync(
-        IReadOnlyCollection<ICosmosEvent> changes, 
+        IReadOnlyCollection<CosmosEvent> changes, 
         CancellationToken cancellationToken)
     {
         Console.WriteLine($"Changes: {changes.Count}");
@@ -80,6 +80,24 @@ public class CosmosSubscriptionChannelReceiver<T> : IChannelReceiver where T : c
         {
             // Print the message_data received
             Console.WriteLine("Message {0} received with data: {1} \n",change.id, change.messageBody);
+        }
+    }
+    
+    public class CosmosEvent : ICosmosEvent
+    {
+        public string id { get; }
+        public string topic { get; }
+        public string? messageBody { get; }
+
+        public CosmosEvent(string id, string topic, string? data = null)
+        {
+            //Throw exception if either of args are null
+            ArgumentException.ThrowIfNullOrWhiteSpace(id);
+            ArgumentException.ThrowIfNullOrWhiteSpace(topic);
+            //Assign values
+            this.id = id;
+            this.topic = topic;
+            this.messageBody = data;
         }
     }
 
