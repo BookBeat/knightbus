@@ -40,8 +40,8 @@ namespace KnightBus.Examples.CosmosDB
                     services.UseCosmos(configuration =>
                         {
                             configuration.ConnectionString = connectionString;
-                            //configuration.DatabaseId = databaseId;
-                            //configuration.ContainerId = containerId;
+                            configuration.Database = databaseId;
+                            configuration.Container = containerId;
                             configuration.PollingDelay = TimeSpan.FromMilliseconds(250);
                         })
                         .RegisterProcessors(typeof(Program).Assembly) //Can be any class name in this project
@@ -57,100 +57,43 @@ namespace KnightBus.Examples.CosmosDB
             Console.WriteLine("Started host");
             
             
-            //Old, should be removed
-            Program p = new Program();
-            var cosmosClient = new CosmosClient(connectionString, new CosmosClientOptions() { ApplicationName = "ChangeFeedHost" });
-            
             var client =
                 (CosmosBus)knightBusHost.Services.CreateScope().ServiceProvider.GetRequiredService<CosmosBus>();
             
-            //Set up database and containers
-            await p.CreateDatabaseAsync(cosmosClient, databaseId);
-            Container queue = await p.CreateContainerAsync(cosmosClient, databaseId, containerId, "/topic");
-
-            //Create Host with ChangeFeed - should be moved to host that is created using DI
-            Container leaseContainer = await p.CreateContainerAsync(cosmosClient, databaseId, "lease", "/id");
-            ChangeFeedProcessor changeFeedProcessor = queue
-                .GetChangeFeedProcessorBuilder<SampleCosmosEvent>(
-                    processorName: "changeFeedSample",
+            
+            ChangeFeedProcessor changeFeedProcessor = items
+                .GetChangeFeedProcessorBuilder<ICosmosEvent>(
+                    processorName: "changeFeed",
                     onChangesDelegate: HandleChangesAsync)
                 .WithInstanceName("consoleHost")
                 .WithLeaseContainer(leaseContainer)
-                .WithPollInterval(System.TimeSpan.FromMilliseconds(500))
+                .WithPollInterval(System.TimeSpan.FromMilliseconds(50))
                 .Build();
 
-            await changeFeedProcessor.StartAsync();
-            Console.WriteLine("Change Feed Processor started (from program.cs) \n");
+            try
+            {
+                await changeFeedProcessor.StartAsync();
+                Console.WriteLine("Change feed processor started.");
+            }
+            catch
+            {
+                Console.WriteLine("Failed to start change feed processor");
+            }
+        }
+            
             
             //Send messages
-            for (int i = 0; i < 2; i++)
+            for (int i = 0; i < 1; i++)
             {
-                await client.PublishAsync(new SampleCosmosEvent(i.ToString(), "testTopic"), CancellationToken.None);
+                await client.PublishAsync(new SampleCosmosEvent(i.ToString(), "topic1"), CancellationToken.None);
             }
             
             //Clean-up
             client.cleanUp();
             Console.WriteLine("End of program, press any key to exit.");
             Console.ReadKey();
-            
         }
-
-        //Create database if it does not exist
-        private async Task CreateDatabaseAsync(CosmosClient cosmosClient, string databaseId)
-        {
-            // Create a new database
-            var response = await cosmosClient.CreateDatabaseIfNotExistsAsync(databaseId);
-            if (response.StatusCode == HttpStatusCode.Created)
-            {
-                Console.WriteLine("Created Database: {0}\n", databaseId);
-            } else if (response.StatusCode == HttpStatusCode.OK)
-            {
-                Console.WriteLine("DataBase already exists");
-            }
-            else
-            {
-                Console.WriteLine("Error, status code {0}",response.StatusCode);
-            }
-        }
-
-        //Create Container if it does not exist, old containers with incompatible settings to the new one crash server
-        public async Task<Container> CreateContainerAsync(CosmosClient cosmosClient, string databaseId, string containerId, string partitionKey)
-        {
-            //Create a new container
-            Database database = cosmosClient.GetDatabase(databaseId);
-            
-            var response = await database.CreateContainerIfNotExistsAsync(
-                new ContainerProperties(containerId, partitionKey) {DefaultTimeToLive = 60});
-            if (response.StatusCode == HttpStatusCode.Created)
-            {
-                Console.WriteLine("Created container: {0}\n", containerId);
-            } else if (response.StatusCode == HttpStatusCode.OK)
-            {
-                Console.WriteLine("Container {0} already exists", containerId);
-            }
-            else
-            {
-                Console.WriteLine("Error, status: {0}",response.StatusCode);
-            }
-
-            return response.Container;
-        }
-        
-        //Change Feed Handler
-        private static Task HandleChangesAsync(
-            IReadOnlyCollection<SampleCosmosEvent> changes, 
-            CancellationToken cancellationToken)
-        {
-            foreach (var change in changes)
-            {
-                // Print the message_data received
-                Console.WriteLine("Message {0} received with data: {1}",change.id, change.data);
-            }
-            return Task.CompletedTask;
-        }
-        
     }
-    
     
     class CosmosEventProcessor :
         IProcessEvent<SampleCosmosEvent, SampleSubscription, CosmosProcessingSetting>
@@ -158,7 +101,7 @@ namespace KnightBus.Examples.CosmosDB
 
         public Task ProcessAsync(SampleCosmosEvent message, CancellationToken cancellationToken)
         {
-            Console.WriteLine($"Event 1: '{message.data}'");
+            Console.WriteLine($"Event 1: '{message.messageBody}'");
             return Task.CompletedTask;
         }
     }
@@ -187,7 +130,7 @@ namespace KnightBus.Examples.CosmosDB
     {
         public string id { get; }
         public string topic { get; }
-        public string? data { get; }
+        public string? messageBody { get; }
 
         public SampleCosmosEvent(string id, string topic, string? data = null)
         {
@@ -197,7 +140,7 @@ namespace KnightBus.Examples.CosmosDB
             //Assign values
             this.id = id;
             this.topic = topic;
-            this.data = data;
+            this.messageBody = data;
         }
     }
     

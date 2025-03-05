@@ -8,7 +8,6 @@ public class CosmosTransport : ITransport
 
     public CosmosTransport(ICosmosConfiguration configuration)
     {
-        Console.WriteLine("CosmosTransport initialized");
         TransportChannelFactories =
         [
             new CosmosSubscriptionChannelFactory(configuration)

@@ -10,4 +10,6 @@ public interface ICosmosEvent : IEvent
 {
     string id { get;  }
     string topic { get; }
+    
+    string messageBody { get; }
 }
