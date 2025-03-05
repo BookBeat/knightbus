@@ -43,6 +43,7 @@ namespace KnightBus.Examples.CosmosDB
                             configuration.Database = databaseId;
                             configuration.Container = containerId;
                             configuration.PollingDelay = TimeSpan.FromMilliseconds(250);
+                            configuration.DefaultTimeToLive = TimeSpan.FromSeconds(60);
                         })
                         .RegisterProcessors(typeof(Program).Assembly) //Can be any class name in this project
                         .UseTransport<CosmosTransport>();

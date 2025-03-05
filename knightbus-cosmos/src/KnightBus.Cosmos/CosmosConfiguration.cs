@@ -10,7 +10,7 @@ public interface ICosmosConfiguration : ITransportConfiguration
     
     string Container { get; set; }
     
-    int DefaultTimeToLive { get; set; }
+    TimeSpan DefaultTimeToLive { get; set; }
 }
 
 public class CosmosConfiguration : ICosmosConfiguration
@@ -29,7 +29,7 @@ public class CosmosConfiguration : ICosmosConfiguration
     public IMessageSerializer MessageSerializer { get; set; } = new MicrosoftJsonSerializer();
     public TimeSpan PollingDelay { get; set; } = TimeSpan.FromSeconds(5);
 
-    public int DefaultTimeToLive { get; set; } = 60;
+    public TimeSpan DefaultTimeToLive { get; set; } = TimeSpan.FromSeconds(60);
 
     public string Database { get; set; } = null!;
     

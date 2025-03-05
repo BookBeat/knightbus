@@ -45,9 +45,9 @@ public class CosmosSubscriptionChannelReceiver<T> : IChannelReceiver where T : c
         
         Database database = databaseResponse.Database;
         //Get container, create if it does not exist
-        Container items = await CreateContainerIfNotExistsOrIncompatibleAsync(client, database, _cosmosConfiguration.Container, "/topic", _cosmosConfiguration.DefaultTimeToLive);
+        Container items = await CreateContainerIfNotExistsOrIncompatibleAsync(client, database, _cosmosConfiguration.Container, "/topic", (int)_cosmosConfiguration.DefaultTimeToLive.TotalSeconds);
         
-        Container leaseContainer = await CreateContainerIfNotExistsOrIncompatibleAsync(client, database, "lease", "/id", _cosmosConfiguration.DefaultTimeToLive);
+        Container leaseContainer = await CreateContainerIfNotExistsOrIncompatibleAsync(client, database, "lease", "/id", (int)_cosmosConfiguration.DefaultTimeToLive.TotalSeconds);
 
          ChangeFeedProcessor changeFeedProcessor = items
             .GetChangeFeedProcessorBuilder<CosmosEvent>(
@@ -55,7 +55,7 @@ public class CosmosSubscriptionChannelReceiver<T> : IChannelReceiver where T : c
                 onChangesDelegate: HandleChangesAsync)
             .WithInstanceName("consoleHost")
             .WithLeaseContainer(leaseContainer)
-            .WithPollInterval(System.TimeSpan.FromMilliseconds(50))
+            .WithPollInterval(_cosmosConfiguration.PollingDelay)
             .Build();
 
          try
@@ -79,7 +79,7 @@ public class CosmosSubscriptionChannelReceiver<T> : IChannelReceiver where T : c
         foreach (var change in changes)
         {
             // Print the message_data received
-            Console.WriteLine("Message {0} received with data: {1} \n",change.id, change.messageBody);
+            Console.WriteLine($"Message {change.id} received with data: {change.messageBody}");
         }
     }
     
