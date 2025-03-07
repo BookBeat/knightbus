@@ -40,8 +40,8 @@ public class CosmosSubscriptionChannelReceiver<T> : IChannelReceiver where T : c
         CosmosClient client = new CosmosClient(_cosmosConfiguration.ConnectionString);
         
         //Get database, create if it does not exist
-        DatabaseResponse databaseResponse = await client.CreateDatabaseIfNotExistsAsync(_cosmosConfiguration.Database);
-        checkResponse(databaseResponse, _cosmosConfiguration.Database);
+        DatabaseResponse databaseResponse = await client.CreateDatabaseIfNotExistsAsync(_cosmosConfiguration.Database, 400, null, cancellationToken);
+        CheckResponse(databaseResponse, _cosmosConfiguration.Database);
         
         Database database = databaseResponse.Database;
         //Get container, create if it does not exist
@@ -50,7 +50,7 @@ public class CosmosSubscriptionChannelReceiver<T> : IChannelReceiver where T : c
         Container leaseContainer = await CreateContainerIfNotExistsOrIncompatibleAsync(client, database, "lease", "/id", (int)_cosmosConfiguration.DefaultTimeToLive.TotalSeconds);
 
          ChangeFeedProcessor changeFeedProcessor = items
-            .GetChangeFeedProcessorBuilder<CosmosEvent>(
+            .GetChangeFeedProcessorBuilder<T>(
                 processorName: "changeFeed",
                 onChangesDelegate: HandleChangesAsync)
             .WithInstanceName("consoleHost")
@@ -69,10 +69,10 @@ public class CosmosSubscriptionChannelReceiver<T> : IChannelReceiver where T : c
          }
     }
     
-
+    // TODO: Should call the processAsync in program so that the process behaviour can be defined there
     //Change Feed Handler
     private async Task HandleChangesAsync(
-        IReadOnlyCollection<CosmosEvent> changes, 
+        IReadOnlyCollection<T> changes, 
         CancellationToken cancellationToken)
     {
         Console.WriteLine($"Changes: {changes.Count}");
@@ -80,44 +80,28 @@ public class CosmosSubscriptionChannelReceiver<T> : IChannelReceiver where T : c
         {
             // Print the message_data received
             Console.WriteLine($"Message {change.id} received with data: {change.messageBody}");
-        }
-    }
-    
-    public class CosmosEvent : ICosmosEvent
-    {
-        public string id { get; }
-        public string topic { get; }
-        public string? messageBody { get; }
 
-        public CosmosEvent(string id, string topic, string? data = null)
-        {
-            //Throw exception if either of args are null
-            ArgumentException.ThrowIfNullOrWhiteSpace(id);
-            ArgumentException.ThrowIfNullOrWhiteSpace(topic);
-            //Assign values
-            this.id = id;
-            this.topic = topic;
-            this.messageBody = data;
+            var stateHandler = new CosmosMessageStateHandler<T>();
+            //await _processor.ProcessAsync(stateHandler, cancellationToken);
         }
     }
 
-
-    private static void checkResponse(object response, string id)
+    private static void CheckResponse(object response, string id)
     {
         switch (response)
         {
             case DatabaseResponse databaseResponse:
-                HandleResponse(databaseResponse.StatusCode , "database", id);
+                CheckHttpResponse(databaseResponse.StatusCode , "database", id);
                 break;
             case ContainerResponse containerResponse:
-                HandleResponse(containerResponse.StatusCode, "container", id);
+                CheckHttpResponse(containerResponse.StatusCode, "container", id);
                 break;
             default:
                 throw new ArgumentException(
                     "Invalid response type, only databaseResponse & containerResponse are supported");
         }
     }
-    private static void HandleResponse(HttpStatusCode statusCode, string type, string id)
+    private static void CheckHttpResponse(HttpStatusCode statusCode, string type, string id)
     {
         switch (statusCode)
         {
@@ -143,7 +127,7 @@ public class CosmosSubscriptionChannelReceiver<T> : IChannelReceiver where T : c
         //Create a new container
         var response = await db.CreateContainerIfNotExistsAsync(
             new ContainerProperties(containerId, partitionKey) {DefaultTimeToLive = defaultTTL});
-        checkResponse(response, containerId);
+        CheckResponse(response, containerId);
 
         return response.Container;
     }
