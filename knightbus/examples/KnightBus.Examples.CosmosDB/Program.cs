@@ -42,8 +42,9 @@ namespace KnightBus.Examples.CosmosDB
                             configuration.ConnectionString = connectionString;
                             configuration.Database = databaseId;
                             configuration.Container = containerId;
-                            configuration.PollingDelay = TimeSpan.FromMilliseconds(250);
-                            configuration.DefaultTimeToLive = TimeSpan.FromSeconds(60);
+                            configuration.PollingDelay = TimeSpan.FromMilliseconds(500);
+                            configuration.DefaultTimeToLive = TimeSpan.FromSeconds(120);
+                            configuration.Topics = new List<string> {"Topic1", "Topic2"};
                         })
                         .RegisterProcessors(typeof(Program).Assembly) //Can be any class name in this project
                         .UseTransport<CosmosTransport>();
@@ -57,14 +58,14 @@ namespace KnightBus.Examples.CosmosDB
             await Task.Delay(TimeSpan.FromSeconds(1));
             Console.WriteLine("Started host");
             
-            
             var client =
                 (CosmosBus)knightBusHost.Services.CreateScope().ServiceProvider.GetRequiredService<CosmosBus>();
             
             //Send messages
-            for (int i = 0; i < 10; i++)
+            for (int i = 1; i <= 10; i++)
             {
-                await client.PublishAsync(new SampleCosmosEvent(i.ToString(), "topic1"), CancellationToken.None);
+                string topic = $"Topic{i % 4}";
+                await client.PublishAsync(new SampleCosmosEvent(i.ToString(), topic), CancellationToken.None);
             }
             
             //Clean-up
@@ -80,7 +81,7 @@ namespace KnightBus.Examples.CosmosDB
 
         public Task ProcessAsync(SampleCosmosEvent message, CancellationToken cancellationToken)
         {
-            Console.WriteLine($"Event 1: '{message.messageBody}'");
+            Console.WriteLine($"Event 1: '{message.MessageBody}'");
             return Task.CompletedTask;
         }
     }
@@ -108,18 +109,18 @@ namespace KnightBus.Examples.CosmosDB
     public class SampleCosmosEvent : ICosmosEvent
     {
         public string id { get; }
-        public string topic { get; }
-        public string? messageBody { get; }
+        public string Topic { get; }
+        public string? MessageBody { get; }
 
+        //Single topic constructor
         public SampleCosmosEvent(string id, string topic, string? data = null)
         {
             //Throw exception if either of args are null
             ArgumentException.ThrowIfNullOrWhiteSpace(id);
-            ArgumentException.ThrowIfNullOrWhiteSpace(topic);
             //Assign values
             this.id = id;
-            this.topic = topic;
-            this.messageBody = data;
+            this.Topic = topic;
+            this.MessageBody = data;
         }
     }
     

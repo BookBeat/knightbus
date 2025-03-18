@@ -45,44 +45,42 @@ public class CosmosSubscriptionChannelReceiver<T> : IChannelReceiver where T : c
         
         Database database = databaseResponse.Database;
         //Get container, create if it does not exist
-        Container items = await CreateContainerIfNotExistsOrIncompatibleAsync(client, database, _cosmosConfiguration.Container, "/topic", (int)_cosmosConfiguration.DefaultTimeToLive.TotalSeconds);
-        
-        Container leaseContainer = await CreateContainerIfNotExistsOrIncompatibleAsync(client, database, "lease", "/id", (int)_cosmosConfiguration.DefaultTimeToLive.TotalSeconds);
+        Container items = await CreateContainerIfNotExistsOrIncompatibleAsync(client, database, _cosmosConfiguration.Container, "/Topic", (int)_cosmosConfiguration.DefaultTimeToLive.TotalSeconds);
 
-         ChangeFeedProcessor changeFeedProcessor = items
-            .GetChangeFeedProcessorBuilder<T>(
-                processorName: "changeFeed",
-                onChangesDelegate: HandleChangesAsync)
-            .WithInstanceName("consoleHost")
-            .WithLeaseContainer(leaseContainer)
-            .WithPollInterval(_cosmosConfiguration.PollingDelay)
-            .Build();
-
-         try
-         {
-             await changeFeedProcessor.StartAsync();
-             Console.WriteLine("Change feed processor started.");
-         }
-         catch
-         {
-             Console.WriteLine("Failed to start change feed processor");
-         }
+        foreach (string topic in _cosmosConfiguration.Topics)
+        {
+            Task.Run(() => StartPullModelChangeFeed(items, topic, cancellationToken), cancellationToken);
+        }
     }
     
-    // TODO: Should call the processAsync in program so that the process behaviour can be defined there
-    //Change Feed Handler
-    private async Task HandleChangesAsync(
-        IReadOnlyCollection<T> changes, 
-        CancellationToken cancellationToken)
+    
+    //Start pull model change feed
+    private async Task StartPullModelChangeFeed(Container container, string topic, CancellationToken cancellationToken)
     {
-        Console.WriteLine($"Changes: {changes.Count}");
-        foreach (var change in changes)
-        {
-            // Print the message_data received
-            Console.WriteLine($"Message {change.id} received with data: {change.messageBody}");
+        //Start pull model
+        var iteratorForPartitionKey = container.GetChangeFeedIterator<T>(
+            ChangeFeedStartFrom.Beginning(FeedRange.FromPartitionKey(new PartitionKey(topic))), ChangeFeedMode.LatestVersion);
+        
+        Console.WriteLine($"starting pull model change feed on topic : {topic}");
+        // Function that called this function with await should be allowed to continue when this function reaches here
 
-            var stateHandler = new CosmosMessageStateHandler<T>();
-            //await _processor.ProcessAsync(stateHandler, cancellationToken);
+        while (iteratorForPartitionKey.HasMoreResults && !cancellationToken.IsCancellationRequested)
+        {
+            FeedResponse<T> response = await iteratorForPartitionKey.ReadNextAsync();
+
+            if (response.StatusCode == HttpStatusCode.NotModified)
+            {
+                //Console.WriteLine($"No new changes");
+                await Task.Delay(_cosmosConfiguration.PollingDelay);
+            }
+            else
+            {
+                foreach (T message in response)
+                {
+                    //TODO : Processing behaviour should be passed instead of hard coded
+                    Console.WriteLine($"Change in message {message.id} on {topic}");
+                }
+            }
         }
     }
 

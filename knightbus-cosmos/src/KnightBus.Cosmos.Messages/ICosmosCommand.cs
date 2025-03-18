@@ -8,8 +8,8 @@ public interface ICosmosCommand : ICommand
 
 public interface ICosmosEvent : IEvent
 {
-    string id { get;  }
-    string topic { get; }
+    public string id { get;  }
+    public string Topic { get; }
     
-    string messageBody { get; }
+    public string MessageBody { get; }
 }

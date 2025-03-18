@@ -11,6 +11,8 @@ public interface ICosmosConfiguration : ITransportConfiguration
     string Container { get; set; }
     
     TimeSpan DefaultTimeToLive { get; set; }
+    
+    List<string>? Topics { get; set; }
 }
 
 public class CosmosConfiguration : ICosmosConfiguration
@@ -31,7 +33,9 @@ public class CosmosConfiguration : ICosmosConfiguration
 
     public TimeSpan DefaultTimeToLive { get; set; } = TimeSpan.FromSeconds(60);
 
-    public string Database { get; set; } = null!;
+    public string Database { get; set; }
     
-    public string Container { get; set; } = null!;
+    public string Container { get; set; }
+
+    public List<string>? Topics { get; set; } = null;
 }
