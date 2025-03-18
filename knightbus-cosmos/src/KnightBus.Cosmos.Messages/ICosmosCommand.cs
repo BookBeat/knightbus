@@ -8,8 +8,9 @@ public interface ICosmosCommand : ICommand
 
 public interface ICosmosEvent : IEvent
 {
-    public string id { get;  }
     public string Topic { get; }
+
+    //int FailedAttempts => 0;
     
-    public string MessageBody { get; }
+    //string id => Guid.NewGuid().ToString();
 }

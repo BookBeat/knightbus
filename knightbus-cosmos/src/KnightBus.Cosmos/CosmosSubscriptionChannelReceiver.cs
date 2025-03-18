@@ -15,6 +15,9 @@ public class CosmosSubscriptionChannelReceiver<T> : IChannelReceiver where T : c
     private IHostConfiguration _configuration;
     private IMessageProcessor _processor;
     private ICosmosConfiguration _cosmosConfiguration;
+    private CosmosClient _client;
+    private Database _database;
+    private static T _messageType; //Used only to extract name of message type
     
     public CosmosSubscriptionChannelReceiver(
         IProcessingSettings processorSettings,
@@ -37,20 +40,23 @@ public class CosmosSubscriptionChannelReceiver<T> : IChannelReceiver where T : c
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         //Create cosmos client
-        CosmosClient client = new CosmosClient(_cosmosConfiguration.ConnectionString);
+        _client = new CosmosClient(_cosmosConfiguration.ConnectionString);
         
         //Get database, create if it does not exist
-        DatabaseResponse databaseResponse = await client.CreateDatabaseIfNotExistsAsync(_cosmosConfiguration.Database, 400, null, cancellationToken);
+        DatabaseResponse databaseResponse = await _client.CreateDatabaseIfNotExistsAsync(_cosmosConfiguration.Database, 400, null, cancellationToken);
         CheckResponse(databaseResponse, _cosmosConfiguration.Database);
         
-        Database database = databaseResponse.Database;
+        
+        _database = databaseResponse.Database;
         //Get container, create if it does not exist
-        Container items = await CreateContainerIfNotExistsOrIncompatibleAsync(client, database, _cosmosConfiguration.Container, "/Topic", (int)_cosmosConfiguration.DefaultTimeToLive.TotalSeconds);
+        var response = await _database.CreateContainerIfNotExistsAsync(
+            new ContainerProperties(_cosmosConfiguration.Container, "/Topic") {DefaultTimeToLive = (int)_cosmosConfiguration.DefaultTimeToLive.TotalSeconds}, cancellationToken: cancellationToken);
+        CheckResponse(response, _cosmosConfiguration.Container);
+        var items = response.Container;
+        
+        
+        Task.Run(() => StartPullModelChangeFeed(items, _cosmosConfiguration.Topic, cancellationToken), cancellationToken);
 
-        foreach (string topic in _cosmosConfiguration.Topics)
-        {
-            Task.Run(() => StartPullModelChangeFeed(items, topic, cancellationToken), cancellationToken);
-        }
     }
     
     
@@ -70,17 +76,43 @@ public class CosmosSubscriptionChannelReceiver<T> : IChannelReceiver where T : c
 
             if (response.StatusCode == HttpStatusCode.NotModified)
             {
-                //Console.WriteLine($"No new changes");
+                // 1 RU used if no changes have been made
                 await Task.Delay(_cosmosConfiguration.PollingDelay);
             }
             else
             {
                 foreach (T message in response)
                 {
-                    //TODO : Processing behaviour should be passed instead of hard coded
-                    Console.WriteLine($"Change in message {message.id} on {topic}");
+                    await InternalProcessMessageAsync(message, cancellationToken);
+                    
                 }
             }
+        }
+    }
+
+    private async Task<Task> InternalProcessMessageAsync(T message, CancellationToken cancellationToken)
+    {
+        try
+        {
+            //var stateHandler = new CosmosMessageStateHandler<T>(_client, message, deadletterLimit, _serializer, IDependencyInjection messageScope);
+            
+            //_processor.ProcessAsync<T>(message, cancellationToken);
+            Console.WriteLine($"Change in message {message} on {message.Topic}");
+            return Task.CompletedTask;
+        }
+        catch( Exception ex )
+        {
+            CosmosBus cosmosBus = new CosmosBus(_cosmosConfiguration);
+            await cosmosBus.PublishAsync(message, cancellationToken);
+            
+            var response = await _database.CreateContainerIfNotExistsAsync(
+                new ContainerProperties(_cosmosConfiguration.Container, "/Topic") {DefaultTimeToLive = (int)_cosmosConfiguration.DefaultTimeToLive.TotalSeconds}, cancellationToken: cancellationToken);
+            Container processing = response.Container;
+            
+            ItemResponse<T> messageResponse =
+                    await processing.CreateItemAsync<T>(message, new PartitionKey(message.Topic), null, cancellationToken);
+                Console.WriteLine($"processing {messageResponse.Resource} on {message.Topic} - {messageResponse.RequestCharge} RUs consumed");
+            return Task.FromException(ex);
         }
     }
 

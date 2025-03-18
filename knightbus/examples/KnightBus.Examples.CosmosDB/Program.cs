@@ -43,8 +43,8 @@ namespace KnightBus.Examples.CosmosDB
                             configuration.Database = databaseId;
                             configuration.Container = containerId;
                             configuration.PollingDelay = TimeSpan.FromMilliseconds(500);
-                            configuration.DefaultTimeToLive = TimeSpan.FromSeconds(120);
-                            configuration.Topics = new List<string> {"Topic1", "Topic2"};
+                            configuration.DefaultTimeToLive = TimeSpan.FromSeconds(10);
+                            configuration.Topic = "Topic1"; //Should be a list of all topics
                         })
                         .RegisterProcessors(typeof(Program).Assembly) //Can be any class name in this project
                         .UseTransport<CosmosTransport>();
@@ -64,9 +64,11 @@ namespace KnightBus.Examples.CosmosDB
             //Send messages
             for (int i = 1; i <= 10; i++)
             {
-                string topic = $"Topic{i % 4}";
-                await client.PublishAsync(new SampleCosmosEvent(i.ToString(), topic), CancellationToken.None);
+                string topic = $"Topic{i % 3}";
+                SampleCosmosEvent ce = new SampleCosmosEvent(topic) { MessageBody = $"data{i}" };
+                await client.PublishAsync(ce, CancellationToken.None);
             }
+            
             
             //Clean-up
             client.cleanUp();
@@ -86,9 +88,9 @@ namespace KnightBus.Examples.CosmosDB
         }
     }
     
-    class SamplePostgresEventMapping : IMessageMapping<SampleCosmosEvent>
+    class SampleCosmosEventMapping : IMessageMapping<SampleCosmosEvent>
     {
-        public string QueueName => "sample_topic";
+        public string QueueName => "test-topic";
     }
     
     class CosmosProcessingSetting : IProcessingSettings
@@ -108,19 +110,22 @@ namespace KnightBus.Examples.CosmosDB
     
     public class SampleCosmosEvent : ICosmosEvent
     {
-        public string id { get; }
         public string Topic { get; }
-        public string? MessageBody { get; }
+        
+        public required string MessageBody { get; set;  }
+        
+        public string id { get; }
+        
 
         //Single topic constructor
-        public SampleCosmosEvent(string id, string topic, string? data = null)
+        public SampleCosmosEvent(string topic)
         {
-            //Throw exception if either of args are null
-            ArgumentException.ThrowIfNullOrWhiteSpace(id);
-            //Assign values
-            this.id = id;
-            this.Topic = topic;
-            this.MessageBody = data;
+            this.Topic = topic; // ska tas bort
+            //this.MessageBody = data;
+            
+            this.id = Guid.NewGuid().ToString();
+            
+            // id och failed Attempts måste sparas som interna fält
         }
     }
     

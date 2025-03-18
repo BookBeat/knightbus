@@ -59,22 +59,20 @@ public class CosmosBus : ICosmosBus
     //Publish a single event
     public async Task PublishAsync<T>(T message, CancellationToken ct) where T : ICosmosEvent
     {
-        try
-        {
-            // Read the item to see if it exists.  
-            Container container = _client.GetContainer("db", "items");
-            ItemResponse<T> messageResponse = await container.ReadItemAsync<T>(message.id, new PartitionKey(message.Topic), null, ct );
-            Console.WriteLine("Item in database with id: {0} already exists", messageResponse.Resource.id);
-        }
-        catch(CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
-        {
             // Create an item in the container on topic
             Container container = _client.GetContainer("db", "items");
-            ItemResponse<T> messageResponse = await container.CreateItemAsync<T>(message, new PartitionKey(message.Topic), null, ct);
+            try
+            {
 
-            // Note that after creating the item, we can access the body of the item with the Resource property off the ItemResponse. We can also access the RequestCharge property to see the amount of RUs consumed on this request.
-            Console.WriteLine("Created item in database with id: {0} Operation consumed {1} RUs.", messageResponse.Resource.id, messageResponse.RequestCharge);
-        }
+                ItemResponse<T> messageResponse =
+                    await container.CreateItemAsync<T>(message, new PartitionKey(message.Topic), null, ct);
+                Console.WriteLine($"Created item {messageResponse.Resource} on {message.Topic} - {messageResponse.RequestCharge} RUs consumed");
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine(ex);
+                //Console.WriteLine($"Item {message} already exists on partition {message.Topic}");
+            }
     }
     
     //Publish multiple events
