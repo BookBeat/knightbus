@@ -17,7 +17,7 @@ public class CosmosSubscriptionChannelFactory : ITransportChannelFactory
     }
     
 
-    public IChannelReceiver Create(Type messageType,
+    public IChannelReceiver? Create(Type messageType,
         IEventSubscription subscription,
         IProcessingSettings processingSettings,
         IMessageSerializer serializer,

@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using KnightBus.Core;
 using KnightBus.Cosmos.Messages;
 using Microsoft.Azure.Cosmos;
 
@@ -57,22 +58,15 @@ public class CosmosBus : ICosmosBus
     }
 
     //Publish a single event
-    public async Task PublishAsync<T>(T message, CancellationToken ct) where T : ICosmosEvent
+    public async Task PublishAsync<T>(T message, CancellationToken cancellationToken) where T : ICosmosEvent
     {
             // Create an item in the container on topic
             Container container = _client.GetContainer("db", "items");
-            try
-            {
 
-                ItemResponse<T> messageResponse =
-                    await container.CreateItemAsync<T>(message, new PartitionKey(message.Topic), null, ct);
-                Console.WriteLine($"Created item {messageResponse.Resource} on {message.Topic} - {messageResponse.RequestCharge} RUs consumed");
-            }
-            catch(Exception ex)
-            {
-                Console.WriteLine(ex);
-                //Console.WriteLine($"Item {message} already exists on partition {message.Topic}");
-            }
+            var internalCosmosMessage = new InternalCosmosMessage<T>(message);
+            ItemResponse<InternalCosmosMessage<T>> messageResponse =
+                await container.CreateItemAsync<InternalCosmosMessage<T>>(internalCosmosMessage, new PartitionKey(internalCosmosMessage.Topic), null, cancellationToken);
+            Console.WriteLine($"Created item {internalCosmosMessage.id} on {internalCosmosMessage.Topic} - {messageResponse.RequestCharge} RUs consumed");
     }
     
     //Publish multiple events

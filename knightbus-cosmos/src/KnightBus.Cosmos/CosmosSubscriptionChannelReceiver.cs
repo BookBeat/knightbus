@@ -1,4 +1,5 @@
-﻿using System.Data;
+﻿using System.Collections.ObjectModel;
+using System.Data;
 using System.Net;
 using KnightBus.Core;
 using KnightBus.Cosmos.Messages;
@@ -9,29 +10,30 @@ namespace KnightBus.Cosmos;
 
 public class CosmosSubscriptionChannelReceiver<T> : IChannelReceiver where T : class, ICosmosEvent
 {
-    private IProcessingSettings _processorSettings;
+    private IProcessingSettings settings;
     private IMessageSerializer _serializer;
     private IEventSubscription _subscription;
-    private IHostConfiguration _configuration;
+    private IHostConfiguration _hostConfiguration;
     private IMessageProcessor _processor;
     private ICosmosConfiguration _cosmosConfiguration;
     private CosmosClient _client;
     private Database _database;
+    private Container _container;
     private static T _messageType; //Used only to extract name of message type
     
     public CosmosSubscriptionChannelReceiver(
         IProcessingSettings processorSettings,
         IMessageSerializer serializer,
-        IEventSubscription subscription,
+        IEventSubscription subscription, //Currently not used
         IHostConfiguration config,
         IMessageProcessor processor,
         ICosmosConfiguration cosmosConfiguration
     )
     {
-        _processorSettings = processorSettings;
+        settings = processorSettings;
         _serializer = serializer;
         _subscription = subscription;
-        _configuration = config;
+        _hostConfiguration = config;
         _processor = processor;
         _cosmosConfiguration = cosmosConfiguration;
 
@@ -52,68 +54,50 @@ public class CosmosSubscriptionChannelReceiver<T> : IChannelReceiver where T : c
         var response = await _database.CreateContainerIfNotExistsAsync(
             new ContainerProperties(_cosmosConfiguration.Container, "/Topic") {DefaultTimeToLive = (int)_cosmosConfiguration.DefaultTimeToLive.TotalSeconds}, cancellationToken: cancellationToken);
         CheckResponse(response, _cosmosConfiguration.Container);
-        var items = response.Container;
-        
-        
-        Task.Run(() => StartPullModelChangeFeed(items, _cosmosConfiguration.Topic, cancellationToken), cancellationToken);
+        _container = response.Container;
+
+
+        StartPullModelChangeFeed(cancellationToken);
 
     }
     
     
     //Start pull model change feed
-    private async Task StartPullModelChangeFeed(Container container, string topic, CancellationToken cancellationToken)
-    {
+    private async Task StartPullModelChangeFeed(CancellationToken cancellationToken)
+    {        
+        var topic = AutoMessageMapper.GetQueueName<T>();
+
         //Start pull model
-        var iteratorForPartitionKey = container.GetChangeFeedIterator<T>(
+        var iteratorForPartitionKey = _container.GetChangeFeedIterator<InternalCosmosMessage<T>>(
             ChangeFeedStartFrom.Beginning(FeedRange.FromPartitionKey(new PartitionKey(topic))), ChangeFeedMode.LatestVersion);
         
         Console.WriteLine($"starting pull model change feed on topic : {topic}");
         // Function that called this function with await should be allowed to continue when this function reaches here
 
-        while (iteratorForPartitionKey.HasMoreResults && !cancellationToken.IsCancellationRequested)
+        while (iteratorForPartitionKey.HasMoreResults) // && !cancellationToken.IsCancellationRequested) // change feed stops when program reaches end
         {
-            FeedResponse<T> response = await iteratorForPartitionKey.ReadNextAsync();
+            FeedResponse<InternalCosmosMessage<T>> response = await iteratorForPartitionKey.ReadNextAsync(cancellationToken);
 
             if (response.StatusCode == HttpStatusCode.NotModified)
             {
                 // 1 RU used if no changes have been made
-                await Task.Delay(_cosmosConfiguration.PollingDelay);
+                await Task.Delay(_cosmosConfiguration.PollingDelay, cancellationToken);
             }
             else
             {
-                foreach (T message in response)
+                foreach (InternalCosmosMessage<T> message in response)
                 {
-                    await InternalProcessMessageAsync(message, cancellationToken);
+                    await ProcessMessageAsync(message, cancellationToken);
                     
                 }
             }
         }
     }
 
-    private async Task<Task> InternalProcessMessageAsync(T message, CancellationToken cancellationToken)
+    private async Task ProcessMessageAsync(InternalCosmosMessage<T> message, CancellationToken cancellationToken)
     {
-        try
-        {
-            //var stateHandler = new CosmosMessageStateHandler<T>(_client, message, deadletterLimit, _serializer, IDependencyInjection messageScope);
-            
-            //_processor.ProcessAsync<T>(message, cancellationToken);
-            Console.WriteLine($"Change in message {message} on {message.Topic}");
-            return Task.CompletedTask;
-        }
-        catch( Exception ex )
-        {
-            CosmosBus cosmosBus = new CosmosBus(_cosmosConfiguration);
-            await cosmosBus.PublishAsync(message, cancellationToken);
-            
-            var response = await _database.CreateContainerIfNotExistsAsync(
-                new ContainerProperties(_cosmosConfiguration.Container, "/Topic") {DefaultTimeToLive = (int)_cosmosConfiguration.DefaultTimeToLive.TotalSeconds}, cancellationToken: cancellationToken);
-            Container processing = response.Container;
-            
-            ItemResponse<T> messageResponse =
-                    await processing.CreateItemAsync<T>(message, new PartitionKey(message.Topic), null, cancellationToken);
-                Console.WriteLine($"processing {messageResponse.Resource} on {message.Topic} - {messageResponse.RequestCharge} RUs consumed");
-            return Task.FromException(ex);
-        }
+        var messageStateHandler = new CosmosMessageStateHandler<T>(_client, message, settings.DeadLetterDeliveryLimit, _serializer, _hostConfiguration.DependencyInjection);
+        await _processor.ProcessAsync(messageStateHandler, cancellationToken).ConfigureAwait(false);
     }
 
     private static void CheckResponse(object response, string id)

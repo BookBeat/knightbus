@@ -1,4 +1,5 @@
 ﻿using KnightBus.Core;
+using KnightBus.Cosmos.Messages;
 using KnightBus.Messages;
 using Microsoft.Azure.Cosmos;
 
@@ -6,14 +7,14 @@ namespace KnightBus.Cosmos;
 
 
 public class CosmosMessageStateHandler<T> :
-    IMessageStateHandler<T> where T : class, IMessage
+    IMessageStateHandler<T> where T : class, IMessage //ICosmosEvent prob shouldn't be needed
 {
     private readonly CosmosClient? _cosmosClient;
-    private readonly CosmosMessage<T>? _message;
+    private readonly InternalCosmosMessage<T> _message;
 
     public CosmosMessageStateHandler(
         CosmosClient cosmosClient,
-        CosmosMessage<T> message,
+        InternalCosmosMessage<T> message,
         int deadLetterDeliveryLimit,
         IMessageSerializer serializer,
         IDependencyInjection messageScope)
@@ -24,22 +25,20 @@ public class CosmosMessageStateHandler<T> :
         MessageScope = messageScope;
     }
 
-    public CosmosMessageStateHandler()
-    {
-    }
-
-    public int DeliveryCount => _message.ReadCount;
+    public int DeliveryCount => _message.DeliveryCount;
     public int DeadLetterDeliveryLimit { get; }
-    public IDictionary<string, string> MessageProperties => _message.Properties;
+    public IDictionary<string, string> MessageProperties => null ; // Not implemented
 
     public Task CompleteAsync()
     {
-       throw new NotImplementedException();
+        return Task.CompletedTask;
+        //Remove item from processing (and from container?)
     }
 
     public Task AbandonByErrorAsync(Exception e)
     {
-        throw new NotImplementedException();
+        //Remove item from processing and increment deliveryCount
+        return Task.FromException(e);
     }
 
     public Task DeadLetterAsync(int deadLetterLimit)
@@ -49,7 +48,7 @@ public class CosmosMessageStateHandler<T> :
 
     public T GetMessage()
     {
-        return _message.Message;
+        return _message.CosmosEvent;
     }
 
     public Task ReplyAsync<TReply>(TReply reply)
