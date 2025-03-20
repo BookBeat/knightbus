@@ -9,46 +9,44 @@ namespace KnightBus.Cosmos;
 public class CosmosMessageStateHandler<T> :
     IMessageStateHandler<T> where T : class, IMessage //ICosmosEvent prob shouldn't be needed
 {
-    private readonly CosmosClient? _cosmosClient;
-    private readonly InternalCosmosMessage<T> _message;
+    private readonly CosmosQueueClient<T> _cosmosQueueClient;
+    private readonly InternalCosmosMessage<T> _internalMessage;
 
     public CosmosMessageStateHandler(
-        CosmosClient cosmosClient,
+        CosmosQueueClient<T> cosmosQueueClient,
         InternalCosmosMessage<T> message,
         int deadLetterDeliveryLimit,
         IMessageSerializer serializer,
         IDependencyInjection messageScope)
     {
-        _cosmosClient = cosmosClient;
-        _message = message;
+        _cosmosQueueClient = cosmosQueueClient;
+        _internalMessage = message;
         DeadLetterDeliveryLimit = deadLetterDeliveryLimit;
         MessageScope = messageScope;
     }
 
-    public int DeliveryCount => _message.DeliveryCount;
+    public int DeliveryCount => _internalMessage.DeliveryCount;
     public int DeadLetterDeliveryLimit { get; }
-    public IDictionary<string, string> MessageProperties => null ; // Not implemented
+    public IDictionary<string, string>? MessageProperties => null ; // Not implemented
 
     public Task CompleteAsync()
     {
-        return Task.CompletedTask;
-        //Remove item from processing (and from container?)
+        return _cosmosQueueClient.CompleteAsync(_internalMessage);
     }
 
     public Task AbandonByErrorAsync(Exception e)
     {
-        //Remove item from processing and increment deliveryCount
-        return Task.FromException(e);
+        return _cosmosQueueClient.AbandonByErrorAsync(_internalMessage);
     }
 
     public Task DeadLetterAsync(int deadLetterLimit)
     {
-        throw new NotImplementedException();
+        return _cosmosQueueClient.DeadLetterAsync(_internalMessage);
     }
 
     public T GetMessage()
     {
-        return _message.CosmosEvent;
+        return _internalMessage.CosmosEvent;
     }
 
     public Task ReplyAsync<TReply>(TReply reply)

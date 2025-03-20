@@ -10,16 +10,13 @@ namespace KnightBus.Cosmos;
 
 public class CosmosSubscriptionChannelReceiver<T> : IChannelReceiver where T : class, ICosmosEvent
 {
-    private IProcessingSettings settings;
-    private IMessageSerializer _serializer;
+    private readonly IProcessingSettings settings;
+    private readonly IMessageSerializer _serializer;
     private IEventSubscription _subscription;
-    private IHostConfiguration _hostConfiguration;
-    private IMessageProcessor _processor;
-    private ICosmosConfiguration _cosmosConfiguration;
-    private CosmosClient _client;
-    private Database _database;
-    private Container _container;
-    private static T _messageType; //Used only to extract name of message type
+    private readonly IHostConfiguration _hostConfiguration;
+    private readonly IMessageProcessor _processor;
+    private readonly ICosmosConfiguration _cosmosConfiguration;
+    private readonly CosmosQueueClient<T> _cosmosQueueClient;
     
     public CosmosSubscriptionChannelReceiver(
         IProcessingSettings processorSettings,
@@ -36,29 +33,16 @@ public class CosmosSubscriptionChannelReceiver<T> : IChannelReceiver where T : c
         _hostConfiguration = config;
         _processor = processor;
         _cosmosConfiguration = cosmosConfiguration;
-
+        _cosmosQueueClient = new CosmosQueueClient<T>(_cosmosConfiguration);
     }
     
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        //Create cosmos client
-        _client = new CosmosClient(_cosmosConfiguration.ConnectionString);
+        //CosmosQueueClient creates database and container to send and receive messages
+        await _cosmosQueueClient.StartAsync(cancellationToken);
         
-        //Get database, create if it does not exist
-        DatabaseResponse databaseResponse = await _client.CreateDatabaseIfNotExistsAsync(_cosmosConfiguration.Database, 400, null, cancellationToken);
-        CheckResponse(databaseResponse, _cosmosConfiguration.Database);
-        
-        
-        _database = databaseResponse.Database;
-        //Get container, create if it does not exist
-        var response = await _database.CreateContainerIfNotExistsAsync(
-            new ContainerProperties(_cosmosConfiguration.Container, "/Topic") {DefaultTimeToLive = (int)_cosmosConfiguration.DefaultTimeToLive.TotalSeconds}, cancellationToken: cancellationToken);
-        CheckResponse(response, _cosmosConfiguration.Container);
-        _container = response.Container;
-
-
+        //Start asynchronous change feed listening and processing changes on the topic
         StartPullModelChangeFeed(cancellationToken);
-
     }
     
     
@@ -67,28 +51,28 @@ public class CosmosSubscriptionChannelReceiver<T> : IChannelReceiver where T : c
     {        
         var topic = AutoMessageMapper.GetQueueName<T>();
 
-        //Start pull model
-        var iteratorForPartitionKey = _container.GetChangeFeedIterator<InternalCosmosMessage<T>>(
+        //Start pull model listening only on the topic partition key
+        var iteratorForPartitionKey = _cosmosQueueClient.Container.GetChangeFeedIterator<InternalCosmosMessage<T>>(
             ChangeFeedStartFrom.Beginning(FeedRange.FromPartitionKey(new PartitionKey(topic))), ChangeFeedMode.LatestVersion);
         
-        Console.WriteLine($"starting pull model change feed on topic : {topic}");
-        // Function that called this function with await should be allowed to continue when this function reaches here
-
-        while (iteratorForPartitionKey.HasMoreResults) // && !cancellationToken.IsCancellationRequested) // change feed stops when program reaches end
+        Console.WriteLine($"started change feed listening for : {topic}");
+        
+        while (iteratorForPartitionKey.HasMoreResults)
         {
+            //TODO: Consider using batch processing to optimize
             FeedResponse<InternalCosmosMessage<T>> response = await iteratorForPartitionKey.ReadNextAsync(cancellationToken);
 
             if (response.StatusCode == HttpStatusCode.NotModified)
             {
-                // 1 RU used if no changes have been made
+                // 1 Request Unit used if no changes have been made
                 await Task.Delay(_cosmosConfiguration.PollingDelay, cancellationToken);
             }
             else
             {
                 foreach (InternalCosmosMessage<T> message in response)
                 {
-                    await ProcessMessageAsync(message, cancellationToken);
-                    
+                    //Processing of messages can be done asynchronously
+                    ProcessMessageAsync(message, cancellationToken);
                 }
             }
         }
@@ -96,54 +80,8 @@ public class CosmosSubscriptionChannelReceiver<T> : IChannelReceiver where T : c
 
     private async Task ProcessMessageAsync(InternalCosmosMessage<T> message, CancellationToken cancellationToken)
     {
-        var messageStateHandler = new CosmosMessageStateHandler<T>(_client, message, settings.DeadLetterDeliveryLimit, _serializer, _hostConfiguration.DependencyInjection);
+        var messageStateHandler = new CosmosMessageStateHandler<T>(_cosmosQueueClient, message, settings.DeadLetterDeliveryLimit, _serializer, _hostConfiguration.DependencyInjection);
         await _processor.ProcessAsync(messageStateHandler, cancellationToken).ConfigureAwait(false);
-    }
-
-    private static void CheckResponse(object response, string id)
-    {
-        switch (response)
-        {
-            case DatabaseResponse databaseResponse:
-                CheckHttpResponse(databaseResponse.StatusCode , "database", id);
-                break;
-            case ContainerResponse containerResponse:
-                CheckHttpResponse(containerResponse.StatusCode, "container", id);
-                break;
-            default:
-                throw new ArgumentException(
-                    "Invalid response type, only databaseResponse & containerResponse are supported");
-        }
-    }
-    private static void CheckHttpResponse(HttpStatusCode statusCode, string type, string id)
-    {
-        switch (statusCode)
-        {
-            case HttpStatusCode.Created:
-                Console.WriteLine($"{type}: {id} created");
-                break;
-            case HttpStatusCode.OK:
-                Console.WriteLine($"{type}: {id} already exists");
-                break;
-            default:
-                throw new Exception($"Unexpected http response code when creating {type} {id} : {statusCode}");
-        }
-    }
-    
-
-    //Create Container if it does not exist, old containers with incompatible settings to the new one crash server
-    private static async Task<Container> CreateContainerIfNotExistsOrIncompatibleAsync(CosmosClient client, Database db, string containerId, string partitionKey, int defaultTTL)
-    {
-        //Get container
-        
-        //Get metadata to check compatibility with new container
-        
-        //Create a new container
-        var response = await db.CreateContainerIfNotExistsAsync(
-            new ContainerProperties(containerId, partitionKey) {DefaultTimeToLive = defaultTTL});
-        CheckResponse(response, containerId);
-
-        return response.Container;
     }
     
     public IProcessingSettings Settings { get; set; }

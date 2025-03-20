@@ -12,7 +12,7 @@ public interface ICosmosConfiguration : ITransportConfiguration
     
     TimeSpan DefaultTimeToLive { get; set; }
     
-    string Topic { get; set; }
+    public string deadLetterContainer { get; set; }
 }
 
 public class CosmosConfiguration : ICosmosConfiguration
@@ -23,7 +23,6 @@ public class CosmosConfiguration : ICosmosConfiguration
         ConnectionString = connectionString;
         Database = database;
         Container = container;
-        Topic = string.Empty;
     }
 
     public CosmosConfiguration() { }
@@ -37,6 +36,6 @@ public class CosmosConfiguration : ICosmosConfiguration
     public string Database { get; set; }
     
     public string Container { get; set; }
-
-    public string Topic { get; set; }
+    
+    public string deadLetterContainer { get; set; }
 }

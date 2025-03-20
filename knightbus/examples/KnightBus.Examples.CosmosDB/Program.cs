@@ -28,6 +28,7 @@ namespace KnightBus.Examples.CosmosDB
             string? connectionString = Environment.GetEnvironmentVariable("CosmosString"); 
             const string databaseId = "db";
             const string containerId = "items";
+            const string deadLetterContainer = "deadLetterQueue";
 
             var knightBusHost = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
                 .UseDefaultServiceProvider(options =>
@@ -42,6 +43,7 @@ namespace KnightBus.Examples.CosmosDB
                             configuration.ConnectionString = connectionString;
                             configuration.Database = databaseId;
                             configuration.Container = containerId;
+                            configuration.deadLetterContainer = deadLetterContainer;
                             configuration.PollingDelay = TimeSpan.FromMilliseconds(500);
                             configuration.DefaultTimeToLive = TimeSpan.FromSeconds(60);
                         })
@@ -63,15 +65,18 @@ namespace KnightBus.Examples.CosmosDB
             //Send messages
             for (int i = 1; i <= 5; i++)
             {
-                await client.PublishAsync(new SampleCosmosEvent() { MessageBody = $"data{i}" }, CancellationToken.None);
+                await client.PublishAsync(new SampleCosmosEvent() { MessageBody = $"msg info {i}" }, CancellationToken.None);
             }
             
             for (int i = 1; i <= 2; i++)
             {
-                await client.PublishAsync(new SampleCosmosEvent2() { data = $"data{i}" }, CancellationToken.None);
+                await client.PublishAsync(new SampleCosmosEvent2() { data = $"data {i}" }, CancellationToken.None);
             }
-
-            await Task.Delay(TimeSpan.FromSeconds(10));
+            
+            for (int i = 1; i <= 2; i++)
+            {
+                await client.PublishAsync(new SamplePoisonEvent() { bad_message = $"danger {i}" }, CancellationToken.None);
+            }
             
             //Clean-up
             client.cleanUp();
@@ -82,7 +87,9 @@ namespace KnightBus.Examples.CosmosDB
     
     class CosmosEventProcessor :
         IProcessEvent<SampleCosmosEvent, SampleSubscription, CosmosProcessingSetting>,
-        IProcessEvent<SampleCosmosEvent2, SampleSubscription2, CosmosProcessingSetting>
+        IProcessEvent<SampleCosmosEvent2, SampleSubscription2, CosmosProcessingSetting>,
+        IProcessEvent<SampleCosmosEvent2, SampleSubscription3, CosmosProcessingSetting>,
+        IProcessEvent<SamplePoisonEvent, SamplePoisonSubscription, CosmosProcessingSetting>
     {
 
         public Task ProcessAsync(SampleCosmosEvent message, CancellationToken cancellationToken)
@@ -96,13 +103,12 @@ namespace KnightBus.Examples.CosmosDB
             Console.WriteLine($"Event 2: '{message.data}'");
             return Task.CompletedTask;
         }
+        
+        public Task ProcessAsync(SamplePoisonEvent message, CancellationToken cancellationToken)
+        {
+            throw new InvalidOperationException();
+        }
     }
-    
-    class SampleCosmosEventMapping : IMessageMapping<SampleCosmosEvent>
-    {
-        public string QueueName => "test-topic";
-    }
-    
     
     class CosmosProcessingSetting : IProcessingSettings
     {
@@ -111,23 +117,26 @@ namespace KnightBus.Examples.CosmosDB
         public TimeSpan MessageLockTimeout => TimeSpan.FromMinutes(5); //Currently not used
         public int DeadLetterDeliveryLimit => 2;
     }
-
-    class SampleSubscription: IEventSubscription<SampleCosmosEvent>
-    {
-        public string Name => "sample_subscription";
-    }
     
     
     public class SampleCosmosEvent : ICosmosEvent
     {
         public string? MessageBody { get; set;  }
     }
+    class SampleCosmosEventMapping : IMessageMapping<SampleCosmosEvent>
+    {
+        public string QueueName => "test-topic";
+    }
+    class SampleSubscription: IEventSubscription<SampleCosmosEvent>
+    {
+        public string Name => "sample_subscription";
+    }
 
+    
     public class SampleCosmosEvent2 : ICosmosEvent
     {
         public string? data { get; set; }
     }
-    
     class SampleCosmosEventMapping2 : IMessageMapping<SampleCosmosEvent2>
     {
         public string QueueName => "test-topic2";
@@ -136,6 +145,25 @@ namespace KnightBus.Examples.CosmosDB
     class SampleSubscription2: IEventSubscription<SampleCosmosEvent2>
     {
         public string Name => "sample_subscription2";
+    }
+    
+    class SampleSubscription3: IEventSubscription<SampleCosmosEvent2>
+    {
+        public string Name => "sample_subscription3";
+    }
+    
+    
+    public class SamplePoisonEvent : ICosmosEvent
+    {
+        public string? bad_message { get; set;  }
+    }
+    class SamplePoisonEventMapping : IMessageMapping<SamplePoisonEvent>
+    {
+        public string QueueName => "poison-topic";
+    }
+    class SamplePoisonSubscription: IEventSubscription<SamplePoisonEvent>
+    {
+        public string Name => "sample_poison_subscription";
     }
     
 }
