@@ -5,5 +5,4 @@ namespace KnightBus.Cosmos.Messages;
 
 public interface ICosmosEvent : IEvent
 {
-    //int FailedAttempts => 0;
 }

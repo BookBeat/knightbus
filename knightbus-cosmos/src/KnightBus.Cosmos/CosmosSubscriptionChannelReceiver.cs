@@ -1,10 +1,9 @@
-﻿using System.Collections.ObjectModel;
-using System.Data;
-using System.Net;
+﻿using System.Net;
 using KnightBus.Core;
 using KnightBus.Cosmos.Messages;
 using KnightBus.Messages;
 using Microsoft.Azure.Cosmos;
+using Microsoft.Extensions.Logging;
 
 namespace KnightBus.Cosmos;
 
@@ -17,6 +16,8 @@ public class CosmosSubscriptionChannelReceiver<T> : IChannelReceiver where T : c
     private readonly IMessageProcessor _processor;
     private readonly ICosmosConfiguration _cosmosConfiguration;
     private readonly CosmosQueueClient<T> _cosmosQueueClient;
+    private readonly ILogger _logger;
+    
     
     public CosmosSubscriptionChannelReceiver(
         IProcessingSettings processorSettings,

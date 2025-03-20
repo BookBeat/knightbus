@@ -1,13 +1,4 @@
-﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Configuration;
-using System.Collections.Generic;
-using System.Net;
-using System.Runtime.CompilerServices;
-using Azure;
-using KnightBus.Core.DependencyInjection;
-using Microsoft.Azure.Cosmos;
+﻿using KnightBus.Core.DependencyInjection;
 using KnightBus.Cosmos;
 using KnightBus.Cosmos.Messages;
 using Microsoft.Extensions.Hosting;
@@ -45,7 +36,7 @@ namespace KnightBus.Examples.CosmosDB
                             configuration.Container = containerId;
                             configuration.deadLetterContainer = deadLetterContainer;
                             configuration.PollingDelay = TimeSpan.FromMilliseconds(500);
-                            configuration.DefaultTimeToLive = TimeSpan.FromSeconds(60);
+                            configuration.DefaultTimeToLive = TimeSpan.FromSeconds(120);
                         })
                         .RegisterProcessors(typeof(Program).Assembly) //Can be any class name in this project
                         .UseTransport<CosmosTransport>();
@@ -59,21 +50,24 @@ namespace KnightBus.Examples.CosmosDB
             await Task.Delay(TimeSpan.FromSeconds(1));
             Console.WriteLine("Started host");
             
-            var client =
-                (CosmosBus)knightBusHost.Services.CreateScope().ServiceProvider.GetRequiredService<CosmosBus>();
+            var client = knightBusHost.Services.CreateScope().ServiceProvider.GetRequiredService<CosmosBus>();
             
-            //Send messages
+            //Publish event
             for (int i = 1; i <= 5; i++)
             {
-                await client.PublishAsync(new SampleCosmosEvent() { MessageBody = $"msg info {i}" }, CancellationToken.None);
+                await client.PublishAsync(new SampleCosmosEvent() { MessageBody = $"msg data {i}" }, CancellationToken.None);
             }
             
+            //Publish other event
             for (int i = 1; i <= 2; i++)
             {
                 await client.PublishAsync(new SampleCosmosEvent2() { data = $"data {i}" }, CancellationToken.None);
             }
             
-            for (int i = 1; i <= 2; i++)
+            Console.ReadKey();
+
+            //Publish poison event
+            for (int i = 1; i <= 1; i++)
             {
                 await client.PublishAsync(new SamplePoisonEvent() { bad_message = $"danger {i}" }, CancellationToken.None);
             }
@@ -106,6 +100,7 @@ namespace KnightBus.Examples.CosmosDB
         
         public Task ProcessAsync(SamplePoisonEvent message, CancellationToken cancellationToken)
         {
+            Console.WriteLine($"Poison {message.bad_message}");
             throw new InvalidOperationException();
         }
     }

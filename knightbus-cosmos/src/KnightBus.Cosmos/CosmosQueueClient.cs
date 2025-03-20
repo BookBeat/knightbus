@@ -36,10 +36,10 @@ public class CosmosQueueClient<T> where T : class, IMessage
         Container = containerResponse.Container;
         
         //Get deadLetterContainer, create if it does not exist
-        //var deadLetterResponse = await _database.CreateContainerIfNotExistsAsync(
-        //    new ContainerProperties(_cosmosConfiguration.deadLetterContainer, "/id"), cancellationToken: cancellationToken);
-        //CheckHttpResponse(deadLetterResponse.StatusCode, _cosmosConfiguration.deadLetterContainer);
-        //Container = deadLetterResponse.Container;
+        var deadLetterResponse = await _database.CreateContainerIfNotExistsAsync(
+            new ContainerProperties(_cosmosConfiguration.deadLetterContainer, "/Topic"), cancellationToken: cancellationToken);
+        CheckHttpResponse(deadLetterResponse.StatusCode, _cosmosConfiguration.deadLetterContainer);
+        _deadLetterContainer = deadLetterResponse.Container;
 
     }
     
@@ -61,37 +61,49 @@ public class CosmosQueueClient<T> where T : class, IMessage
     
     public async Task CompleteAsync(InternalCosmosMessage<T> message)
     {
-        //Remove item from container
-        // Multiple change feeds per subscriber: Remove from processing queue
-        //var response = await _container.DeleteItemAsync
+        await RemoveItemAsync(message, Container);
+        // TODO: To support multiple change feeds per subscriber, Remove from processing container
+       
     }
 
     public async Task AbandonByErrorAsync(InternalCosmosMessage<T> message)
     {
-        Console.WriteLine($"AbandonByError: {message.DeliveryCount}");
         //Update item
-        /*
-         ItemResponse<InternalCosmosMessage<T>> response = await Container.PatchItemAsync<InternalCosmosMessage<T>>(
-         
-            id: message.id,
-            partitionKey: new PartitionKey(message.Topic),
-            patchOperations:
-            [
-                PatchOperation.Increment("/FailedAttempts", 1)
-            ]
-        );
-        */
-        
+        try
+        {
+             ItemResponse<InternalCosmosMessage<T>> response = await Container.PatchItemAsync<InternalCosmosMessage<T>>(
 
-        
-        // TODO to support multiple change feeds per subscriber: Remove from processing container
+                id: message.id,
+                partitionKey: new PartitionKey(message.Topic),
+                patchOperations:
+                [
+                    PatchOperation.Increment("/DeliveryCount", 1)
+                ]
+            );
+        }
+        catch (CosmosException ex)
+        {
+            //TODO: Should be made into log error
+            Console.WriteLine($"Cosmos error {ex.StatusCode}");
+        }
+        // TODO: To support multiple change feeds per subscriber, Remove from processing container
     }
 
     public async Task DeadLetterAsync(InternalCosmosMessage<T> message)
     {
-        Console.WriteLine("Message should be deadLettered");
-        //Remove from container
-        //Add to deadletterContainer
+        await AddItemAsync(message, _deadLetterContainer);
+        await RemoveItemAsync(message, Container);
+        //TODO: Remove from items container
+    }
+
+
+    public async Task AddItemAsync(InternalCosmosMessage<T> message, Container container)
+    {
+        await container.CreateItemAsync(message, new PartitionKey(message.Topic));
     }
     
+    public async Task RemoveItemAsync(InternalCosmosMessage<T> message, Container container)
+    {
+        await container.DeleteItemAsync<InternalCosmosMessage<T>>(message.id, new PartitionKey(message.Topic));
+    }
 }
