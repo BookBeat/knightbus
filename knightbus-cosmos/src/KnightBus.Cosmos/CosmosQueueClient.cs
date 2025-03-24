@@ -61,9 +61,7 @@ public class CosmosQueueClient<T> where T : class, IMessage
     
     public async Task CompleteAsync(InternalCosmosMessage<T> message)
     {
-        await RemoveItemAsync(message, Container);
-        // TODO: To support multiple change feeds per subscriber, Remove from processing container
-       
+        await Task.Delay(TimeSpan.FromSeconds(1));
     }
 
     public async Task AbandonByErrorAsync(InternalCosmosMessage<T> message)
@@ -77,6 +75,7 @@ public class CosmosQueueClient<T> where T : class, IMessage
                 partitionKey: new PartitionKey(message.Topic),
                 patchOperations:
                 [
+                    PatchOperation.Add("/teststring", "test"),
                     PatchOperation.Increment("/DeliveryCount", 1)
                 ]
             );
@@ -86,14 +85,12 @@ public class CosmosQueueClient<T> where T : class, IMessage
             //TODO: Should be made into log error
             Console.WriteLine($"Cosmos error {ex.StatusCode}");
         }
-        // TODO: To support multiple change feeds per subscriber, Remove from processing container
     }
 
     public async Task DeadLetterAsync(InternalCosmosMessage<T> message)
     {
         await AddItemAsync(message, _deadLetterContainer);
         await RemoveItemAsync(message, Container);
-        //TODO: Remove from items container
     }
 
 
