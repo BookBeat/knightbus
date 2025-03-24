@@ -18,7 +18,7 @@ class Program
         //Connection string should be saved as environment variable named "CosmosString"
         string? connectionString = Environment.GetEnvironmentVariable("CosmosString"); 
         const string databaseId = "db";
-        const string containerId = "items";
+        const string leaseContainer = "lease";
         const string deadLetterContainer = "deadLetterQueue";
 
         var knightBusHost = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
@@ -33,8 +33,8 @@ class Program
                     {
                         configuration.ConnectionString = connectionString;
                         configuration.Database = databaseId;
-                        configuration.Container = containerId;
-                        configuration.deadLetterContainer = deadLetterContainer;
+                        configuration.LeaseContainer = leaseContainer;
+                        configuration.DeadLetterContainer = deadLetterContainer;
                         configuration.PollingDelay = TimeSpan.FromMilliseconds(500);
                         configuration.DefaultTimeToLive = TimeSpan.FromSeconds(120);
                     })
@@ -52,6 +52,7 @@ class Program
         
         var client = knightBusHost.Services.CreateScope().ServiceProvider.GetRequiredService<CosmosBus>();
         
+
         //Publish event
         for (int i = 1; i <= 5; i++)
         {

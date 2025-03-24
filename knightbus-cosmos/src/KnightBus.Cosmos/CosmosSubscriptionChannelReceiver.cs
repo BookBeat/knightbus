@@ -39,50 +39,29 @@ public class CosmosSubscriptionChannelReceiver<T> : IChannelReceiver where T : c
     
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        //CosmosQueueClient creates database and container to send and receive messages
         await _cosmosQueueClient.StartAsync(cancellationToken);
         
         //Start asynchronous change feed listening and processing changes on the topic
-        StartPullModelChangeFeed(cancellationToken);
-    }
-    
-    
-    //Start pull model change feed
-    private async Task StartPullModelChangeFeed(CancellationToken cancellationToken)
-    {        
-        var topic = AutoMessageMapper.GetQueueName<T>();
-
-        //Start pull model listening only on the topic partition key
-        var iteratorForPartitionKey = _cosmosQueueClient.Container.GetChangeFeedIterator<InternalCosmosMessage<T>>(
-            ChangeFeedStartFrom.Beginning(FeedRange.FromPartitionKey(new PartitionKey(topic))), ChangeFeedMode.LatestVersion);
         
-        Console.WriteLine($"started change feed listening for : {topic}");
-        
-        while (iteratorForPartitionKey.HasMoreResults)
-        {
-            //TODO: Consider using batch processing to optimize
-            FeedResponse<InternalCosmosMessage<T>> response = await iteratorForPartitionKey.ReadNextAsync(cancellationToken);
-
-            if (response.StatusCode == HttpStatusCode.NotModified)
-            {
-                // 1 Request Unit used if no changes have been made
-                await Task.Delay(_cosmosConfiguration.PollingDelay, cancellationToken);
-            }
-            else
-            {
-                foreach (InternalCosmosMessage<T> message in response)
-                {
-                    //Processing of messages can be done asynchronously
-                    ProcessMessageAsync(message, cancellationToken);
-                }
-            }
-        }
+            ChangeFeedProcessor changeFeedProcessor = _cosmosQueueClient.Container
+                .GetChangeFeedProcessorBuilder<InternalCosmosMessage<T>>(processorName: "changeFeed", onChangesDelegate: ProcessChangesAsync)
+                .WithInstanceName("consoleHost")
+                .WithLeaseContainer(_cosmosQueueClient.Lease)
+                .WithPollInterval(_cosmosConfiguration.PollingDelay)
+                .Build();
+            
+            await changeFeedProcessor.StartAsync();
+            Console.WriteLine($"Change Feed Processor on {AutoMessageMapper.GetQueueName<T>()} started.");
     }
 
-    private async Task ProcessMessageAsync(InternalCosmosMessage<T> message, CancellationToken cancellationToken)
+    private async Task ProcessChangesAsync(ChangeFeedProcessorContext context, IReadOnlyCollection<InternalCosmosMessage<T>> messages, CancellationToken cancellationToken)
+
     {
-        var messageStateHandler = new CosmosMessageStateHandler<T>(_cosmosQueueClient, message, settings.DeadLetterDeliveryLimit, _serializer, _hostConfiguration.DependencyInjection);
-        await _processor.ProcessAsync(messageStateHandler, cancellationToken).ConfigureAwait(false);
+        foreach (var message in messages)
+        {
+            var messageStateHandler = new CosmosMessageStateHandler<T>(_cosmosQueueClient, message, settings.DeadLetterDeliveryLimit, _hostConfiguration.DependencyInjection);
+            await _processor.ProcessAsync(messageStateHandler, CancellationToken.None).ConfigureAwait(false);
+        }
     }
     
     public IProcessingSettings Settings { get; set; }

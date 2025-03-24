@@ -16,7 +16,6 @@ public class CosmosMessageStateHandler<T> :
         CosmosQueueClient<T> cosmosQueueClient,
         InternalCosmosMessage<T> message,
         int deadLetterDeliveryLimit,
-        IMessageSerializer serializer,
         IDependencyInjection messageScope)
     {
         _cosmosQueueClient = cosmosQueueClient;

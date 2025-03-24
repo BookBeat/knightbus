@@ -24,7 +24,6 @@ public interface ICosmosBus
 public class CosmosBus : ICosmosBus
 {
     private readonly CosmosClient _client;
-    private readonly Container _container;
     private ICosmosConfiguration _cosmosConfiguration;
     //Constructor
     public CosmosBus(ICosmosConfiguration config, ICosmosConfiguration cosmosConfiguration)
@@ -36,9 +35,6 @@ public class CosmosBus : ICosmosBus
         //Instantiate CosmosClient
         _client = new CosmosClient(connectionString,
             new CosmosClientOptions() { ApplicationName = "Sender" });
-        
-        // Create an item in the container on topic
-        _container = _client.GetContainer(_cosmosConfiguration.Database, _cosmosConfiguration.Container);
     }
 
     public void cleanUp()
@@ -64,10 +60,12 @@ public class CosmosBus : ICosmosBus
     public async Task PublishAsync<T>(T message, CancellationToken cancellationToken) where T : ICosmosEvent
     {
 
+            // Create an item in the container on topic
+            Container container = _client.GetContainer(_cosmosConfiguration.Database, AutoMessageMapper.GetQueueName<T>());
             var internalCosmosMessage = new InternalCosmosMessage<T>(message);
             ItemResponse<InternalCosmosMessage<T>> messageResponse =
-                await _container.CreateItemAsync<InternalCosmosMessage<T>>(internalCosmosMessage, new PartitionKey(internalCosmosMessage.Topic), null, cancellationToken);
-            Console.WriteLine($"Created item {internalCosmosMessage.id} on {internalCosmosMessage.Topic} - {messageResponse.RequestCharge} RUs consumed");
+                await container.CreateItemAsync<InternalCosmosMessage<T>>(internalCosmosMessage, new PartitionKey(internalCosmosMessage.id), null, cancellationToken);
+            Console.WriteLine($"Created item {internalCosmosMessage.id} on {AutoMessageMapper.GetQueueName<T>()} - {messageResponse.RequestCharge} RUs consumed");
     }
     
     //Publish multiple events

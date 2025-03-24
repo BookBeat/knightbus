@@ -7,23 +7,17 @@ public interface ICosmosConfiguration : ITransportConfiguration
 {
     TimeSpan PollingDelay { get; set; }
     string Database { get; set; }
-    
-    string Container { get; set; }
-    
+
+    string LeaseContainer { get; set; }
+
+    public string DeadLetterContainer { get; set; }
+
     TimeSpan DefaultTimeToLive { get; set; }
     
-    public string deadLetterContainer { get; set; }
 }
 
 public class CosmosConfiguration : ICosmosConfiguration
 {
-    public CosmosConfiguration(string connectionString, string database, string container)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
-        ConnectionString = connectionString;
-        Database = database;
-        Container = container;
-    }
 
     public CosmosConfiguration() { }
 
@@ -35,7 +29,8 @@ public class CosmosConfiguration : ICosmosConfiguration
 
     public string Database { get; set; }
     
-    public string Container { get; set; }
+    public string DeadLetterContainer { get; set; }
     
-    public string deadLetterContainer { get; set; }
+    public string LeaseContainer { get; set; }
+    
 }
