@@ -1,4 +1,6 @@
-﻿using KnightBus.Core.DependencyInjection;
+﻿using System.Net.NetworkInformation;
+using System.Security.Cryptography;
+using KnightBus.Core.DependencyInjection;
 using KnightBus.Cosmos;
 using KnightBus.Cosmos.Messages;
 using Microsoft.Extensions.Hosting;
@@ -36,7 +38,7 @@ class Program
                         configuration.LeaseContainer = leaseContainer;
                         configuration.DeadLetterContainer = deadLetterContainer;
                         configuration.PollingDelay = TimeSpan.FromMilliseconds(500);
-                        configuration.DefaultTimeToLive = TimeSpan.FromSeconds(120);
+                        configuration.DefaultTimeToLive = TimeSpan.FromSeconds(30);
                     })
                     .RegisterProcessors(typeof(Program).Assembly) //Can be any class name in this project
                     .UseTransport<CosmosTransport>();
@@ -54,13 +56,13 @@ class Program
         
 
         //Publish event
-        for (int i = 1; i <= 5; i++)
+        for (int i = 1; i <= 100; i++)
         {
             await client.PublishAsync(new SampleCosmosEvent() { MessageBody = $"msg data {i}" }, CancellationToken.None);
         }
         
         //Publish other event
-        for (int i = 1; i <= 2; i++)
+        for (int i = 1; i <= 100; i++)
         {
             await client.PublishAsync(new SampleCosmosEvent2() { data = $"data {i}" }, CancellationToken.None);
         }
@@ -84,17 +86,31 @@ class CosmosEventProcessor :
     IProcessEvent<SampleCosmosEvent, SampleSubscription, CosmosProcessingSetting>,
     IProcessEvent<SampleCosmosEvent2, SampleSubscription2, CosmosProcessingSetting>,
     IProcessEvent<SampleCosmosEvent2, SampleSubscription3, CosmosProcessingSetting>,
-    IProcessEvent<SamplePoisonEvent, SamplePoisonSubscription, CosmosProcessingSetting>
+    IProcessEvent<SamplePoisonEvent, SamplePoisonSubscription, CosmosProcessingSetting>,
+IProcessEvent<SamplePoisonEvent, OtherSamplePoisonSubscription, CosmosProcessingSetting>
 {
+    Random random = new Random();
+    //Not ideal to use same random over different processors but some processings are failed and others are not
+    // and that is enough for testing this behaviour.
 
     public Task ProcessAsync(SampleCosmosEvent message, CancellationToken cancellationToken)
     {
+        int rng = random.Next() % 10;
+        if (rng <= 2)
+        {
+            throw new PingException("Simulated network errors");
+        }
         Console.WriteLine($"Event 1: '{message.MessageBody}'");
         return Task.CompletedTask;
     }
     
     public Task ProcessAsync(SampleCosmosEvent2 message, CancellationToken cancellationToken)
     {
+        int rng = random.Next() % 10;
+        if (rng <= 2)
+        {
+            throw new PingException("Simulated network errors");
+        }
         Console.WriteLine($"Event 2: '{message.data}'");
         return Task.CompletedTask;
     }
@@ -159,6 +175,11 @@ class SamplePoisonEventMapping : IMessageMapping<SamplePoisonEvent>
 }
 class SamplePoisonSubscription: IEventSubscription<SamplePoisonEvent>
 {
-    public string Name => "sample_poison_subscription";
+    public string Name => "poison_subscription_1";
+}
+
+class OtherSamplePoisonSubscription: IEventSubscription<SamplePoisonEvent>
+{
+    public string Name => "poison_subscription_2";
 }
 

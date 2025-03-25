@@ -45,7 +45,7 @@ public class CosmosMessageStateHandler<T> :
 
     public T GetMessage()
     {
-        return _internalMessage.CosmosEvent;
+        return _internalMessage.Message;
     }
 
     public Task ReplyAsync<TReply>(TReply reply)

@@ -71,7 +71,12 @@ public class CosmosBus : ICosmosBus
     //Publish multiple events
     public async Task PublishAsync<T>(IEnumerable<T> messages, CancellationToken ct) where T : ICosmosEvent
     {
-
+        //Batch 
+        if (messages.Count() > 100_000)
+        {
+            
+        }
+        Container container = _client.GetContainer(_cosmosConfiguration.Database, AutoMessageMapper.GetQueueName<T>());
         foreach (var message in messages)
         {
             await PublishAsync(message, ct);
