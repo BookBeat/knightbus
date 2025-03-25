@@ -14,7 +14,7 @@ namespace KnightBus.Azure.Storage.Tests.Integration;
 public class BlobLockManagerTests
 {
     ///Azurite docker connection
-    private string _connection = "UseDevelopmentStorage=true";
+    private string _connection = StorageSetup.ConnectionString;
 
     [Test]
     [Parallelizable]

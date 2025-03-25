@@ -15,7 +15,7 @@ namespace KnightBus.Azure.Storage.Tests.Integration;
 [TestFixture]
 public class StorageQueueMessageStateHandlerTests : MessageStateHandlerTests<TestCommand>
 {
-    private readonly StorageBusConfiguration _configuration = new("UseDevelopmentStorage=true");
+    private readonly StorageBusConfiguration _configuration = new(StorageSetup.ConnectionString);
     public override async Task Setup()
     {
         var queueManager = new StorageQueueManager(_configuration, Array.Empty<IMessagePreProcessor>());
