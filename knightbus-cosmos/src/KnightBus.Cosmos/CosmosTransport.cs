@@ -8,7 +8,8 @@ public class CosmosTransport : ITransport
     {
         TransportChannelFactories =
         [
-            new CosmosSubscriptionChannelFactory(configuration)
+            new CosmosSubscriptionChannelFactory(configuration),
+            new CosmosCommandChannelFactory(configuration)
         ];
     }
 

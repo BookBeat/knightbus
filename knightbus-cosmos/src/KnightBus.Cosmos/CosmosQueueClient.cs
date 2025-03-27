@@ -11,109 +11,125 @@ public class CosmosQueueClient<T> where T : class, IMessage
     private readonly ICosmosConfiguration _cosmosConfiguration;
     public CosmosClient Client { get; private set; }
     public Database Database { get; private set; }
-    public Container TopicContainer { get; private set; }
-    public Container SubscriptionContainer { get; private set; }
+    public Container TopicQueue { get; private set; }
+    public Container PersonalQueue { get; private set; }
     public Container Lease { get; private set; }
-    public Container DeadLetterContainer { get; private set; }
+    private Container DeadLetterQueue { get; set; }
     
-    public IEventSubscription Subscription { get; private set; }
+    public IEventSubscription? _subscription { get; private set; }
     
-    public CosmosQueueClient(ICosmosConfiguration cosmosConfiguration, IEventSubscription subscription)
+    public CosmosQueueClient(ICosmosConfiguration cosmosConfiguration, IEventSubscription? subscription)
     {
         _cosmosConfiguration = cosmosConfiguration;
-        Subscription = subscription;
+        _subscription = subscription;
     }
+
+    // subscription client
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        
         //Create cosmos client
         Client = new CosmosClient(_cosmosConfiguration.ConnectionString);
         
-        
         //Get database, create if it does not exist
-        DatabaseResponse databaseResponse = await Client.CreateDatabaseIfNotExistsAsync(_cosmosConfiguration.Database, 400, null, cancellationToken);
+        DatabaseResponse databaseResponse = await Client.CreateDatabaseIfNotExistsAsync(_cosmosConfiguration.Database, 1000, null, cancellationToken);
         CheckHttpResponse(databaseResponse.StatusCode, _cosmosConfiguration.Database);
         Database = databaseResponse.Database;
         
+        Lease = await CreateContainerAsync(_cosmosConfiguration.LeaseContainer, cancellationToken);
         
-        //Get container, create if it does not exist
-        var topicResponse = await Database.CreateContainerIfNotExistsAsync(
-            new ContainerProperties(AutoMessageMapper.GetQueueName<T>(), "/id") {DefaultTimeToLive = (int)_cosmosConfiguration.DefaultTimeToLive.TotalSeconds}, cancellationToken: cancellationToken);
-        CheckHttpResponse(topicResponse.StatusCode, AutoMessageMapper.GetQueueName<T>());
-        TopicContainer = topicResponse.Container;
-        
-        //Get container, create if it does not exist
-        var subscriptionResponse = await Database.CreateContainerIfNotExistsAsync(
-            new ContainerProperties(Subscription.Name, "/id") {DefaultTimeToLive = (int)_cosmosConfiguration.DefaultTimeToLive.TotalSeconds}, cancellationToken: cancellationToken);
-        CheckHttpResponse(subscriptionResponse.StatusCode, AutoMessageMapper.GetQueueName<T>());
-        SubscriptionContainer = subscriptionResponse.Container;
-        
-        //Get lease container, create if it does not exist
-        var leaseResponse = await Database.CreateContainerIfNotExistsAsync(
-            new ContainerProperties(_cosmosConfiguration.LeaseContainer, "/id") {DefaultTimeToLive = (int)_cosmosConfiguration.DefaultTimeToLive.TotalSeconds}, cancellationToken: cancellationToken);
-        CheckHttpResponse(subscriptionResponse.StatusCode, _cosmosConfiguration.LeaseContainer);
-        Lease = leaseResponse.Container;
-        
-        //Get DeadLetterContainer, create if it does not exist
-        var deadLetterResponse = await Database.CreateContainerIfNotExistsAsync(
-            new ContainerProperties(_cosmosConfiguration.DeadLetterContainer, "/Subscription"), cancellationToken: cancellationToken);
-        CheckHttpResponse(deadLetterResponse.StatusCode, _cosmosConfiguration.DeadLetterContainer);
-        DeadLetterContainer = deadLetterResponse.Container;
-
+        if (typeof(ICosmosEvent).IsAssignableFrom(typeof(T)))
+        {
+            await SetupEventAsync(cancellationToken);
+        }
+        else if (typeof(ICosmosCommand).IsAssignableFrom(typeof(T)))
+        {
+            await SetupCommandAsync(cancellationToken);
+        }
     }
+
+    private async Task SetupEventAsync(CancellationToken cancellationToken)
+    {
+        TopicQueue = await CreateContainerAsync(AutoMessageMapper.GetQueueName<T>(), cancellationToken);
+
+        PersonalQueue = await CreateContainerAsync(AutoMessageMapper.GetQueueName<T>() + ": " + _subscription.Name, cancellationToken);
+        
+        DeadLetterQueue = await CreateContainerAsync(AutoMessageMapper.GetQueueName<T>() + ": " + _subscription.Name + " - DL", cancellationToken, -1 ); //Deadlettered items should never expire
+    }
+    
+    private async Task SetupCommandAsync(CancellationToken cancellationToken){
+        
+        PersonalQueue = await CreateContainerAsync(AutoMessageMapper.GetQueueName<T>(), cancellationToken);
+        
+        DeadLetterQueue = await CreateContainerAsync(AutoMessageMapper.GetQueueName<T>() + " - DL", cancellationToken, -1 ); //Deadlettered items should never expire
+    }
+
+    private async Task<Container> CreateContainerAsync(string id, CancellationToken cancellationToken, int? TTL = null)
+    {
+        TTL ??= (int)_cosmosConfiguration.DefaultTimeToLive.TotalSeconds; //Get configured TTL if not specified
+        const string partitionKeyPath = "/id";
+        
+        //Get container
+        //Update it if it exists and does not match expectations
+        try
+        {
+            Container container = Database.GetContainer(id);
+            ContainerProperties properties = (await container.ReadContainerAsync(cancellationToken: cancellationToken)).Resource;
+
+            if (properties.PartitionKeyPath == partitionKeyPath && properties.DefaultTimeToLive == TTL)
+            {
+                return container;
+            }
+
+            properties.PartitionKeyPath = partitionKeyPath;
+            properties.DefaultTimeToLive = TTL;
+                
+            await container.ReplaceContainerAsync(properties, cancellationToken: cancellationToken); //Update container properties, does not loose data
+
+            return container;
+        }
+        catch
+        {
+            //Create container if it does not exist
+            var response = await Database.CreateContainerIfNotExistsAsync(
+                new ContainerProperties(id, "/id") {DefaultTimeToLive = TTL}, cancellationToken: cancellationToken);
+            CheckHttpResponse(response.StatusCode, id);
+            return response.Container;
+        }
+    } 
     
     private static void CheckHttpResponse(HttpStatusCode statusCode, string id)
     {
-        switch (statusCode)
-        {
-            case HttpStatusCode.Created:
-                //Sucessfully created
-                break;
-            case HttpStatusCode.OK:
-                //Already exists
-                break;
-            default:
-                throw new Exception($"Unexpected http response when creating {id} : {statusCode}");
-        }
+        if(statusCode != HttpStatusCode.OK && statusCode != HttpStatusCode.Created) 
+            throw new Exception($"Unexpected http response when creating {id} : {statusCode}");
     }
     
     public async Task CompleteAsync(InternalCosmosMessage<T> message)
     {
-        //await RemoveItemAsync(Message, SubscriptionContainer);
+        await RemoveItemAsync(message, PersonalQueue);
     }
 
     public async Task AbandonByErrorAsync(InternalCosmosMessage<T> message)
     {
         //Update item
-        try
-        {
-             ItemResponse<InternalCosmosMessage<T>> response = await SubscriptionContainer.PatchItemAsync<InternalCosmosMessage<T>>(
+         ItemResponse<InternalCosmosMessage<T>> response = await PersonalQueue.PatchItemAsync<InternalCosmosMessage<T>>(
 
-                id: message.id,
-                partitionKey: new PartitionKey(message.id),
-                patchOperations:
-                [
-                    PatchOperation.Increment("/DeliveryCount", 1)
-                ]
-            );
-        }
-        catch (CosmosException ex)
-        {
-            //TODO: Make better error handling
-            Console.WriteLine($"Cosmos error {ex.StatusCode}");
-        }
+            id: message.id,
+            partitionKey: new PartitionKey(message.id),
+            patchOperations:
+            [
+                PatchOperation.Increment("/DeliveryCount", 1)
+            ]
+        );
     }
 
     public async Task DeadLetterAsync(InternalCosmosMessage<T> message)
     {
-        var deadLetterMessage = new DeadLetterCosmosMessage<T>(message.id, message.Message, Subscription.Name);
-        await DeadLetterContainer.CreateItemAsync(deadLetterMessage, new PartitionKey(deadLetterMessage.Subscription));
-        //await RemoveItemAsync(Message, SubscriptionContainer);
+        await DeadLetterQueue.CreateItemAsync(message, new PartitionKey(message.id));
+        await RemoveItemAsync(message, PersonalQueue);
     }
 
-
-    public async Task AddItemAsync<T>(InternalCosmosMessage<T> message, Container container) where T : IMessage
+    public async Task AddItemAsync(InternalCosmosMessage<T> message, Container container)
     {
         await container.CreateItemAsync(message, new PartitionKey(message.id));
     }

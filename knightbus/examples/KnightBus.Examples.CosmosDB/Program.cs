@@ -19,9 +19,8 @@ class Program
 
         //Connection string should be saved as environment variable named "CosmosString"
         string? connectionString = Environment.GetEnvironmentVariable("CosmosString"); 
-        const string databaseId = "db";
-        const string leaseContainer = "lease";
-        const string deadLetterContainer = "deadLetterQueue";
+        const string databaseId = "PubSub";
+        const string leaseContainer = "Lease";
 
         var knightBusHost = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
             .UseDefaultServiceProvider(options =>
@@ -36,9 +35,8 @@ class Program
                         configuration.ConnectionString = connectionString;
                         configuration.Database = databaseId;
                         configuration.LeaseContainer = leaseContainer;
-                        configuration.DeadLetterContainer = deadLetterContainer;
                         configuration.PollingDelay = TimeSpan.FromMilliseconds(500);
-                        configuration.DefaultTimeToLive = TimeSpan.FromSeconds(30);
+                        configuration.DefaultTimeToLive = TimeSpan.FromSeconds(120);
                     })
                     .RegisterProcessors(typeof(Program).Assembly) //Can be any class name in this project
                     .UseTransport<CosmosTransport>();
@@ -46,25 +44,29 @@ class Program
             .UseKnightBus()
         .Build();
         
-        
         //Start the KnightBus Host
         await knightBusHost.StartAsync();
         await Task.Delay(TimeSpan.FromSeconds(1));
         Console.WriteLine("Started host");
         
         var client = knightBusHost.Services.CreateScope().ServiceProvider.GetRequiredService<CosmosBus>();
-        
 
+        //Send some commands
+        for (int i = 1; i <= 10; i++)
+        {
+            await client.SendAsync(new SampleCosmosMessage() { MessageBody = $"msg data {i}" }, CancellationToken.None);
+        }
+        
         //Publish event
         for (int i = 1; i <= 100; i++)
         {
-            await client.PublishAsync(new SampleCosmosEvent() { MessageBody = $"msg data {i}" }, CancellationToken.None);
+            await client.PublishAsync(new SampleCosmosEvent() { MessageBody = $"event data {i}" }, CancellationToken.None);
         }
         
         //Publish other event
-        for (int i = 1; i <= 100; i++)
+        for (int i = 1; i < 100; i++)
         {
-            await client.PublishAsync(new SampleCosmosEvent2() { data = $"data {i}" }, CancellationToken.None);
+            await client.PublishAsync(new SampleCosmosEvent2() { data = $"{i}" }, CancellationToken.None);
         }
         
         Console.ReadKey();
@@ -103,7 +105,6 @@ IProcessEvent<SamplePoisonEvent, OtherSamplePoisonSubscription, CosmosProcessing
         Console.WriteLine($"Event 1: '{message.MessageBody}'");
         return Task.CompletedTask;
     }
-    
     public Task ProcessAsync(SampleCosmosEvent2 message, CancellationToken cancellationToken)
     {
         int rng = random.Next() % 10;
@@ -129,6 +130,9 @@ class CosmosProcessingSetting : IProcessingSettings
     public TimeSpan MessageLockTimeout => TimeSpan.FromMinutes(5); //Currently not used
     public int DeadLetterDeliveryLimit => 2;
 }
+
+
+//Events
 
 
 public class SampleCosmosEvent : ICosmosEvent
@@ -181,5 +185,27 @@ class SamplePoisonSubscription: IEventSubscription<SamplePoisonEvent>
 class OtherSamplePoisonSubscription: IEventSubscription<SamplePoisonEvent>
 {
     public string Name => "poison_subscription_2";
+}
+
+
+//Commands
+class SampleCosmosMessage : ICosmosCommand
+{
+    public required string MessageBody { get; set; }
+}
+
+class SampleCosmosMessageMapping : IMessageMapping<SampleCosmosMessage>
+{
+    public string QueueName => "cosmos_sample_message";
+}
+
+class PostgresCommandProcessor :
+    IProcessCommand<SampleCosmosMessage, CosmosProcessingSetting>
+{
+    public Task ProcessAsync(SampleCosmosMessage message, CancellationToken cancellationToken)
+    {
+        Console.WriteLine($"commandHandler 1: '{message.MessageBody}'");
+        return Task.CompletedTask;
+    }
 }
 

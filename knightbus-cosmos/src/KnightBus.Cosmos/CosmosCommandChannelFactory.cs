@@ -5,12 +5,12 @@ using KnightBus.Cosmos.Messages;
 
 namespace KnightBus.Cosmos;
 
-public class CosmosSubscriptionChannelFactory : ITransportChannelFactory
+public class CosmosCommandChannelFactory : ITransportChannelFactory
 {
     
     public ICosmosConfiguration CosmosConfiguration { get; }
     public ITransportConfiguration Configuration { get; set; }
-    public CosmosSubscriptionChannelFactory(ICosmosConfiguration configuration)
+    public CosmosCommandChannelFactory(ICosmosConfiguration configuration)
     {
         CosmosConfiguration = configuration;
         Configuration = configuration;
@@ -25,12 +25,11 @@ public class CosmosSubscriptionChannelFactory : ITransportChannelFactory
         IMessageProcessor processor)
     {
         // Dynamically create the Cosmos-specific channel receiver
-        var queueReaderType = typeof(CosmosSubscriptionChannelReceiver<>).MakeGenericType(messageType);
+        var queueReaderType = typeof(CosmosCommandChannelReceiver<>).MakeGenericType(messageType);
         var queueReader = Activator.CreateInstance(
             queueReaderType,
             processingSettings,
             serializer,
-            subscription,
             hostConfiguration,
             processor,
             CosmosConfiguration) as IChannelReceiver;
@@ -39,6 +38,6 @@ public class CosmosSubscriptionChannelFactory : ITransportChannelFactory
 
     public bool CanCreate(Type messageType)
     {
-        return typeof(ICosmosEvent).IsAssignableFrom(messageType);
+        return typeof(ICosmosCommand).IsAssignableFrom(messageType);
     }
 }

@@ -9,14 +9,12 @@ namespace KnightBus.Cosmos;
 
 public class CosmosSubscriptionChannelReceiver<T> : IChannelReceiver where T : class, ICosmosEvent
 {
-    private readonly IProcessingSettings settings;
     private readonly IMessageSerializer _serializer;
     private IEventSubscription _subscription;
     private readonly IHostConfiguration _hostConfiguration;
     private readonly IMessageProcessor _processor;
     private readonly ICosmosConfiguration _cosmosConfiguration;
     private readonly CosmosQueueClient<T> _cosmosQueueClient;
-    private readonly ILogger _logger;
     
     
     public CosmosSubscriptionChannelReceiver(
@@ -28,7 +26,7 @@ public class CosmosSubscriptionChannelReceiver<T> : IChannelReceiver where T : c
         ICosmosConfiguration cosmosConfiguration
     )
     {
-        settings = processorSettings;
+        Settings = processorSettings;
         _serializer = serializer;
         _subscription = subscription;
         _hostConfiguration = config;
@@ -41,28 +39,27 @@ public class CosmosSubscriptionChannelReceiver<T> : IChannelReceiver where T : c
     {
         await _cosmosQueueClient.StartAsync(cancellationToken);
         
-        
         //Fetch messages from topic to subscription queue
-        ChangeFeedProcessor fetchFeed = _cosmosQueueClient.TopicContainer
+        ChangeFeedProcessor eventFetcher = _cosmosQueueClient.TopicQueue
             .GetChangeFeedProcessorBuilder<InternalCosmosMessage<T>>(processorName: AutoMessageMapper.GetQueueName<T>() + "->" + _subscription.Name, onChangesDelegate: FetchChangesAsync)
             .WithInstanceName($"consoleHost") //Must use program variable for parallel processing
             .WithLeaseContainer(_cosmosQueueClient.Lease)
             .WithPollInterval(_cosmosConfiguration.PollingDelay)
             .Build();
         
-        await fetchFeed.StartAsync();
+        await eventFetcher.StartAsync();
         Console.WriteLine($"Fetcher on topic {AutoMessageMapper.GetQueueName<T>()} started.");
         
         
         //Process messages in subscription queue
-        ChangeFeedProcessor changeFeedProcessor = _cosmosQueueClient.SubscriptionContainer
+        ChangeFeedProcessor eventProcessor = _cosmosQueueClient.PersonalQueue
             .GetChangeFeedProcessorBuilder<InternalCosmosMessage<T>>(processorName: _subscription.Name, onChangesDelegate: ProcessChangesAsync)
             .WithInstanceName($"consoleHost") //Must use program variable for parallel processing
             .WithLeaseContainer(_cosmosQueueClient.Lease)
             .WithPollInterval(_cosmosConfiguration.PollingDelay)
             .Build();
         
-        await changeFeedProcessor.StartAsync();
+        await eventProcessor.StartAsync();
         Console.WriteLine($"Processor on {_subscription.Name} started.");
     }
 
@@ -70,16 +67,15 @@ public class CosmosSubscriptionChannelReceiver<T> : IChannelReceiver where T : c
     {
         foreach (var message in messages)
         {
-            await _cosmosQueueClient.AddItemAsync(message, _cosmosQueueClient.SubscriptionContainer);
+            await _cosmosQueueClient.AddItemAsync(message, _cosmosQueueClient.PersonalQueue);
         }
     }
     
     private async Task ProcessChangesAsync(ChangeFeedProcessorContext context, IReadOnlyCollection<InternalCosmosMessage<T>> messages, CancellationToken cancellationToken)
-
     {
         foreach (var message in messages)
         {
-            var messageStateHandler = new CosmosMessageStateHandler<T>(_cosmosQueueClient, message, settings.DeadLetterDeliveryLimit, _hostConfiguration.DependencyInjection);
+            var messageStateHandler = new CosmosMessageStateHandler<T>(_cosmosQueueClient, message, Settings.DeadLetterDeliveryLimit, _hostConfiguration.DependencyInjection);
             await _processor.ProcessAsync(messageStateHandler, CancellationToken.None).ConfigureAwait(false);
         }
     }
