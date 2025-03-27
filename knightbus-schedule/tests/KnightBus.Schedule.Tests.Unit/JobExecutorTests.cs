@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
@@ -24,7 +25,7 @@ public class JobExecutorTests
         var processor = new Mock<IProcessSchedule<DummySchedule>>();
         var di = new Mock<IDependencyInjection>();
         di.Setup(x => x.GetScope()).Returns(di.Object);
-        di.Setup(x => x.GetInstance<IProcessSchedule<DummySchedule>>()).Returns(processor.Object);
+        di.Setup(x => x.GetInstances<IProcessSchedule<DummySchedule>>()).Returns(new List<IProcessSchedule<DummySchedule>> { processor.Object });
         var executor = new JobExecutor<DummySchedule>(Mock.Of<ILogger>(), lockManager.Object, di.Object);
         //act
         await executor.Execute(Mock.Of<IJobExecutionContext>());
@@ -60,7 +61,7 @@ public class JobExecutorTests
         processor.Setup(x => x.ProcessAsync(It.IsAny<CancellationToken>())).Throws<Exception>();
         var di = new Mock<IDependencyInjection>();
         di.Setup(x => x.GetScope()).Returns(di.Object);
-        di.Setup(x => x.GetInstance<IProcessSchedule<DummySchedule>>()).Returns(processor.Object);
+        di.Setup(x => x.GetInstances<IProcessSchedule<DummySchedule>>()).Returns(new List<IProcessSchedule<DummySchedule>> { processor.Object });
         var executor = new JobExecutor<DummySchedule>(Mock.Of<ILogger>(), lockManager.Object, di.Object);
         //act
         await executor.Execute(Mock.Of<IJobExecutionContext>());
@@ -78,12 +79,36 @@ public class JobExecutorTests
         var processor = new Mock<IProcessSchedule<DummySchedule>>();
         var di = new Mock<IDependencyInjection>();
         di.Setup(x => x.GetScope()).Returns(di.Object);
-        di.Setup(x => x.GetInstance<IProcessSchedule<DummySchedule>>()).Returns(processor.Object);
+        di.Setup(x => x.GetInstances<IProcessSchedule<DummySchedule>>()).Returns(new List<IProcessSchedule<DummySchedule>>{ processor.Object });
         var executor = new JobExecutor<DummySchedule>(Mock.Of<ILogger>(), lockManager.Object, di.Object);
         //act
         await executor.Execute(Mock.Of<IJobExecutionContext>());
         //assert
         processor.Verify(x => x.ProcessAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
+    public async Task WhenMultipleProcessorsUsingTheSameScheduleClass_ShouldRunAllProcessors()
+    {
+        // Arrange
+        var lockHandle = new Mock<ISingletonLockHandle>();
+        var lockManager = new Mock<ISingletonLockManager>();
+        lockManager.Setup(x => x.TryLockAsync(typeof(DummySchedule).FullName, It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(lockHandle.Object);
+
+        var processor1 = new Mock<IProcessSchedule<DummySchedule>>();
+        var processor2 = new Mock<IProcessSchedule<DummySchedule>>();
+        var di = new Mock<IDependencyInjection>();
+        di.Setup(x => x.GetScope()).Returns(di.Object);
+        di.Setup(x => x.GetInstances<IProcessSchedule<DummySchedule>>()).Returns(new List<IProcessSchedule<DummySchedule>> { processor1.Object, processor2.Object});
+        var target = new JobExecutor<DummySchedule>(Mock.Of<ILogger>(), lockManager.Object, di.Object);
+        
+        // Act
+        await target.Execute(Mock.Of<IJobExecutionContext>());
+        
+        // Assert
+        processor1.Verify(x => x.ProcessAsync(It.IsAny<CancellationToken>()), Times.Once);
+        processor2.Verify(x => x.ProcessAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     public class DummySchedule : ISchedule

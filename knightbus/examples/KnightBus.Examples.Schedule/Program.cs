@@ -5,20 +5,23 @@ using KnightBus.Azure.Storage;
 using KnightBus.Host;
 using KnightBus.Schedule;
 using Microsoft.Extensions.Hosting;
+using Testcontainers.Azurite;
 
 namespace KnightBus.Examples.Schedule;
 
 public class Program
 {
+    private static readonly AzuriteContainer Azurite = new AzuriteBuilder().WithCommand("--skipApiVersionCheck").Build();
     static void Main(string[] args)
     {
         MainAsync(args).GetAwaiter().GetResult();
     }
     static async Task MainAsync(string[] args)
     {
-        var blobConnection = "UseDevelopmentStorage=true";
+        await Azurite.StartAsync();
+        var blobConnection = Azurite.GetConnectionString();
 
-        var knightBus = global::Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
+        var knightBus = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
             .UseDefaultServiceProvider(options =>
             {
                 options.ValidateScopes = true;
@@ -54,7 +57,16 @@ public class MySchedule : IProcessSchedule<EveryMinute>, IProcessSchedule<EveryM
 {
     public Task ProcessAsync(CancellationToken cancellationToken)
     {
-        Console.WriteLine("Schedule triggered!");
+        Console.WriteLine("MySchedule: Schedule triggered!");
+        return Task.CompletedTask;
+    }
+}
+
+public class AnotherSchedule : IProcessSchedule<EveryMinute>
+{
+    public Task ProcessAsync(CancellationToken cancellationToken)
+    {
+        Console.WriteLine("AnotherSchedule: Schedule triggered!");
         return Task.CompletedTask;
     }
 }

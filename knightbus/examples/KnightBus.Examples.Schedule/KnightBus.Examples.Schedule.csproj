@@ -11,4 +11,8 @@
     <ProjectReference Include="..\..\src\KnightBus.Host\KnightBus.Host.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Testcontainers.Azurite" Version="4.3.0" />
+  </ItemGroup>
+
 </Project>
