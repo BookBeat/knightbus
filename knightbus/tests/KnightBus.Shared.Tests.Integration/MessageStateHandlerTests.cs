@@ -9,7 +9,8 @@ using NUnit.Framework;
 namespace KnightBus.Shared.Tests.Integration;
 
 [TestFixture]
-public abstract class MessageStateHandlerTests<TCommand> where TCommand : class, IMessage
+public abstract class MessageStateHandlerTests<TCommand>
+    where TCommand : class, IMessage
 {
     [SetUp]
     public abstract Task Setup();
@@ -17,7 +18,6 @@ public abstract class MessageStateHandlerTests<TCommand> where TCommand : class,
     protected abstract Task<List<TCommand>> GetDeadLetterMessages(int count);
     protected abstract Task SendMessage(string message);
     protected abstract Task<IMessageStateHandler<TCommand>> GetMessageStateHandler();
-
 
     [Test]
     public async Task Should_lock_the_message_and_make_it_invisible_when_processing()
@@ -27,7 +27,6 @@ public abstract class MessageStateHandlerTests<TCommand> where TCommand : class,
 
         //act
         await GetMessageStateHandler();
-
 
         //assert
         var messages = await GetMessages(1);
@@ -63,6 +62,7 @@ public abstract class MessageStateHandlerTests<TCommand> where TCommand : class,
         var messages = await GetMessages(10);
         messages.Should().HaveCount(1);
     }
+
     [Test]
     public async Task Should_dead_letter_the_message_and_move_it_to_the_dl_queue()
     {

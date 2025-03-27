@@ -9,14 +9,16 @@ public class DefaultDistributedTracingProvider : IDistributedTracingProvider
 
     public void SetProperties(IDictionary<string, string> properties)
     {
-        _traceId = properties.TryGetValue(DistributedTracingUtility.TraceIdKey, out var traceId) ? traceId : null;
+        _traceId = properties.TryGetValue(DistributedTracingUtility.TraceIdKey, out var traceId)
+            ? traceId
+            : null;
     }
 
     public IDictionary<string, string> GetProperties()
     {
         return new Dictionary<string, string>
         {
-            { DistributedTracingUtility.TraceIdKey, _traceId ?? Guid.NewGuid().ToString("N") }
+            { DistributedTracingUtility.TraceIdKey, _traceId ?? Guid.NewGuid().ToString("N") },
         };
     }
 }

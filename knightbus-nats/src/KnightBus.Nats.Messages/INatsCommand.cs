@@ -2,7 +2,4 @@
 
 namespace KnightBus.Nats.Messages;
 
-public interface INatsCommand : ICommand
-{
-
-}
+public interface INatsCommand : ICommand { }

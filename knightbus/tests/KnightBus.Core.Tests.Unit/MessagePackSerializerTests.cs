@@ -19,7 +19,7 @@ public class MessagePackSerializerTests
         {
             Age = 1,
             Height = 5.7f,
-            Name = "Aurora"
+            Name = "Aurora",
         };
         var serialized = serializer.Serialize(original);
         //act
@@ -35,8 +35,10 @@ public class MessagePackSerializerTests
     {
         [Key(1)]
         public string Name { get; set; }
+
         [Key(2)]
         public int Age { get; set; }
+
         [Key(3)]
         public float Height { get; set; }
     }

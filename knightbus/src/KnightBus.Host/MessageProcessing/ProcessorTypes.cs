@@ -4,7 +4,12 @@ namespace KnightBus.Host.MessageProcessing;
 
 internal struct ProcessorTypes
 {
-    public ProcessorTypes(Type messageType, Type responseType, Type subscriptionType, Type settingsType)
+    public ProcessorTypes(
+        Type messageType,
+        Type responseType,
+        Type subscriptionType,
+        Type settingsType
+    )
     {
         MessageType = messageType;
         ResponseType = responseType;

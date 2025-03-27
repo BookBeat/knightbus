@@ -10,9 +10,14 @@ namespace KnightBus.Host;
 internal class MiddlewarePipeline
 {
     private readonly IPipelineInformation _pipelineInformation;
-    private readonly List<IMessageProcessorMiddleware> _middlewares = new List<IMessageProcessorMiddleware>();
+    private readonly List<IMessageProcessorMiddleware> _middlewares =
+        new List<IMessageProcessorMiddleware>();
 
-    public MiddlewarePipeline(IEnumerable<IMessageProcessorMiddleware> hostMiddlewares, IPipelineInformation pipelineInformation, ILogger log)
+    public MiddlewarePipeline(
+        IEnumerable<IMessageProcessorMiddleware> hostMiddlewares,
+        IPipelineInformation pipelineInformation,
+        ILogger log
+    )
     {
         _pipelineInformation = pipelineInformation;
 
@@ -21,7 +26,9 @@ internal class MiddlewarePipeline
 
         //See if there is a IMessageScopeProviderMiddleware that needs to be placed before the other middlewares
         var processorMiddlewares = new List<IMessageProcessorMiddleware>(hostMiddlewares);
-        var scopeProvider = processorMiddlewares.SingleOrDefault(scopeMiddleware => scopeMiddleware is IMessageScopeProviderMiddleware);
+        var scopeProvider = processorMiddlewares.SingleOrDefault(scopeMiddleware =>
+            scopeMiddleware is IMessageScopeProviderMiddleware
+        );
         if (scopeProvider != null)
         {
             _middlewares.Add(scopeProvider);
@@ -43,7 +50,11 @@ internal class MiddlewarePipeline
         processors[processors.Length - 1] = baseProcessor;
         for (var i = processors.Length - 2; i >= 0; i--)
         {
-            processors[i] = new MiddlewareWrapper(_middlewares[i], _pipelineInformation, processors[i + 1]);
+            processors[i] = new MiddlewareWrapper(
+                _middlewares[i],
+                _pipelineInformation,
+                processors[i + 1]
+            );
         }
 
         return processors[0];

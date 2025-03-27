@@ -18,7 +18,7 @@ public class JsonSerializerTests
         var message = new AttachmentCommand
         {
             Message = "Hello",
-            Attachment = new MessageAttachment("filename.txt", "text/plain", new MemoryStream())
+            Attachment = new MessageAttachment("filename.txt", "text/plain", new MemoryStream()),
         };
         //act
         var serialized = serializer.Serialize(message);
@@ -37,7 +37,7 @@ public class JsonSerializerTests
         {
             Age = 1,
             Height = 5.7f,
-            Name = "Aurora"
+            Name = "Aurora",
         };
         var serialized = serializer.Serialize(original);
         //act
@@ -56,7 +56,7 @@ public class JsonSerializerTests
         var message = new AttachmentCommand
         {
             Message = "Hello",
-            Attachment = new MessageAttachment("filename.txt", "text/plain", new MemoryStream())
+            Attachment = new MessageAttachment("filename.txt", "text/plain", new MemoryStream()),
         };
         //act
         var serialized = serializer.Serialize(message);
@@ -75,7 +75,7 @@ public class JsonSerializerTests
         {
             Age = 1,
             Height = 5.7f,
-            Name = "Aurora"
+            Name = "Aurora",
         };
         var serialized = serializer.Serialize(original);
         //act

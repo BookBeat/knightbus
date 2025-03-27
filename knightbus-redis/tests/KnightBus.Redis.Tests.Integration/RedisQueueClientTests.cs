@@ -20,13 +20,24 @@ public class RedisQueueClientTests
     [SetUp]
     public void Setup()
     {
-        _bus = new RedisBus(RedisTestBase.Configuration.ConnectionString, Enumerable.Empty<IMessagePreProcessor>());
-        _target = new RedisQueueClient<TestCommand>(RedisTestBase.Database, _queueName, new MicrosoftJsonSerializer(), _log);
+        _bus = new RedisBus(
+            RedisTestBase.Configuration.ConnectionString,
+            Enumerable.Empty<IMessagePreProcessor>()
+        );
+        _target = new RedisQueueClient<TestCommand>(
+            RedisTestBase.Database,
+            _queueName,
+            new MicrosoftJsonSerializer(),
+            _log
+        );
     }
+
     [TearDown] //This should be done after each test thus not OneTime
     public void BaseTeardown()
     {
-        var server = RedisTestBase.Database.Multiplexer.GetServer(RedisTestBase.Configuration.ConnectionString);
+        var server = RedisTestBase.Database.Multiplexer.GetServer(
+            RedisTestBase.Configuration.ConnectionString
+        );
         server.FlushDatabase();
     }
 
@@ -46,7 +57,9 @@ public class RedisQueueClientTests
         await _bus.SendAsync(command);
 
         //Verify processing queue empty
-        var processingQueueLength = await RedisTestBase.Database.ListLengthAsync(RedisQueueConventions.GetProcessingQueueName(_queueName));
+        var processingQueueLength = await RedisTestBase.Database.ListLengthAsync(
+            RedisQueueConventions.GetProcessingQueueName(_queueName)
+        );
         processingQueueLength.Should().Be(0);
 
         //Act
@@ -58,9 +71,13 @@ public class RedisQueueClientTests
         message.Message.Should().BeEquivalentTo(command);
         message.HashEntries.Should().ContainKey(RedisHashKeys.DeliveryCount);
         message.HashEntries.Should().ContainKey(RedisHashKeys.LastProcessed);
-        var deliveryCount = message.HashEntries.First(e => e.Key.Equals(RedisHashKeys.DeliveryCount));
+        var deliveryCount = message.HashEntries.First(e =>
+            e.Key.Equals(RedisHashKeys.DeliveryCount)
+        );
         deliveryCount.Value.Should().Be("1");
-        processingQueueLength = await RedisTestBase.Database.ListLengthAsync(RedisQueueConventions.GetProcessingQueueName(_queueName));
+        processingQueueLength = await RedisTestBase.Database.ListLengthAsync(
+            RedisQueueConventions.GetProcessingQueueName(_queueName)
+        );
         processingQueueLength.Should().Be(1);
     }
 
@@ -78,7 +95,9 @@ public class RedisQueueClientTests
         hash.Should().BeEmpty();
         var messages = await _target.GetMessagesAsync(1);
         messages.Length.Should().Be(0);
-        var processingQueueLength = await RedisTestBase.Database.ListLengthAsync(RedisQueueConventions.GetProcessingQueueName(_queueName));
+        var processingQueueLength = await RedisTestBase.Database.ListLengthAsync(
+            RedisQueueConventions.GetProcessingQueueName(_queueName)
+        );
         processingQueueLength.Should().Be(0);
     }
 
@@ -114,9 +133,13 @@ public class RedisQueueClientTests
         await _target.DeadletterMessageAsync(message, 1);
 
         //Assert
-        var processingQueueLength = await RedisTestBase.Database.ListLengthAsync(RedisQueueConventions.GetProcessingQueueName(_queueName));
+        var processingQueueLength = await RedisTestBase.Database.ListLengthAsync(
+            RedisQueueConventions.GetProcessingQueueName(_queueName)
+        );
         processingQueueLength.Should().Be(0);
-        var deadLetterQueueLength = await RedisTestBase.Database.ListLengthAsync(RedisQueueConventions.GetDeadLetterQueueName(_queueName));
+        var deadLetterQueueLength = await RedisTestBase.Database.ListLengthAsync(
+            RedisQueueConventions.GetDeadLetterQueueName(_queueName)
+        );
         deadLetterQueueLength.Should().Be(1);
     }
 
@@ -131,7 +154,9 @@ public class RedisQueueClientTests
         await _target.RequeueDeadletterAsync();
 
         //Assert
-        var deadLetterQueueLength = await RedisTestBase.Database.ListLengthAsync(RedisQueueConventions.GetDeadLetterQueueName(_queueName));
+        var deadLetterQueueLength = await RedisTestBase.Database.ListLengthAsync(
+            RedisQueueConventions.GetDeadLetterQueueName(_queueName)
+        );
         deadLetterQueueLength.Should().Be(0);
         var queueLength = await RedisTestBase.Database.ListLengthAsync(_queueName);
         queueLength.Should().Be(1);

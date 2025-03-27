@@ -14,10 +14,25 @@ internal class StorageQueueChannelFactory : ITransportChannelFactory
 
     public ITransportConfiguration Configuration { get; set; }
 
-    public IChannelReceiver Create(Type messageType, IEventSubscription subscription, IProcessingSettings processingSettings, IMessageSerializer serializer, IHostConfiguration configuration, IMessageProcessor processor)
+    public IChannelReceiver Create(
+        Type messageType,
+        IEventSubscription subscription,
+        IProcessingSettings processingSettings,
+        IMessageSerializer serializer,
+        IHostConfiguration configuration,
+        IMessageProcessor processor
+    )
     {
         var queueReaderType = typeof(StorageQueueChannelReceiver<>).MakeGenericType(messageType);
-        var queueReader = (IChannelReceiver)Activator.CreateInstance(queueReaderType, processingSettings, serializer, processor, configuration, Configuration);
+        var queueReader = (IChannelReceiver)
+            Activator.CreateInstance(
+                queueReaderType,
+                processingSettings,
+                serializer,
+                processor,
+                configuration,
+                Configuration
+            );
         return queueReader;
     }
 

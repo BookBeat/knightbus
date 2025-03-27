@@ -23,7 +23,8 @@ public class PostgresSubscriptionChannelReceiver<T> : IChannelReceiver
         IProcessingSettings settings,
         IHostConfiguration hostConfiguration,
         IMessageSerializer serializer,
-        IPostgresConfiguration postgresConfiguration)
+        IPostgresConfiguration postgresConfiguration
+    )
     {
         _npgsqlDataSource = npgsqlDataSource;
         _processor = processor;
@@ -36,12 +37,26 @@ public class PostgresSubscriptionChannelReceiver<T> : IChannelReceiver
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        _queueClient = new PostgresSubscriptionClient<T>(_npgsqlDataSource, _serializer, _subscription);
-        var pump = new PostgresMessagePump<T>(Settings, _subscription, _queueClient, _npgsqlDataSource, _postgresConfiguration, _hostConfiguration.Log);
+        _queueClient = new PostgresSubscriptionClient<T>(
+            _npgsqlDataSource,
+            _serializer,
+            _subscription
+        );
+        var pump = new PostgresMessagePump<T>(
+            Settings,
+            _subscription,
+            _queueClient,
+            _npgsqlDataSource,
+            _postgresConfiguration,
+            _hostConfiguration.Log
+        );
         await pump.StartAsync<T>(ProcessMessageAsync, cancellationToken);
     }
 
-    private async Task ProcessMessageAsync(PostgresMessage<T> postgresMessage, CancellationToken cancellationToken)
+    private async Task ProcessMessageAsync(
+        PostgresMessage<T> postgresMessage,
+        CancellationToken cancellationToken
+    )
     {
         var stateHandler = new PostgresMessageStateHandler<T>(
             _npgsqlDataSource,
@@ -49,7 +64,8 @@ public class PostgresSubscriptionChannelReceiver<T> : IChannelReceiver
             postgresMessage,
             Settings.DeadLetterDeliveryLimit,
             _serializer,
-            _hostConfiguration.DependencyInjection);
+            _hostConfiguration.DependencyInjection
+        );
 
         await _processor.ProcessAsync(stateHandler, cancellationToken).ConfigureAwait(false);
     }

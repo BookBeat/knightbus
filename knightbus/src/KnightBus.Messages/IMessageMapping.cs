@@ -12,6 +12,5 @@ public interface IMessageMapping
 /// Maps a specific <see cref="IMessage"/> to a queue.
 /// </summary>
 /// <typeparam name="T"></typeparam>
-public interface IMessageMapping<T> : IMessageMapping where T : IMessage
-{
-}
+public interface IMessageMapping<T> : IMessageMapping
+    where T : IMessage { }

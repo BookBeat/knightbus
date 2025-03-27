@@ -9,17 +9,25 @@ using Microsoft.Extensions.Logging;
 
 namespace KnightBus.Azure.Storage;
 
-internal class StorageQueueMessagePump : GenericMessagePump<StorageQueueMessage, IStorageQueueCommand>
+internal class StorageQueueMessagePump
+    : GenericMessagePump<StorageQueueMessage, IStorageQueueCommand>
 {
     private readonly IStorageQueueClient _storageQueueClient;
 
-    public StorageQueueMessagePump(IStorageQueueClient storageQueueClient, IProcessingSettings settings, ILogger log) : base(settings, log)
+    public StorageQueueMessagePump(
+        IStorageQueueClient storageQueueClient,
+        IProcessingSettings settings,
+        ILogger log
+    )
+        : base(settings, log)
     {
         _storageQueueClient = storageQueueClient;
     }
 
-
-    protected override async IAsyncEnumerable<StorageQueueMessage> GetMessagesAsync<TMessage>(int count, TimeSpan? lockDuration)
+    protected override async IAsyncEnumerable<StorageQueueMessage> GetMessagesAsync<TMessage>(
+        int count,
+        TimeSpan? lockDuration
+    )
     {
         var messages = await _storageQueueClient.GetMessagesAsync<TMessage>(count, lockDuration);
         foreach (var message in messages)

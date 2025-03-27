@@ -23,9 +23,8 @@ public class BlobSagaStore : ISagaStore
         _container = blobServiceClient.GetBlobContainerClient("knightbus-sagas");
     }
 
-    public BlobSagaStore(IStorageBusConfiguration configuration) : this(configuration.ConnectionString)
-    {
-    }
+    public BlobSagaStore(IStorageBusConfiguration configuration)
+        : this(configuration.ConnectionString) { }
 
     public async Task<SagaData<T>> GetSaga<T>(string partitionKey, string id, CancellationToken ct)
     {
@@ -33,14 +32,21 @@ public class BlobSagaStore : ISagaStore
 
         try
         {
-            var properties = await blob.GetPropertiesAsync(cancellationToken: ct).ConfigureAwait(false);
+            var properties = await blob.GetPropertiesAsync(cancellationToken: ct)
+                .ConfigureAwait(false);
             var expiration = DateTimeOffset.Parse(properties.Value.Metadata[ExpirationField]);
             if (expiration < DateTime.UtcNow)
                 throw new SagaNotFoundException(partitionKey, id);
 
             var downloadInfo = await blob.DownloadAsync(ct).ConfigureAwait(false);
-            T data = await JsonSerializer.DeserializeAsync<T>(downloadInfo.Value.Content, cancellationToken: ct).ConfigureAwait(false);
-            return new SagaData<T> { Data = data, ConcurrencyStamp = downloadInfo.Value.Details.ETag.ToString() };
+            T data = await JsonSerializer
+                .DeserializeAsync<T>(downloadInfo.Value.Content, cancellationToken: ct)
+                .ConfigureAwait(false);
+            return new SagaData<T>
+            {
+                Data = data,
+                ConcurrencyStamp = downloadInfo.Value.Details.ETag.ToString(),
+            };
         }
         catch (RequestFailedException e) when (e.Status == 404)
         {
@@ -48,55 +54,56 @@ public class BlobSagaStore : ISagaStore
         }
     }
 
-    public async Task<SagaData<T>> Create<T>(string partitionKey, string id, T data, TimeSpan ttl, CancellationToken ct)
+    public async Task<SagaData<T>> Create<T>(
+        string partitionKey,
+        string id,
+        T data,
+        TimeSpan ttl,
+        CancellationToken ct
+    )
     {
         var blob = _container.GetBlobClient(Filename(partitionKey, id));
-        var requestConditions = new BlobRequestConditions
-        {
-            IfNoneMatch = ETag.All
-        };
+        var requestConditions = new BlobRequestConditions { IfNoneMatch = ETag.All };
         // If the saga already exists and has not expired thrown an SagaAlreadyStartedException
         try
         {
-            var properties = await blob.GetPropertiesAsync(cancellationToken: ct).ConfigureAwait(false);
+            var properties = await blob.GetPropertiesAsync(cancellationToken: ct)
+                .ConfigureAwait(false);
             var expiration = DateTimeOffset.Parse(properties.Value.Metadata[ExpirationField]);
             if (expiration > DateTime.UtcNow)
                 throw new SagaAlreadyStartedException(partitionKey, id);
 
             //Blob already exists, so we set that it is this specific blob we want to replace
-            requestConditions = new BlobRequestConditions
-            {
-                IfMatch = properties.Value.ETag
-            };
+            requestConditions = new BlobRequestConditions { IfMatch = properties.Value.ETag };
         }
         catch (RequestFailedException e) when (e.Status != 404)
         {
             throw;
         }
-        catch (RequestFailedException e) when (e.Status == 404)
-        { }
+        catch (RequestFailedException e) when (e.Status == 404) { }
 
         SagaData<T> sagaData = new SagaData<T> { Data = data };
         try
         {
             await using var stream = GetStream(data);
-            var blobInfo = await blob.UploadAsync(stream,
-                new BlobUploadOptions
-                {
-                    HttpHeaders = new BlobHttpHeaders
+            var blobInfo = await blob.UploadAsync(
+                    stream,
+                    new BlobUploadOptions
                     {
-                        ContentType = "application/json"
+                        HttpHeaders = new BlobHttpHeaders { ContentType = "application/json" },
+                        Metadata = new Dictionary<string, string>
+                        {
+                            { ExpirationField, DateTimeOffset.UtcNow.Add(ttl).ToString() },
+                        },
+                        Conditions = requestConditions,
                     },
-                    Metadata = new Dictionary<string, string>
-                    {
-                        {ExpirationField, DateTimeOffset.UtcNow.Add(ttl).ToString()}
-                    },
-                    Conditions = requestConditions
-                }, ct).ConfigureAwait(false);
+                    ct
+                )
+                .ConfigureAwait(false);
             sagaData.ConcurrencyStamp = blobInfo.Value.ETag.ToString();
         }
-        catch (RequestFailedException e) when (e.Status == 404 &&
-                                               e.ErrorCode == "ContainerNotFound")
+        catch (RequestFailedException e)
+            when (e.Status == 404 && e.ErrorCode == "ContainerNotFound")
         {
             await _container.CreateIfNotExistsAsync(cancellationToken: ct).ConfigureAwait(false);
             await Create(partitionKey, id, data, ttl, ct);
@@ -110,22 +117,33 @@ public class BlobSagaStore : ISagaStore
         return sagaData;
     }
 
-    public async Task Update<T>(string partitionKey, string id, SagaData<T> sagaData, CancellationToken ct)
+    public async Task Update<T>(
+        string partitionKey,
+        string id,
+        SagaData<T> sagaData,
+        CancellationToken ct
+    )
     {
         var blob = _container.GetBlobClient(Filename(partitionKey, id));
         try
         {
             using (var stream = GetStream(sagaData.Data))
             {
-                var properties = await blob.GetPropertiesAsync(cancellationToken: ct).ConfigureAwait(false);
-                var response = await blob.UploadAsync(stream, new BlobUploadOptions
-                {
-                    Metadata = properties.Value.Metadata,
-                    Conditions = new AppendBlobRequestConditions
-                    {
-                        IfMatch = new ETag(sagaData.ConcurrencyStamp)
-                    }
-                }, ct).ConfigureAwait(false);
+                var properties = await blob.GetPropertiesAsync(cancellationToken: ct)
+                    .ConfigureAwait(false);
+                var response = await blob.UploadAsync(
+                        stream,
+                        new BlobUploadOptions
+                        {
+                            Metadata = properties.Value.Metadata,
+                            Conditions = new AppendBlobRequestConditions
+                            {
+                                IfMatch = new ETag(sagaData.ConcurrencyStamp),
+                            },
+                        },
+                        ct
+                    )
+                    .ConfigureAwait(false);
                 sagaData.ConcurrencyStamp = response.Value.ETag.ToString();
             }
         }
@@ -139,13 +157,22 @@ public class BlobSagaStore : ISagaStore
         }
     }
 
-    public async Task Complete<T>(string partitionKey, string id, SagaData<T> sagaData, CancellationToken ct)
+    public async Task Complete<T>(
+        string partitionKey,
+        string id,
+        SagaData<T> sagaData,
+        CancellationToken ct
+    )
     {
         var blob = _container.GetBlobClient(Filename(partitionKey, id));
         try
         {
-            var conditions = new AppendBlobRequestConditions { IfMatch = new ETag(sagaData.ConcurrencyStamp) };
-            await blob.DeleteAsync(conditions: conditions, cancellationToken: ct).ConfigureAwait(false);
+            var conditions = new AppendBlobRequestConditions
+            {
+                IfMatch = new ETag(sagaData.ConcurrencyStamp),
+            };
+            await blob.DeleteAsync(conditions: conditions, cancellationToken: ct)
+                .ConfigureAwait(false);
         }
         catch (RequestFailedException e) when (e.Status == 404)
         {

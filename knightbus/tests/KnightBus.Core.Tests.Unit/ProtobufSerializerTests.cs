@@ -19,7 +19,7 @@ public class ProtobufSerializerTests
         {
             Age = 1,
             Height = 5.7f,
-            Name = "Aurora"
+            Name = "Aurora",
         };
         var serialized = serializer.Serialize(original);
         //act
@@ -35,8 +35,10 @@ public class ProtobufSerializerTests
     {
         [ProtoMember(1)]
         public string Name { get; set; }
+
         [ProtoMember(2)]
         public int Age { get; set; }
+
         [ProtoMember(3)]
         public float Height { get; set; }
     }

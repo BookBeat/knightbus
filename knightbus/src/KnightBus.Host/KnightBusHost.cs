@@ -16,7 +16,11 @@ public class KnightBusHost : IHostedService
     private MessageProcessorLocator _locator;
     private readonly CancellationTokenSource _shutdownToken = new CancellationTokenSource();
 
-    public KnightBusHost(IHostConfiguration configuration, IServiceProvider provider, ILogger<KnightBusHost> logger)
+    public KnightBusHost(
+        IHostConfiguration configuration,
+        IServiceProvider provider,
+        ILogger<KnightBusHost> logger
+    )
     {
         configuration.DependencyInjection = new MicrosoftDependencyInjection(provider);
         configuration.Log = logger;
@@ -35,20 +39,28 @@ public class KnightBusHost : IHostedService
     /// <returns></returns>
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        var combinedToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _shutdownToken.Token);
+        var combinedToken = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken,
+            _shutdownToken.Token
+        );
         _configuration.Log.LogInformation("KnightBus starting");
 
         var transports = _configuration.DependencyInjection.GetInstances<ITransport>().ToArray();
 
         if (transports.Any())
         {
-            _locator = new MessageProcessorLocator(_configuration,
-                transports.SelectMany(transport => transport.TransportChannelFactories).ToArray());
+            _locator = new MessageProcessorLocator(
+                _configuration,
+                transports.SelectMany(transport => transport.TransportChannelFactories).ToArray()
+            );
             var channelReceivers = _locator.CreateReceivers().ToList();
             _configuration.Log.LogInformation("Starting receivers");
             foreach (var receiver in channelReceivers)
             {
-                _configuration.Log.LogInformation("Starting receiver {ReceiverType}", receiver.GetType());
+                _configuration.Log.LogInformation(
+                    "Starting receiver {ReceiverType}",
+                    receiver.GetType()
+                );
                 await receiver.StartAsync(combinedToken.Token).ConfigureAwait(false);
             }
 
@@ -68,11 +80,14 @@ public class KnightBusHost : IHostedService
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
-        _configuration.Log.LogInformation("KnightBus received stop signal, initiating shutdown... ");
+        _configuration.Log.LogInformation(
+            "KnightBus received stop signal, initiating shutdown... "
+        );
         _shutdownToken.Cancel();
         try
         {
-            await Task.Delay(_configuration.ShutdownGracePeriod, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(_configuration.ShutdownGracePeriod, cancellationToken)
+                .ConfigureAwait(false);
         }
         catch (TaskCanceledException)
         {

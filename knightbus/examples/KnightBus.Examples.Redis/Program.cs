@@ -22,7 +22,8 @@ class Program
     {
         var redisConnection = "localhost:6379";
 
-        var knightBusHost = global::Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
+        var knightBusHost = global::Microsoft
+            .Extensions.Hosting.Host.CreateDefaultBuilder()
             .UseDefaultServiceProvider(options =>
             {
                 options.ValidateScopes = true;
@@ -30,7 +31,11 @@ class Program
             })
             .ConfigureServices(services =>
             {
-                services.UseRedis(configuration => { configuration.ConnectionString = redisConnection; })
+                services
+                    .UseRedis(configuration =>
+                    {
+                        configuration.ConnectionString = redisConnection;
+                    })
                     //Enable reading attachments from Redis
                     .UseRedisAttachments()
                     //Enable the saga store
@@ -40,8 +45,8 @@ class Program
                     .UseTransport<RedisTransport>()
                     .AddMiddleware<PerformanceLogging>();
             })
-            .UseKnightBus().Build();
-
+            .UseKnightBus()
+            .Build();
 
         //Start the KnightBus Host, it will now connect to the Redis and listen
         await knightBusHost.StartAsync(CancellationToken.None);
@@ -50,20 +55,18 @@ class Program
         var client = knightBusHost.Services.GetRequiredService<IRedisBus>();
         await client.SendAsync(new SampleRedisSagaStarterCommand());
 
-
         //Send some Messages and watch them print in the console
         var messageCount = 10;
         var sw = new Stopwatch();
 
-        var commands = Enumerable.Range(0, messageCount).Select(i => new SampleRedisCommand
-        {
-            Message = $"Hello from command {i}"
-        }).ToList();
+        var commands = Enumerable
+            .Range(0, messageCount)
+            .Select(i => new SampleRedisCommand { Message = $"Hello from command {i}" })
+            .ToList();
 
         sw.Start();
         await client.SendAsync<SampleRedisCommand>(commands);
         Console.WriteLine($"Elapsed {sw.Elapsed}");
-
 
         Console.ReadKey();
     }
@@ -104,7 +107,6 @@ class Program
         public string QueueName => "sample-redis-saga-command";
     }
 
-
     class SampleRedisMessageMapping : IMessageMapping<SampleRedisCommand>
     {
         public string QueueName => "sample-redis-command";
@@ -120,7 +122,8 @@ class Program
         public string QueueName => "sample-redis-event";
     }
 
-    class SampleRedisMessageProcessor : IProcessCommand<SampleRedisCommand, ExtremeRedisProcessingSetting>
+    class SampleRedisMessageProcessor
+        : IProcessCommand<SampleRedisCommand, ExtremeRedisProcessingSetting>
     {
         public Task ProcessAsync(SampleRedisCommand command, CancellationToken cancellationToken)
         {
@@ -128,9 +131,13 @@ class Program
         }
     }
 
-    class SampleRedisAttachmentProcessor : IProcessCommand<SampleRedisAttachmentCommand, RedisProcessingSetting>
+    class SampleRedisAttachmentProcessor
+        : IProcessCommand<SampleRedisAttachmentCommand, RedisProcessingSetting>
     {
-        public Task ProcessAsync(SampleRedisAttachmentCommand command, CancellationToken cancellationToken)
+        public Task ProcessAsync(
+            SampleRedisAttachmentCommand command,
+            CancellationToken cancellationToken
+        )
         {
             Console.WriteLine($"Received command: '{command.Message}'");
             using (var streamReader = new StreamReader(command.Attachment.Stream))
@@ -142,7 +149,8 @@ class Program
         }
     }
 
-    class RedisEventProcessor : IProcessEvent<SampleRedisEvent, EventSubscriptionOne, RedisProcessingSetting>
+    class RedisEventProcessor
+        : IProcessEvent<SampleRedisEvent, EventSubscriptionOne, RedisProcessingSetting>
     {
         public Task ProcessAsync(SampleRedisEvent message, CancellationToken cancellationToken)
         {
@@ -151,7 +159,8 @@ class Program
         }
     }
 
-    class RedisEventProcessorTwo : IProcessEvent<SampleRedisEvent, EventSubscriptionTwo, RedisProcessingSetting>
+    class RedisEventProcessorTwo
+        : IProcessEvent<SampleRedisEvent, EventSubscriptionTwo, RedisProcessingSetting>
     {
         public Task ProcessAsync(SampleRedisEvent message, CancellationToken cancellationToken)
         {
@@ -160,7 +169,8 @@ class Program
         }
     }
 
-    class RedisEventProcessorThree : IProcessEvent<SampleRedisEvent, EventSubscriptionThree, RedisProcessingSetting>
+    class RedisEventProcessorThree
+        : IProcessEvent<SampleRedisEvent, EventSubscriptionThree, RedisProcessingSetting>
     {
         public Task ProcessAsync(SampleRedisEvent message, CancellationToken cancellationToken)
         {
@@ -169,9 +179,10 @@ class Program
         }
     }
 
-    class RedisSagaProcessor : Saga<RedisSagaData>,
-        IProcessCommand<SampleRedisSagaStarterCommand, RedisProcessingSetting>,
-        IProcessCommand<SampleRedisSagaCommand, RedisProcessingSetting>
+    class RedisSagaProcessor
+        : Saga<RedisSagaData>,
+            IProcessCommand<SampleRedisSagaStarterCommand, RedisProcessingSetting>,
+            IProcessCommand<SampleRedisSagaCommand, RedisProcessingSetting>
     {
         private readonly IRedisBus _bus;
         public override string PartitionKey => "redis-saga-processor";
@@ -185,12 +196,18 @@ class Program
             MessageMapper.MapMessage<SampleRedisSagaCommand>(m => m.SagaId);
         }
 
-        public async Task ProcessAsync(SampleRedisSagaStarterCommand message, CancellationToken cancellationToken)
+        public async Task ProcessAsync(
+            SampleRedisSagaStarterCommand message,
+            CancellationToken cancellationToken
+        )
         {
             await _bus.SendAsync(new SampleRedisSagaCommand());
         }
 
-        public async Task ProcessAsync(SampleRedisSagaCommand message, CancellationToken cancellationToken)
+        public async Task ProcessAsync(
+            SampleRedisSagaCommand message,
+            CancellationToken cancellationToken
+        )
         {
             Data.Counter++;
             await UpdateAsync(CancellationToken.None);
@@ -232,8 +249,12 @@ class Program
         private int _count;
         private readonly Stopwatch _stopwatch = new Stopwatch();
 
-        public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler,
-            IPipelineInformation pipelineInformation, IMessageProcessor next, CancellationToken cancellationToken)
+        public async Task ProcessAsync<T>(
+            IMessageStateHandler<T> messageStateHandler,
+            IPipelineInformation pipelineInformation,
+            IMessageProcessor next,
+            CancellationToken cancellationToken
+        )
             where T : class, IMessage
         {
             if (!_stopwatch.IsRunning)
@@ -245,7 +266,8 @@ class Program
             if (++_count % 1000 == 0)
             {
                 Console.WriteLine(
-                    $"Processed {_count} messages in {_stopwatch.Elapsed} {_count / _stopwatch.Elapsed.TotalSeconds} m/s");
+                    $"Processed {_count} messages in {_stopwatch.Elapsed} {_count / _stopwatch.Elapsed.TotalSeconds} m/s"
+                );
             }
         }
     }

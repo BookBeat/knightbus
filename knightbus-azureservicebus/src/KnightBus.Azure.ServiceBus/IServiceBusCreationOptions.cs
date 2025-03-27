@@ -9,8 +9,8 @@ public interface IServiceBusCreationOptions
     bool EnablePartitioning { get; }
 
     /// <summary>
-    /// Defines whether ordering needs to be maintained. If true, messages sent to topic will be 
-    /// forwarded to the subscription in order. 
+    /// Defines whether ordering needs to be maintained. If true, messages sent to topic will be
+    /// forwarded to the subscription in order.
     /// </summary>
     /// <remarks>Overrides default value (false) from ServiceBusCreationOptions</remarks>
     bool SupportOrdering { get; }

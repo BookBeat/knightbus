@@ -19,12 +19,22 @@ public class SingletonChannelReceiverTests
     {
         //arrange
         var lockManager = new Mock<ISingletonLockManager>();
-        lockManager.SetupSequence(x => x.TryLockAsync(It.IsAny<string>(), TimeSpan.FromSeconds(60), CancellationToken.None))
+        lockManager
+            .SetupSequence(x =>
+                x.TryLockAsync(It.IsAny<string>(), TimeSpan.FromSeconds(60), CancellationToken.None)
+            )
             .ReturnsAsync(Mock.Of<ISingletonLockHandle>())
             .ReturnsAsync((ISingletonLockHandle)null);
         var underlyingReceiver = new Mock<IChannelReceiver>();
         underlyingReceiver.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);
-        var singletonChannelReceiver = new SingletonChannelReceiver(underlyingReceiver.Object, lockManager.Object, Mock.Of<ILogger>()) { TimerInterval = TimeSpan.FromSeconds(1) };
+        var singletonChannelReceiver = new SingletonChannelReceiver(
+            underlyingReceiver.Object,
+            lockManager.Object,
+            Mock.Of<ILogger>()
+        )
+        {
+            TimerInterval = TimeSpan.FromSeconds(1),
+        };
         //act
         await singletonChannelReceiver.StartAsync(CancellationToken.None);
         await singletonChannelReceiver.StartAsync(CancellationToken.None);
@@ -38,19 +48,32 @@ public class SingletonChannelReceiverTests
     {
         //arrange
         var lockManager = new Mock<ISingletonLockManager>();
-        lockManager.SetupSequence(x => x.TryLockAsync(It.IsAny<string>(), TimeSpan.FromSeconds(60), CancellationToken.None))
+        lockManager
+            .SetupSequence(x =>
+                x.TryLockAsync(It.IsAny<string>(), TimeSpan.FromSeconds(60), CancellationToken.None)
+            )
             .ReturnsAsync(Mock.Of<ISingletonLockHandle>())
             .ReturnsAsync((ISingletonLockHandle)null)
             .ReturnsAsync(Mock.Of<ISingletonLockHandle>());
         var underlyingReceiver = new Mock<IChannelReceiver>();
         underlyingReceiver.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);
-        var singletonChannelReceiver = new SingletonChannelReceiver(underlyingReceiver.Object, lockManager.Object, Mock.Of<ILogger>()) { TimerInterval = TimeSpan.FromSeconds(1) };
+        var singletonChannelReceiver = new SingletonChannelReceiver(
+            underlyingReceiver.Object,
+            lockManager.Object,
+            Mock.Of<ILogger>()
+        )
+        {
+            TimerInterval = TimeSpan.FromSeconds(1),
+        };
         //act
         await singletonChannelReceiver.StartAsync(CancellationToken.None);
         await singletonChannelReceiver.StartAsync(CancellationToken.None);
         await Task.Delay(3000);
         //assert
-        underlyingReceiver.Verify(x => x.StartAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
+        underlyingReceiver.Verify(
+            x => x.StartAsync(It.IsAny<CancellationToken>()),
+            Times.Exactly(2)
+        );
     }
 
     [Test]
@@ -59,26 +82,37 @@ public class SingletonChannelReceiverTests
         //arrange
         var handle = new Mock<ISingletonLockHandle>();
         var lockManager = new Mock<ISingletonLockManager>();
-        lockManager.Setup(x => x.TryLockAsync(It.IsAny<string>(), TimeSpan.FromSeconds(60), CancellationToken.None))
+        lockManager
+            .Setup(x =>
+                x.TryLockAsync(It.IsAny<string>(), TimeSpan.FromSeconds(60), CancellationToken.None)
+            )
             .ReturnsAsync(handle.Object);
 
-        handle.SetupSequence(x => x.RenewAsync(It.IsAny<ILogger>(), It.IsAny<CancellationToken>()))
+        handle
+            .SetupSequence(x => x.RenewAsync(It.IsAny<ILogger>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true)
             .Throws(new Exception())
             .ReturnsAsync(true);
 
         var underlyingReceiver = new Mock<IChannelReceiver>();
         underlyingReceiver.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);
-        var singletonChannelReceiver = new SingletonChannelReceiver(underlyingReceiver.Object, lockManager.Object, Mock.Of<ILogger>())
+        var singletonChannelReceiver = new SingletonChannelReceiver(
+            underlyingReceiver.Object,
+            lockManager.Object,
+            Mock.Of<ILogger>()
+        )
         {
             TimerInterval = TimeSpan.FromSeconds(1),
-            LockRefreshInterval = TimeSpan.FromSeconds(1)
+            LockRefreshInterval = TimeSpan.FromSeconds(1),
         };
         //act
         await singletonChannelReceiver.StartAsync(CancellationToken.None);
         await Task.Delay(2100);
         //assert
-        underlyingReceiver.Verify(x => x.StartAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
+        underlyingReceiver.Verify(
+            x => x.StartAsync(It.IsAny<CancellationToken>()),
+            Times.Exactly(2)
+        );
     }
 
     [Test]
@@ -89,7 +123,14 @@ public class SingletonChannelReceiverTests
         var underlyingReceiver = new Mock<IChannelReceiver>();
         underlyingReceiver.Setup(x => x.Settings).Returns(new SingletonHorrificSettings());
         //act
-        var starter = new SingletonChannelReceiver(underlyingReceiver.Object, lockManager.Object, Mock.Of<ILogger>()) { TimerInterval = TimeSpan.FromSeconds(1) };
+        var starter = new SingletonChannelReceiver(
+            underlyingReceiver.Object,
+            lockManager.Object,
+            Mock.Of<ILogger>()
+        )
+        {
+            TimerInterval = TimeSpan.FromSeconds(1),
+        };
         //assert
         starter.Settings.PrefetchCount.Should().Be(0);
         starter.Settings.MaxConcurrentCalls.Should().Be(1);

@@ -13,7 +13,7 @@ public class RedisSetup
         .Build();
 
     public static string ConnectionString;
-    
+
     [OneTimeSetUp]
     public async Task OneTimeSetup()
     {

@@ -15,10 +15,17 @@ public class PostgresTopicManagerTests
     [SetUp]
     public async Task Setup()
     {
-        var config = new PostgresConfiguration { MessageSerializer = new MicrosoftJsonSerializer() };
-        _postgresManagementClient = new PostgresManagementClient(PostgresSetup.DataSource,config);
+        var config = new PostgresConfiguration
+        {
+            MessageSerializer = new MicrosoftJsonSerializer(),
+        };
+        _postgresManagementClient = new PostgresManagementClient(PostgresSetup.DataSource, config);
         _queueManager = new PostgresTopicManager(_postgresManagementClient, config);
-        await QueueInitializer.InitSubscription(PostgresQueueName.Create(AutoMessageMapper.GetQueueName<PostgresTestEvent>()), PostgresQueueName.Create(_eventSubscription.Name), PostgresSetup.DataSource);
+        await QueueInitializer.InitSubscription(
+            PostgresQueueName.Create(AutoMessageMapper.GetQueueName<PostgresTestEvent>()),
+            PostgresQueueName.Create(_eventSubscription.Name),
+            PostgresSetup.DataSource
+        );
     }
 
     [Test]

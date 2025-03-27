@@ -18,24 +18,42 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
         _connectionString = connectionString;
     }
 
-    public BlobStorageMessageAttachmentProvider(IStorageBusConfiguration configuration) : this(configuration.ConnectionString)
-    {
-    }
+    public BlobStorageMessageAttachmentProvider(IStorageBusConfiguration configuration)
+        : this(configuration.ConnectionString) { }
 
-    public async Task<IMessageAttachment> GetAttachmentAsync(string queueName, string id, CancellationToken cancellationToken = default(CancellationToken))
+    public async Task<IMessageAttachment> GetAttachmentAsync(
+        string queueName,
+        string id,
+        CancellationToken cancellationToken = default(CancellationToken)
+    )
     {
         var blob = new BlobClient(_connectionString, queueName, id);
-        var properties = await blob.GetPropertiesAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+        var properties = await blob.GetPropertiesAsync(cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
 
-        return new MessageAttachment(properties.Value.Metadata["Filename"], properties.Value.ContentType, await blob.OpenReadAsync(cancellationToken: cancellationToken).ConfigureAwait(false));
+        return new MessageAttachment(
+            properties.Value.Metadata["Filename"],
+            properties.Value.ContentType,
+            await blob.OpenReadAsync(cancellationToken: cancellationToken).ConfigureAwait(false)
+        );
     }
 
-    public async Task UploadAttachmentAsync(string queueName, string id, IMessageAttachment attachment, CancellationToken cancellationToken = default(CancellationToken))
+    public async Task UploadAttachmentAsync(
+        string queueName,
+        string id,
+        IMessageAttachment attachment,
+        CancellationToken cancellationToken = default(CancellationToken)
+    )
     {
         var blob = new BlobClient(_connectionString, queueName, id);
         try
         {
-            await blob.UploadAsync(attachment.Stream, new BlobHttpHeaders { ContentType = attachment.ContentType }, new Dictionary<string, string> { { "Filename", attachment.Filename } }, cancellationToken: cancellationToken)
+            await blob.UploadAsync(
+                    attachment.Stream,
+                    new BlobHttpHeaders { ContentType = attachment.ContentType },
+                    new Dictionary<string, string> { { "Filename", attachment.Filename } },
+                    cancellationToken: cancellationToken
+                )
                 .ConfigureAwait(false);
         }
         catch (RequestFailedException e) when (e.Status == 404)
@@ -43,23 +61,31 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
             var container = new BlobContainerClient(_connectionString, queueName);
             try
             {
-                await container.CreateAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+                await container
+                    .CreateAsync(cancellationToken: cancellationToken)
+                    .ConfigureAwait(false);
             }
             catch (RequestFailedException ee) when (ee.Status == 409)
             {
                 //Already created
             }
 
-            await UploadAttachmentAsync(queueName, id, attachment, cancellationToken).ConfigureAwait(false);
+            await UploadAttachmentAsync(queueName, id, attachment, cancellationToken)
+                .ConfigureAwait(false);
         }
     }
 
-    public async Task<bool> DeleteAttachmentAsync(string queueName, string id, CancellationToken cancellationToken = default(CancellationToken))
+    public async Task<bool> DeleteAttachmentAsync(
+        string queueName,
+        string id,
+        CancellationToken cancellationToken = default(CancellationToken)
+    )
     {
         var blob = new BlobClient(_connectionString, queueName, id);
         try
         {
-            await blob.DeleteAsync(DeleteSnapshotsOption.None, cancellationToken: cancellationToken).ConfigureAwait(false);
+            await blob.DeleteAsync(DeleteSnapshotsOption.None, cancellationToken: cancellationToken)
+                .ConfigureAwait(false);
             return true;
         }
         catch

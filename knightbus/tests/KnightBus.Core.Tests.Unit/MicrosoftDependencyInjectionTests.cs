@@ -73,10 +73,22 @@ public class MicrosoftDependencyInjectionTests
             secondOuterScopeService = outerScope.GetInstance<ITestService>();
         }
         // assert
-        outerScopeService.GetScopeIdentifier().Should().NotBe(innerScopeService.GetScopeIdentifier());
-        secondOuterScopeService.GetScopeIdentifier().Should().NotBe(secondInnerScopeService.GetScopeIdentifier());
-        outerScopeService.GetScopeIdentifier().Should().Be(secondOuterScopeService.GetScopeIdentifier());
-        innerScopeService.GetScopeIdentifier().Should().Be(secondInnerScopeService.GetScopeIdentifier());
+        outerScopeService
+            .GetScopeIdentifier()
+            .Should()
+            .NotBe(innerScopeService.GetScopeIdentifier());
+        secondOuterScopeService
+            .GetScopeIdentifier()
+            .Should()
+            .NotBe(secondInnerScopeService.GetScopeIdentifier());
+        outerScopeService
+            .GetScopeIdentifier()
+            .Should()
+            .Be(secondOuterScopeService.GetScopeIdentifier());
+        innerScopeService
+            .GetScopeIdentifier()
+            .Should()
+            .Be(secondInnerScopeService.GetScopeIdentifier());
     }
 
     [Test]
@@ -88,9 +100,15 @@ public class MicrosoftDependencyInjectionTests
 
         container.RegisterGenericProcessor(typeof(TestCommandHandler), typeof(IProcessCommand<,>));
 
-        var dependencyInjection = new MicrosoftDependencyInjection(container.BuildServiceProvider());
+        var dependencyInjection = new MicrosoftDependencyInjection(
+            container.BuildServiceProvider()
+        );
 
-        var testHandler = dependencyInjection.GetScope().GetInstance<IProcessMessage<TestMessage, Task>>(typeof(IProcessCommand<TestMessage, TestMessageSettings>));
+        var testHandler = dependencyInjection
+            .GetScope()
+            .GetInstance<IProcessMessage<TestMessage, Task>>(
+                typeof(IProcessCommand<TestMessage, TestMessageSettings>)
+            );
         testHandler.Should().NotBeNull();
     }
 }

@@ -9,15 +9,28 @@ using StackExchange.Redis;
 
 namespace KnightBus.Redis;
 
-internal class RedisMessageStateHandler<T> : IMessageStateHandler<T> where T : class, IMessage
+internal class RedisMessageStateHandler<T> : IMessageStateHandler<T>
+    where T : class, IMessage
 {
     private readonly RedisQueueClient<T> _queueClient;
     private readonly RedisMessage<T> _redisMessage;
 
-    public RedisMessageStateHandler(IConnectionMultiplexer connection, IRedisConfiguration configuration, RedisMessage<T> redisMessage, int deadLetterDeliveryLimit, IDependencyInjection messageScope, ILogger logger)
+    public RedisMessageStateHandler(
+        IConnectionMultiplexer connection,
+        IRedisConfiguration configuration,
+        RedisMessage<T> redisMessage,
+        int deadLetterDeliveryLimit,
+        IDependencyInjection messageScope,
+        ILogger logger
+    )
     {
         _redisMessage = redisMessage;
-        _queueClient = new RedisQueueClient<T>(connection.GetDatabase(configuration.DatabaseId), AutoMessageMapper.GetQueueName<T>(), configuration.MessageSerializer, logger);
+        _queueClient = new RedisQueueClient<T>(
+            connection.GetDatabase(configuration.DatabaseId),
+            AutoMessageMapper.GetQueueName<T>(),
+            configuration.MessageSerializer,
+            logger
+        );
         DeadLetterDeliveryLimit = deadLetterDeliveryLimit;
         MessageScope = messageScope;
     }
@@ -26,6 +39,7 @@ internal class RedisMessageStateHandler<T> : IMessageStateHandler<T> where T : c
     public int DeadLetterDeliveryLimit { get; }
 
     public IDictionary<string, string> MessageProperties => _redisMessage.HashEntries;
+
     public Task CompleteAsync()
     {
         return _queueClient.CompleteMessageAsync(_redisMessage);

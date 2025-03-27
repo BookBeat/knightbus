@@ -3,6 +3,4 @@
 /// <summary>
 /// Base interface for all messages
 /// </summary>
-public interface IMessage
-{
-}
+public interface IMessage { }

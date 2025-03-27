@@ -26,7 +26,8 @@ class Program
         // Start nats.io first
         // $ docker run -p 4222:4222 -ti nats:latest
 
-        var knightBus = global::Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
+        var knightBus = global::Microsoft
+            .Extensions.Hosting.Host.CreateDefaultBuilder()
             .UseDefaultServiceProvider(options =>
             {
                 options.ValidateScopes = true;
@@ -42,20 +43,21 @@ class Program
                     .RegisterProcessors(typeof(NatsBusCommandProcessor).Assembly)
                     //Enable the Nats Transport
                     .UseTransport<NatsTransport>();
-
             })
             .UseKnightBus()
             .Build();
         //Start the KnightBus Host, it will now connect to the StorageBus and listen to the SampleStorageBusMessageMapping.QueueName
         await knightBus.StartAsync(CancellationToken.None);
 
-        var client = (NatsBus)knightBus.Services.CreateScope().ServiceProvider.GetRequiredService<INatsBus>();
+        var client = (NatsBus)
+            knightBus.Services.CreateScope().ServiceProvider.GetRequiredService<INatsBus>();
 
         //Send some Messages and watch them print in the console
         for (var i = 0; i < 1; i++)
         {
-            var response =
-                client.RequestStream<SampleNatsMessage, SampleNatsReply>(new SampleNatsMessage { Message = $"Hello from command {i}" });
+            var response = client.RequestStream<SampleNatsMessage, SampleNatsReply>(
+                new SampleNatsMessage { Message = $"Hello from command {i}" }
+            );
             foreach (var reply in response)
             {
                 Console.WriteLine(reply.Reply);
@@ -65,7 +67,9 @@ class Program
         await client.Publish(new SampleNatsEvent(), CancellationToken.None);
         var stream = new MemoryStream(Encoding.UTF8.GetBytes("Hello"));
         stream.Position = 0;
-        await client.Send(new SampleNatsCommand { Attachment = new MessageAttachment("file.txt", "txt", stream) });
+        await client.Send(
+            new SampleNatsCommand { Attachment = new MessageAttachment("file.txt", "txt", stream) }
+        );
         Console.ReadKey();
     }
 
@@ -114,21 +118,27 @@ class Program
         public string QueueName => "your-queue-2";
     }
 
-
-    class NatsBusStreamRequestProcessor : IProcessStreamRequest<SampleNatsMessage, SampleNatsReply, SomeProcessingSetting>
+    class NatsBusStreamRequestProcessor
+        : IProcessStreamRequest<SampleNatsMessage, SampleNatsReply, SomeProcessingSetting>
     {
-        public async IAsyncEnumerable<SampleNatsReply> ProcessAsync(SampleNatsMessage message,
-            [EnumeratorCancellation] CancellationToken cancellationToken)
+        public async IAsyncEnumerable<SampleNatsReply> ProcessAsync(
+            SampleNatsMessage message,
+            [EnumeratorCancellation] CancellationToken cancellationToken
+        )
         {
             for (int i = 0; i < 20; i++)
             {
                 await Task.Delay(1, cancellationToken);
-                yield return new SampleNatsReply { Reply = $"Async Reply {i}:\t {message.Message}" };
+                yield return new SampleNatsReply
+                {
+                    Reply = $"Async Reply {i}:\t {message.Message}",
+                };
             }
         }
     }
 
-    class NatsBusEventProcessor1 : IProcessEvent<SampleNatsEvent, SampleSubscription1, SomeProcessingSetting>
+    class NatsBusEventProcessor1
+        : IProcessEvent<SampleNatsEvent, SampleSubscription1, SomeProcessingSetting>
     {
         public Task ProcessAsync(SampleNatsEvent message, CancellationToken cancellationToken)
         {
@@ -137,7 +147,8 @@ class Program
         }
     }
 
-    class NatsBusEventProcessor2 : IProcessEvent<SampleNatsEvent, SampleSubscription2, SomeProcessingSetting>
+    class NatsBusEventProcessor2
+        : IProcessEvent<SampleNatsEvent, SampleSubscription2, SomeProcessingSetting>
     {
         public Task ProcessAsync(SampleNatsEvent message, CancellationToken cancellationToken)
         {

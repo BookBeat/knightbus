@@ -12,7 +12,8 @@ using NUnit.Framework;
 namespace KnightBus.Shared.Tests.Integration;
 
 [TestFixture]
-public abstract class QueueManagerTests<TCommand> where TCommand : class, IMessage
+public abstract class QueueManagerTests<TCommand>
+    where TCommand : class, IMessage
 {
     protected IQueueManager QueueManager { get; set; }
     protected QueueType QueueType { get; set; }
@@ -44,7 +45,9 @@ public abstract class QueueManagerTests<TCommand> where TCommand : class, IMessa
         }
 
         //act
-        var queues = (await QueueManager.List(CancellationToken.None)).Select(q => q.Name).ToArray();
+        var queues = (await QueueManager.List(CancellationToken.None))
+            .Select(q => q.Name)
+            .ToArray();
 
         //assert
         queues.Should().HaveCount(count);
@@ -63,8 +66,11 @@ public abstract class QueueManagerTests<TCommand> where TCommand : class, IMessa
         messages.Should().HaveCount(1);
         messages[0].Body.Should().Contain(messageText);
         var verifyStillAvailable = await QueueManager.Peek(queueName, 1, CancellationToken.None);
-        verifyStillAvailable[0].Body.Should().Contain(messageText, "The message should still be available after peeking");
+        verifyStillAvailable[0]
+            .Body.Should()
+            .Contain(messageText, "The message should still be available after peeking");
     }
+
     [Test]
     public async Task Should_peek_dead_letter_message_without_deleting_it()
     {
@@ -78,8 +84,14 @@ public abstract class QueueManagerTests<TCommand> where TCommand : class, IMessa
         //assert
         messages.Should().HaveCount(1);
         messages[0].Body.Should().Contain(messageText);
-        var verifyStillAvailable = await QueueManager.PeekDeadLetter(queueName, 1, CancellationToken.None);
-        verifyStillAvailable[0].Body.Should().Contain(messageText, "The message should still be available after peeking");
+        var verifyStillAvailable = await QueueManager.PeekDeadLetter(
+            queueName,
+            1,
+            CancellationToken.None
+        );
+        verifyStillAvailable[0]
+            .Body.Should()
+            .Contain(messageText, "The message should still be available after peeking");
     }
 
     [Test]
@@ -95,7 +107,11 @@ public abstract class QueueManagerTests<TCommand> where TCommand : class, IMessa
         //assert
         messages.Should().HaveCount(1);
         messages[0].Body.Should().Contain(messageText);
-        var verifyStillAvailable = await QueueManager.PeekDeadLetter(queueName, 1, CancellationToken.None);
+        var verifyStillAvailable = await QueueManager.PeekDeadLetter(
+            queueName,
+            1,
+            CancellationToken.None
+        );
         verifyStillAvailable.Should().BeEmpty("The message should be deleted after reading");
     }
 
@@ -111,7 +127,11 @@ public abstract class QueueManagerTests<TCommand> where TCommand : class, IMessa
         var noMoved = await QueueManager.MoveDeadLetters(queueName, 1, CancellationToken.None);
         //assert
         noMoved.Should().Be(1);
-        var deadLetterMessages = await QueueManager.PeekDeadLetter(queueName, 10, CancellationToken.None);
+        var deadLetterMessages = await QueueManager.PeekDeadLetter(
+            queueName,
+            10,
+            CancellationToken.None
+        );
         deadLetterMessages.Count.Should().Be(0);
         var messages = await QueueManager.Peek(queueName, 10, CancellationToken.None);
         messages.Count.Should().Be(1);

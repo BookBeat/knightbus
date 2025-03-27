@@ -25,7 +25,11 @@ public class BlobLockManagerTests
         await lockManager.InitializeAsync();
         var lockId = Guid.NewGuid().ToString();
         //act
-        var handle = await lockManager.TryLockAsync(lockId, TimeSpan.FromMinutes(1), CancellationToken.None);
+        var handle = await lockManager.TryLockAsync(
+            lockId,
+            TimeSpan.FromMinutes(1),
+            CancellationToken.None
+        );
         //assert
         handle.Should().NotBeNull("Lock should be acquired");
         handle.LeaseId.Should().NotBeNullOrWhiteSpace();
@@ -42,7 +46,11 @@ public class BlobLockManagerTests
         var lockId = Guid.NewGuid().ToString();
         await lockManager.TryLockAsync(lockId, TimeSpan.FromMinutes(1), CancellationToken.None);
         //act
-        var secondHandle = await lockManager.TryLockAsync(lockId, TimeSpan.FromMinutes(1), CancellationToken.None);
+        var secondHandle = await lockManager.TryLockAsync(
+            lockId,
+            TimeSpan.FromMinutes(1),
+            CancellationToken.None
+        );
         //assert
         secondHandle.Should().BeNull("Already locked");
     }
@@ -55,10 +63,18 @@ public class BlobLockManagerTests
         var lockManager = new BlobLockManager(_connection, new DefaultBlobLockScheme());
         await lockManager.InitializeAsync();
         var lockId = Guid.NewGuid().ToString();
-        var handle = await lockManager.TryLockAsync(lockId, TimeSpan.FromMinutes(1), CancellationToken.None);
+        var handle = await lockManager.TryLockAsync(
+            lockId,
+            TimeSpan.FromMinutes(1),
+            CancellationToken.None
+        );
         //act
         await handle.ReleaseAsync(CancellationToken.None);
-        var secondHandle = await lockManager.TryLockAsync(lockId, TimeSpan.FromMinutes(1), CancellationToken.None);
+        var secondHandle = await lockManager.TryLockAsync(
+            lockId,
+            TimeSpan.FromMinutes(1),
+            CancellationToken.None
+        );
         //assert
         secondHandle.Should().NotBeNull();
     }
@@ -71,7 +87,11 @@ public class BlobLockManagerTests
         var lockManager = new BlobLockManager(_connection, new DefaultBlobLockScheme());
         await lockManager.InitializeAsync();
         var lockId = Guid.NewGuid().ToString();
-        var handle = await lockManager.TryLockAsync(lockId, TimeSpan.FromSeconds(15), CancellationToken.None);
+        var handle = await lockManager.TryLockAsync(
+            lockId,
+            TimeSpan.FromSeconds(15),
+            CancellationToken.None
+        );
         //act
         await Task.Delay(TimeSpan.FromSeconds(10));
         var renewed = await handle.RenewAsync(Mock.Of<ILogger>(), CancellationToken.None);
@@ -87,7 +107,11 @@ public class BlobLockManagerTests
         var lockManager = new BlobLockManager(_connection, new DefaultBlobLockScheme());
         await lockManager.InitializeAsync();
         var lockId = Guid.NewGuid().ToString();
-        var handle = await lockManager.TryLockAsync(lockId, TimeSpan.FromSeconds(15), CancellationToken.None);
+        var handle = await lockManager.TryLockAsync(
+            lockId,
+            TimeSpan.FromSeconds(15),
+            CancellationToken.None
+        );
         //act
         await Task.Delay(TimeSpan.FromSeconds(16));
         //steal lock

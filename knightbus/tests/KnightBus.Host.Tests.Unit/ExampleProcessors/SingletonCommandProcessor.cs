@@ -5,7 +5,9 @@ using KnightBus.Core.Singleton;
 
 namespace KnightBus.Host.Tests.Unit.ExampleProcessors;
 
-public class SingletonCommandProcessor : IProcessCommand<SingletonCommand, TestTopicSettings>, ISingletonProcessor
+public class SingletonCommandProcessor
+    : IProcessCommand<SingletonCommand, TestTopicSettings>,
+        ISingletonProcessor
 {
     public Task ProcessAsync(SingletonCommand message, CancellationToken cancellationToken)
     {

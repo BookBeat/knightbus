@@ -15,12 +15,14 @@ public class AutoMessageMapperTests
         var action = new Func<string>(AutoMessageMapper.GetQueueName<NotRegisteredMessage>);
         action.Invoking(m => m.Invoke()).Should().Throw<MessageMappingMissingException>();
     }
+
     [Test]
     public void Should_find_registered_generic()
     {
         var name = AutoMessageMapper.GetQueueName<RegisteredCommand>();
         name.Should().Be("queue");
     }
+
     [Test]
     public void Should_find_registered_type()
     {
@@ -33,10 +35,12 @@ public class NotRegisteredMessage : ICommand
 {
     public string MessageId { get; set; }
 }
+
 public class RegisteredCommand : ICommand
 {
     public string MessageId { get; set; }
 }
+
 public class RegisteredMessageMapping : IMessageMapping<RegisteredCommand>
 {
     public string QueueName => "queue";

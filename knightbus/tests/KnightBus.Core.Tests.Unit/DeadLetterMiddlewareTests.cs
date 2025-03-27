@@ -27,7 +27,12 @@ public class DeadLetterMiddlewareTests
         messageStateHandler.Setup(x => x.MessageScope).Returns(di.Object);
         var middleware = new DeadLetterMiddleware();
         //act
-        await middleware.ProcessAsync(messageStateHandler.Object, pipeline.Object, nextProcessor.Object, CancellationToken.None);
+        await middleware.ProcessAsync(
+            messageStateHandler.Object,
+            pipeline.Object,
+            nextProcessor.Object,
+            CancellationToken.None
+        );
         //assert
         messageStateHandler.Verify(x => x.DeadLetterAsync(1), Times.Once);
     }
@@ -48,10 +53,19 @@ public class DeadLetterMiddlewareTests
         messageStateHandler.Setup(x => x.MessageScope).Returns(di.Object);
         var middleware = new DeadLetterMiddleware();
         //act
-        await middleware.ProcessAsync(messageStateHandler.Object, pipeline.Object, nextProcessor.Object, CancellationToken.None);
+        await middleware.ProcessAsync(
+            messageStateHandler.Object,
+            pipeline.Object,
+            nextProcessor.Object,
+            CancellationToken.None
+        );
         //assert
-        nextProcessor.Verify(x => x.ProcessAsync(messageStateHandler.Object, CancellationToken.None), Times.Never);
+        nextProcessor.Verify(
+            x => x.ProcessAsync(messageStateHandler.Object, CancellationToken.None),
+            Times.Never
+        );
     }
+
     [Test]
     public async Task Should_continue_when_not_dead_lettering()
     {
@@ -62,10 +76,18 @@ public class DeadLetterMiddlewareTests
         messageStateHandler.Setup(x => x.DeliveryCount).Returns(1);
         var middleware = new DeadLetterMiddleware();
         //act
-        await middleware.ProcessAsync(messageStateHandler.Object, Mock.Of<IPipelineInformation>(), nextProcessor.Object, CancellationToken.None);
+        await middleware.ProcessAsync(
+            messageStateHandler.Object,
+            Mock.Of<IPipelineInformation>(),
+            nextProcessor.Object,
+            CancellationToken.None
+        );
         //assert
         messageStateHandler.Verify(x => x.DeadLetterAsync(1), Times.Never);
-        nextProcessor.Verify(x => x.ProcessAsync(messageStateHandler.Object, CancellationToken.None), Times.Once);
+        nextProcessor.Verify(
+            x => x.ProcessAsync(messageStateHandler.Object, CancellationToken.None),
+            Times.Once
+        );
     }
 
     [Test]
@@ -93,13 +115,20 @@ public class DeadLetterMiddlewareTests
         messageStateHandler.Setup(x => x.MessageScope).Returns(di.Object);
         var middleware = new DeadLetterMiddleware();
         //act
-        await middleware.ProcessAsync(messageStateHandler.Object, pipeline.Object, nextProcessor.Object, CancellationToken.None);
+        await middleware.ProcessAsync(
+            messageStateHandler.Object,
+            pipeline.Object,
+            nextProcessor.Object,
+            CancellationToken.None
+        );
         //assert
         countable.Verify(x => x.Count(), Times.Once);
         messageStateHandler.Verify(x => x.DeadLetterAsync(1), Times.Once);
     }
 
-    private class DeadLetterTestProcessor : IProcessBeforeDeadLetter<TestCommand>, IProcessCommand<TestCommand, DeadLetterTestProcessor.TestSettings>
+    private class DeadLetterTestProcessor
+        : IProcessBeforeDeadLetter<TestCommand>,
+            IProcessCommand<TestCommand, DeadLetterTestProcessor.TestSettings>
     {
         private readonly ICountable _countable;
 
@@ -107,6 +136,7 @@ public class DeadLetterMiddlewareTests
         {
             _countable = countable;
         }
+
         public Task BeforeDeadLetterAsync(TestCommand message, CancellationToken cancellationToken)
         {
             _countable.Count();

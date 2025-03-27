@@ -6,11 +6,16 @@ namespace KnightBus.PostgreSql;
 
 public class PostgresTransport : ITransport
 {
-    public PostgresTransport(IPostgresConfiguration postgresConfiguration, [FromKeyedServices(PostgresConstants.NpgsqlDataSourceContainerKey)]NpgsqlDataSource npgsqlDataSource)
+    public PostgresTransport(
+        IPostgresConfiguration postgresConfiguration,
+        [FromKeyedServices(PostgresConstants.NpgsqlDataSourceContainerKey)]
+            NpgsqlDataSource npgsqlDataSource
+    )
     {
-        TransportChannelFactories = [
+        TransportChannelFactories =
+        [
             new PostgresChannelFactory(npgsqlDataSource, postgresConfiguration),
-            new PostgresSubscriptionChannelFactory(npgsqlDataSource, postgresConfiguration)
+            new PostgresSubscriptionChannelFactory(npgsqlDataSource, postgresConfiguration),
         ];
     }
 

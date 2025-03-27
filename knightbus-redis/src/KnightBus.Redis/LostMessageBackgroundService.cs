@@ -10,7 +10,8 @@ using StackExchange.Redis;
 
 namespace KnightBus.Redis;
 
-internal class LostMessageBackgroundService<T> where T : class, IMessage
+internal class LostMessageBackgroundService<T>
+    where T : class, IMessage
 {
     private readonly IDatabase _db;
     private readonly IMessageSerializer _serializer;
@@ -20,8 +21,14 @@ internal class LostMessageBackgroundService<T> where T : class, IMessage
     private readonly string _queueName;
     private readonly Random _random;
 
-
-    internal LostMessageBackgroundService(IConnectionMultiplexer multiplexer, int dbId, IMessageSerializer serializer, ILogger log, TimeSpan messageTimeout, string queueName)
+    internal LostMessageBackgroundService(
+        IConnectionMultiplexer multiplexer,
+        int dbId,
+        IMessageSerializer serializer,
+        ILogger log,
+        TimeSpan messageTimeout,
+        string queueName
+    )
     {
         _db = multiplexer.GetDatabase(dbId);
         _serializer = serializer;
@@ -34,7 +41,8 @@ internal class LostMessageBackgroundService<T> where T : class, IMessage
     internal async Task Start(CancellationToken cancellationToken)
     {
         //Randomly delay so not all tasks fire at once
-        await Task.Delay(TimeSpan.FromSeconds(_random.Next(1, 60)), cancellationToken).ConfigureAwait(false);
+        await Task.Delay(TimeSpan.FromSeconds(_random.Next(1, 60)), cancellationToken)
+            .ConfigureAwait(false);
         while (!cancellationToken.IsCancellationRequested)
         {
             await DetectAndHandleLostMessages(_queueName).ConfigureAwait(false);
@@ -57,22 +65,35 @@ internal class LostMessageBackgroundService<T> where T : class, IMessage
         {
             while (true)
             {
-                var listItems = await _db.ListRangeAsync(RedisQueueConventions.GetProcessingQueueName(queueName), start, stop).ConfigureAwait(false);
-                if (!listItems.Any()) break;
+                var listItems = await _db.ListRangeAsync(
+                        RedisQueueConventions.GetProcessingQueueName(queueName),
+                        start,
+                        stop
+                    )
+                    .ConfigureAwait(false);
+                if (!listItems.Any())
+                    break;
                 Debug.WriteLine($"Found {listItems.Length} processing in {queueName}");
 
-                var checkedItems = await Task.WhenAll(listItems.Select(item => HandlePotentiallyLostMessage(queueName, item))).ConfigureAwait(false);
+                var checkedItems = await Task.WhenAll(
+                        listItems.Select(item => HandlePotentiallyLostMessage(queueName, item))
+                    )
+                    .ConfigureAwait(false);
 
                 foreach (var (lost, message, listItem) in checkedItems.Where(item => item.lost))
                 {
-                    if (await RecoverLostMessageAsync(queueName, listItem, message.Id).ConfigureAwait(false))
+                    if (
+                        await RecoverLostMessageAsync(queueName, listItem, message.Id)
+                            .ConfigureAwait(false)
+                    )
                     {
                         //Shift offset since we manipulated the end of the list and are using offsets
                         start += 1;
                         stop += 1;
                     }
                 }
-                if (listItems.Length < take) break;
+                if (listItems.Length < take)
+                    break;
 
                 start -= take;
                 stop -= take;
@@ -84,7 +105,11 @@ internal class LostMessageBackgroundService<T> where T : class, IMessage
         }
     }
 
-    private async Task<(bool lost, RedisListItem<T> message, RedisValue listItem)> HandlePotentiallyLostMessage(string queueName, byte[] listItem)
+    private async Task<(
+        bool lost,
+        RedisListItem<T> message,
+        RedisValue listItem
+    )> HandlePotentiallyLostMessage(string queueName, byte[] listItem)
     {
         var message = _serializer.Deserialize<RedisListItem<T>>(listItem.AsSpan());
         var hashKey = RedisQueueConventions.GetMessageHashKey(queueName, message.Id);
@@ -101,19 +126,32 @@ internal class LostMessageBackgroundService<T> where T : class, IMessage
         }
         else
         {
-            await _db.HashSetAsync(hashKey, RedisHashKeys.LastProcessed, DateTimeOffset.Now.Add(-_messageTimeout).ToUnixTimeMilliseconds()).ConfigureAwait(false);
+            await _db.HashSetAsync(
+                    hashKey,
+                    RedisHashKeys.LastProcessed,
+                    DateTimeOffset.Now.Add(-_messageTimeout).ToUnixTimeMilliseconds()
+                )
+                .ConfigureAwait(false);
         }
 
         return (false, default, listItem);
     }
 
-    private async Task<bool> RecoverLostMessageAsync(string queueName, RedisValue redisMessage, string id)
+    private async Task<bool> RecoverLostMessageAsync(
+        string queueName,
+        RedisValue redisMessage,
+        string id
+    )
     {
         var hashKey = RedisQueueConventions.GetMessageHashKey(queueName, id);
 #pragma warning disable 4014
         var tran = _db.CreateTransaction();
         tran.AddCondition(Condition.KeyExists(hashKey));
-        tran.ListRemoveAsync(RedisQueueConventions.GetProcessingQueueName(queueName), redisMessage, -1);
+        tran.ListRemoveAsync(
+            RedisQueueConventions.GetProcessingQueueName(queueName),
+            redisMessage,
+            -1
+        );
         tran.ListLeftPushAsync(queueName, redisMessage);
         tran.HashDeleteAsync(hashKey, [RedisHashKeys.LastProcessed, RedisHashKeys.DeliveryCount]);
 

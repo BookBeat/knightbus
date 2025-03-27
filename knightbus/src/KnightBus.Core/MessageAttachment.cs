@@ -15,10 +15,9 @@ public class MessageAttachment : IMessageAttachment
         {
             Length = stream?.Length ?? 0;
         }
-        catch (NotSupportedException)
-        { }
-
+        catch (NotSupportedException) { }
     }
+
     public string Filename { get; protected set; }
     public string ContentType { get; protected set; }
     public long Length { get; protected set; }

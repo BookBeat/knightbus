@@ -9,5 +9,9 @@ namespace KnightBus.Core;
 /// </summary>
 public interface IMessageProcessor
 {
-    Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, CancellationToken cancellationToken) where T : class, IMessage;
+    Task ProcessAsync<T>(
+        IMessageStateHandler<T> messageStateHandler,
+        CancellationToken cancellationToken
+    )
+        where T : class, IMessage;
 }

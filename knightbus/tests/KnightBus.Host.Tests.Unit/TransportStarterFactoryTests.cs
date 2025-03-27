@@ -23,13 +23,35 @@ public class TransportStarterFactoryTests
         var channel = new Mock<ITransportChannelFactory>();
         channel.Setup(x => x.CanCreate(typeof(TestCommand))).Returns(true);
         channel.Setup(x => x.Configuration).Returns(config.Object);
-        var starter = new TransportStarterFactory(new[] { channel.Object }, new HostConfiguration { DependencyInjection = new MicrosoftDependencyInjection(new ServiceCollection().BuildServiceProvider()) });
+        var starter = new TransportStarterFactory(
+            new[] { channel.Object },
+            new HostConfiguration
+            {
+                DependencyInjection = new MicrosoftDependencyInjection(
+                    new ServiceCollection().BuildServiceProvider()
+                ),
+            }
+        );
         var factory = new CommandProcessorFactory();
         //act
-        starter.CreateChannelReceiver(factory, typeof(IProcessCommand<TestCommand, TestMessageSettings>), typeof(JsonProcessor));
+        starter.CreateChannelReceiver(
+            factory,
+            typeof(IProcessCommand<TestCommand, TestMessageSettings>),
+            typeof(JsonProcessor)
+        );
         //assert
-        channel.Verify(x => x.Create(typeof(TestCommand), null, It.IsAny<IProcessingSettings>(), It.IsAny<MicrosoftJsonSerializer>(), It.IsAny<IHostConfiguration>(), It.IsAny<IMessageProcessor>()),
-            Times.Once);
+        channel.Verify(
+            x =>
+                x.Create(
+                    typeof(TestCommand),
+                    null,
+                    It.IsAny<IProcessingSettings>(),
+                    It.IsAny<MicrosoftJsonSerializer>(),
+                    It.IsAny<IHostConfiguration>(),
+                    It.IsAny<IMessageProcessor>()
+                ),
+            Times.Once
+        );
     }
 
     [Test]
@@ -41,13 +63,35 @@ public class TransportStarterFactoryTests
         var channel = new Mock<ITransportChannelFactory>();
         channel.Setup(x => x.CanCreate(typeof(ProtobufCommand))).Returns(true);
         channel.Setup(x => x.Configuration).Returns(config.Object);
-        var starter = new TransportStarterFactory(new[] { channel.Object }, new HostConfiguration { DependencyInjection = new MicrosoftDependencyInjection(new ServiceCollection().BuildServiceProvider()) });
+        var starter = new TransportStarterFactory(
+            new[] { channel.Object },
+            new HostConfiguration
+            {
+                DependencyInjection = new MicrosoftDependencyInjection(
+                    new ServiceCollection().BuildServiceProvider()
+                ),
+            }
+        );
         var factory = new CommandProcessorFactory();
         //act
-        starter.CreateChannelReceiver(factory, typeof(IProcessCommand<ProtobufCommand, TestMessageSettings>), typeof(ProtobufProcessor));
+        starter.CreateChannelReceiver(
+            factory,
+            typeof(IProcessCommand<ProtobufCommand, TestMessageSettings>),
+            typeof(ProtobufProcessor)
+        );
         //assert
-        channel.Verify(x => x.Create(typeof(ProtobufCommand), null, It.IsAny<IProcessingSettings>(), It.IsAny<ProtobufNetSerializer>(), It.IsAny<IHostConfiguration>(), It.IsAny<IMessageProcessor>()),
-            Times.Once);
+        channel.Verify(
+            x =>
+                x.Create(
+                    typeof(ProtobufCommand),
+                    null,
+                    It.IsAny<IProcessingSettings>(),
+                    It.IsAny<ProtobufNetSerializer>(),
+                    It.IsAny<IHostConfiguration>(),
+                    It.IsAny<IMessageProcessor>()
+                ),
+            Times.Once
+        );
     }
 }
 
@@ -58,6 +102,7 @@ public class JsonProcessor : IProcessCommand<TestCommand, TestMessageSettings>
         throw new System.NotImplementedException();
     }
 }
+
 public class ProtobufProcessor : IProcessCommand<ProtobufCommand, TestMessageSettings>
 {
     public Task ProcessAsync(ProtobufCommand message, CancellationToken cancellationToken)
@@ -66,9 +111,7 @@ public class ProtobufProcessor : IProcessCommand<ProtobufCommand, TestMessageSet
     }
 }
 
-public class ProtobufCommand : ICommand
-{
-}
+public class ProtobufCommand : ICommand { }
 
 public class ProtobufCommandMapping : IMessageMapping<ProtobufCommand>, ICustomMessageSerializer
 {

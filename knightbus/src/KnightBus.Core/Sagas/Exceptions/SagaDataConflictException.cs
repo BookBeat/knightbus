@@ -2,7 +2,6 @@
 
 public class SagaDataConflictException : SagaException
 {
-    public SagaDataConflictException(string partitionKey, string id) : base(partitionKey, id)
-    {
-    }
+    public SagaDataConflictException(string partitionKey, string id)
+        : base(partitionKey, id) { }
 }

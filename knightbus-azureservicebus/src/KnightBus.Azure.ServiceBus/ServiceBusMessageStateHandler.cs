@@ -8,13 +8,19 @@ using KnightBus.Messages;
 
 namespace KnightBus.Azure.ServiceBus;
 
-internal class ServiceBusMessageStateHandler<T> : IMessageStateHandler<T> where T : class, IMessage
+internal class ServiceBusMessageStateHandler<T> : IMessageStateHandler<T>
+    where T : class, IMessage
 {
     private readonly ProcessMessageEventArgs _processMessage;
     private readonly ServiceBusReceivedMessage _sbMessage;
     private readonly T _message;
 
-    public ServiceBusMessageStateHandler(ProcessMessageEventArgs processMessage, IMessageSerializer serializer, int deadLetterDeliveryLimit, IDependencyInjection messageScope)
+    public ServiceBusMessageStateHandler(
+        ProcessMessageEventArgs processMessage,
+        IMessageSerializer serializer,
+        int deadLetterDeliveryLimit,
+        IDependencyInjection messageScope
+    )
     {
         DeadLetterDeliveryLimit = deadLetterDeliveryLimit;
         MessageScope = messageScope;
@@ -25,8 +31,10 @@ internal class ServiceBusMessageStateHandler<T> : IMessageStateHandler<T> where 
 
     public int DeliveryCount => _sbMessage.DeliveryCount;
     public int DeadLetterDeliveryLimit { get; }
-    public IDictionary<string, string> MessageProperties => _sbMessage.ApplicationProperties?.Where(kvp => kvp.Value is string).ToDictionary(k => k.Key, k => k.Value.ToString()) ?? new Dictionary<string, string>();
-
+    public IDictionary<string, string> MessageProperties =>
+        _sbMessage
+            .ApplicationProperties?.Where(kvp => kvp.Value is string)
+            .ToDictionary(k => k.Key, k => k.Value.ToString()) ?? new Dictionary<string, string>();
 
     public async Task CompleteAsync()
     {
@@ -45,8 +53,11 @@ internal class ServiceBusMessageStateHandler<T> : IMessageStateHandler<T> where 
 
     public async Task DeadLetterAsync(int deadLetterLimit)
     {
-        await _sbMessage.DeadLetterByDeliveryLimitAsync(_processMessage, deadLetterLimit).ConfigureAwait(false);
+        await _sbMessage
+            .DeadLetterByDeliveryLimitAsync(_processMessage, deadLetterLimit)
+            .ConfigureAwait(false);
     }
+
     public T GetMessage()
     {
         return _message;

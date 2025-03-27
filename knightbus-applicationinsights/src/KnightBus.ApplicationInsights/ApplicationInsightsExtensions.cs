@@ -8,19 +8,25 @@ namespace KnightBus.ApplicationInsights;
 
 public static class ApplicationInsightsExtensions
 {
-    public static IServiceCollection UseApplicationInsights(this IServiceCollection services, TelemetryConfiguration telemetryConfiguration)
+    public static IServiceCollection UseApplicationInsights(
+        this IServiceCollection services,
+        TelemetryConfiguration telemetryConfiguration
+    )
     {
         InitializeDependencyTracking(telemetryConfiguration);
         services.AddMiddleware(new ApplicationInsightsMessageMiddleware(telemetryConfiguration));
         return services;
     }
 
-    public static IHostConfiguration EnableLiveMetricsStream(this IHostConfiguration hostConfiguration, TelemetryConfiguration telemetryConfiguration)
+    public static IHostConfiguration EnableLiveMetricsStream(
+        this IHostConfiguration hostConfiguration,
+        TelemetryConfiguration telemetryConfiguration
+    )
     {
         QuickPulseTelemetryProcessor processor = null;
 
-        telemetryConfiguration.TelemetryProcessorChainBuilder
-            .Use(next =>
+        telemetryConfiguration
+            .TelemetryProcessorChainBuilder.Use(next =>
             {
                 processor = new QuickPulseTelemetryProcessor(next);
                 return processor;
@@ -40,7 +46,9 @@ public static class ApplicationInsightsExtensions
         return hostConfiguration;
     }
 
-    private static DependencyTrackingTelemetryModule InitializeDependencyTracking(TelemetryConfiguration configuration)
+    private static DependencyTrackingTelemetryModule InitializeDependencyTracking(
+        TelemetryConfiguration configuration
+    )
     {
         var module = new DependencyTrackingTelemetryModule();
 
@@ -52,7 +60,7 @@ public static class ApplicationInsightsExtensions
         module.ExcludeComponentCorrelationHttpHeadersOnDomains.Add("localhost");
         module.ExcludeComponentCorrelationHttpHeadersOnDomains.Add("127.0.0.1");
 
-        // enable known dependency tracking, note that in future versions, we will extend this list. 
+        // enable known dependency tracking, note that in future versions, we will extend this list.
         // please check default settings in https://github.com/Microsoft/ApplicationInsights-dotnet-server/blob/develop/Src/DependencyCollector/DependencyCollector/ApplicationInsights.config.install.xdt
 
         module.IncludeDiagnosticSourceActivities.Add("Microsoft.Azure.ServiceBus");
