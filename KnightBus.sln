@@ -73,10 +73,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Shared.Tests.Integration", "knightbus\tests\KnightBus.Shared.Tests.Integration\KnightBus.Shared.Tests.Integration.csproj", "{7E533C8D-75F9-46A9-B1F0-186E6EBE6A84}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.ProtobufNet", "knightbus-protobuf-net\src\KnightBus.ProtobufNet\KnightBus.ProtobufNet.csproj", "{E90F3022-E41B-452A-8991-EB615621BC8C}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.MessagePack", "knightbus-messagepack\src\KnightBus.MessagePack\KnightBus.MessagePack.csproj", "{C7125035-C8A5-4036-915E-817FBCAC7FBA}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Newtonsoft", "knightbus-newtonsoft\src\KnightBus.Newtonsoft\KnightBus.Newtonsoft.csproj", "{D50B4102-ABDC-4DCD-91E8-37DE31247CA3}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KnightBus.Nats", "knightbus-nats\src\KnightBus.Nats\KnightBus.Nats.csproj", "{B2C3D139-A60A-4388-AC25-64EBE750B7BE}"
@@ -219,14 +215,6 @@ Global
 		{7E533C8D-75F9-46A9-B1F0-186E6EBE6A84}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7E533C8D-75F9-46A9-B1F0-186E6EBE6A84}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7E533C8D-75F9-46A9-B1F0-186E6EBE6A84}.Release|Any CPU.Build.0 = Release|Any CPU
-		{E90F3022-E41B-452A-8991-EB615621BC8C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E90F3022-E41B-452A-8991-EB615621BC8C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E90F3022-E41B-452A-8991-EB615621BC8C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E90F3022-E41B-452A-8991-EB615621BC8C}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C7125035-C8A5-4036-915E-817FBCAC7FBA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C7125035-C8A5-4036-915E-817FBCAC7FBA}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C7125035-C8A5-4036-915E-817FBCAC7FBA}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C7125035-C8A5-4036-915E-817FBCAC7FBA}.Release|Any CPU.Build.0 = Release|Any CPU
 		{D50B4102-ABDC-4DCD-91E8-37DE31247CA3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{D50B4102-ABDC-4DCD-91E8-37DE31247CA3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D50B4102-ABDC-4DCD-91E8-37DE31247CA3}.Release|Any CPU.ActiveCfg = Release|Any CPU

@@ -39,7 +39,7 @@ public class ExtendMessageLockDurationMiddlewareTests
         await middleware.ProcessAsync(storageQueueMessageStateHandler, pipeline, next.Object, CancellationToken.None);
 
         //assert
-        storageQueueClient.Verify(x => x.SetVisibilityTimeout(It.IsAny<StorageQueueMessage>(), TimeSpan.FromMilliseconds(1000), It.IsAny<CancellationToken>()), Times.Never);
+        storageQueueClient.Verify(x => x.SetVisibilityTimeout(It.IsAny<StorageQueueMessage>(), TimeSpan.FromMilliseconds(1000, 0), It.IsAny<CancellationToken>()), Times.Never);
         next.Verify(x => x.ProcessAsync(storageQueueMessageStateHandler, It.IsAny<CancellationToken>()));
     }
 
@@ -68,7 +68,7 @@ public class ExtendMessageLockDurationMiddlewareTests
         await middleware.ProcessAsync(storageQueueMessageStateHandler, pipeline, next.Object, CancellationToken.None);
 
         //assert
-        storageQueueClient.Verify(x => x.SetVisibilityTimeout(It.IsAny<StorageQueueMessage>(), TimeSpan.FromMilliseconds(1000), It.IsAny<CancellationToken>()), Times.Between(15, 20, Range.Inclusive));
+        storageQueueClient.Verify(x => x.SetVisibilityTimeout(It.IsAny<StorageQueueMessage>(), TimeSpan.FromMilliseconds(1000, 0), It.IsAny<CancellationToken>()), Times.Between(15, 20, Range.Inclusive));
     }
 
     [Test]
@@ -97,7 +97,7 @@ public class ExtendMessageLockDurationMiddlewareTests
         await middleware.ProcessAsync(storageQueueMessageStateHandler, pipeline, next.Object, new CancellationTokenSource(settings.MessageLockTimeout).Token);
 
         //assert
-        storageQueueClient.Verify(x => x.SetVisibilityTimeout(It.IsAny<StorageQueueMessage>(), TimeSpan.FromMilliseconds(1000), It.IsAny<CancellationToken>()), Times.Between(5, 10, Range.Inclusive));
+        storageQueueClient.Verify(x => x.SetVisibilityTimeout(It.IsAny<StorageQueueMessage>(), TimeSpan.FromMilliseconds(1000, 0), It.IsAny<CancellationToken>()), Times.Between(5, 10, Range.Inclusive));
     }
 
     [Test]
@@ -129,7 +129,7 @@ public class ExtendMessageLockDurationMiddlewareTests
         await Task.Delay(1000);
 
         //assert
-        storageQueueClient.Verify(x => x.SetVisibilityTimeout(It.IsAny<StorageQueueMessage>(), TimeSpan.FromMilliseconds(1000), It.IsAny<CancellationToken>()), Times.Never);
+        storageQueueClient.Verify(x => x.SetVisibilityTimeout(It.IsAny<StorageQueueMessage>(), TimeSpan.FromMilliseconds(1000, 0), It.IsAny<CancellationToken>()), Times.Never);
         next.Verify(x => x.ProcessAsync(storageQueueMessageStateHandler, cancellationToken), Times.Once());
     }
 

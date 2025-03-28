@@ -9,9 +9,8 @@ using KnightBus.Core.DependencyInjection;
 using KnightBus.Core.PreProcessors;
 using KnightBus.Host;
 using KnightBus.Messages;
-using KnightBus.ProtobufNet;
+using KnightBus.Newtonsoft;
 using Microsoft.Extensions.Hosting;
-using ProtoBuf;
 
 namespace KnightBus.Examples.Azure.ServiceBus;
 
@@ -40,8 +39,8 @@ class Program
         await knightBus.StartAsync(CancellationToken.None);
 
         //Initiate the client
-        var protoClient = new KnightBus.Azure.ServiceBus.ServiceBus(new ServiceBusConfiguration(serviceBusConnection)
-        { MessageSerializer = new ProtobufNetSerializer() }, new ClientFactory(new ServiceBusConfiguration(serviceBusConnection)), Enumerable.Empty<IMessagePreProcessor>());
+        var client = new KnightBus.Azure.ServiceBus.ServiceBus(new ServiceBusConfiguration(serviceBusConnection)
+        { MessageSerializer = new NewtonsoftSerializer() }, new ClientFactory(new ServiceBusConfiguration(serviceBusConnection)), Enumerable.Empty<IMessagePreProcessor>());
         var jsonClient = new KnightBus.Azure.ServiceBus.ServiceBus(new ServiceBusConfiguration(serviceBusConnection), new ClientFactory(new ServiceBusConfiguration(serviceBusConnection)),
             Enumerable.Empty<IMessagePreProcessor>());
         var managementClient =
@@ -51,7 +50,7 @@ class Program
         //Send some Messages and watch them print in the console
         for (var i = 0; i < 10; i++)
         {
-            await protoClient.SendAsync(new SampleServiceBusMessage { Message = $"Hello from command {i}" });
+            await client.SendAsync(new SampleServiceBusMessage { Message = $"Hello from command {i}" });
         }
         for (var i = 0; i < 10; i++)
         {
@@ -64,10 +63,9 @@ class Program
         Console.ReadKey();
     }
 
-    [ProtoContract]
     class SampleServiceBusMessage : IServiceBusCommand
     {
-        [ProtoMember(1)] public string Message { get; set; }
+        public string Message { get; set; }
     }
 
     class SampleServiceBusEvent : IServiceBusEvent
@@ -85,13 +83,12 @@ class Program
         public string QueueName => "other-queue";
     }
 
-    class SampleServiceBusMessageMapping : IMessageMapping<SampleServiceBusMessage>, IServiceBusCreationOptions, ICustomMessageSerializer
+    class SampleServiceBusMessageMapping : IMessageMapping<SampleServiceBusMessage>, IServiceBusCreationOptions
     {
         public string QueueName => "your-queue";
         public bool EnablePartitioning => true;
         public bool SupportOrdering => false;
         public bool EnableBatchedOperations => true;
-        public IMessageSerializer MessageSerializer { get; } = new ProtobufNetSerializer();
     }
 
     class SampleServiceBusEventMapping : IMessageMapping<SampleServiceBusEvent>
@@ -100,8 +97,8 @@ class Program
     }
 
     class SampleServiceBusMessageProcessor :
-        IProcessCommand<SampleServiceBusMessage, ProtoBufProcessingSetting>,
-        IProcessCommand<OtherSampleServiceBusMessage, ProtoBufProcessingSetting>,
+        IProcessCommand<SampleServiceBusMessage, SomeProcessingSetting>,
+        IProcessCommand<OtherSampleServiceBusMessage, SomeProcessingSetting>,
         IProcessEvent<SampleServiceBusEvent, EventSubscriptionOne, SomeProcessingSetting>
     {
         public Task ProcessAsync(SampleServiceBusMessage message, CancellationToken cancellationToken)
@@ -158,11 +155,4 @@ class Program
         public int DeadLetterDeliveryLimit => 2;
     }
 
-    class ProtoBufProcessingSetting : IProcessingSettings
-    {
-        public int MaxConcurrentCalls => 1;
-        public int PrefetchCount => 1;
-        public TimeSpan MessageLockTimeout => TimeSpan.FromMinutes(5);
-        public int DeadLetterDeliveryLimit => 2;
-    }
 }

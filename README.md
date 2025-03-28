@@ -37,9 +37,7 @@
 ## Serialization
 | Package                                                                                                    | NuGet                                                                                                                                                                                 |
 |------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [KnightBus.ProtobufNet](https://www.nuget.org/packages/KnightBus.ProtobufNet/)                             | [![KnightBus.ProtobufNet](https://img.shields.io/nuget/v/KnightBus.ProtobufNet.svg)](https://www.nuget.org/packages/KnightBus.ProtobufNet/)                                           |
 | [KnightBus.Newtonsoft](https://www.nuget.org/packages/KnightBus.Newtonsoft/)                               | [![KnightBus.Newtonsoft](https://img.shields.io/nuget/v/KnightBus.Newtonsoft.svg)](https://www.nuget.org/packages/KnightBus.Newtonsoft/)                                              |
-| [KnightBus.MessagePack](https://www.nuget.org/packages/KnightBus.MessagePack/)                             | [![KnightBus.MessagePack](https://img.shields.io/nuget/v/KnightBus.MessagePack.svg)](https://www.nuget.org/packages/KnightBus.MessagePack/)                                           |
 
 ## Framework
 | Package                                                                         | NuGet                                                                                                                                                                                 |
