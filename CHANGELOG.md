@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 2025-03-28
+Upgraded to .net 9. All packages now target net9.0
+
+### Deleted packages
+The following packages was never used and has been removed:
+* KnightBus.MessagePack
+* KnightBus.ProtoBufNet
+
 ## 2024-01-03
 * Added pre processors of messages before they are sent
 * Converter Attachments to using a pre processor
