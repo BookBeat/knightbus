@@ -1,4 +1,5 @@
-﻿using System.Net.NetworkInformation;
+﻿using System.Collections.Concurrent;
+using System.Net.NetworkInformation;
 using System.Security.Cryptography;
 using KnightBus.Core.DependencyInjection;
 using KnightBus.Cosmos;
@@ -8,6 +9,7 @@ using KnightBus.Core;
 using KnightBus.Host;
 using KnightBus.Messages;
 using Microsoft.Extensions.DependencyInjection;
+using System.Threading;
 
 namespace KnightBus.Examples.CosmosDB;
 
@@ -62,19 +64,14 @@ class Program
         {
             await client.PublishAsync(new SampleCosmosEvent() { MessageBody = $"event data {i}" }, CancellationToken.None);
         }
-        
-        //Publish other event
-        for (int i = 1; i < 100; i++)
-        {
-            await client.PublishAsync(new SampleCosmosEvent2() { data = $"{i}" }, CancellationToken.None);
-        }
-        
-        Console.ReadKey();
+  
 
+        Console.ReadKey();
+        
         //Publish poison event
         for (int i = 1; i <= 1; i++)
         {
-            await client.PublishAsync(new SamplePoisonEvent() { bad_message = $"danger {i}" }, CancellationToken.None);
+            await client.PublishAsync(new SamplePoisonEvent() { Bad_Message = $"danger {i}" }, CancellationToken.None);
         }
         
         //Clean-up
@@ -86,39 +83,23 @@ class Program
 
 class CosmosEventProcessor :
     IProcessEvent<SampleCosmosEvent, SampleSubscription, CosmosProcessingSetting>,
-    IProcessEvent<SampleCosmosEvent2, SampleSubscription2, CosmosProcessingSetting>,
-    IProcessEvent<SampleCosmosEvent2, SampleSubscription3, CosmosProcessingSetting>,
-    IProcessEvent<SamplePoisonEvent, SamplePoisonSubscription, CosmosProcessingSetting>,
-IProcessEvent<SamplePoisonEvent, OtherSamplePoisonSubscription, CosmosProcessingSetting>
+    IProcessEvent<SampleCosmosEvent, OtherSubscription, CosmosProcessingSetting>,
+    IProcessEvent<SamplePoisonEvent, SamplePoisonSubscription, CosmosProcessingSetting>
 {
-    Random random = new Random();
-    //Not ideal to use same random over different processors but some processings are failed and others are not
-    // and that is enough for testing this behaviour.
-
+    private Random random = new Random(); //Probably not ideal way to do this
     public Task ProcessAsync(SampleCosmosEvent message, CancellationToken cancellationToken)
     {
-        int rng = random.Next() % 10;
-        if (rng <= 2)
-        {
-            throw new PingException("Simulated network errors");
-        }
         Console.WriteLine($"Event 1: '{message.MessageBody}'");
-        return Task.CompletedTask;
-    }
-    public Task ProcessAsync(SampleCosmosEvent2 message, CancellationToken cancellationToken)
-    {
-        int rng = random.Next() % 10;
-        if (rng <= 2)
+        if (random.Next() % 5 == 0)
         {
-            throw new PingException("Simulated network errors");
+            throw new HttpRequestException("Simulated network error");
         }
-        Console.WriteLine($"Event 2: '{message.data}'");
         return Task.CompletedTask;
     }
     
     public Task ProcessAsync(SamplePoisonEvent message, CancellationToken cancellationToken)
     {
-        Console.WriteLine($"Poison event0: {message.bad_message}");
+        Console.WriteLine($"Poison event0: {message.Bad_Message}");
         throw new InvalidOperationException();
     }
 }
@@ -132,9 +113,7 @@ class CosmosProcessingSetting : IProcessingSettings
 }
 
 
-//Events
-
-
+//Sample event
 public class SampleCosmosEvent : ICosmosEvent
 {
     public string? MessageBody { get; set;  }
@@ -145,33 +124,20 @@ class SampleCosmosEventMapping : IMessageMapping<SampleCosmosEvent>
 }
 class SampleSubscription: IEventSubscription<SampleCosmosEvent>
 {
-    public string Name => "sample_subscription";
+    public string Name => "subscription_1";
 }
 
-
-public class SampleCosmosEvent2 : ICosmosEvent
+class OtherSubscription: IEventSubscription<SampleCosmosEvent>
 {
-    public string? data { get; set; }
-}
-class SampleCosmosEventMapping2 : IMessageMapping<SampleCosmosEvent2>
-{
-    public string QueueName => "test-topic2";
+    public string Name => "subscription_2";
 }
 
-class SampleSubscription2: IEventSubscription<SampleCosmosEvent2>
-{
-    public string Name => "sample_subscription2";
-}
 
-class SampleSubscription3: IEventSubscription<SampleCosmosEvent2>
-{
-    public string Name => "sample_subscription3";
-}
-
+//Poison event
 
 public class SamplePoisonEvent : ICosmosEvent
 {
-    public string? bad_message { get; set;  }
+    public required string Bad_Message { get; set;  }
 }
 class SamplePoisonEventMapping : IMessageMapping<SamplePoisonEvent>
 {
@@ -188,7 +154,7 @@ class OtherSamplePoisonSubscription: IEventSubscription<SamplePoisonEvent>
 }
 
 
-//Commands
+//Sample Command
 class SampleCosmosMessage : ICosmosCommand
 {
     public required string MessageBody { get; set; }

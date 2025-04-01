@@ -117,6 +117,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.Cosmos", "knightb
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.Cosmos.Messages", "knightbus-cosmos\src\KnightBus.Cosmos.Messages\KnightBus.Cosmos.Messages.csproj", "{8E24C34D-4C81-4558-90FE-D5478920A6C0}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.Cosmos.Tests.EndToEnd", "knightbus-cosmos\test\KnightBus.Cosmos.Tests.EndToEnd\KnightBus.Cosmos.Tests.EndToEnd.csproj", "{4A7DED99-6DA9-478C-872D-B2E17359A0EA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -303,6 +305,10 @@ Global
 		{8E24C34D-4C81-4558-90FE-D5478920A6C0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8E24C34D-4C81-4558-90FE-D5478920A6C0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8E24C34D-4C81-4558-90FE-D5478920A6C0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4A7DED99-6DA9-478C-872D-B2E17359A0EA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4A7DED99-6DA9-478C-872D-B2E17359A0EA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4A7DED99-6DA9-478C-872D-B2E17359A0EA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4A7DED99-6DA9-478C-872D-B2E17359A0EA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -343,6 +349,7 @@ Global
 		{08429A53-BCD5-48CA-8C98-F7E9A6DB7E40} = {60DD8989-3730-42B9-BD7B-3B38A6208FFB}
 		{5D635AFD-F0E6-4479-89CD-8F221E4C120B} = {08429A53-BCD5-48CA-8C98-F7E9A6DB7E40}
 		{8E24C34D-4C81-4558-90FE-D5478920A6C0} = {08429A53-BCD5-48CA-8C98-F7E9A6DB7E40}
+		{4A7DED99-6DA9-478C-872D-B2E17359A0EA} = {08429A53-BCD5-48CA-8C98-F7E9A6DB7E40}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {14950A56-4265-429E-AF71-2D98B3B8AC48}
