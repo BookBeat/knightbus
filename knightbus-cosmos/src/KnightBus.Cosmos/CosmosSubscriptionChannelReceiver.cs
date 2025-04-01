@@ -14,8 +14,8 @@ public class CosmosSubscriptionChannelReceiver<T> : IChannelReceiver where T : c
     private readonly IHostConfiguration _hostConfiguration;
     private readonly IMessageProcessor _processor;
     private readonly ICosmosConfiguration _cosmosConfiguration;
+    private CosmosClient _cosmosClient;
     private readonly CosmosQueueClient<T> _cosmosQueueClient;
-    
     
     public CosmosSubscriptionChannelReceiver(
         IProcessingSettings processorSettings,
@@ -23,7 +23,8 @@ public class CosmosSubscriptionChannelReceiver<T> : IChannelReceiver where T : c
         IEventSubscription subscription,
         IHostConfiguration config,
         IMessageProcessor processor,
-        ICosmosConfiguration cosmosConfiguration
+        ICosmosConfiguration cosmosConfiguration,
+        CosmosClient cosmosClient
     )
     {
         Settings = processorSettings;
@@ -32,12 +33,13 @@ public class CosmosSubscriptionChannelReceiver<T> : IChannelReceiver where T : c
         _hostConfiguration = config;
         _processor = processor;
         _cosmosConfiguration = cosmosConfiguration;
+        _cosmosClient = cosmosClient;
         _cosmosQueueClient = new CosmosQueueClient<T>(cosmosConfiguration,subscription);
     }
     
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        await _cosmosQueueClient.StartAsync(cancellationToken);
+        await _cosmosQueueClient.StartAsync(_cosmosClient, cancellationToken);
         
         //Fetch messages from topic to subscription queue
         ChangeFeedProcessor eventFetcher = _cosmosQueueClient.TopicQueue
@@ -73,11 +75,14 @@ public class CosmosSubscriptionChannelReceiver<T> : IChannelReceiver where T : c
     
     private async Task ProcessChangesAsync(ChangeFeedProcessorContext context, IReadOnlyCollection<InternalCosmosMessage<T>> messages, CancellationToken cancellationToken)
     {
+        List<Task> tasks = new List<Task>();
         foreach (var message in messages)
         {
             var messageStateHandler = new CosmosMessageStateHandler<T>(_cosmosQueueClient, message, Settings.DeadLetterDeliveryLimit, _hostConfiguration.DependencyInjection);
-            await _processor.ProcessAsync(messageStateHandler, CancellationToken.None).ConfigureAwait(false);
+            tasks.Add(_processor.ProcessAsync(messageStateHandler, cancellationToken));
         }
+
+        await Task.WhenAll(tasks);
     }
     
     public IProcessingSettings Settings { get; set; }

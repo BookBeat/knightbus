@@ -53,29 +53,32 @@ class Program
         
         var client = knightBusHost.Services.CreateScope().ServiceProvider.GetRequiredService<CosmosBus>();
 
+        const int numMessages = 100;
         //Send some commands
-        for (int i = 1; i <= 10; i++)
+        SampleCosmosCommand[] messages = new SampleCosmosCommand[numMessages];
+        for (int i = 0; i < numMessages; i++)
         {
-            await client.SendAsync(new SampleCosmosMessage() { MessageBody = $"msg data {i}" }, CancellationToken.None);
+            messages[i] = new SampleCosmosCommand() { MessageBody = $"msg data {i}" };
         }
-        
+        await client.SendAsync(messages, CancellationToken.None);
+
+        Console.ReadKey();
         //Publish event
-        for (int i = 1; i <= 100; i++)
+        SampleCosmosEvent[] events = new SampleCosmosEvent[numMessages];
+        for (int i = 0; i < numMessages; i++)
         {
-            await client.PublishAsync(new SampleCosmosEvent() { MessageBody = $"event data {i}" }, CancellationToken.None);
+            events[i] = new SampleCosmosEvent() { MessageBody = $"msg data {i}" }; 
         }
+        await client.PublishAsync(events, CancellationToken.None);
   
 
         Console.ReadKey();
         
         //Publish poison event
-        for (int i = 1; i <= 1; i++)
-        {
-            await client.PublishAsync(new SamplePoisonEvent() { Bad_Message = $"danger {i}" }, CancellationToken.None);
-        }
+        await client.PublishAsync(new SamplePoisonEvent() { Bad_Message = $"danger" }, CancellationToken.None);
         
         //Clean-up
-        client.cleanUp();
+        client.CleanUp();
         Console.WriteLine("End of program, press any key to exit.");
         Console.ReadKey();
     }
@@ -89,7 +92,7 @@ class CosmosEventProcessor :
     private Random random = new Random(); //Probably not ideal way to do this
     public Task ProcessAsync(SampleCosmosEvent message, CancellationToken cancellationToken)
     {
-        Console.WriteLine($"Event 1: '{message.MessageBody}'");
+        Console.WriteLine($"Sub1: '{message.MessageBody}'");
         if (random.Next() % 5 == 0)
         {
             throw new HttpRequestException("Simulated network error");
@@ -99,7 +102,7 @@ class CosmosEventProcessor :
     
     public Task ProcessAsync(SamplePoisonEvent message, CancellationToken cancellationToken)
     {
-        Console.WriteLine($"Poison event0: {message.Bad_Message}");
+        Console.WriteLine($"Poison sub: {message.Bad_Message}");
         throw new InvalidOperationException();
     }
 }
@@ -155,22 +158,22 @@ class OtherSamplePoisonSubscription: IEventSubscription<SamplePoisonEvent>
 
 
 //Sample Command
-class SampleCosmosMessage : ICosmosCommand
+class SampleCosmosCommand : ICosmosCommand
 {
     public required string MessageBody { get; set; }
 }
 
-class SampleCosmosMessageMapping : IMessageMapping<SampleCosmosMessage>
+class SampleCosmosMessageMapping : IMessageMapping<SampleCosmosCommand>
 {
     public string QueueName => "cosmos_sample_message";
 }
 
 class PostgresCommandProcessor :
-    IProcessCommand<SampleCosmosMessage, CosmosProcessingSetting>
+    IProcessCommand<SampleCosmosCommand, CosmosProcessingSetting>
 {
-    public Task ProcessAsync(SampleCosmosMessage message, CancellationToken cancellationToken)
+    public Task ProcessAsync(SampleCosmosCommand command, CancellationToken cancellationToken)
     {
-        Console.WriteLine($"commandHandler 1: '{message.MessageBody}'");
+        Console.WriteLine($"commandHandler 1: '{command.MessageBody}'");
         return Task.CompletedTask;
     }
 }

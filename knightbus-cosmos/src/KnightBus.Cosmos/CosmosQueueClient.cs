@@ -26,10 +26,10 @@ public class CosmosQueueClient<T> where T : class, IMessage
 
     // subscription client
 
-    public async Task StartAsync(CancellationToken cancellationToken)
+    public async Task StartAsync(CosmosClient cosmosClient, CancellationToken cancellationToken)
     {
         //Create cosmos client
-        Client = new CosmosClient(_cosmosConfiguration.ConnectionString);
+        Client = cosmosClient;
         
         //Get database, create if it does not exist
         DatabaseResponse databaseResponse = await Client.CreateDatabaseIfNotExistsAsync(_cosmosConfiguration.Database, 1000, null, cancellationToken);
@@ -96,7 +96,7 @@ public class CosmosQueueClient<T> where T : class, IMessage
             CheckHttpResponse(response.StatusCode, id);
             return response.Container;
         }
-    } 
+    }
     
     private static void CheckHttpResponse(HttpStatusCode statusCode, string id)
     {

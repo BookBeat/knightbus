@@ -20,7 +20,7 @@ public interface ICosmosBus
 public class CosmosBus : ICosmosBus
 {
     private readonly CosmosClient _client;
-    private ICosmosConfiguration _cosmosConfiguration;
+    private readonly ICosmosConfiguration _cosmosConfiguration;
     //Constructor
     public CosmosBus(ICosmosConfiguration config, ICosmosConfiguration cosmosConfiguration)
     {
@@ -29,11 +29,12 @@ public class CosmosBus : ICosmosBus
         string? connectionString = config.ConnectionString;
         ArgumentNullException.ThrowIfNull(connectionString);
         //Instantiate CosmosClient
+        Console.WriteLine("Publisher started cosmos client");
         _client = new CosmosClient(connectionString,
-            new CosmosClientOptions() { ApplicationName = "publisher" });
+            new CosmosClientOptions() { ApplicationName = "publisher"}); //, AllowBulkExecution = true});
     }
 
-    public void cleanUp()
+    public void CleanUp()
     {
         _client.Dispose();
     }
@@ -47,17 +48,7 @@ public class CosmosBus : ICosmosBus
     //Send multiple commands
     public async Task SendAsync<T>(IEnumerable<T> messages, CancellationToken cancellationToken) where T : ICosmosCommand
     {
-        // Create an item in the container on topic
-        Container container = _client.GetContainer(_cosmosConfiguration.Database, AutoMessageMapper.GetQueueName<T>());
-        foreach (var message in messages)
-        {
-            var internalCosmosMessage = new InternalCosmosMessage<T>(message);
-            ItemResponse<InternalCosmosMessage<T>> messageResponse =
-                await container.CreateItemAsync<InternalCosmosMessage<T>>(internalCosmosMessage,
-                    new PartitionKey(internalCosmosMessage.id), null, cancellationToken);
-            Console.WriteLine(
-                $"Created msg {internalCosmosMessage.id} on {AutoMessageMapper.GetQueueName<T>()} - {messageResponse.RequestCharge} RUs consumed");
-        }
+        await InternalInsert(messages, cancellationToken);
     }
 
     //Publish a single event
@@ -70,17 +61,38 @@ public class CosmosBus : ICosmosBus
     //Publish multiple events
     public async Task PublishAsync<T>(IEnumerable<T> messages, CancellationToken cancellationToken) where T : ICosmosEvent
     {
+        await InternalInsert(messages, cancellationToken);
+    }
+    
+    private async Task InternalInsert<T> (IEnumerable<T> messages, CancellationToken cancellationToken) where T : IMessage
+    {
         // Create an item in the container on topic
         Container container = _client.GetContainer(_cosmosConfiguration.Database, AutoMessageMapper.GetQueueName<T>());
-        foreach (var message in messages)
+
+        // Optimized for bulk execution
+        List<Task> tasks = new List<Task>();
+        foreach (var msg in messages)
         {
-            var internalCosmosMessage = new InternalCosmosMessage<T>(message);
-            ItemResponse<InternalCosmosMessage<T>> messageResponse =
-                await container.CreateItemAsync<InternalCosmosMessage<T>>(internalCosmosMessage,
-                    new PartitionKey(internalCosmosMessage.id), null, cancellationToken);
-            Console.WriteLine(
-                $"Created event {internalCosmosMessage.id} on {AutoMessageMapper.GetQueueName<T>()} - {messageResponse.RequestCharge} RUs consumed");
+            var internalMessage = new InternalCosmosMessage<T>(msg);
+            tasks.Add(container.CreateItemAsync(internalMessage, new PartitionKey(internalMessage.id)).ContinueWith(
+                itemResponse =>
+                {
+                    if (!itemResponse.IsCompletedSuccessfully)
+                    {
+                        AggregateException innerExceptions = itemResponse.Exception.Flatten();
+                        if (innerExceptions.InnerExceptions.FirstOrDefault(innerEx => innerEx is CosmosException) is CosmosException cosmosException)
+                        {
+                            Console.WriteLine($"Received {cosmosException.StatusCode} ({cosmosException.Message}).");
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Exception {innerExceptions.InnerExceptions.FirstOrDefault()}.");
+                        }
+                    }
+                }));
         }
+
+        await Task.WhenAll(tasks);
     }
 }
 

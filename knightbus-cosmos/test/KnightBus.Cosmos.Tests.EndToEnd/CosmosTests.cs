@@ -71,7 +71,7 @@ class CosmosTests
     [OneTimeTearDown]
     public void OneTimeTearDown()
     {
-        _publisher.cleanUp();
+        _publisher.CleanUp();
     }
 
     [TearDown]
@@ -83,15 +83,19 @@ class CosmosTests
     [Test]
     public async Task AllCommandsProcessed()
     {
-        const int messages = 100;
-        for (int i = 0; i < messages; i++)
+        const int numMessages = 100;
+        //Send some commands
+        SampleCosmosCommand[] messages = new SampleCosmosCommand[numMessages];
+        for (int i = 0; i < numMessages; i++)
         {
-            await _publisher.SendAsync(new SampleCosmosCommand() { MessageBody = $"data {i}" }, CancellationToken.None);
+            messages[i] = new SampleCosmosCommand() { MessageBody = $"msg data {i}" };
         }
+        await _publisher.SendAsync(messages, CancellationToken.None);
 
-        await Task.Delay(TimeSpan.FromSeconds(5));
+
+        await Task.Delay(TimeSpan.FromSeconds(10));
         
-        ProcessedMessages.Count().Should().Be(messages);
+        ProcessedMessages.Count().Should().Be(numMessages);
     }
     
     [Test]

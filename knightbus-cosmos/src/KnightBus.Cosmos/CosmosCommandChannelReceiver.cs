@@ -14,6 +14,7 @@ public class CosmosCommandChannelReceiver<T> : IChannelReceiver where T : class,
     private readonly IHostConfiguration _hostConfiguration;
     private readonly IMessageProcessor _processor;
     private readonly ICosmosConfiguration _cosmosConfiguration;
+    private CosmosClient _cosmosClient;
     private readonly CosmosQueueClient<T> _cosmosQueueClient;
     
     
@@ -22,7 +23,8 @@ public class CosmosCommandChannelReceiver<T> : IChannelReceiver where T : class,
         IMessageSerializer serializer,
         IHostConfiguration config,
         IMessageProcessor processor,
-        ICosmosConfiguration cosmosConfiguration
+        ICosmosConfiguration cosmosConfiguration,
+        CosmosClient cosmosClient
     )
     {
         settings = processorSettings;
@@ -30,12 +32,14 @@ public class CosmosCommandChannelReceiver<T> : IChannelReceiver where T : class,
         _hostConfiguration = config;
         _processor = processor;
         _cosmosConfiguration = cosmosConfiguration;
+        _cosmosClient = cosmosClient;
         _cosmosQueueClient = new CosmosQueueClient<T>(cosmosConfiguration,null);
+        
     }
     
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        await _cosmosQueueClient.StartAsync(cancellationToken);
+        await _cosmosQueueClient.StartAsync(_cosmosClient, cancellationToken);
         
         //Process messages in subscription queue
         ChangeFeedProcessor changeFeedProcessor = _cosmosQueueClient.PersonalQueue
@@ -50,14 +54,17 @@ public class CosmosCommandChannelReceiver<T> : IChannelReceiver where T : class,
     }
     
     private async Task ProcessChangesAsync(ChangeFeedProcessorContext context, IReadOnlyCollection<InternalCosmosMessage<T>> messages, CancellationToken cancellationToken)
-
     {
+        List<Task> tasks = new List<Task>();
         foreach (var message in messages)
         {
             var messageStateHandler = new CosmosMessageStateHandler<T>(_cosmosQueueClient, message, settings.DeadLetterDeliveryLimit, _hostConfiguration.DependencyInjection);
-            await _processor.ProcessAsync(messageStateHandler, CancellationToken.None).ConfigureAwait(false);
+            tasks.Add(_processor.ProcessAsync(messageStateHandler, cancellationToken));
         }
+        Console.WriteLine("Processing complete");
+        await Task.WhenAll(tasks);
     }
+    
     
     public IProcessingSettings Settings { get; set; }
 }
