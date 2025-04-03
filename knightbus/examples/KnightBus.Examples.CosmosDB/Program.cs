@@ -1,7 +1,4 @@
-﻿using System.Collections.Concurrent;
-using System.Net.NetworkInformation;
-using System.Security.Cryptography;
-using KnightBus.Core.DependencyInjection;
+﻿using KnightBus.Core.DependencyInjection;
 using KnightBus.Cosmos;
 using KnightBus.Cosmos.Messages;
 using Microsoft.Extensions.Hosting;
@@ -9,7 +6,7 @@ using KnightBus.Core;
 using KnightBus.Host;
 using KnightBus.Messages;
 using Microsoft.Extensions.DependencyInjection;
-using System.Threading;
+using Microsoft.Azure.Cosmos;
 
 namespace KnightBus.Examples.CosmosDB;
 

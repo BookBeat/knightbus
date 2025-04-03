@@ -12,30 +12,20 @@ class CosmosEventProcessor :
 {
     public Task ProcessAsync(OneSubCosmosEvent message, CancellationToken cancellationToken)
     {
-        if (message.MessageBody != null)
-        {
-            ProcessedMessages.Queue.Enqueue(message.MessageBody);
-        }
+        ProcessedMessages.Increment(message.MessageBody);
 
         return Task.CompletedTask;
     }
 
     public Task ProcessAsync(TwoSubCosmosEvent message, CancellationToken cancellationToken)
     {
-        if (message.MessageBody != null)
-        {
-            ProcessedMessages.Queue.Enqueue(message.MessageBody);
-        }
-
+        ProcessedMessages.Increment(message.MessageBody);
         return Task.CompletedTask;
     }
 
     public Task ProcessAsync(PoisonEvent message, CancellationToken cancellationToken)
     {
-        if (message.Body != null)
-        {
-            ProcessedMessages.Queue.Enqueue(message.Body);
-        }
+        ProcessedMessages.Increment(message.Body);
         throw new HttpRequestException("Simulated error");
     }
 }
@@ -50,7 +40,7 @@ class CosmosProcessingSetting : IProcessingSettings
 
 public class OneSubCosmosEvent : ICosmosEvent
 {
-    public string? MessageBody { get; set;  }
+    public required string MessageBody { get; set;  }
 }
 class OneSubCosmosEventMapping : IMessageMapping<OneSubCosmosEvent>
 {
@@ -63,7 +53,7 @@ class SampleSubscription: IEventSubscription<OneSubCosmosEvent>
 
 public class TwoSubCosmosEvent : ICosmosEvent
 {
-    public string? MessageBody { get; set;  }
+    public required string MessageBody { get; set;  }
 }
 class TwoSubCosmosEventMapping : IMessageMapping<TwoSubCosmosEvent>
 {
@@ -81,7 +71,7 @@ class Subscription2: IEventSubscription<TwoSubCosmosEvent>
 
 public class PoisonEvent : ICosmosEvent
 {
-    public string? Body { get; set;  }
+    public required string Body { get; set;  }
 }
 
 class PoisonEventMapping : IMessageMapping<PoisonEvent>

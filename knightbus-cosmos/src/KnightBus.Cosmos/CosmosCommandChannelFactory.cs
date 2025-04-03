@@ -13,12 +13,11 @@ public class CosmosCommandChannelFactory : ITransportChannelFactory
     public ITransportConfiguration Configuration { get; set; }
     
     private CosmosClient CosmosClient { get; set; }
-    public CosmosCommandChannelFactory(ICosmosConfiguration configuration)
+    public CosmosCommandChannelFactory(CosmosClient cosmosClient, ICosmosConfiguration configuration)
     {
         CosmosConfiguration = configuration;
         Configuration = configuration;
-        Console.WriteLine("Command channel created cosmosClient");
-        CosmosClient = new CosmosClient(CosmosConfiguration.ConnectionString);
+        CosmosClient = cosmosClient;
     }
     
 

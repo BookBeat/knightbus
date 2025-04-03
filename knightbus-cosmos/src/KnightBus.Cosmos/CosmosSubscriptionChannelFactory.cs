@@ -12,12 +12,11 @@ public class CosmosSubscriptionChannelFactory : ITransportChannelFactory
     public ICosmosConfiguration CosmosConfiguration { get; }
     public ITransportConfiguration Configuration { get; set; }
     private CosmosClient CosmosClient { get; set; }
-    public CosmosSubscriptionChannelFactory(ICosmosConfiguration configuration)
+    public CosmosSubscriptionChannelFactory(CosmosClient cosmosClient, ICosmosConfiguration configuration)
     {
         CosmosConfiguration = configuration;
         Configuration = configuration;
-        Console.WriteLine("subscription channel created cosmosClient");
-        CosmosClient = new CosmosClient(CosmosConfiguration.ConnectionString);
+        CosmosClient = cosmosClient;
     }
     
 

@@ -22,16 +22,13 @@ public class CosmosBus : ICosmosBus
     private readonly CosmosClient _client;
     private readonly ICosmosConfiguration _cosmosConfiguration;
     //Constructor
-    public CosmosBus(ICosmosConfiguration config, ICosmosConfiguration cosmosConfiguration)
+    public CosmosBus(CosmosClient client, ICosmosConfiguration cosmosConfiguration)
     {
         _cosmosConfiguration = cosmosConfiguration;
         
-        string? connectionString = config.ConnectionString;
+        string? connectionString = cosmosConfiguration.ConnectionString;
         ArgumentNullException.ThrowIfNull(connectionString);
-        //Instantiate CosmosClient
-        Console.WriteLine("Publisher started cosmos client");
-        _client = new CosmosClient(connectionString,
-            new CosmosClientOptions() { ApplicationName = "publisher"}); //, AllowBulkExecution = true});
+        _client = client;
     }
 
     public void CleanUp()
@@ -82,7 +79,7 @@ public class CosmosBus : ICosmosBus
                         AggregateException innerExceptions = itemResponse.Exception.Flatten();
                         if (innerExceptions.InnerExceptions.FirstOrDefault(innerEx => innerEx is CosmosException) is CosmosException cosmosException)
                         {
-                            Console.WriteLine($"Received {cosmosException.StatusCode} ({cosmosException.Message}).");
+                            Console.WriteLine($"Received {cosmosException.StatusCode} ({cosmosException.ResponseBody}).");
                         }
                         else
                         {

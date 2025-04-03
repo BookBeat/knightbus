@@ -2,7 +2,9 @@ using System.Collections.Concurrent;
 using FluentAssertions;
 using KnightBus.Core;
 using KnightBus.Core.DependencyInjection;
+using KnightBus.Cosmos.Messages;
 using KnightBus.Host;
+using KnightBus.Messages;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -11,10 +13,22 @@ namespace KnightBus.Cosmos.Tests.EndToEnd;
 
 class ProcessedMessages()
 {
-    public static ConcurrentQueue<string> Queue { get; set; } = new ConcurrentQueue<string>();
-    public static int Count()
+    public static ConcurrentDictionary<string, int> dict { get; set; } = new ConcurrentDictionary<string, int>();
+
+    public static void Increment(string key)
     {
-        return Queue.Count;
+        dict.AddOrUpdate(key, 1, (_, val) => val + 1);
+    }
+    public static bool AllMessagesInDictionary(IEnumerable<string> messageStrings, int deliveriesPerMessage = 1)
+    {
+        foreach (var id in messageStrings)
+        {
+            if (!dict.TryGetValue(id, out var value) || value < deliveriesPerMessage)
+            {
+                return false;
+            }
+        }
+        return true;
     }
 }
 
@@ -22,7 +36,6 @@ class ProcessedMessages()
 class CosmosTests
 {
     private CosmosBus _publisher;
-    private CosmosClient _cosmosClient;
     private string? _databaseId;
 
     [OneTimeSetUp]
@@ -64,8 +77,6 @@ class CosmosTests
         await Task.Delay(TimeSpan.FromSeconds(1));
 
         _publisher = knightBusHost.Services.CreateScope().ServiceProvider.GetRequiredService<CosmosBus>();
-
-        _cosmosClient = new CosmosClient(connectionString);
     }
 
     [OneTimeTearDown]
@@ -77,7 +88,7 @@ class CosmosTests
     [TearDown]
     public void TearDown()
     {
-        ProcessedMessages.Queue = new ConcurrentQueue<string>();
+        ProcessedMessages.dict = new ConcurrentDictionary<string, int>();
     }
 
     [Test]
@@ -86,57 +97,101 @@ class CosmosTests
         const int numMessages = 100;
         //Send some commands
         SampleCosmosCommand[] messages = new SampleCosmosCommand[numMessages];
+        string[] messageContents = new string[numMessages];
         for (int i = 0; i < numMessages; i++)
         {
             messages[i] = new SampleCosmosCommand() { MessageBody = $"msg data {i}" };
+            messageContents[i] = messages[i].MessageBody;
         }
         await _publisher.SendAsync(messages, CancellationToken.None);
-
-
-        await Task.Delay(TimeSpan.FromSeconds(10));
         
-        ProcessedMessages.Count().Should().Be(numMessages);
+
+        var startTime = DateTime.UtcNow;
+        while (!ProcessedMessages.AllMessagesInDictionary(messageContents) && DateTime.UtcNow.Subtract(startTime) < TimeSpan.FromSeconds(60))
+        {
+            await Task.Delay(TimeSpan.FromSeconds(1));
+        }
+        ProcessedMessages.AllMessagesInDictionary(messageContents).Should().BeTrue();
     }
     
     [Test]
     public async Task AllEventsProcessedWhenOneSubscriber()
     {
-        const int messages = 100;
-        for (int i = 0; i < messages; i++)
+        const int numMessages = 100;
+        for (int i = 0; i < numMessages; i++)
         {
-            await _publisher.PublishAsync(new TwoSubCosmosEvent() { MessageBody = $"data {i}" }, CancellationToken.None);
+            await _publisher.PublishAsync(new OneSubCosmosEvent() { MessageBody = $"data {i}" }, CancellationToken.None);
         }
-
-        await Task.Delay(TimeSpan.FromSeconds(5));
         
-        ProcessedMessages.Count().Should().Be(2*messages);
+        OneSubCosmosEvent[] messages = new OneSubCosmosEvent[numMessages];
+        string[] messageContents = new string[numMessages];
+        for (int i = 0; i < numMessages; i++)
+        {
+            messages[i] = new OneSubCosmosEvent() { MessageBody = $"msg data {i}" };
+            messageContents[i] = messages[i].MessageBody;
+        }
+        await _publisher.PublishAsync(messages, CancellationToken.None);
+        
+        
+        var startTime = DateTime.UtcNow;
+        while (!ProcessedMessages.AllMessagesInDictionary(messageContents) && DateTime.UtcNow.Subtract(startTime) < TimeSpan.FromSeconds(60))
+        {
+            await Task.Delay(TimeSpan.FromSeconds(1));
+        }
+        ProcessedMessages.AllMessagesInDictionary(messageContents).Should().BeTrue();
     }
     
     [Test]
     public async Task AllEventsProcessedWhenToTwoSubscribers()
     {
-        const int messages = 100;
-        for (int i = 0; i < messages; i++)
+        const int numMessages = 100;
+        for (int i = 0; i < numMessages; i++)
         {
             await _publisher.PublishAsync(new TwoSubCosmosEvent() { MessageBody = $"data {i}" }, CancellationToken.None);
         }
-
-        await Task.Delay(TimeSpan.FromSeconds(5));
         
-        ProcessedMessages.Count().Should().Be(2*messages);
+        TwoSubCosmosEvent[] messages = new TwoSubCosmosEvent[numMessages];
+        string[] messageContents = new string[numMessages];
+        for (int i = 0; i < numMessages; i++)
+        {
+            messages[i] = new TwoSubCosmosEvent() { MessageBody = $"msg data {i}" };
+            messageContents[i] = messages[i].MessageBody;
+        }
+        await _publisher.PublishAsync(messages, CancellationToken.None);
+        
+        
+        var startTime = DateTime.UtcNow;
+        while (!ProcessedMessages.AllMessagesInDictionary(messageContents,2) && DateTime.UtcNow.Subtract(startTime) < TimeSpan.FromSeconds(60))
+        {
+            await Task.Delay(TimeSpan.FromSeconds(1));
+        }
+        ProcessedMessages.AllMessagesInDictionary(messageContents,2).Should().BeTrue();
     }
 
     [Test]
     public async Task FailedEventsShouldBeRetriedSetNumberOfTimes()
     {
-        const int messages = 10;
-        for (int i = 0; i < messages; i++)
+        const int numMessages = 10;
+        for (int i = 0; i < numMessages; i++)
         {
             await _publisher.PublishAsync(new PoisonEvent() { Body = $"data {i}" }, CancellationToken.None);
         }
-
-        int failedAttemptsBeforeDeadLettering = new CosmosProcessingSetting().DeadLetterDeliveryLimit +1;
-        await Task.Delay(TimeSpan.FromSeconds(5));
-        ProcessedMessages.Count().Should().Be(messages * failedAttemptsBeforeDeadLettering);
+        
+        PoisonEvent[] messages = new PoisonEvent[numMessages];
+        string[] messageContents = new string[numMessages];
+        for (int i = 0; i < numMessages; i++)
+        {
+            messages[i] = new PoisonEvent() { Body = $"msg data {i}" };
+            messageContents[i] = messages[i].Body;
+        }
+        await _publisher.PublishAsync(messages, CancellationToken.None);
+        
+        var startTime = DateTime.UtcNow;
+        int deadLetterLimit = new CosmosProcessingSetting().DeadLetterDeliveryLimit;
+        while (!ProcessedMessages.AllMessagesInDictionary(messageContents,deadLetterLimit) && DateTime.UtcNow.Subtract(startTime) < TimeSpan.FromSeconds(60))
+        {
+            await Task.Delay(TimeSpan.FromSeconds(1));
+        }
+        ProcessedMessages.AllMessagesInDictionary(messageContents,deadLetterLimit).Should().BeTrue();
     }
 }

@@ -1,15 +1,16 @@
 ﻿using KnightBus.Core;
+using Microsoft.Azure.Cosmos;
 
 namespace KnightBus.Cosmos;
 
 public class CosmosTransport : ITransport
 {
-    public CosmosTransport(ICosmosConfiguration configuration)
+    public CosmosTransport(CosmosClient cosmosClient, ICosmosConfiguration configuration)
     {
         TransportChannelFactories =
         [
-            new CosmosSubscriptionChannelFactory(configuration),
-            new CosmosCommandChannelFactory(configuration)
+            new CosmosSubscriptionChannelFactory(cosmosClient, configuration),
+            new CosmosCommandChannelFactory(cosmosClient, configuration)
         ];
     }
 

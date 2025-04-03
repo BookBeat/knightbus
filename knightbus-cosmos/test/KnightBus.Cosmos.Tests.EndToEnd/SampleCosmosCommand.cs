@@ -21,7 +21,7 @@ class PostgresCommandProcessor :
 {
     public Task ProcessAsync(SampleCosmosCommand message, CancellationToken cancellationToken)
     {
-        ProcessedMessages.Queue.Enqueue(message.MessageBody);
+        ProcessedMessages.Increment(message.MessageBody);
 
         return Task.CompletedTask;
     }
