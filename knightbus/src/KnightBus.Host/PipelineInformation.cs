@@ -6,7 +6,12 @@ namespace KnightBus.Host;
 
 internal class PipelineInformation : IPipelineInformation
 {
-    public PipelineInformation(Type processorInterfaceType, IEventSubscription subscription, IProcessingSettings processingSettings, IHostConfiguration hostConfiguration)
+    public PipelineInformation(
+        Type processorInterfaceType,
+        IEventSubscription subscription,
+        IProcessingSettings processingSettings,
+        IHostConfiguration hostConfiguration
+    )
     {
         ProcessorInterfaceType = processorInterfaceType;
         Subscription = subscription;

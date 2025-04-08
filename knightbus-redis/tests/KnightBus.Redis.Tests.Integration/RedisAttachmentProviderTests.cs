@@ -16,7 +16,10 @@ public class RedisAttachmentProviderTests
     [SetUp]
     public void Setup()
     {
-        _target = new RedisAttachmentProvider(RedisTestBase.Multiplexer, RedisTestBase.Configuration);
+        _target = new RedisAttachmentProvider(
+            RedisTestBase.Multiplexer,
+            RedisTestBase.Configuration
+        );
     }
 
     [Test]
@@ -24,21 +27,36 @@ public class RedisAttachmentProviderTests
     {
         // Arrange
         var ms = new MemoryStream();
-        var metadata = new Dictionary<string, string> { { "key", "value" }, { "utf8-values", "åäö ÅÄÖ" }, { RedisAttachmentProvider.ContentType, "blabla" }, { RedisAttachmentProvider.FileName, "blabla" }};
-        var attachment = new MessageAttachment("filename.csv", MediaTypeNames.Text.Csv, ms, metadata);
+        var metadata = new Dictionary<string, string>
+        {
+            { "key", "value" },
+            { "utf8-values", "åäö ÅÄÖ" },
+            { RedisAttachmentProvider.ContentType, "blabla" },
+            { RedisAttachmentProvider.FileName, "blabla" },
+        };
+        var attachment = new MessageAttachment(
+            "filename.csv",
+            MediaTypeNames.Text.Csv,
+            ms,
+            metadata
+        );
         var id = Guid.NewGuid().ToString("N");
-        
+
         // Act
         await _target.UploadAttachmentAsync("queue", id, attachment);
-        
+
         // Assert
         var result = await _target.GetAttachmentAsync("queue", id);
-        result.Metadata.Should().BeEquivalentTo(new Dictionary<string,string>
-        {
-            { "key", "value"},
-            { "utf8-values", "åäö ÅÄÖ" },
-            { RedisAttachmentProvider.FileName, "filename.csv" },
-            { RedisAttachmentProvider.ContentType, "text/csv" },
-        });
+        result
+            .Metadata.Should()
+            .BeEquivalentTo(
+                new Dictionary<string, string>
+                {
+                    { "key", "value" },
+                    { "utf8-values", "åäö ÅÄÖ" },
+                    { RedisAttachmentProvider.FileName, "filename.csv" },
+                    { RedisAttachmentProvider.ContentType, "text/csv" },
+                }
+            );
     }
 }

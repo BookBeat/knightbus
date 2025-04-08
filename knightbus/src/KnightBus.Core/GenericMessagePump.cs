@@ -13,7 +13,8 @@ namespace KnightBus.Core;
 /// </summary>
 /// <typeparam name="TInternalRepresentation">The transports internal representation of a message</typeparam>
 /// <typeparam name="TMessageInterface">The interface required by the KnightBus transport implementation that implements <see cref="IMessage"/></typeparam>
-public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterface> where TMessageInterface : IMessage
+public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterface>
+    where TMessageInterface : IMessage
 {
     protected readonly IProcessingSettings Settings;
     protected readonly ILogger Log;
@@ -26,7 +27,10 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
     {
         Settings = settings;
         Log = log;
-        _maxConcurrent = new SemaphoreSlim(Settings.MaxConcurrentCalls, Settings.MaxConcurrentCalls);
+        _maxConcurrent = new SemaphoreSlim(
+            Settings.MaxConcurrentCalls,
+            Settings.MaxConcurrentCalls
+        );
     }
 
     /// <summary>
@@ -36,21 +40,31 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
     /// <param name="cancellationToken">CancellationToken, usually the process main shutdown token</param>
     /// <typeparam name="TMessage">The specific message</typeparam>
     /// <returns>A completed Task when the pump has started</returns>
-    public virtual Task StartAsync<TMessage>(Func<TInternalRepresentation, CancellationToken, Task> action, CancellationToken cancellationToken) where TMessage : TMessageInterface
+    public virtual Task StartAsync<TMessage>(
+        Func<TInternalRepresentation, CancellationToken, Task> action,
+        CancellationToken cancellationToken
+    )
+        where TMessage : TMessageInterface
     {
         _queueName = AutoMessageMapper.GetQueueName<TMessage>();
-        _runningTask = Task.Run(async () =>
-        {
-            while (!cancellationToken.IsCancellationRequested)
+        _runningTask = Task.Run(
+            async () =>
             {
-                if (!await PumpAsync<TMessage>(action, cancellationToken).ConfigureAwait(false))
-                    await DelayPolling().ConfigureAwait(false);
-            }
-        }, CancellationToken.None);
+                while (!cancellationToken.IsCancellationRequested)
+                {
+                    if (!await PumpAsync<TMessage>(action, cancellationToken).ConfigureAwait(false))
+                        await DelayPolling().ConfigureAwait(false);
+                }
+            },
+            CancellationToken.None
+        );
         return Task.CompletedTask;
     }
 
-    public async Task<bool> PumpAsync<TMessage>(Func<TInternalRepresentation, CancellationToken, Task> action, CancellationToken cancellationToken)
+    public async Task<bool> PumpAsync<TMessage>(
+        Func<TInternalRepresentation, CancellationToken, Task> action,
+        CancellationToken cancellationToken
+    )
         where TMessage : TMessageInterface
     {
         var messageCount = 0;
@@ -77,10 +91,10 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
             var stopWatch = Stopwatch.StartNew();
             var messages = GetMessagesAsync<TMessage>(fetchCount, visibilityTimeout);
 
-
             await foreach (var message in messages.ConfigureAwait(false))
             {
-                if (message == null) continue;
+                if (message == null)
+                    continue;
                 var remainingLockDuration = Settings.MessageLockTimeout - stopWatch.Elapsed;
                 if (remainingLockDuration <= TimeSpan.Zero)
                 {
@@ -89,7 +103,10 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
                 }
 
                 var timeoutToken = new CancellationTokenSource(remainingLockDuration);
-                var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutToken.Token);
+                var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(
+                    cancellationToken,
+                    timeoutToken.Token
+                );
                 try
                 {
                     await _maxConcurrent.WaitAsync(linkedToken.Token).ConfigureAwait(false);
@@ -103,24 +120,34 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
 
                 messageCount++;
 #pragma warning disable 4014 //No need to await the result, let's keep the pump going
-                Task.Run(async () =>
-                {
-                    try
-                    {
-                        await action.Invoke(message, linkedToken.Token).ConfigureAwait(false);
-                    }
-                    finally
-                    {
-                        _maxConcurrent.Release();
-                        timeoutToken.Dispose();
-                        linkedToken.Dispose();
-                    }
-                }, timeoutToken.Token).ConfigureAwait(false);
+                Task.Run(
+                        async () =>
+                        {
+                            try
+                            {
+                                await action
+                                    .Invoke(message, linkedToken.Token)
+                                    .ConfigureAwait(false);
+                            }
+                            finally
+                            {
+                                _maxConcurrent.Release();
+                                timeoutToken.Dispose();
+                                linkedToken.Dispose();
+                            }
+                        },
+                        timeoutToken.Token
+                    )
+                    .ConfigureAwait(false);
 #pragma warning restore 4014
             }
 
-            Log.LogDebug("Prefetched {MessageCount} messages from {QueueName} in {Name}", messageCount, _queueName,
-                nameof(GenericMessagePump<TInternalRepresentation, TMessageInterface>));
+            Log.LogDebug(
+                "Prefetched {MessageCount} messages from {QueueName} in {Name}",
+                messageCount,
+                _queueName,
+                nameof(GenericMessagePump<TInternalRepresentation, TMessageInterface>)
+            );
         }
         catch (Exception e)
         {
@@ -144,7 +171,11 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
     /// <param name="lockDuration">Duration to lock message for other consumers</param>
     /// <typeparam name="TMessage">The type of message</typeparam>
     /// <returns></returns>
-    protected abstract IAsyncEnumerable<TInternalRepresentation> GetMessagesAsync<TMessage>(int count, TimeSpan? lockDuration) where TMessage : TMessageInterface;
+    protected abstract IAsyncEnumerable<TInternalRepresentation> GetMessagesAsync<TMessage>(
+        int count,
+        TimeSpan? lockDuration
+    )
+        where TMessage : TMessageInterface;
 
     /// <summary>
     /// Creates the channel for the specific message if indicated by <see cref="ShouldCreateChannel"/>
@@ -190,7 +221,8 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
     {
         try
         {
-            await Task.Delay(PollingDelay, _pumpDelayCancellationTokenSource.Token).ConfigureAwait(false);
+            await Task.Delay(PollingDelay, _pumpDelayCancellationTokenSource.Token)
+                .ConfigureAwait(false);
         }
         catch (TaskCanceledException)
         {

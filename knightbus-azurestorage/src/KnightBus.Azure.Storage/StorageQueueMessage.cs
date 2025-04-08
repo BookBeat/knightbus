@@ -11,9 +11,8 @@ public class StorageQueueMessage
     {
         Message = message;
     }
-    public StorageQueueMessage()
-    {
-    }
+
+    public StorageQueueMessage() { }
 
     public string BlobMessageId
     {

@@ -6,8 +6,8 @@ namespace KnightBus.Host.MessageProcessing.Factories;
 
 internal class StreamRequestProcessorFactory : MessageProcessorFactoryBase, IProcessorFactory
 {
-    public StreamRequestProcessorFactory() : base(typeof(IProcessStreamRequest<,,>))
-    { }
+    public StreamRequestProcessorFactory()
+        : base(typeof(IProcessStreamRequest<,,>)) { }
 
     public ProcessorTypes GetProcessorTypes(Type processorInterface)
     {
@@ -19,7 +19,10 @@ internal class StreamRequestProcessorFactory : MessageProcessorFactoryBase, IPro
 
     public IMessageProcessor GetProcessor(Type processorInterface)
     {
-        var requestProcessorType = typeof(StreamRequestProcessor<>).MakeGenericType(GetProcessorTypes(processorInterface).ResponseType);
-        return (IMessageProcessor)Activator.CreateInstance(requestProcessorType, processorInterface);
+        var requestProcessorType = typeof(StreamRequestProcessor<>).MakeGenericType(
+            GetProcessorTypes(processorInterface).ResponseType
+        );
+        return (IMessageProcessor)
+            Activator.CreateInstance(requestProcessorType, processorInterface);
     }
 }

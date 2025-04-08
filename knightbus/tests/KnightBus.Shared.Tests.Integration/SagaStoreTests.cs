@@ -19,10 +19,7 @@ public class SagaStoreTests
     }
 
     [SetUp]
-    public virtual void Setup()
-    {
-
-    }
+    public virtual void Setup() { }
 
     [Test]
     public async Task Complete_should_delete_the_saga()
@@ -31,7 +28,13 @@ public class SagaStoreTests
         var partitionKey = Guid.NewGuid().ToString("N");
         var id = Guid.NewGuid().ToString("N");
         var sagaData = new SagaData<Data> { Data = new Data { Message = "yo" } };
-        await SagaStore.Create(partitionKey, id, sagaData.Data, TimeSpan.FromMinutes(1), CancellationToken.None);
+        await SagaStore.Create(
+            partitionKey,
+            id,
+            sagaData.Data,
+            TimeSpan.FromMinutes(1),
+            CancellationToken.None
+        );
         //act
         await SagaStore.Complete(partitionKey, id, sagaData, CancellationToken.None);
         //assert
@@ -49,7 +52,9 @@ public class SagaStoreTests
         var id = Guid.NewGuid().ToString("N");
         //act & assert
         await SagaStore
-            .Awaiting(x => x.Complete(partitionKey, id, new SagaData<Data>(), CancellationToken.None))
+            .Awaiting(x =>
+                x.Complete(partitionKey, id, new SagaData<Data>(), CancellationToken.None)
+            )
             .Should()
             .ThrowAsync<SagaNotFoundException>();
     }
@@ -62,7 +67,13 @@ public class SagaStoreTests
         var id = Guid.NewGuid().ToString("N");
 
         //act
-        await SagaStore.Create(partitionKey, id, new Data { Message = "yo" }, TimeSpan.FromMinutes(1), CancellationToken.None);
+        await SagaStore.Create(
+            partitionKey,
+            id,
+            new Data { Message = "yo" },
+            TimeSpan.FromMinutes(1),
+            CancellationToken.None
+        );
         //assert
         var saga = await SagaStore.GetSaga<Data>(partitionKey, id, CancellationToken.None);
         saga.Data.Message.Should().Be("yo");
@@ -74,13 +85,24 @@ public class SagaStoreTests
         //arrange
         var partitionKey = Guid.NewGuid().ToString("N");
         var id = Guid.NewGuid().ToString("N");
-        await SagaStore.Create(partitionKey, id, new Data { Message = "yo" }, TimeSpan.FromMilliseconds(1), CancellationToken.None);
+        await SagaStore.Create(
+            partitionKey,
+            id,
+            new Data { Message = "yo" },
+            TimeSpan.FromMilliseconds(1),
+            CancellationToken.None
+        );
         await Task.Delay(2);
         //act
-        var sagaData = await SagaStore.Create(partitionKey, id, new Data { Message = "yo" }, TimeSpan.FromMinutes(1), CancellationToken.None);
+        var sagaData = await SagaStore.Create(
+            partitionKey,
+            id,
+            new Data { Message = "yo" },
+            TimeSpan.FromMinutes(1),
+            CancellationToken.None
+        );
         //assert
         sagaData.Should().NotBe(null);
-
     }
 
     [Test]
@@ -89,10 +111,24 @@ public class SagaStoreTests
         //arrange
         var partitionKey = Guid.NewGuid().ToString("N");
         var id = Guid.NewGuid().ToString("N");
-        await SagaStore.Create(partitionKey, id, new Data { Message = "yo" }, TimeSpan.FromMinutes(1), CancellationToken.None);
+        await SagaStore.Create(
+            partitionKey,
+            id,
+            new Data { Message = "yo" },
+            TimeSpan.FromMinutes(1),
+            CancellationToken.None
+        );
         //act & assert
         await SagaStore
-            .Awaiting(x => x.Create(partitionKey, id, new Data { Message = "yo" }, TimeSpan.FromMinutes(1), CancellationToken.None))
+            .Awaiting(x =>
+                x.Create(
+                    partitionKey,
+                    id,
+                    new Data { Message = "yo" },
+                    TimeSpan.FromMinutes(1),
+                    CancellationToken.None
+                )
+            )
             .Should()
             .ThrowAsync<SagaAlreadyStartedException>();
     }
@@ -116,7 +152,13 @@ public class SagaStoreTests
         //arrange
         var partitionKey = Guid.NewGuid().ToString("N");
         var id = Guid.NewGuid().ToString("N");
-        await SagaStore.Create(partitionKey, id, new Data { Message = "yo" }, TimeSpan.FromMilliseconds(1), CancellationToken.None);
+        await SagaStore.Create(
+            partitionKey,
+            id,
+            new Data { Message = "yo" },
+            TimeSpan.FromMilliseconds(1),
+            CancellationToken.None
+        );
         await Task.Delay(2);
         //act & assert
         await SagaStore
@@ -144,9 +186,20 @@ public class SagaStoreTests
         //arrange
         var partitionKey = Guid.NewGuid().ToString("N");
         var id = Guid.NewGuid().ToString("N");
-        await SagaStore.Create(partitionKey, id, new Data { Message = "yo" }, TimeSpan.FromMinutes(1), CancellationToken.None);
+        await SagaStore.Create(
+            partitionKey,
+            id,
+            new Data { Message = "yo" },
+            TimeSpan.FromMinutes(1),
+            CancellationToken.None
+        );
         //act
-        await SagaStore.Update(partitionKey, id, new SagaData<Data> { Data = new Data { Message = "updated" } }, CancellationToken.None);
+        await SagaStore.Update(
+            partitionKey,
+            id,
+            new SagaData<Data> { Data = new Data { Message = "updated" } },
+            CancellationToken.None
+        );
         //assert
         var data = await SagaStore.GetSaga<Data>(partitionKey, id, CancellationToken.None);
         data.Data.Message.Should().Be("updated");
@@ -159,7 +212,13 @@ public class SagaStoreTests
         var partitionKey = Guid.NewGuid().ToString("N");
         var id = Guid.NewGuid().ToString("N");
         var sagaData = new SagaData<Data> { Data = new Data { Message = "yo" } };
-        await SagaStore.Create(partitionKey, id, sagaData.Data, TimeSpan.FromMinutes(1), CancellationToken.None);
+        await SagaStore.Create(
+            partitionKey,
+            id,
+            sagaData.Data,
+            TimeSpan.FromMinutes(1),
+            CancellationToken.None
+        );
         //act
         await SagaStore.Delete(partitionKey, id, CancellationToken.None);
         //assert

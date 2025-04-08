@@ -9,10 +9,11 @@ public class ServiceBusConfiguration : IServiceBusConfiguration
     {
         ConnectionString = connectionString;
     }
-    public ServiceBusConfiguration()
-    {
-    }
+
+    public ServiceBusConfiguration() { }
+
     public IMessageSerializer MessageSerializer { get; set; } = new NewtonsoftSerializer();
     public string ConnectionString { get; set; }
-    public ServiceBusCreationOptions DefaultCreationOptions { get; set; } = new ServiceBusCreationOptions();
+    public ServiceBusCreationOptions DefaultCreationOptions { get; set; } =
+        new ServiceBusCreationOptions();
 }

@@ -2,6 +2,4 @@
 
 namespace KnightBus.Azure.ServiceBus;
 
-public sealed class ServiceBusMessageTooLargeException : Exception
-{
-}
+public sealed class ServiceBusMessageTooLargeException : Exception { }

@@ -4,7 +4,12 @@ namespace KnightBus.Core.Management;
 
 public class QueueProperties
 {
-    public QueueProperties(string name, IQueueManager manager, bool isLoaded, QueueType? queueType = null)
+    public QueueProperties(
+        string name,
+        IQueueManager manager,
+        bool isLoaded,
+        QueueType? queueType = null
+    )
     {
         queueType ??= manager.QueueType;
 

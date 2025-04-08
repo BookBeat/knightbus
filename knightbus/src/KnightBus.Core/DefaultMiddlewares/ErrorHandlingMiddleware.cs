@@ -14,7 +14,14 @@ public class ErrorHandlingMiddleware : IMessageProcessorMiddleware
     {
         _log = log;
     }
-    public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, IPipelineInformation pipelineInformation, IMessageProcessor next, CancellationToken cancellationToken) where T : class, IMessage
+
+    public async Task ProcessAsync<T>(
+        IMessageStateHandler<T> messageStateHandler,
+        IPipelineInformation pipelineInformation,
+        IMessageProcessor next,
+        CancellationToken cancellationToken
+    )
+        where T : class, IMessage
     {
         T message = null;
         try
@@ -31,7 +38,11 @@ public class ErrorHandlingMiddleware : IMessageProcessorMiddleware
             }
             catch (Exception exception)
             {
-                _log.LogError(exception, "Failed to abandon message {@" + typeof(T).Name + "}", message);
+                _log.LogError(
+                    exception,
+                    "Failed to abandon message {@" + typeof(T).Name + "}",
+                    message
+                );
             }
         }
     }

@@ -8,7 +8,9 @@ public class RedisSagaStoreTests : SagaStoreTests
 {
     public override void Setup()
     {
-        SagaStore = new RedisSagaStore(RedisTestBase.Database.Multiplexer, new RedisConfiguration { DatabaseId = RedisTestBase.Database.Database });
+        SagaStore = new RedisSagaStore(
+            RedisTestBase.Database.Multiplexer,
+            new RedisConfiguration { DatabaseId = RedisTestBase.Database.Database }
+        );
     }
-
 }

@@ -5,8 +5,9 @@ namespace KnightBus.Redis;
 
 public class RedisTransport : ITransport
 {
-    public RedisTransport(string connectionString) : this(new RedisConfiguration(connectionString))
-    { }
+    public RedisTransport(string connectionString)
+        : this(new RedisConfiguration(connectionString)) { }
+
     public RedisTransport(IRedisConfiguration configuration)
     {
         var multiplexer = ConnectionMultiplexer.Connect(configuration.ConnectionString);
@@ -18,6 +19,7 @@ public class RedisTransport : ITransport
     }
 
     public ITransportChannelFactory[] TransportChannelFactories { get; }
+
     public ITransport ConfigureChannels(ITransportConfiguration configuration)
     {
         foreach (var channelFactory in TransportChannelFactories)

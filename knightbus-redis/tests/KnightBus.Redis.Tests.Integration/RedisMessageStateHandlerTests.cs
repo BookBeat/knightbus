@@ -20,18 +20,32 @@ public class RedisMessageStateHandlerTests : MessageStateHandlerTests<TestComman
 
     public override async Task Setup()
     {
-        _bus = new RedisBus(RedisTestBase.Configuration.ConnectionString, Array.Empty<IMessagePreProcessor>());
+        _bus = new RedisBus(
+            RedisTestBase.Configuration.ConnectionString,
+            Array.Empty<IMessagePreProcessor>()
+        );
         var logger = new Mock<ILogger<RedisManagementClient>>();
-        var managementClient = new RedisManagementClient(RedisTestBase.Configuration, logger.Object);
+        var managementClient = new RedisManagementClient(
+            RedisTestBase.Configuration,
+            logger.Object
+        );
         var qm = new RedisQueueManager(managementClient, RedisTestBase.Configuration);
-        _bus = new RedisBus(RedisTestBase.Configuration.ConnectionString, Array.Empty<IMessagePreProcessor>());
+        _bus = new RedisBus(
+            RedisTestBase.Configuration.ConnectionString,
+            Array.Empty<IMessagePreProcessor>()
+        );
         await qm.Delete(AutoMessageMapper.GetQueueName<TestCommand>(), CancellationToken.None);
     }
 
     protected override async Task<List<TestCommand>> GetMessages(int count)
     {
         var queueName = AutoMessageMapper.GetQueueName<TestCommand>();
-        var q = new RedisQueueClient<TestCommand>(RedisTestBase.Database, queueName, RedisTestBase.Configuration.MessageSerializer, Mock.Of<ILogger>());
+        var q = new RedisQueueClient<TestCommand>(
+            RedisTestBase.Database,
+            queueName,
+            RedisTestBase.Configuration.MessageSerializer,
+            Mock.Of<ILogger>()
+        );
         var m = await q.PeekMessagesAsync(count).ToListAsync();
         return m.Select(x => x.Message).ToList();
     }
@@ -39,7 +53,12 @@ public class RedisMessageStateHandlerTests : MessageStateHandlerTests<TestComman
     protected override async Task<List<TestCommand>> GetDeadLetterMessages(int count)
     {
         var queueName = AutoMessageMapper.GetQueueName<TestCommand>();
-        var q = new RedisQueueClient<TestCommand>(RedisTestBase.Database, queueName, RedisTestBase.Configuration.MessageSerializer, Mock.Of<ILogger>());
+        var q = new RedisQueueClient<TestCommand>(
+            RedisTestBase.Database,
+            queueName,
+            RedisTestBase.Configuration.MessageSerializer,
+            Mock.Of<ILogger>()
+        );
         var m = await q.PeekDeadlettersAsync(count).ToListAsync();
         return m.Select(x => x.Message.Body).ToList();
     }
@@ -53,8 +72,20 @@ public class RedisMessageStateHandlerTests : MessageStateHandlerTests<TestComman
     protected override async Task<IMessageStateHandler<TestCommand>> GetMessageStateHandler()
     {
         var queueName = AutoMessageMapper.GetQueueName<TestCommand>();
-        var q = new RedisQueueClient<TestCommand>(RedisTestBase.Database, queueName, RedisTestBase.Configuration.MessageSerializer, Mock.Of<ILogger>());
+        var q = new RedisQueueClient<TestCommand>(
+            RedisTestBase.Database,
+            queueName,
+            RedisTestBase.Configuration.MessageSerializer,
+            Mock.Of<ILogger>()
+        );
         var m = await q.GetMessagesAsync(1);
-        return new RedisMessageStateHandler<TestCommand>(RedisTestBase.Multiplexer, RedisTestBase.Configuration, m.First(), 5, null, Mock.Of<ILogger>());
+        return new RedisMessageStateHandler<TestCommand>(
+            RedisTestBase.Multiplexer,
+            RedisTestBase.Configuration,
+            m.First(),
+            5,
+            null,
+            Mock.Of<ILogger>()
+        );
     }
 }

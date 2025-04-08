@@ -8,7 +8,8 @@ namespace KnightBus.Core;
 /// <summary>
 /// Exposes functionality for extending message lock durations
 /// </summary>
-public interface IMessageLockHandler<T> where T : class, IMessage
+public interface IMessageLockHandler<T>
+    where T : class, IMessage
 {
     Task SetLockDuration(TimeSpan timeout, CancellationToken cancellationToken);
 }

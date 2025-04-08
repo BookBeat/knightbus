@@ -12,7 +12,8 @@ namespace KnightBus.Core;
 public class SemaphoreQueue
 {
     private readonly SemaphoreSlim _semaphore;
-    private readonly ConcurrentQueue<TaskCompletionSource<bool>> _queue = new ConcurrentQueue<TaskCompletionSource<bool>>();
+    private readonly ConcurrentQueue<TaskCompletionSource<bool>> _queue =
+        new ConcurrentQueue<TaskCompletionSource<bool>>();
 
     public int CurrentCount => _semaphore.CurrentCount;
 
@@ -25,17 +26,18 @@ public class SemaphoreQueue
     {
         var tcs = new TaskCompletionSource<bool>();
         _queue.Enqueue(tcs);
-        _semaphore.WaitAsync(cancellationToken).ContinueWith(t =>
-        {
-            if (_queue.TryDequeue(out var popped))
+        _semaphore
+            .WaitAsync(cancellationToken)
+            .ContinueWith(t =>
             {
-                if (t.IsCanceled)
-                    popped.SetCanceled();
-                else
-                    popped.SetResult(true);
-            }
-
-        });
+                if (_queue.TryDequeue(out var popped))
+                {
+                    if (t.IsCanceled)
+                        popped.SetCanceled();
+                    else
+                        popped.SetResult(true);
+                }
+            });
         return tcs.Task;
     }
 

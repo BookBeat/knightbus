@@ -10,7 +10,10 @@ public class PostgresChannelFactory : ITransportChannelFactory
     private readonly NpgsqlDataSource _npgsqlDataSource;
     private readonly IPostgresConfiguration _postgresConfiguration;
 
-    public PostgresChannelFactory(NpgsqlDataSource npgsqlDataSource, IPostgresConfiguration postgresConfiguration)
+    public PostgresChannelFactory(
+        NpgsqlDataSource npgsqlDataSource,
+        IPostgresConfiguration postgresConfiguration
+    )
     {
         _npgsqlDataSource = npgsqlDataSource;
         _postgresConfiguration = postgresConfiguration;
@@ -25,19 +28,23 @@ public class PostgresChannelFactory : ITransportChannelFactory
         IProcessingSettings processingSettings,
         IMessageSerializer serializer,
         IHostConfiguration configuration,
-        IMessageProcessor processor)
+        IMessageProcessor processor
+    )
     {
         var queueReaderType = typeof(PostgresChannelReceiver<>).MakeGenericType(messageType);
-        var queueReader = Activator.CreateInstance(
-            queueReaderType,
-            _npgsqlDataSource,
-            processor,
-            processingSettings,
-            configuration,
-            serializer,
-            _postgresConfiguration) as IChannelReceiver;
+        var queueReader =
+            Activator.CreateInstance(
+                queueReaderType,
+                _npgsqlDataSource,
+                processor,
+                processingSettings,
+                configuration,
+                serializer,
+                _postgresConfiguration
+            ) as IChannelReceiver;
 
-        return queueReader ?? throw new InvalidOperationException("ChannelReceiver could not be created");
+        return queueReader
+            ?? throw new InvalidOperationException("ChannelReceiver could not be created");
     }
 
     public bool CanCreate(Type messageType)

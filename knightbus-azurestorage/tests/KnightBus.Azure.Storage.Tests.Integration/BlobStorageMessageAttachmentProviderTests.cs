@@ -24,20 +24,34 @@ public class BlobStorageMessageAttachmentProviderTests
     {
         // Arrange
         using var ms = new MemoryStream();
-        var metadata = new Dictionary<string, string> { { "key", "value" }, { "supports-uf8-values", "åäö ÅÄÖ hej" }, { BlobStorageMessageAttachmentProvider.FileNameKey, "blabla" }, };
-        var attachment = new MessageAttachment("filename.csv", MediaTypeNames.Text.Csv, ms, metadata);
+        var metadata = new Dictionary<string, string>
+        {
+            { "key", "value" },
+            { "supports-uf8-values", "åäö ÅÄÖ hej" },
+            { BlobStorageMessageAttachmentProvider.FileNameKey, "blabla" },
+        };
+        var attachment = new MessageAttachment(
+            "filename.csv",
+            MediaTypeNames.Text.Csv,
+            ms,
+            metadata
+        );
         var id = Guid.NewGuid().ToString("N");
 
         // Act
         await _target.UploadAttachmentAsync("queue", id, attachment);
-        
+
         // Assert
         var result = await _target.GetAttachmentAsync("queue", id);
-        result.Metadata.Should().BeEquivalentTo(new Dictionary<string,string>
-        {
-            { "key", "value"},
-            { "supports-uf8-values", "åäö ÅÄÖ hej" },
-            { BlobStorageMessageAttachmentProvider.FileNameKey, "filename.csv" }
-        });
+        result
+            .Metadata.Should()
+            .BeEquivalentTo(
+                new Dictionary<string, string>
+                {
+                    { "key", "value" },
+                    { "supports-uf8-values", "åäö ÅÄÖ hej" },
+                    { BlobStorageMessageAttachmentProvider.FileNameKey, "filename.csv" },
+                }
+            );
     }
 }

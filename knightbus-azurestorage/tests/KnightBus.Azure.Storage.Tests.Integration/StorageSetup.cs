@@ -7,7 +7,9 @@ namespace KnightBus.Azure.Storage.Tests.Integration;
 [SetUpFixture]
 internal class StorageSetup
 {
-    private static readonly AzuriteContainer Azurite = new AzuriteBuilder().WithCommand("--skipApiVersionCheck").Build();
+    private static readonly AzuriteContainer Azurite = new AzuriteBuilder()
+        .WithCommand("--skipApiVersionCheck")
+        .Build();
     public static string ConnectionString;
 
     [OneTimeSetUp]

@@ -23,8 +23,13 @@ internal abstract class ServiceBusChannelReceiverBase<T> : IChannelReceiver
     protected readonly IClientFactory ClientFactory;
     protected readonly ServiceBusAdministrationClient ManagementClient;
 
-    protected ServiceBusChannelReceiverBase(IProcessingSettings settings, IMessageSerializer serializer,
-        IServiceBusConfiguration configuration, IHostConfiguration hostConfiguration, IMessageProcessor processor)
+    protected ServiceBusChannelReceiverBase(
+        IProcessingSettings settings,
+        IMessageSerializer serializer,
+        IServiceBusConfiguration configuration,
+        IHostConfiguration hostConfiguration,
+        IMessageProcessor processor
+    )
     {
         _serializer = serializer;
         _configuration = configuration;
@@ -46,19 +51,22 @@ internal abstract class ServiceBusChannelReceiverBase<T> : IChannelReceiver
         await InitializeAsync().ConfigureAwait(false);
 
 #pragma warning disable 4014
-        Task.Run(async () =>
-        {
-            _cancellationToken.WaitHandle.WaitOne();
-            try
+        Task.Run(
+            async () =>
             {
-                Log.LogInformation($"Closing ServiceBus channel receiver for {typeof(T).Name}");
-                await _client.CloseAsync(CancellationToken.None);
-            }
-            catch (Exception)
-            {
-                //Swallow
-            }
-        }, _cancellationToken);
+                _cancellationToken.WaitHandle.WaitOne();
+                try
+                {
+                    Log.LogInformation($"Closing ServiceBus channel receiver for {typeof(T).Name}");
+                    await _client.CloseAsync(CancellationToken.None);
+                }
+                catch (Exception)
+                {
+                    //Swallow
+                }
+            },
+            _cancellationToken
+        );
 #pragma warning restore 4014
     }
 
@@ -75,7 +83,12 @@ internal abstract class ServiceBusChannelReceiverBase<T> : IChannelReceiver
 
     private async Task ClientOnProcessErrorAsync(ProcessErrorEventArgs arg)
     {
-        if (arg.Exception is ServiceBusException { Reason: ServiceBusFailureReason.MessagingEntityNotFound })
+        if (
+            arg.Exception is ServiceBusException
+            {
+                Reason: ServiceBusFailureReason.MessagingEntityNotFound
+            }
+        )
         {
             Log.LogInformation($"{typeof(T).Name} not found. Creating.");
             await CreateMessagingEntity(_cancellationToken).ConfigureAwait(false);
@@ -88,10 +101,16 @@ internal abstract class ServiceBusChannelReceiverBase<T> : IChannelReceiver
     {
         try
         {
-            var stateHandler = new ServiceBusMessageStateHandler<T>(arg, _serializer, _deadLetterLimit,
-                _hostConfiguration.DependencyInjection);
-            using var cts =
-                CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken, arg.CancellationToken);
+            var stateHandler = new ServiceBusMessageStateHandler<T>(
+                arg,
+                _serializer,
+                _deadLetterLimit,
+                _hostConfiguration.DependencyInjection
+            );
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(
+                _cancellationToken,
+                arg.CancellationToken
+            );
             await _processor.ProcessAsync(stateHandler, cts.Token).ConfigureAwait(false);
         }
         catch (Exception e)

@@ -42,14 +42,16 @@ public class SagaMapperTests
         //arrange
         var mapper = new SagaMessageMapper();
         //act & assert
-        mapper.Invoking(x => x.GetMapping<UnMappedMessage>()).Should().Throw<SagaMessageMappingNotFoundException>();
+        mapper
+            .Invoking(x => x.GetMapping<UnMappedMessage>())
+            .Should()
+            .Throw<SagaMessageMappingNotFoundException>();
     }
 
     internal class TestMessage : IMessage
     {
         public string Id { get; set; }
     }
-    internal class UnMappedMessage : IMessage
-    {
-    }
+
+    internal class UnMappedMessage : IMessage { }
 }

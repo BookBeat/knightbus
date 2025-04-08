@@ -24,18 +24,40 @@ public class AttachmentMiddlewareTests
         var attachment = new MessageAttachment("test.txt", "text/plain", stream);
         var stateHandler = new Mock<IMessageStateHandler<AttachmentCommand>>();
         stateHandler.Setup(x => x.GetMessage()).Returns(message);
-        stateHandler.Setup(x => x.MessageProperties).Returns(new Dictionary<string, string> { { AttachmentUtility.AttachmentKey, "89BDF3DB-896C-448D-A84E-872CBA8DBC9F" } });
+        stateHandler
+            .Setup(x => x.MessageProperties)
+            .Returns(
+                new Dictionary<string, string>
+                {
+                    { AttachmentUtility.AttachmentKey, "89BDF3DB-896C-448D-A84E-872CBA8DBC9F" },
+                }
+            );
         var attachmentProvider = new Mock<IMessageAttachmentProvider>();
-        attachmentProvider.Setup(x => x.GetAttachmentAsync(AutoMessageMapper.GetQueueName<AttachmentCommand>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        attachmentProvider
+            .Setup(x =>
+                x.GetAttachmentAsync(
+                    AutoMessageMapper.GetQueueName<AttachmentCommand>(),
+                    It.IsAny<string>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
             .ReturnsAsync(attachment);
         var middleware = new AttachmentMiddleware(attachmentProvider.Object);
         //act
-        await middleware.ProcessAsync(stateHandler.Object, Mock.Of<IPipelineInformation>(), nextProcessor.Object, CancellationToken.None);
+        await middleware.ProcessAsync(
+            stateHandler.Object,
+            Mock.Of<IPipelineInformation>(),
+            nextProcessor.Object,
+            CancellationToken.None
+        );
         //assert
         stream.CanRead.Should().BeFalse("It should have been disposed");
         message.Attachment.Filename.Should().Be("test.txt");
         message.Attachment.ContentType.Should().Be("text/plain");
-        nextProcessor.Verify(x => x.ProcessAsync(stateHandler.Object, CancellationToken.None), Times.Once);
+        nextProcessor.Verify(
+            x => x.ProcessAsync(stateHandler.Object, CancellationToken.None),
+            Times.Once
+        );
     }
 
     [Test]
@@ -48,16 +70,42 @@ public class AttachmentMiddlewareTests
         var attachment = new MessageAttachment("test.txt", "text/plain", stream);
         var stateHandler = new Mock<IMessageStateHandler<AttachmentCommand>>();
         stateHandler.Setup(x => x.GetMessage()).Returns(message);
-        stateHandler.Setup(x => x.MessageProperties).Returns(new Dictionary<string, string> { { AttachmentUtility.AttachmentKey, "89BDF3DB-896C-448D-A84E-872CBA8DBC9F" } });
+        stateHandler
+            .Setup(x => x.MessageProperties)
+            .Returns(
+                new Dictionary<string, string>
+                {
+                    { AttachmentUtility.AttachmentKey, "89BDF3DB-896C-448D-A84E-872CBA8DBC9F" },
+                }
+            );
         var attachmentProvider = new Mock<IMessageAttachmentProvider>();
-        attachmentProvider.Setup(x => x.GetAttachmentAsync(AutoMessageMapper.GetQueueName<AttachmentCommand>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        attachmentProvider
+            .Setup(x =>
+                x.GetAttachmentAsync(
+                    AutoMessageMapper.GetQueueName<AttachmentCommand>(),
+                    It.IsAny<string>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
             .ReturnsAsync(attachment);
         var middleware = new AttachmentMiddleware(attachmentProvider.Object);
         //act
-        await middleware.ProcessAsync(stateHandler.Object, Mock.Of<IPipelineInformation>(), nextProcessor.Object, CancellationToken.None);
+        await middleware.ProcessAsync(
+            stateHandler.Object,
+            Mock.Of<IPipelineInformation>(),
+            nextProcessor.Object,
+            CancellationToken.None
+        );
         //assert
-        attachmentProvider.Verify(x => x.DeleteAttachmentAsync(AutoMessageMapper.GetQueueName<AttachmentCommand>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
-
+        attachmentProvider.Verify(
+            x =>
+                x.DeleteAttachmentAsync(
+                    AutoMessageMapper.GetQueueName<AttachmentCommand>(),
+                    It.IsAny<string>(),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Once
+        );
     }
 
     [Test]
@@ -69,13 +117,36 @@ public class AttachmentMiddlewareTests
         var stateHandler = new Mock<IMessageStateHandler<TestCommand>>();
         stateHandler.Setup(x => x.GetMessage()).Returns(message);
         var attachmentProvider = new Mock<IMessageAttachmentProvider>();
-        attachmentProvider.Setup(x => x.GetAttachmentAsync(AutoMessageMapper.GetQueueName<TestCommand>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        attachmentProvider
+            .Setup(x =>
+                x.GetAttachmentAsync(
+                    AutoMessageMapper.GetQueueName<TestCommand>(),
+                    It.IsAny<string>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
             .ReturnsAsync(default(IMessageAttachment));
         var middleware = new AttachmentMiddleware(attachmentProvider.Object);
         //act
-        await middleware.ProcessAsync(stateHandler.Object, Mock.Of<IPipelineInformation>(), nextProcessor.Object, CancellationToken.None);
+        await middleware.ProcessAsync(
+            stateHandler.Object,
+            Mock.Of<IPipelineInformation>(),
+            nextProcessor.Object,
+            CancellationToken.None
+        );
         //assert
-        attachmentProvider.Verify(x => x.GetAttachmentAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
-        nextProcessor.Verify(x => x.ProcessAsync(stateHandler.Object, CancellationToken.None), Times.Once);
+        attachmentProvider.Verify(
+            x =>
+                x.GetAttachmentAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Never
+        );
+        nextProcessor.Verify(
+            x => x.ProcessAsync(stateHandler.Object, CancellationToken.None),
+            Times.Once
+        );
     }
 }

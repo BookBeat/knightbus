@@ -2,7 +2,13 @@
 
 public class SubscriptionQueueProperties : QueueProperties
 {
-    public SubscriptionQueueProperties(string name, IQueueManager manager, string topic, bool isLoaded) : base(name, manager, isLoaded, QueueType.Subscription)
+    public SubscriptionQueueProperties(
+        string name,
+        IQueueManager manager,
+        string topic,
+        bool isLoaded
+    )
+        : base(name, manager, isLoaded, QueueType.Subscription)
     {
         Topic = topic;
     }

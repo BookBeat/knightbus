@@ -20,11 +20,25 @@ public class SagaHandlerTests
         var store = new Mock<ISagaStore>();
         var saga = new TestSaga();
         var startMessage = new TestSagaStartMessage(id);
-        var handler = new SagaHandler<TestSagaData, TestSagaStartMessage>(store.Object, saga, startMessage);
+        var handler = new SagaHandler<TestSagaData, TestSagaStartMessage>(
+            store.Object,
+            saga,
+            startMessage
+        );
         //act
         await handler.Initialize(CancellationToken.None);
         //assert
-        store.Verify(x => x.Create(saga.PartitionKey, id, It.IsAny<TestSagaData>(), TimeSpan.FromHours(1), CancellationToken.None), Times.Once);
+        store.Verify(
+            x =>
+                x.Create(
+                    saga.PartitionKey,
+                    id,
+                    It.IsAny<TestSagaData>(),
+                    TimeSpan.FromHours(1),
+                    CancellationToken.None
+                ),
+            Times.Once
+        );
     }
 
     [Test]
@@ -35,12 +49,19 @@ public class SagaHandlerTests
         var store = new Mock<ISagaStore>();
         var saga = new TestSaga();
         var startMessage = new TestSagaMessage(id);
-        var handler = new SagaHandler<TestSagaData, TestSagaMessage>(store.Object, saga, startMessage);
+        var handler = new SagaHandler<TestSagaData, TestSagaMessage>(
+            store.Object,
+            saga,
+            startMessage
+        );
         saga.MessageMapper.MapMessage<TestSagaMessage>(x => x.MessageId);
         //act
         await handler.Initialize(CancellationToken.None);
         //assert
-        store.Verify(x => x.GetSaga<TestSagaData>(saga.PartitionKey, id, CancellationToken.None), Times.Once);
+        store.Verify(
+            x => x.GetSaga<TestSagaData>(saga.PartitionKey, id, CancellationToken.None),
+            Times.Once
+        );
     }
 
     [Test]
@@ -51,7 +72,11 @@ public class SagaHandlerTests
         var store = new Mock<ISagaStore>();
         var saga = new TestSaga();
         var startMessage = new TestSagaMessage(id);
-        var handler = new SagaHandler<TestSagaData, TestSagaMessage>(store.Object, saga, startMessage);
+        var handler = new SagaHandler<TestSagaData, TestSagaMessage>(
+            store.Object,
+            saga,
+            startMessage
+        );
         //act & assert
         await handler
             .Awaiting(x => x.Initialize(CancellationToken.None))
@@ -59,13 +84,12 @@ public class SagaHandlerTests
             .ThrowAsync<SagaMessageMappingNotFoundException>();
     }
 
-    internal class TestSagaData
-    {
+    internal class TestSagaData { }
 
-    }
     internal class TestSaga : Saga<TestSagaData>
     {
         public override TimeSpan TimeToLive => TimeSpan.FromHours(1);
+
         public TestSaga()
         {
             MessageMapper.MapStartMessage<TestSagaStartMessage>(m => m.MessageId);
@@ -73,20 +97,24 @@ public class SagaHandlerTests
 
         public override string PartitionKey => "saga-id";
     }
+
     internal class TestSagaStartMessage : IMessage
     {
         public TestSagaStartMessage(string id)
         {
             MessageId = id;
         }
+
         public string MessageId { get; }
     }
+
     internal class TestSagaMessage : IMessage
     {
         public TestSagaMessage(string id)
         {
             MessageId = id;
         }
+
         public string MessageId { get; }
     }
 }

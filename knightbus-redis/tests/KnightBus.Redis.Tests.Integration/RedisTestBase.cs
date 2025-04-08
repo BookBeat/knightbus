@@ -15,7 +15,9 @@ public sealed class RedisTestBase
     public void BaseSetup()
     {
         Configuration = new RedisConfiguration(RedisSetup.ConnectionString);
-        Multiplexer = ConnectionMultiplexer.Connect($"{Configuration.ConnectionString},allowAdmin=true");
+        Multiplexer = ConnectionMultiplexer.Connect(
+            $"{Configuration.ConnectionString},allowAdmin=true"
+        );
         Database = Multiplexer.GetDatabase(Configuration.DatabaseId);
     }
 }

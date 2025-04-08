@@ -4,19 +4,15 @@ using KnightBus.Messages;
 
 namespace KnightBus.Host.Tests.Unit;
 
-public class TestRequest : IRequest
-{
+public class TestRequest : IRequest { }
 
-}
 public class TestRequestMapping : IMessageMapping<TestRequest>
 {
     public string QueueName => "testreq";
 }
 
-public class TestResponse
-{
+public class TestResponse { }
 
-}
 public class TestCommand : ICommand
 {
     public bool Throw { get; set; }
@@ -31,38 +27,39 @@ public class TestCommandOne : ICommand
 {
     public bool Throw { get; set; }
 }
+
 public class TestMessageOneMapping : IMessageMapping<TestCommandOne>
 {
     public string QueueName => "testcommand";
 }
 
-public class TestEvent : IEvent
-{
-}
+public class TestEvent : IEvent { }
+
 public class TestEventMapping : IMessageMapping<TestEvent>
 {
     public string QueueName => "testevent";
 }
 
-public class TestCommandTwo : ICommand
-{
-}
+public class TestCommandTwo : ICommand { }
+
 public class AttachmentCommand : ICommandWithAttachment, ICommand
 {
     public string Message { get; set; }
     public IMessageAttachment Attachment { get; set; }
 }
+
 public class AttachmentMessageMapping : IMessageMapping<AttachmentCommand>
 {
     public string QueueName => "attachmentcommand";
 }
+
 public class TestCommand2Mapping : IMessageMapping<TestCommandTwo>
 {
     public string QueueName => "testcommand2";
 }
-public class SingletonCommand : ICommand
-{
-}
+
+public class SingletonCommand : ICommand { }
+
 public class SingletonMessageMapping : IMessageMapping<SingletonCommand>
 {
     public string QueueName => "singletoncommand";

@@ -8,5 +8,4 @@ namespace KnightBus.Core;
 /// </summary>
 public interface IProcessCommand<T, TSettings> : IProcessMessage<T, Task>
     where T : ICommand
-    where TSettings : class, IProcessingSettings, new()
-{ }
+    where TSettings : class, IProcessingSettings, new() { }

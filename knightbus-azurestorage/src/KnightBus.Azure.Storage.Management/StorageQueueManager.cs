@@ -16,12 +16,16 @@ public class StorageQueueManager : IQueueManager
     private readonly IEnumerable<IMessagePreProcessor> _preProcessors;
     private readonly QueueServiceClient _client;
 
-    public StorageQueueManager(IStorageBusConfiguration configuration, IEnumerable<IMessagePreProcessor> preProcessors)
+    public StorageQueueManager(
+        IStorageBusConfiguration configuration,
+        IEnumerable<IMessagePreProcessor> preProcessors
+    )
     {
         _configuration = configuration;
         _preProcessors = preProcessors;
         _client = new QueueServiceClient(configuration.ConnectionString);
     }
+
     public async Task<IEnumerable<QueueProperties>> List(CancellationToken ct)
     {
         var queues = _client.GetQueuesAsync(cancellationToken: ct);
@@ -39,20 +43,24 @@ public class StorageQueueManager : IQueueManager
     public async Task<QueueProperties> Get(string path, CancellationToken ct)
     {
         var qc = new StorageQueueClient(
-            _configuration, _configuration.MessageSerializer, _preProcessors, path);
+            _configuration,
+            _configuration.MessageSerializer,
+            _preProcessors,
+            path
+        );
         var queueCount = 0;
         var dlCount = 0;
 
         await Task.WhenAll(
-            qc.GetQueueCountAsync().ContinueWith(task => queueCount = task.Result, ct),
-            SafeGetDeadLetterCount(qc).ContinueWith(task => dlCount = task.Result, ct)
-        ).ConfigureAwait(false);
-
+                qc.GetQueueCountAsync().ContinueWith(task => queueCount = task.Result, ct),
+                SafeGetDeadLetterCount(qc).ContinueWith(task => dlCount = task.Result, ct)
+            )
+            .ConfigureAwait(false);
 
         return new QueueProperties(path, this, true)
         {
             ActiveMessageCount = queueCount,
-            DeadLetterMessageCount = dlCount
+            DeadLetterMessageCount = dlCount,
         };
     }
 
@@ -67,64 +75,118 @@ public class StorageQueueManager : IQueueManager
         {
             return 0;
         }
-
     }
 
     public async Task Delete(string path, CancellationToken ct)
     {
-        var qc = new StorageQueueClient(_configuration, _configuration.MessageSerializer, _preProcessors, path);
+        var qc = new StorageQueueClient(
+            _configuration,
+            _configuration.MessageSerializer,
+            _preProcessors,
+            path
+        );
 
         await qc.DeleteIfExistsAsync().ConfigureAwait(false);
     }
 
-    public async Task<IReadOnlyList<QueueMessage>> Peek(string name, int count, CancellationToken ct)
+    public async Task<IReadOnlyList<QueueMessage>> Peek(
+        string name,
+        int count,
+        CancellationToken ct
+    )
     {
-        var qc = new StorageQueueClient(_configuration, _configuration.MessageSerializer, _preProcessors, name);
-
+        var qc = new StorageQueueClient(
+            _configuration,
+            _configuration.MessageSerializer,
+            _preProcessors,
+            name
+        );
 
         var messages = await qc.PeekMessagesAsync<DictionaryMessage>(count).ConfigureAwait(false);
 
-        return messages.Select(m =>
-        {
-            m.Properties.TryGetValue("Error", out var error);
-            return new QueueMessage(Encoding.UTF8.GetString(_configuration.MessageSerializer.Serialize(m.Message)),
-                error ?? string.Empty, m.Time, null, m.DequeueCount, m.BlobMessageId, m.Properties.AsReadOnly());
-        }).ToList();
+        return messages
+            .Select(m =>
+            {
+                m.Properties.TryGetValue("Error", out var error);
+                return new QueueMessage(
+                    Encoding.UTF8.GetString(_configuration.MessageSerializer.Serialize(m.Message)),
+                    error ?? string.Empty,
+                    m.Time,
+                    null,
+                    m.DequeueCount,
+                    m.BlobMessageId,
+                    m.Properties.AsReadOnly()
+                );
+            })
+            .ToList();
     }
 
-    public async Task<IReadOnlyList<QueueMessage>> PeekDeadLetter(string path, int count, CancellationToken ct)
+    public async Task<IReadOnlyList<QueueMessage>> PeekDeadLetter(
+        string path,
+        int count,
+        CancellationToken ct
+    )
     {
-        var qc = new StorageQueueClient(_configuration, _configuration.MessageSerializer, _preProcessors, path);
+        var qc = new StorageQueueClient(
+            _configuration,
+            _configuration.MessageSerializer,
+            _preProcessors,
+            path
+        );
 
-        var messages = await qc.PeekDeadLettersAsync<DictionaryMessage>(count).ConfigureAwait(false);
+        var messages = await qc.PeekDeadLettersAsync<DictionaryMessage>(count)
+            .ConfigureAwait(false);
 
-        return messages.Select(m =>
-        {
-            m.Properties.TryGetValue("Error", out var error);
-            return new QueueMessage(Encoding.UTF8.GetString(_configuration.MessageSerializer.Serialize(m.Message)),
-                error ?? string.Empty, m.Time, null, m.DequeueCount, m.BlobMessageId, m.Properties);
-        }).ToList();
+        return messages
+            .Select(m =>
+            {
+                m.Properties.TryGetValue("Error", out var error);
+                return new QueueMessage(
+                    Encoding.UTF8.GetString(_configuration.MessageSerializer.Serialize(m.Message)),
+                    error ?? string.Empty,
+                    m.Time,
+                    null,
+                    m.DequeueCount,
+                    m.BlobMessageId,
+                    m.Properties
+                );
+            })
+            .ToList();
     }
 
-    public async Task<IReadOnlyList<QueueMessage>> ReadDeadLetter(string path, int count, CancellationToken ct)
+    public async Task<IReadOnlyList<QueueMessage>> ReadDeadLetter(
+        string path,
+        int count,
+        CancellationToken ct
+    )
     {
-        var qc = new StorageQueueClient(_configuration, _configuration.MessageSerializer, _preProcessors, path);
+        var qc = new StorageQueueClient(
+            _configuration,
+            _configuration.MessageSerializer,
+            _preProcessors,
+            path
+        );
 
         var messages = new List<QueueMessage>();
         for (var i = 0; i < count; i++)
         {
-            var message = await qc.ReceiveDeadLetterAsync<DictionaryMessage>().ConfigureAwait(false);
+            var message = await qc.ReceiveDeadLetterAsync<DictionaryMessage>()
+                .ConfigureAwait(false);
             if (message == null)
                 break;
             messages.Add(
                 new QueueMessage(
-                    Encoding.UTF8.GetString(_configuration.MessageSerializer.Serialize(message.Message)),
+                    Encoding.UTF8.GetString(
+                        _configuration.MessageSerializer.Serialize(message.Message)
+                    ),
                     message.Properties.TryGetValue("Error", out var error) ? error : string.Empty,
                     message.Time,
                     null,
                     message.DequeueCount,
                     message.BlobMessageId,
-                    message.Properties));
+                    message.Properties
+                )
+            );
         }
 
         return messages;
@@ -132,9 +194,15 @@ public class StorageQueueManager : IQueueManager
 
     public async Task<int> MoveDeadLetters(string path, int count, CancellationToken ct)
     {
-        var qc = new StorageQueueClient(_configuration, _configuration.MessageSerializer, _preProcessors, path);
+        var qc = new StorageQueueClient(
+            _configuration,
+            _configuration.MessageSerializer,
+            _preProcessors,
+            path
+        );
         await qc.RequeueDeadLettersAsync<DictionaryMessage>(count, null).ConfigureAwait(false);
         return count;
     }
+
     public QueueType QueueType => QueueType.Queue;
 }

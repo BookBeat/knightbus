@@ -2,7 +2,4 @@
 
 namespace KnightBus.Nats.Messages;
 
-public interface INatsEvent : IEvent
-{
-
-}
+public interface INatsEvent : IEvent { }

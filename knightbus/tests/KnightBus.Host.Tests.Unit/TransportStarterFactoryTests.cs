@@ -21,13 +21,35 @@ public class TransportStarterFactoryTests
         var channel = new Mock<ITransportChannelFactory>();
         channel.Setup(x => x.CanCreate(typeof(TestCommand))).Returns(true);
         channel.Setup(x => x.Configuration).Returns(config.Object);
-        var starter = new TransportStarterFactory(new[] { channel.Object }, new HostConfiguration { DependencyInjection = new MicrosoftDependencyInjection(new ServiceCollection().BuildServiceProvider()) });
+        var starter = new TransportStarterFactory(
+            new[] { channel.Object },
+            new HostConfiguration
+            {
+                DependencyInjection = new MicrosoftDependencyInjection(
+                    new ServiceCollection().BuildServiceProvider()
+                ),
+            }
+        );
         var factory = new CommandProcessorFactory();
         //act
-        starter.CreateChannelReceiver(factory, typeof(IProcessCommand<TestCommand, TestMessageSettings>), typeof(JsonProcessor));
+        starter.CreateChannelReceiver(
+            factory,
+            typeof(IProcessCommand<TestCommand, TestMessageSettings>),
+            typeof(JsonProcessor)
+        );
         //assert
-        channel.Verify(x => x.Create(typeof(TestCommand), null, It.IsAny<IProcessingSettings>(), It.IsAny<MicrosoftJsonSerializer>(), It.IsAny<IHostConfiguration>(), It.IsAny<IMessageProcessor>()),
-            Times.Once);
+        channel.Verify(
+            x =>
+                x.Create(
+                    typeof(TestCommand),
+                    null,
+                    It.IsAny<IProcessingSettings>(),
+                    It.IsAny<MicrosoftJsonSerializer>(),
+                    It.IsAny<IHostConfiguration>(),
+                    It.IsAny<IMessageProcessor>()
+                ),
+            Times.Once
+        );
     }
 }
 

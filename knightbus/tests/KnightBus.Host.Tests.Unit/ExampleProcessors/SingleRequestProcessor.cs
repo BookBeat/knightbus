@@ -4,7 +4,8 @@ using KnightBus.Core;
 
 namespace KnightBus.Host.Tests.Unit.ExampleProcessors;
 
-public class SingleRequestProcessor : IProcessRequest<TestRequest, TestResponse, TestMessageSettings>
+public class SingleRequestProcessor
+    : IProcessRequest<TestRequest, TestResponse, TestMessageSettings>
 {
     private readonly ICountable _countable;
 
@@ -12,6 +13,7 @@ public class SingleRequestProcessor : IProcessRequest<TestRequest, TestResponse,
     {
         _countable = countable;
     }
+
     public Task<TestResponse> ProcessAsync(TestRequest message, CancellationToken cancellationToken)
     {
         _countable.Count();

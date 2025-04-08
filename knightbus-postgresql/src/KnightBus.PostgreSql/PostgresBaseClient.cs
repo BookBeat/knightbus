@@ -6,14 +6,20 @@ using static KnightBus.PostgreSql.PostgresConstants;
 
 namespace KnightBus.PostgreSql;
 
-public class PostgresBaseClient<T> where T : class, IMessage
+public class PostgresBaseClient<T>
+    where T : class, IMessage
 {
     private readonly NpgsqlDataSource _npgsqlDataSource;
     private readonly IMessageSerializer _serializer;
     private readonly string _prefix;
     private readonly PostgresQueueName _queueName;
-    
-    public PostgresBaseClient(NpgsqlDataSource npgsqlDataSource, IMessageSerializer serializer, string prefix, PostgresQueueName queueName)
+
+    public PostgresBaseClient(
+        NpgsqlDataSource npgsqlDataSource,
+        IMessageSerializer serializer,
+        string prefix,
+        PostgresQueueName queueName
+    )
     {
         _npgsqlDataSource = npgsqlDataSource;
         _serializer = serializer;
@@ -21,10 +27,17 @@ public class PostgresBaseClient<T> where T : class, IMessage
         _queueName = queueName;
     }
 
-    public async IAsyncEnumerable<PostgresMessage<T>> GetMessagesAsync(int count, int visibilityTimeout, [EnumeratorCancellation] CancellationToken ct)
+    public async IAsyncEnumerable<PostgresMessage<T>> GetMessagesAsync(
+        int count,
+        int visibilityTimeout,
+        [EnumeratorCancellation] CancellationToken ct
+    )
     {
-        await using var connection = await _npgsqlDataSource.OpenConnectionAsync(ct).ConfigureAwait(false);
-        await using var command = new NpgsqlCommand(@$"
+        await using var connection = await _npgsqlDataSource
+            .OpenConnectionAsync(ct)
+            .ConfigureAwait(false);
+        await using var command = new NpgsqlCommand(
+            @$"
 WITH cte AS
     (
         SELECT message_id
@@ -41,10 +54,14 @@ UPDATE {SchemaName}.{_prefix}_{_queueName} t
         FROM cte
         WHERE t.message_id = cte.message_id
         RETURNING *;
-", connection);
+",
+            connection
+        );
 
         command.Parameters.Add(new NpgsqlParameter<int> { TypedValue = count });
-        command.Parameters.Add(new NpgsqlParameter<TimeSpan> { TypedValue = TimeSpan.FromSeconds(visibilityTimeout) });
+        command.Parameters.Add(
+            new NpgsqlParameter<TimeSpan> { TypedValue = TimeSpan.FromSeconds(visibilityTimeout) }
+        );
 
         await command.PrepareAsync(ct);
 
@@ -64,15 +81,14 @@ UPDATE {SchemaName}.{_prefix}_{_queueName} t
             {
                 Id = reader.GetInt64(messageIdOrdinal),
                 ReadCount = reader.GetInt32(readCountOrdinal),
-                Message = _serializer
-                    .Deserialize<T>(reader.GetFieldValue<byte[]>(messageOrdinal)
-                        .AsMemory()),
+                Message = _serializer.Deserialize<T>(
+                    reader.GetFieldValue<byte[]>(messageOrdinal).AsMemory()
+                ),
                 Properties = isPropertiesNull
                     ? new Dictionary<string, string>()
-                    : _serializer
-                        .Deserialize<Dictionary<string, string>>(
-                            reader.GetFieldValue<byte[]>(propertiesOrdinal)
-                                .AsMemory()),
+                    : _serializer.Deserialize<Dictionary<string, string>>(
+                        reader.GetFieldValue<byte[]>(propertiesOrdinal).AsMemory()
+                    ),
                 Time = reader.GetDateTime(enqueuedAtOrdinal),
             };
             yield return postgresMessage;
@@ -81,10 +97,12 @@ UPDATE {SchemaName}.{_prefix}_{_queueName} t
 
     public async Task CompleteAsync(PostgresMessage<T> message)
     {
-        await using var command = _npgsqlDataSource.CreateCommand(@$"
+        await using var command = _npgsqlDataSource.CreateCommand(
+            @$"
 DELETE FROM {SchemaName}.{_prefix}_{_queueName}
 WHERE message_id = ($1);
-");
+"
+        );
         command.Parameters.Add(new NpgsqlParameter<long> { Value = message.Id });
         await command.ExecuteNonQueryAsync().ConfigureAwait(false);
     }
@@ -94,22 +112,28 @@ WHERE message_id = ($1);
         var errorString = exception.ToString();
         message.Properties["error_message"] = errorString;
 
-        await using var command = _npgsqlDataSource.CreateCommand(@$"
+        await using var command = _npgsqlDataSource.CreateCommand(
+            @$"
 UPDATE {SchemaName}.{_prefix}_{_queueName}
 SET properties = ($1), visibility_timeout = now()
 WHERE message_id = ($2);
-");
-        command.Parameters.Add(new NpgsqlParameter
-        {
-            Value = _serializer.Serialize(message.Properties), NpgsqlDbType = NpgsqlDbType.Jsonb
-        });
+"
+        );
+        command.Parameters.Add(
+            new NpgsqlParameter
+            {
+                Value = _serializer.Serialize(message.Properties),
+                NpgsqlDbType = NpgsqlDbType.Jsonb,
+            }
+        );
         command.Parameters.Add(new NpgsqlParameter<long> { Value = message.Id });
         await command.ExecuteNonQueryAsync().ConfigureAwait(false);
     }
 
     public async Task DeadLetterMessageAsync(PostgresMessage<T> message)
     {
-        await using var command = _npgsqlDataSource.CreateCommand(@$"
+        await using var command = _npgsqlDataSource.CreateCommand(
+            @$"
 WITH DeadLetter AS (
     DELETE FROM {SchemaName}.{_prefix}_{_queueName}
     WHERE message_id = ($1)
@@ -118,19 +142,25 @@ WITH DeadLetter AS (
 INSERT INTO {SchemaName}.{DlQueuePrefix}_{_queueName} (message_id, enqueued_at, created_at, message, properties)
 SELECT message_id, enqueued_at, now(), message, properties
 FROM DeadLetter;
-");
+"
+        );
         command.Parameters.Add(new NpgsqlParameter<long> { Value = message.Id });
         await command.ExecuteNonQueryAsync().ConfigureAwait(false);
     }
 
-    public async IAsyncEnumerable<PostgresMessage<T>> PeekDeadLetterMessagesAsync(int count, [EnumeratorCancellation] CancellationToken ct)
+    public async IAsyncEnumerable<PostgresMessage<T>> PeekDeadLetterMessagesAsync(
+        int count,
+        [EnumeratorCancellation] CancellationToken ct
+    )
     {
-        await using var command = _npgsqlDataSource.CreateCommand(@$"
+        await using var command = _npgsqlDataSource.CreateCommand(
+            @$"
 SELECT message_id, enqueued_at, created_at, message, properties
 FROM {SchemaName}.{DlQueuePrefix}_{_queueName}
 ORDER BY message_id ASC
 LIMIT ($1);
-");
+"
+        );
 
         command.Parameters.Add(new NpgsqlParameter<int> { TypedValue = count });
 
@@ -148,15 +178,14 @@ LIMIT ($1);
             var postgresMessage = new PostgresMessage<T>
             {
                 Id = reader.GetInt64(messageIdOrdinal),
-                Message = _serializer
-                    .Deserialize<T>(reader.GetFieldValue<byte[]>(messageOrdinal)
-                        .AsMemory()),
+                Message = _serializer.Deserialize<T>(
+                    reader.GetFieldValue<byte[]>(messageOrdinal).AsMemory()
+                ),
                 Properties = isPropertiesNull
                     ? new Dictionary<string, string>()
-                    : _serializer
-                        .Deserialize<Dictionary<string, string>>(
-                            reader.GetFieldValue<byte[]>(propertiesOrdinal)
-                                .AsMemory()),
+                    : _serializer.Deserialize<Dictionary<string, string>>(
+                        reader.GetFieldValue<byte[]>(propertiesOrdinal).AsMemory()
+                    ),
                 Time = reader.GetDateTime(enqueuedAtOrdinal),
             };
             yield return postgresMessage;

@@ -24,9 +24,11 @@ internal class BlobLockManager : ISingletonLockManager
         _lockScheme = lockScheme ?? new DefaultBlobLockScheme();
     }
 
-    public BlobLockManager(IStorageBusConfiguration configuration, IBlobLockScheme lockScheme = null) : this(configuration.ConnectionString, lockScheme)
-    {
-    }
+    public BlobLockManager(
+        IStorageBusConfiguration configuration,
+        IBlobLockScheme lockScheme = null
+    )
+        : this(configuration.ConnectionString, lockScheme) { }
 
     public Task InitializeAsync()
     {
@@ -38,11 +40,16 @@ internal class BlobLockManager : ISingletonLockManager
         return Task.CompletedTask;
     }
 
-    public async Task<ISingletonLockHandle> TryLockAsync(string lockId, TimeSpan lockPeriod, CancellationToken cancellationToken)
+    public async Task<ISingletonLockHandle> TryLockAsync(
+        string lockId,
+        TimeSpan lockPeriod,
+        CancellationToken cancellationToken
+    )
     {
         var blob = _client.GetBlobClient(Path.Combine(_lockScheme.Directory, lockId));
 
-        var lease = await TryAcquireLeaseAsync(blob, lockPeriod, cancellationToken).ConfigureAwait(false);
+        var lease = await TryAcquireLeaseAsync(blob, lockPeriod, cancellationToken)
+            .ConfigureAwait(false);
 
         if (lease == null)
         {
@@ -51,34 +58,48 @@ internal class BlobLockManager : ISingletonLockManager
 
         if (!string.IsNullOrEmpty(lease.LeaseId))
         {
-            await WriteLeaseBlobMetadata(blob, lease.LeaseId, lockId, cancellationToken).ConfigureAwait(false);
+            await WriteLeaseBlobMetadata(blob, lease.LeaseId, lockId, cancellationToken)
+                .ConfigureAwait(false);
         }
 
-        var lockHandle = new BlobLockHandle(lease.LeaseId, lockId, blob.GetBlobLeaseClient(lease.LeaseId), lockPeriod);
+        var lockHandle = new BlobLockHandle(
+            lease.LeaseId,
+            lockId,
+            blob.GetBlobLeaseClient(lease.LeaseId),
+            lockPeriod
+        );
 
         return lockHandle;
     }
 
-    private static async Task WriteLeaseBlobMetadata(BlobBaseClient blob, string leaseId, string functionInstanceId,
-        CancellationToken cancellationToken)
+    private static async Task WriteLeaseBlobMetadata(
+        BlobBaseClient blob,
+        string leaseId,
+        string functionInstanceId,
+        CancellationToken cancellationToken
+    )
     {
-        await blob.SetMetadataAsync(new Dictionary<string, string> { { "FunctionInstance", functionInstanceId } }, new BlobRequestConditions
-        {
-            LeaseId = leaseId
-        }, cancellationToken);
+        await blob.SetMetadataAsync(
+            new Dictionary<string, string> { { "FunctionInstance", functionInstanceId } },
+            new BlobRequestConditions { LeaseId = leaseId },
+            cancellationToken
+        );
     }
 
     private static async Task<BlobLease> TryAcquireLeaseAsync(
         BlobClient blob,
         TimeSpan leasePeriod,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var leaseClient = blob.GetBlobLeaseClient();
         try
         {
             // Optimistically try to acquire the lease. The blob may not yet
             // exist. If it doesn't we handle the 404, create it, and retry below
-            return await leaseClient.AcquireAsync(leasePeriod, cancellationToken: cancellationToken).ConfigureAwait(false);
+            return await leaseClient
+                .AcquireAsync(leasePeriod, cancellationToken: cancellationToken)
+                .ConfigureAwait(false);
         }
         catch (RequestFailedException exception)
         {
@@ -98,7 +119,9 @@ internal class BlobLockManager : ISingletonLockManager
 
         try
         {
-            return await leaseClient.AcquireAsync(leasePeriod, cancellationToken: cancellationToken).ConfigureAwait(false);
+            return await leaseClient
+                .AcquireAsync(leasePeriod, cancellationToken: cancellationToken)
+                .ConfigureAwait(false);
         }
         catch (RequestFailedException exception)
         {
@@ -111,7 +134,10 @@ internal class BlobLockManager : ISingletonLockManager
         }
     }
 
-    private static async Task<bool> TryCreateAsync(BlobClient blob, CancellationToken cancellationToken)
+    private static async Task<bool> TryCreateAsync(
+        BlobClient blob,
+        CancellationToken cancellationToken
+    )
     {
         try
         {
@@ -141,7 +167,9 @@ internal class BlobLockManager : ISingletonLockManager
         var container = blob.GetParentBlobContainerClient();
         try
         {
-            await container.CreateIfNotExistsAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+            await container
+                .CreateIfNotExistsAsync(cancellationToken: cancellationToken)
+                .ConfigureAwait(false);
         }
         catch (RequestFailedException exc)
             when (exc.Status == 409 && exc.ErrorCode == BlobErrorCode.ContainerBeingDeleted)

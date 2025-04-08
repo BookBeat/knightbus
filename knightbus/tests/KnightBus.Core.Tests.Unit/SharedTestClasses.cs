@@ -18,11 +18,11 @@ public class TestService : ITestService
     {
         _scopeId = Guid.NewGuid();
     }
+
     public Guid GetScopeIdentifier()
     {
         return _scopeId;
     }
-
 }
 
 public interface ICountable
@@ -30,10 +30,7 @@ public interface ICountable
     void Count();
 }
 
-public class TestMessage : ICommand
-{
-
-}
+public class TestMessage : ICommand { }
 
 public class TestMessageSettings : IProcessingSettings
 {
@@ -43,7 +40,6 @@ public class TestMessageSettings : IProcessingSettings
     public int PrefetchCount { get; set; }
 }
 
-
 public class TestCommandHandler : IProcessCommand<TestMessage, TestMessageSettings>
 {
     private readonly ICountable _countable;
@@ -52,6 +48,7 @@ public class TestCommandHandler : IProcessCommand<TestMessage, TestMessageSettin
     {
         _countable = countable;
     }
+
     public Task ProcessAsync(TestMessage message, CancellationToken cancellationToken)
     {
         _countable.Count();

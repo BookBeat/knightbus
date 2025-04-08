@@ -7,15 +7,19 @@ namespace KnightBus.Nats;
 
 public class NatsTransport : ITransport
 {
-    public NatsTransport(string connectionString) : this(new NatsConfiguration { ConnectionString = connectionString })
-    {
+    public NatsTransport(string connectionString)
+        : this(new NatsConfiguration { ConnectionString = connectionString }) { }
 
-    }
     public NatsTransport(INatsConfiguration configuration)
     {
-        TransportChannelFactories = new ITransportChannelFactory[] { new NatsChannelFactory(configuration), };
+        TransportChannelFactories = new ITransportChannelFactory[]
+        {
+            new NatsChannelFactory(configuration),
+        };
     }
+
     public ITransportChannelFactory[] TransportChannelFactories { get; }
+
     public ITransport ConfigureChannels(ITransportConfiguration configuration)
     {
         foreach (var channelFactory in TransportChannelFactories)

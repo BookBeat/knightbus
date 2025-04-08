@@ -7,13 +7,18 @@ using KnightBus.Messages;
 
 namespace KnightBus.Azure.Storage;
 
-internal class StorageQueueMessageStateHandler<T> : IMessageStateHandler<T>, IMessageLockHandler<T> where T : class, IMessage
+internal class StorageQueueMessageStateHandler<T> : IMessageStateHandler<T>, IMessageLockHandler<T>
+    where T : class, IMessage
 {
     private readonly IStorageQueueClient _queueClient;
     private readonly StorageQueueMessage _message;
 
-
-    public StorageQueueMessageStateHandler(IStorageQueueClient queueClient, StorageQueueMessage message, int deadLetterDeliveryLimit, IDependencyInjection messageScope)
+    public StorageQueueMessageStateHandler(
+        IStorageQueueClient queueClient,
+        StorageQueueMessage message,
+        int deadLetterDeliveryLimit,
+        IDependencyInjection messageScope
+    )
     {
         DeadLetterDeliveryLimit = deadLetterDeliveryLimit;
         MessageScope = messageScope;
@@ -50,7 +55,8 @@ internal class StorageQueueMessageStateHandler<T> : IMessageStateHandler<T>, IMe
 
     public Task DeadLetterAsync(int deadLetterLimit)
     {
-        _message.Properties["MaxDeliveryCountExceeded"] = $"DeliveryCount exceeded limit of {DeadLetterDeliveryLimit}";
+        _message.Properties["MaxDeliveryCountExceeded"] =
+            $"DeliveryCount exceeded limit of {DeadLetterDeliveryLimit}";
         return _queueClient.DeadLetterAsync(_message);
     }
 

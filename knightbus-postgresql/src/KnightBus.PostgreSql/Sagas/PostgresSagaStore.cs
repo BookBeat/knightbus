@@ -14,7 +14,11 @@ public class PostgresSagaStore : ISagaStore
 
     private const string Table = "sagas";
 
-    public PostgresSagaStore([FromKeyedServices(PostgresConstants.NpgsqlDataSourceContainerKey)] NpgsqlDataSource npgsqlDataSource, IPostgresConfiguration configuration)
+    public PostgresSagaStore(
+        [FromKeyedServices(PostgresConstants.NpgsqlDataSourceContainerKey)]
+            NpgsqlDataSource npgsqlDataSource,
+        IPostgresConfiguration configuration
+    )
     {
         _npgsqlDataSource = npgsqlDataSource;
         _serializer = configuration.MessageSerializer;
@@ -23,15 +27,15 @@ public class PostgresSagaStore : ISagaStore
     private async Task CreateSagaTable()
     {
         const string query = $"""
-                              CREATE SCHEMA IF NOT EXISTS {SchemaName};
-                              CREATE TABLE IF NOT EXISTS {SchemaName}.{Table} (
-                                  partition_key TEXT NOT NULL,
-                                  id TEXT NOT NULL,
-                                  data BYTEA NOT NULL,
-                                  expiration TIMESTAMP WITH TIME ZONE NOT NULL,
-                                  PRIMARY KEY (partition_key, id)
-                              );
-                              """;
+            CREATE SCHEMA IF NOT EXISTS {SchemaName};
+            CREATE TABLE IF NOT EXISTS {SchemaName}.{Table} (
+                partition_key TEXT NOT NULL,
+                id TEXT NOT NULL,
+                data BYTEA NOT NULL,
+                expiration TIMESTAMP WITH TIME ZONE NOT NULL,
+                PRIMARY KEY (partition_key, id)
+            );
+            """;
         await using var command = _npgsqlDataSource.CreateCommand(query);
         await command.ExecuteNonQueryAsync(CancellationToken.None);
     }
@@ -50,9 +54,12 @@ public class PostgresSagaStore : ISagaStore
         {
             await command.PrepareAsync(ct);
             await using var reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
-            if (!await reader.ReadAsync(ct).ConfigureAwait(false)) throw new SagaNotFoundException(partitionKey, id);
+            if (!await reader.ReadAsync(ct).ConfigureAwait(false))
+                throw new SagaNotFoundException(partitionKey, id);
 
-            var bytes = await reader.GetFieldValueAsync<ReadOnlyMemory<byte>>(0, ct).ConfigureAwait(false);
+            var bytes = await reader
+                .GetFieldValueAsync<ReadOnlyMemory<byte>>(0, ct)
+                .ConfigureAwait(false);
             var data = _serializer.Deserialize<T>(bytes);
             return new SagaData<T> { Data = data };
         }
@@ -63,23 +70,32 @@ public class PostgresSagaStore : ISagaStore
         }
     }
 
-    public async Task<SagaData<T>> Create<T>(string partitionKey, string id, T sagaData, TimeSpan ttl,
-        CancellationToken ct)
+    public async Task<SagaData<T>> Create<T>(
+        string partitionKey,
+        string id,
+        T sagaData,
+        TimeSpan ttl,
+        CancellationToken ct
+    )
     {
         const string query = $"""
-                              INSERT INTO {SchemaName}.{Table} (partition_key, id, data, expiration) VALUES ($1, $2, $3, $4)
-                              ON CONFLICT (partition_key, id) DO UPDATE SET
-                                  data = EXCLUDED.data,
-                                  expiration = EXCLUDED.expiration
-                              WHERE {SchemaName}.{Table}.expiration < $5;
-                              """;
+            INSERT INTO {SchemaName}.{Table} (partition_key, id, data, expiration) VALUES ($1, $2, $3, $4)
+            ON CONFLICT (partition_key, id) DO UPDATE SET
+                data = EXCLUDED.data,
+                expiration = EXCLUDED.expiration
+            WHERE {SchemaName}.{Table}.expiration < $5;
+            """;
         await using var connection = await _npgsqlDataSource.OpenConnectionAsync(ct);
         await using var command = new NpgsqlCommand(query, connection);
 
         command.Parameters.Add(new NpgsqlParameter<string> { TypedValue = partitionKey });
         command.Parameters.Add(new NpgsqlParameter<string> { TypedValue = id });
-        command.Parameters.Add(new NpgsqlParameter<byte[]> { TypedValue = _serializer.Serialize<T>(sagaData) });
-        command.Parameters.Add(new NpgsqlParameter<DateTime> { TypedValue = DateTime.UtcNow.Add(ttl) });
+        command.Parameters.Add(
+            new NpgsqlParameter<byte[]> { TypedValue = _serializer.Serialize<T>(sagaData) }
+        );
+        command.Parameters.Add(
+            new NpgsqlParameter<DateTime> { TypedValue = DateTime.UtcNow.Add(ttl) }
+        );
         command.Parameters.Add(new NpgsqlParameter<DateTime> { TypedValue = DateTime.UtcNow });
 
         try
@@ -87,7 +103,8 @@ public class PostgresSagaStore : ISagaStore
             await command.PrepareAsync(ct);
             var affectedRows = await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
 
-            if (affectedRows != 1) throw new SagaAlreadyStartedException(partitionKey, id);
+            if (affectedRows != 1)
+                throw new SagaAlreadyStartedException(partitionKey, id);
             return new SagaData<T> { Data = sagaData };
         }
         catch (PostgresException e) when (e.SqlState == PostgresErrorCodes.UndefinedTable)
@@ -101,9 +118,15 @@ public class PostgresSagaStore : ISagaStore
         }
     }
 
-    public async Task Update<T>(string partitionKey, string id, SagaData<T> sagaData, CancellationToken ct)
+    public async Task Update<T>(
+        string partitionKey,
+        string id,
+        SagaData<T> sagaData,
+        CancellationToken ct
+    )
     {
-        const string query = $"UPDATE {SchemaName}.{Table} SET data = $1 WHERE partition_key = $2 AND id = $3";
+        const string query =
+            $"UPDATE {SchemaName}.{Table} SET data = $1 WHERE partition_key = $2 AND id = $3";
 
         await using var connection = await _npgsqlDataSource.OpenConnectionAsync(ct);
         await using var command = new NpgsqlCommand(query, connection);
@@ -116,7 +139,8 @@ public class PostgresSagaStore : ISagaStore
         {
             await command.PrepareAsync(ct);
             var affectedRows = await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
-            if (affectedRows != 1) throw new SagaNotFoundException(partitionKey, id);
+            if (affectedRows != 1)
+                throw new SagaNotFoundException(partitionKey, id);
         }
         catch (PostgresException e) when (e.SqlState == PostgresErrorCodes.UndefinedTable)
         {
@@ -125,9 +149,15 @@ public class PostgresSagaStore : ISagaStore
         }
     }
 
-    public async Task Complete<T>(string partitionKey, string id, SagaData<T> sagaData, CancellationToken ct)
+    public async Task Complete<T>(
+        string partitionKey,
+        string id,
+        SagaData<T> sagaData,
+        CancellationToken ct
+    )
     {
-        const string query = $"DELETE FROM {SchemaName}.{Table} WHERE partition_key = $1 AND id = $2";
+        const string query =
+            $"DELETE FROM {SchemaName}.{Table} WHERE partition_key = $1 AND id = $2";
         await using var connection = await _npgsqlDataSource.OpenConnectionAsync(ct);
         await using var command = new NpgsqlCommand(query, connection);
         command.Parameters.Add(new NpgsqlParameter<string> { TypedValue = partitionKey });
@@ -137,7 +167,8 @@ public class PostgresSagaStore : ISagaStore
         {
             await command.PrepareAsync(ct);
             var affectedRows = await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
-            if (affectedRows != 1) throw new SagaNotFoundException(partitionKey, id);
+            if (affectedRows != 1)
+                throw new SagaNotFoundException(partitionKey, id);
         }
         catch (PostgresException e) when (e.SqlState == PostgresErrorCodes.UndefinedTable)
         {
@@ -148,7 +179,8 @@ public class PostgresSagaStore : ISagaStore
 
     public async Task Delete(string partitionKey, string id, CancellationToken ct)
     {
-        const string query = $"DELETE FROM {SchemaName}.{Table} WHERE partition_key = $1 AND id = $2";
+        const string query =
+            $"DELETE FROM {SchemaName}.{Table} WHERE partition_key = $1 AND id = $2";
         await using var connection = await _npgsqlDataSource.OpenConnectionAsync(ct);
         await using var command = new NpgsqlCommand(query, connection);
         command.Parameters.Add(new NpgsqlParameter<string> { TypedValue = partitionKey });
@@ -158,7 +190,8 @@ public class PostgresSagaStore : ISagaStore
         {
             await command.PrepareAsync(ct);
             var affectedRows = await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
-            if (affectedRows != 1) throw new SagaNotFoundException(partitionKey, id);
+            if (affectedRows != 1)
+                throw new SagaNotFoundException(partitionKey, id);
         }
         catch (PostgresException e) when (e.SqlState == PostgresErrorCodes.UndefinedTable)
         {

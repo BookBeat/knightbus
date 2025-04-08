@@ -22,7 +22,8 @@ internal class Program
     {
         var storageConnection = "UseDevelopmentStorage=true";
 
-        var knightBus = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
+        var knightBus = Microsoft
+            .Extensions.Hosting.Host.CreateDefaultBuilder()
             .UseDefaultServiceProvider(options =>
             {
                 options.ValidateScopes = true;
@@ -30,7 +31,8 @@ internal class Program
             })
             .ConfigureServices(services =>
             {
-                services.UseBlobStorage(storageConnection)
+                services
+                    .UseBlobStorage(storageConnection)
                     .RegisterProcessors(typeof(SampleStorageBusMessage).Assembly)
                     //Allow message processors to run in Singleton state using Azure Blob Locks
                     .UseBlobStorageLockManager()
@@ -40,7 +42,8 @@ internal class Program
                     .UseBlobStorageSagas()
                     .UseDistributedTracing();
             })
-            .UseKnightBus().Build();
+            .UseKnightBus()
+            .Build();
 
         //Start the KnightBus Host, it will now connect to the StorageBus and listen to the SampleStorageBusMessageMapping.QueueName
         await knightBus.StartAsync(CancellationToken.None);
@@ -49,19 +52,27 @@ internal class Program
         var client = scope.ServiceProvider.GetRequiredService<IStorageBus>();
         await Task.Delay(TimeSpan.FromSeconds(10));
 
-
         //Send some Messages and watch them print in the console
         for (var i = 0; i < 10; i++)
         {
-            await client.SendAsync(new SampleStorageBusMessage
-            {
-                Message = $"Hello from command {i}",
-                Attachment = new MessageAttachment($"file{i}.txt", "text/plain",
-                    new MemoryStream(Encoding.UTF8.GetBytes($"this is a stream from Message {i}")))
-            });
+            await client.SendAsync(
+                new SampleStorageBusMessage
+                {
+                    Message = $"Hello from command {i}",
+                    Attachment = new MessageAttachment(
+                        $"file{i}.txt",
+                        "text/plain",
+                        new MemoryStream(
+                            Encoding.UTF8.GetBytes($"this is a stream from Message {i}")
+                        )
+                    ),
+                }
+            );
         }
 
-        await client.SendAsync(new SampleSagaStartMessage { Message = "This is a saga start message" });
+        await client.SendAsync(
+            new SampleSagaStartMessage { Message = "This is a saga start message" }
+        );
         Console.ReadKey();
     }
 
@@ -97,30 +108,40 @@ internal class Program
         public string QueueName => "your-saga-message";
     }
 
-    class SampleStorageBusMessageProcessor : IProcessCommand<SampleStorageBusMessage, SomeProcessingSetting>
+    class SampleStorageBusMessageProcessor
+        : IProcessCommand<SampleStorageBusMessage, SomeProcessingSetting>
     {
         private readonly IDistributedTracingProvider _distributedTracingProvider;
 
-        public SampleStorageBusMessageProcessor(IDistributedTracingProvider distributedTracingProvider)
+        public SampleStorageBusMessageProcessor(
+            IDistributedTracingProvider distributedTracingProvider
+        )
         {
             _distributedTracingProvider = distributedTracingProvider;
         }
-        public Task ProcessAsync(SampleStorageBusMessage message, CancellationToken cancellationToken)
+
+        public Task ProcessAsync(
+            SampleStorageBusMessage message,
+            CancellationToken cancellationToken
+        )
         {
             using (var streamReader = new StreamReader(message.Attachment.Stream))
             {
                 Console.WriteLine($"Received command: '{message.Message}'");
                 Console.WriteLine($"Attach file contents:'{streamReader.ReadToEnd()}'");
-                Console.WriteLine($"Trace id: {_distributedTracingProvider.GetProperties()[DistributedTracingUtility.TraceIdKey]}");
+                Console.WriteLine(
+                    $"Trace id: {_distributedTracingProvider.GetProperties()[DistributedTracingUtility.TraceIdKey]}"
+                );
             }
 
             return Task.CompletedTask;
         }
     }
 
-    class SampleSagaMessageProcessor : Saga<MySagaData>,
-        IProcessCommand<SampleSagaMessage, SomeProcessingSetting>,
-        IProcessCommand<SampleSagaStartMessage, SomeProcessingSetting>
+    class SampleSagaMessageProcessor
+        : Saga<MySagaData>,
+            IProcessCommand<SampleSagaMessage, SomeProcessingSetting>,
+            IProcessCommand<SampleSagaStartMessage, SomeProcessingSetting>
     {
         private readonly IStorageBus _storageBus;
 
@@ -135,13 +156,19 @@ internal class Program
         public override string PartitionKey => "sample-saga";
         public override TimeSpan TimeToLive => TimeSpan.FromHours(1);
 
-        public async Task ProcessAsync(SampleSagaStartMessage message, CancellationToken cancellationToken)
+        public async Task ProcessAsync(
+            SampleSagaStartMessage message,
+            CancellationToken cancellationToken
+        )
         {
             Console.WriteLine(message.Message);
             await _storageBus.SendAsync(new SampleSagaMessage());
         }
 
-        public async Task ProcessAsync(SampleSagaMessage message, CancellationToken cancellationToken)
+        public async Task ProcessAsync(
+            SampleSagaMessage message,
+            CancellationToken cancellationToken
+        )
         {
             Console.WriteLine($"Counter is {Data.Counter}");
             if (Data.Counter == 5)

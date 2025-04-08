@@ -2,7 +2,8 @@
 
 namespace KnightBus.Redis;
 
-public class RedisListItem<T> where T : IMessage
+public class RedisListItem<T>
+    where T : IMessage
 {
     public RedisListItem(string id, T body)
     {

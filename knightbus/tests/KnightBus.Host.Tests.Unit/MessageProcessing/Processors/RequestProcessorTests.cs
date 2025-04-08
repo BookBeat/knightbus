@@ -22,7 +22,11 @@ public class RequestProcessorTests
         var commandHandler = new Mock<IProcessMessage<TestRequest, Task<TestResponse>>>();
         var messageStateHandler = new Mock<IMessageStateHandler<TestRequest>>();
         messageStateHandler
-            .Setup(x => x.MessageScope.GetInstance<IProcessMessage<TestRequest, Task<TestResponse>>>(typeof(SingleRequestProcessor)))
+            .Setup(x =>
+                x.MessageScope.GetInstance<IProcessMessage<TestRequest, Task<TestResponse>>>(
+                    typeof(SingleRequestProcessor)
+                )
+            )
             .Returns(commandHandler.Object);
         messageStateHandler.Setup(x => x.GetMessage()).Returns(request);
         //act
@@ -40,7 +44,11 @@ public class RequestProcessorTests
         var commandHandler = new Mock<IProcessMessage<TestRequest, Task<TestResponse>>>();
         var messageStateHandler = new Mock<IMessageStateHandler<TestRequest>>();
         messageStateHandler
-            .Setup(x => x.MessageScope.GetInstance<IProcessMessage<TestRequest, Task<TestResponse>>>(typeof(SingleRequestProcessor)))
+            .Setup(x =>
+                x.MessageScope.GetInstance<IProcessMessage<TestRequest, Task<TestResponse>>>(
+                    typeof(SingleRequestProcessor)
+                )
+            )
             .Returns(commandHandler.Object);
         messageStateHandler.Setup(x => x.GetMessage()).Returns(request);
         //act
@@ -57,11 +65,16 @@ public class RequestProcessorTests
         var response = new TestResponse();
         var requestProcessor = new RequestProcessor<TestResponse>(typeof(SingleRequestProcessor));
         var commandHandler = new Mock<IProcessMessage<TestRequest, Task<TestResponse>>>();
-        commandHandler.Setup(x => x.ProcessAsync(request, CancellationToken.None))
+        commandHandler
+            .Setup(x => x.ProcessAsync(request, CancellationToken.None))
             .ReturnsAsync(response);
         var messageStateHandler = new Mock<IMessageStateHandler<TestRequest>>();
         messageStateHandler
-            .Setup(x => x.MessageScope.GetInstance<IProcessMessage<TestRequest, Task<TestResponse>>>(typeof(SingleRequestProcessor)))
+            .Setup(x =>
+                x.MessageScope.GetInstance<IProcessMessage<TestRequest, Task<TestResponse>>>(
+                    typeof(SingleRequestProcessor)
+                )
+            )
             .Returns(commandHandler.Object);
         messageStateHandler.Setup(x => x.GetMessage()).Returns(request);
         //act
@@ -77,16 +90,23 @@ public class RequestProcessorTests
         var request = new TestRequest();
         var requestProcessor = new RequestProcessor<TestResponse>(typeof(SingleRequestProcessor));
         var commandHandler = new Mock<IProcessMessage<TestRequest, Task<TestResponse>>>();
-        commandHandler.Setup(x => x.ProcessAsync(request, CancellationToken.None))
+        commandHandler
+            .Setup(x => x.ProcessAsync(request, CancellationToken.None))
             .ThrowsAsync(new Exception());
         var messageStateHandler = new Mock<IMessageStateHandler<TestRequest>>();
         messageStateHandler
-            .Setup(x => x.MessageScope.GetInstance<IProcessMessage<TestRequest, Task<TestResponse>>>(typeof(SingleRequestProcessor)))
+            .Setup(x =>
+                x.MessageScope.GetInstance<IProcessMessage<TestRequest, Task<TestResponse>>>(
+                    typeof(SingleRequestProcessor)
+                )
+            )
             .Returns(commandHandler.Object);
         messageStateHandler.Setup(x => x.GetMessage()).Returns(request);
         //act
-        requestProcessor.Awaiting(x => x.ProcessAsync(messageStateHandler.Object, CancellationToken.None))
-            .Should().ThrowAsync<Exception>();
+        requestProcessor
+            .Awaiting(x => x.ProcessAsync(messageStateHandler.Object, CancellationToken.None))
+            .Should()
+            .ThrowAsync<Exception>();
         //assert
         messageStateHandler.Verify(x => x.CompleteAsync(), Times.Never);
     }
@@ -99,16 +119,23 @@ public class RequestProcessorTests
         var response = new TestResponse();
         var requestProcessor = new RequestProcessor<TestResponse>(typeof(SingleRequestProcessor));
         var commandHandler = new Mock<IProcessMessage<TestRequest, Task<TestResponse>>>();
-        commandHandler.Setup(x => x.ProcessAsync(request, CancellationToken.None))
+        commandHandler
+            .Setup(x => x.ProcessAsync(request, CancellationToken.None))
             .ThrowsAsync(new Exception());
         var messageStateHandler = new Mock<IMessageStateHandler<TestRequest>>();
         messageStateHandler
-            .Setup(x => x.MessageScope.GetInstance<IProcessMessage<TestRequest, Task<TestResponse>>>(typeof(SingleRequestProcessor)))
+            .Setup(x =>
+                x.MessageScope.GetInstance<IProcessMessage<TestRequest, Task<TestResponse>>>(
+                    typeof(SingleRequestProcessor)
+                )
+            )
             .Returns(commandHandler.Object);
         messageStateHandler.Setup(x => x.GetMessage()).Returns(request);
         //act
-        requestProcessor.Awaiting(x => x.ProcessAsync(messageStateHandler.Object, CancellationToken.None))
-            .Should().ThrowAsync<Exception>();
+        requestProcessor
+            .Awaiting(x => x.ProcessAsync(messageStateHandler.Object, CancellationToken.None))
+            .Should()
+            .ThrowAsync<Exception>();
         //assert
         messageStateHandler.Verify(x => x.ReplyAsync(response), Times.Never);
     }

@@ -23,8 +23,14 @@ public class StorageQueueMessagePumpTests
         _storageQueueClient = new StorageQueueClient(
             new StorageBusConfiguration(StorageSetup.ConnectionString),
             new NewtonsoftSerializer(),
-            new[] { new AttachmentPreProcessor(new BlobStorageMessageAttachmentProvider(StorageSetup.ConnectionString)) },
-            $"{GetType().Name}-{DateTime.UtcNow.Ticks}".ToLower());
+            new[]
+            {
+                new AttachmentPreProcessor(
+                    new BlobStorageMessageAttachmentProvider(StorageSetup.ConnectionString)
+                ),
+            },
+            $"{GetType().Name}-{DateTime.UtcNow.Ticks}".ToLower()
+        );
         var settings = new TestMessageSettings();
         var log = new Mock<ILogger>();
         _pump = new StorageQueueMessagePump(_storageQueueClient, settings, log.Object);

@@ -7,7 +7,12 @@ namespace KnightBus.Core;
 
 public class MessageAttachment : IMessageAttachment
 {
-    public MessageAttachment(string filename, string contentType, Stream stream, Dictionary<string,string> metadata = null)
+    public MessageAttachment(
+        string filename,
+        string contentType,
+        Stream stream,
+        Dictionary<string, string> metadata = null
+    )
     {
         Filename = filename;
         ContentType = contentType;
@@ -17,10 +22,9 @@ public class MessageAttachment : IMessageAttachment
         {
             Length = stream?.Length ?? 0;
         }
-        catch (NotSupportedException)
-        { }
-
+        catch (NotSupportedException) { }
     }
+
     public string Filename { get; protected set; }
     public string ContentType { get; protected set; }
     public long Length { get; protected set; }
