@@ -23,7 +23,7 @@ public class BlobStorageMessageAttachmentProviderTests
     public async Task UploadAttachmentAsync_SavesMetadataToBlob()
     {
         // Arrange
-        var ms = new MemoryStream();
+        using var ms = new MemoryStream();
         var metadata = new Dictionary<string, string> { { "key", "value" }, { "supports-uf8-values", "åäö ÅÄÖ hej" }, { BlobStorageMessageAttachmentProvider.FileNameKey, "blabla" }, };
         var attachment = new MessageAttachment("filename.csv", MediaTypeNames.Text.Csv, ms, metadata);
         var id = Guid.NewGuid().ToString("N");
