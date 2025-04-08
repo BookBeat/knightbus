@@ -24,10 +24,10 @@ public class BlobStorageMessageAttachmentProviderTests
     {
         // Arrange
         var ms = new MemoryStream();
-        var metadata = new Dictionary<string, string> { { "key", "value" }, { BlobStorageMessageAttachmentProvider.FileNameKey, "blabla" }, };
+        var metadata = new Dictionary<string, string> { { "key", "value" }, { "supports-uf8-values", "åäö ÅÄÖ hej" }, { BlobStorageMessageAttachmentProvider.FileNameKey, "blabla" }, };
         var attachment = new MessageAttachment("filename.csv", MediaTypeNames.Text.Csv, ms, metadata);
         var id = Guid.NewGuid().ToString("N");
-        
+
         // Act
         await _target.UploadAttachmentAsync("queue", id, attachment);
         
@@ -36,6 +36,7 @@ public class BlobStorageMessageAttachmentProviderTests
         result.Metadata.Should().BeEquivalentTo(new Dictionary<string,string>
         {
             { "key", "value"},
+            { "supports-uf8-values", "åäö ÅÄÖ hej" },
             { BlobStorageMessageAttachmentProvider.FileNameKey, "filename.csv" }
         });
     }

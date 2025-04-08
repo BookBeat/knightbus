@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Azure;
@@ -14,6 +16,7 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
 {
     private readonly string _connectionString;
     internal const string FileNameKey = "Filename";
+    private static readonly HashSet<string> Keys = [FileNameKey];
 
     public BlobStorageMessageAttachmentProvider(string connectionString)
     {
@@ -33,7 +36,7 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
             properties.Value.Metadata[FileNameKey],
             properties.Value.ContentType,
             await blob.OpenReadAsync(cancellationToken: cancellationToken).ConfigureAwait(false),
-            properties.Value.Metadata.ToDictionary()
+            properties.Value.Metadata.ToDictionary(x => x.Key, x => Keys.Contains(x.Key) ? x.Value : FromBase64(x.Value))
         );
     }
 
@@ -43,8 +46,12 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
         try
         {
             var requiredMetadata = new Dictionary<string, string> { { FileNameKey, attachment.Filename } };
-            var metadata = new Dictionary<string, string>(attachment.Metadata);
-            requiredMetadata.ToList().ForEach(x => metadata[x.Key] = x.Value); // Merge the dictionaries, on collisions, override keys in attachment's metadata with requiredMetadata
+            var userMetadata = attachment.Metadata.ToDictionary(
+                x => x.Key,
+                x => ToBase64(x.Value));
+
+            var metadata = new Dictionary<string, string>(userMetadata);
+            requiredMetadata.ToList().ForEach(x => metadata[x.Key] = x.Value); // Merge the dictionaries, on collisions, override keys in user's metadata with requiredMetadata
             
             await blob.UploadAsync(attachment.Stream, new BlobHttpHeaders { ContentType = attachment.ContentType }, metadata, cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
@@ -78,4 +85,8 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
             return false;
         }
     }
+    
+    private static string ToBase64(string str) => Convert.ToBase64String(Encoding.UTF8.GetBytes(str));
+    private static string FromBase64(string str) => Encoding.UTF8.GetString(Convert.FromBase64String(str));
+
 }
