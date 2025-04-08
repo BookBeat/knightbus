@@ -54,6 +54,7 @@ UPDATE {SchemaName}.{_prefix}_{_queueName} t
         var messageIdOrdinal = reader.GetOrdinal("message_id");
         var readCountOrdinal = reader.GetOrdinal("read_count");
         var messageOrdinal = reader.GetOrdinal("message");
+        var enqueuedAtOrdinal = reader.GetOrdinal("enqueued_at");
 
         while (await reader.ReadAsync(ct).ConfigureAwait(false))
         {
@@ -71,7 +72,8 @@ UPDATE {SchemaName}.{_prefix}_{_queueName} t
                     : _serializer
                         .Deserialize<Dictionary<string, string>>(
                             reader.GetFieldValue<byte[]>(propertiesOrdinal)
-                                .AsMemory())
+                                .AsMemory()),
+                Time = reader.GetDateTime(enqueuedAtOrdinal),
             };
             yield return postgresMessage;
         }
@@ -137,6 +139,7 @@ LIMIT ($1);
         var propertiesOrdinal = reader.GetOrdinal("properties");
         var messageIdOrdinal = reader.GetOrdinal("message_id");
         var messageOrdinal = reader.GetOrdinal("message");
+        var enqueuedAtOrdinal = reader.GetOrdinal("enqueued_at");
 
         while (await reader.ReadAsync(ct).ConfigureAwait(false))
         {
@@ -153,7 +156,8 @@ LIMIT ($1);
                     : _serializer
                         .Deserialize<Dictionary<string, string>>(
                             reader.GetFieldValue<byte[]>(propertiesOrdinal)
-                                .AsMemory())
+                                .AsMemory()),
+                Time = reader.GetDateTime(enqueuedAtOrdinal),
             };
             yield return postgresMessage;
         }

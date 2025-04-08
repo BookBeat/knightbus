@@ -8,4 +8,5 @@ public class PostgresMessage<T> where T : class, IMessage
     public required T Message { get; init; }
     public int ReadCount { get; init; }
     public Dictionary<string, string> Properties { get; init; } = new();
+    public DateTimeOffset Time { get; init; }
 }

@@ -56,7 +56,7 @@ public class PostgresSubscriptionManager : IQueueManager
             result.Add(new QueueMessage(
                 Encoding.UTF8.GetString(_messageSerializer.Serialize(m.Message)),
                 error ?? string.Empty,
-                null,
+                m.Time,
                 null,
                 m.ReadCount,
                 m.Id.ToString(),
@@ -78,7 +78,7 @@ public class PostgresSubscriptionManager : IQueueManager
             result.Add(new QueueMessage(
                 Encoding.UTF8.GetString(_messageSerializer.Serialize(m.Message)),
                 error ?? string.Empty,
-                null,
+                m.Time,
                 null,
                 m.ReadCount,
                 m.Id.ToString(),
@@ -100,7 +100,7 @@ public class PostgresSubscriptionManager : IQueueManager
             result.Add(new QueueMessage(
                 Encoding.UTF8.GetString(_messageSerializer.Serialize(m.Message)),
                 error ?? string.Empty,
-                null,
+                m.Time,
                 null,
                 m.ReadCount,
                 m.Id.ToString(),
