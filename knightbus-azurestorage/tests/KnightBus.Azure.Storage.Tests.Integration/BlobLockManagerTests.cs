@@ -21,7 +21,7 @@ public class BlobLockManagerTests
     public async Task Should_create_new_lock()
     {
         //arrange
-        var lockManager = new BlobLockManager(AzuriteSetup.ConnectionString, new DefaultBlobLockScheme());
+        var lockManager = new BlobLockManager(StorageSetup.ConnectionString, new DefaultBlobLockScheme());
         await lockManager.InitializeAsync();
         var lockId = Guid.NewGuid().ToString();
         //act
@@ -37,7 +37,7 @@ public class BlobLockManagerTests
     public async Task Should_not_get_lease_when_already_locked()
     {
         //arrange
-        var lockManager = new BlobLockManager(AzuriteSetup.ConnectionString, new DefaultBlobLockScheme());
+        var lockManager = new BlobLockManager(StorageSetup.ConnectionString, new DefaultBlobLockScheme());
         await lockManager.InitializeAsync();
         var lockId = Guid.NewGuid().ToString();
         await lockManager.TryLockAsync(lockId, TimeSpan.FromMinutes(1), CancellationToken.None);
@@ -52,7 +52,7 @@ public class BlobLockManagerTests
     public async Task Should_release_lease()
     {
         //arrange
-        var lockManager = new BlobLockManager(AzuriteSetup.ConnectionString, new DefaultBlobLockScheme());
+        var lockManager = new BlobLockManager(StorageSetup.ConnectionString, new DefaultBlobLockScheme());
         await lockManager.InitializeAsync();
         var lockId = Guid.NewGuid().ToString();
         var handle = await lockManager.TryLockAsync(lockId, TimeSpan.FromMinutes(1), CancellationToken.None);
@@ -68,7 +68,7 @@ public class BlobLockManagerTests
     public async Task Should_renew_lease()
     {
         //arrange
-        var lockManager = new BlobLockManager(AzuriteSetup.ConnectionString, new DefaultBlobLockScheme());
+        var lockManager = new BlobLockManager(StorageSetup.ConnectionString, new DefaultBlobLockScheme());
         await lockManager.InitializeAsync();
         var lockId = Guid.NewGuid().ToString();
         var handle = await lockManager.TryLockAsync(lockId, TimeSpan.FromSeconds(15), CancellationToken.None);
@@ -84,7 +84,7 @@ public class BlobLockManagerTests
     public async Task Should_not_renew_expired_lease()
     {
         //arrange
-        var lockManager = new BlobLockManager(AzuriteSetup.ConnectionString, new DefaultBlobLockScheme());
+        var lockManager = new BlobLockManager(StorageSetup.ConnectionString, new DefaultBlobLockScheme());
         await lockManager.InitializeAsync();
         var lockId = Guid.NewGuid().ToString();
         var handle = await lockManager.TryLockAsync(lockId, TimeSpan.FromSeconds(15), CancellationToken.None);
