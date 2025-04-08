@@ -21,9 +21,9 @@ public class StorageQueueMessagePumpTests
     public void SetUp()
     {
         _storageQueueClient = new StorageQueueClient(
-            new StorageBusConfiguration("UseDevelopmentStorage=true"),
+            new StorageBusConfiguration(StorageSetup.ConnectionString),
             new NewtonsoftSerializer(),
-            new[] { new AttachmentPreProcessor(new BlobStorageMessageAttachmentProvider("UseDevelopmentStorage=true")) },
+            new[] { new AttachmentPreProcessor(new BlobStorageMessageAttachmentProvider(StorageSetup.ConnectionString)) },
             $"{GetType().Name}-{DateTime.UtcNow.Ticks}".ToLower());
         var settings = new TestMessageSettings();
         var log = new Mock<ILogger>();
