@@ -9,13 +9,13 @@ namespace KnightBus.SqlServer.Tests.Integration;
 public class SqlServerSetup
 {
     private const string DatabaseName = "KnightBus";
-    
+
     private static readonly IDatabaseContainer MsSql = new MsSqlBuilder()
         .WithPortBinding(14333, 1433)
         .Build();
 
     public static string ConnectionString;
-    
+
     [OneTimeSetUp]
     public async Task OneTimeSetup()
     {

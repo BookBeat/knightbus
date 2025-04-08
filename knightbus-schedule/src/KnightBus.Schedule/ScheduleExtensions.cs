@@ -13,14 +13,21 @@ public static class ScheduleExtensions
         return collection;
     }
 
-    public static IServiceCollection RegisterSchedules(this IServiceCollection collection, Assembly assembly)
+    public static IServiceCollection RegisterSchedules(
+        this IServiceCollection collection,
+        Assembly assembly
+    )
     {
         collection.RegisterGenericProcessor(typeof(IProcessSchedule<>), assembly);
         return collection;
     }
+
     public static IServiceCollection RegisterSchedules(this IServiceCollection collection)
     {
-        collection.RegisterGenericProcessor(typeof(IProcessSchedule<>), Assembly.GetCallingAssembly());
+        collection.RegisterGenericProcessor(
+            typeof(IProcessSchedule<>),
+            Assembly.GetCallingAssembly()
+        );
         return collection;
     }
 }

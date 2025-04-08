@@ -5,7 +5,11 @@ namespace KnightBus.Redis.Management;
 
 public static class RedisQueueExtensions
 {
-    public static IServiceCollection UseRedisManagement(this IServiceCollection services, string connectionString, int databaseId = 0)
+    public static IServiceCollection UseRedisManagement(
+        this IServiceCollection services,
+        string connectionString,
+        int databaseId = 0
+    )
     {
         services = services
             .AddScoped<RedisQueueManager>()

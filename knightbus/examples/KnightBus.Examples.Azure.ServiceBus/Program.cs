@@ -20,7 +20,8 @@ class Program
     {
         var serviceBusConnection = "your-connection-string";
 
-        var knightBus = global::Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
+        var knightBus = global::Microsoft
+            .Extensions.Hosting.Host.CreateDefaultBuilder()
             .UseDefaultServiceProvider(options =>
             {
                 options.ValidateScopes = true;
@@ -28,37 +29,55 @@ class Program
             })
             .ConfigureServices(services =>
             {
-                services.UseServiceBus(config => config.ConnectionString = serviceBusConnection)
+                services
+                    .UseServiceBus(config => config.ConnectionString = serviceBusConnection)
                     .RegisterProcessors(typeof(SampleServiceBusEventProcessor).Assembly)
                     .UseTransport<ServiceBusTransport>();
             })
-            .UseKnightBus().Build();
-
+            .UseKnightBus()
+            .Build();
 
         //Start the KnightBus Host, it will now connect to the ServiceBus and listen to the SampleServiceBusMessageMapping.QueueName
         await knightBus.StartAsync(CancellationToken.None);
 
         //Initiate the client
-        var client = new KnightBus.Azure.ServiceBus.ServiceBus(new ServiceBusConfiguration(serviceBusConnection)
-        { MessageSerializer = new NewtonsoftSerializer() }, new ClientFactory(new ServiceBusConfiguration(serviceBusConnection)), Enumerable.Empty<IMessagePreProcessor>());
-        var jsonClient = new KnightBus.Azure.ServiceBus.ServiceBus(new ServiceBusConfiguration(serviceBusConnection), new ClientFactory(new ServiceBusConfiguration(serviceBusConnection)),
-            Enumerable.Empty<IMessagePreProcessor>());
-        var managementClient =
-            new KnightBus.Azure.ServiceBus.Management.ServiceBusQueueManager(
-                new ServiceBusConfiguration(serviceBusConnection));
+        var client = new KnightBus.Azure.ServiceBus.ServiceBus(
+            new ServiceBusConfiguration(serviceBusConnection)
+            {
+                MessageSerializer = new NewtonsoftSerializer(),
+            },
+            new ClientFactory(new ServiceBusConfiguration(serviceBusConnection)),
+            Enumerable.Empty<IMessagePreProcessor>()
+        );
+        var jsonClient = new KnightBus.Azure.ServiceBus.ServiceBus(
+            new ServiceBusConfiguration(serviceBusConnection),
+            new ClientFactory(new ServiceBusConfiguration(serviceBusConnection)),
+            Enumerable.Empty<IMessagePreProcessor>()
+        );
+        var managementClient = new KnightBus.Azure.ServiceBus.Management.ServiceBusQueueManager(
+            new ServiceBusConfiguration(serviceBusConnection)
+        );
 
         //Send some Messages and watch them print in the console
         for (var i = 0; i < 10; i++)
         {
-            await client.SendAsync(new SampleServiceBusMessage { Message = $"Hello from command {i}" });
+            await client.SendAsync(
+                new SampleServiceBusMessage { Message = $"Hello from command {i}" }
+            );
         }
         for (var i = 0; i < 10; i++)
         {
-            await jsonClient.PublishEventAsync(new SampleServiceBusEvent { Message = $"Hello from event {i}" });
+            await jsonClient.PublishEventAsync(
+                new SampleServiceBusEvent { Message = $"Hello from event {i}" }
+            );
         }
 
         // Send a message with management client
-        await managementClient.SendMessage("other-queue", "{\"SomeProperty\": \"hello, world!\"}", default);
+        await managementClient.SendMessage(
+            "other-queue",
+            "{\"SomeProperty\": \"hello, world!\"}",
+            default
+        );
 
         Console.ReadKey();
     }
@@ -83,7 +102,9 @@ class Program
         public string QueueName => "other-queue";
     }
 
-    class SampleServiceBusMessageMapping : IMessageMapping<SampleServiceBusMessage>, IServiceBusCreationOptions
+    class SampleServiceBusMessageMapping
+        : IMessageMapping<SampleServiceBusMessage>,
+            IServiceBusCreationOptions
     {
         public string QueueName => "your-queue";
         public bool EnablePartitioning => true;
@@ -96,12 +117,15 @@ class Program
         public string QueueName => "your-topic";
     }
 
-    class SampleServiceBusMessageProcessor :
-        IProcessCommand<SampleServiceBusMessage, SomeProcessingSetting>,
-        IProcessCommand<OtherSampleServiceBusMessage, SomeProcessingSetting>,
-        IProcessEvent<SampleServiceBusEvent, EventSubscriptionOne, SomeProcessingSetting>
+    class SampleServiceBusMessageProcessor
+        : IProcessCommand<SampleServiceBusMessage, SomeProcessingSetting>,
+            IProcessCommand<OtherSampleServiceBusMessage, SomeProcessingSetting>,
+            IProcessEvent<SampleServiceBusEvent, EventSubscriptionOne, SomeProcessingSetting>
     {
-        public Task ProcessAsync(SampleServiceBusMessage message, CancellationToken cancellationToken)
+        public Task ProcessAsync(
+            SampleServiceBusMessage message,
+            CancellationToken cancellationToken
+        )
         {
             Console.WriteLine($"Received command: '{message.Message}'");
             return Task.CompletedTask;
@@ -113,16 +137,19 @@ class Program
             return Task.CompletedTask;
         }
 
-        public Task ProcessAsync(OtherSampleServiceBusMessage message, CancellationToken cancellationToken)
+        public Task ProcessAsync(
+            OtherSampleServiceBusMessage message,
+            CancellationToken cancellationToken
+        )
         {
             Console.WriteLine($"Received command: '{message.SomeProperty}'");
             return Task.CompletedTask;
         }
     }
 
-    class SampleServiceBusEventProcessor :
-        IProcessEvent<SampleServiceBusEvent, EventSubscriptionTwo, SomeProcessingSetting>,
-        IProcessBeforeDeadLetter<SampleServiceBusEvent>
+    class SampleServiceBusEventProcessor
+        : IProcessEvent<SampleServiceBusEvent, EventSubscriptionTwo, SomeProcessingSetting>,
+            IProcessBeforeDeadLetter<SampleServiceBusEvent>
     {
         public Task ProcessAsync(SampleServiceBusEvent message, CancellationToken cancellationToken)
         {
@@ -130,7 +157,10 @@ class Program
             throw new Exception("Trigger retry");
         }
 
-        public Task BeforeDeadLetterAsync(SampleServiceBusEvent message, CancellationToken cancellationToken)
+        public Task BeforeDeadLetterAsync(
+            SampleServiceBusEvent message,
+            CancellationToken cancellationToken
+        )
         {
             Console.WriteLine($"Dead lettering event: '{message.Message}'");
             return Task.CompletedTask;
@@ -154,5 +184,4 @@ class Program
         public TimeSpan MessageLockTimeout => TimeSpan.FromMinutes(5);
         public int DeadLetterDeliveryLimit => 2;
     }
-
 }

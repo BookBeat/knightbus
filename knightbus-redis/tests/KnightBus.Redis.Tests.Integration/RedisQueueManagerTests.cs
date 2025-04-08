@@ -27,7 +27,10 @@ public class RedisQueueManagerTests : QueueManagerTests<TestCommand>
         QueueType = QueueType.Queue;
         _bus = new RedisBus(Configuration.ConnectionString, Array.Empty<IMessagePreProcessor>());
         var queues = await QueueManager.List(CancellationToken.None);
-        await QueueManager.Delete(AutoMessageMapper.GetQueueName<TestCommand>(), CancellationToken.None);
+        await QueueManager.Delete(
+            AutoMessageMapper.GetQueueName<TestCommand>(),
+            CancellationToken.None
+        );
         foreach (var queue in queues)
         {
             await QueueManager.Delete(queue.Name, CancellationToken.None);
@@ -37,7 +40,9 @@ public class RedisQueueManagerTests : QueueManagerTests<TestCommand>
     public override async Task<string> CreateQueue()
     {
         var queueName = Guid.NewGuid().ToString("N");
-        await Database.SetAddAsync(RedisQueueConventions.QueueListKey, queueName).ConfigureAwait(false);
+        await Database
+            .SetAddAsync(RedisQueueConventions.QueueListKey, queueName)
+            .ConfigureAwait(false);
         return queueName;
     }
 
@@ -47,10 +52,24 @@ public class RedisQueueManagerTests : QueueManagerTests<TestCommand>
         return AutoMessageMapper.GetQueueName<TestCommand>();
     }
 
-    public override async Task<IMessageStateHandler<TestCommand>> GetMessageStateHandler(string queueName)
+    public override async Task<IMessageStateHandler<TestCommand>> GetMessageStateHandler(
+        string queueName
+    )
     {
-        var q = new RedisQueueClient<TestCommand>(Database, queueName, Configuration.MessageSerializer, Mock.Of<ILogger>());
+        var q = new RedisQueueClient<TestCommand>(
+            Database,
+            queueName,
+            Configuration.MessageSerializer,
+            Mock.Of<ILogger>()
+        );
         var m = await q.GetMessagesAsync(1);
-        return new RedisMessageStateHandler<TestCommand>(Multiplexer, Configuration, m.First(), 5, null, Mock.Of<ILogger>());
+        return new RedisMessageStateHandler<TestCommand>(
+            Multiplexer,
+            Configuration,
+            m.First(),
+            5,
+            null,
+            Mock.Of<ILogger>()
+        );
     }
 }

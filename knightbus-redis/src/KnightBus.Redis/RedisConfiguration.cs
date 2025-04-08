@@ -11,13 +11,13 @@ public interface IRedisConfiguration : ITransportConfiguration
 
 public class RedisConfiguration : IRedisConfiguration
 {
-    public RedisConfiguration()
-    {
-    }
+    public RedisConfiguration() { }
+
     public RedisConfiguration(string connectionString)
     {
         ConnectionString = connectionString;
     }
+
     public string ConnectionString { get; set; }
     public IMessageSerializer MessageSerializer { get; set; } = new NewtonsoftSerializer();
     public int DatabaseId { get; set; }

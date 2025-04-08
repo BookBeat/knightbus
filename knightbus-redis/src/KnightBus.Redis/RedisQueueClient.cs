@@ -10,16 +10,23 @@ using StackExchange.Redis;
 
 [assembly: InternalsVisibleTo("KnightBus.Redis.Tests.Integration")]
 [assembly: InternalsVisibleTo("KnightBus.Redis.Tests.Unit")]
+
 namespace KnightBus.Redis;
 
-internal class RedisQueueClient<T> where T : class, IMessage
+internal class RedisQueueClient<T>
+    where T : class, IMessage
 {
     private readonly string _queueName;
     private readonly IDatabase _db;
     private readonly IMessageSerializer _serializer;
     private readonly ILogger _log;
 
-    internal RedisQueueClient(IDatabase db, string queueName, IMessageSerializer serializer, ILogger log)
+    internal RedisQueueClient(
+        IDatabase db,
+        string queueName,
+        IMessageSerializer serializer,
+        ILogger log
+    )
     {
         _db = db;
         _queueName = queueName;
@@ -35,7 +42,9 @@ internal class RedisQueueClient<T> where T : class, IMessage
             count = (int)queueMessageCount;
 
         var cts = new CancellationTokenSource();
-        var messages = await Task.WhenAll(Enumerable.Range(0, count).Select(i => GetMessageAsync(cts)))
+        var messages = await Task.WhenAll(
+                Enumerable.Range(0, count).Select(i => GetMessageAsync(cts))
+            )
             .ContinueWith(t =>
             {
                 cts.Dispose();
@@ -48,11 +57,16 @@ internal class RedisQueueClient<T> where T : class, IMessage
 
     private async Task<RedisMessage<T>> GetMessageAsync(CancellationTokenSource cancellationsSource)
     {
-        if (cancellationsSource.IsCancellationRequested) return null;
+        if (cancellationsSource.IsCancellationRequested)
+            return null;
 
         try
         {
-            byte[] listItem = await _db.ListRightPopLeftPushAsync(_queueName, RedisQueueConventions.GetProcessingQueueName(_queueName)).ConfigureAwait(false);
+            byte[] listItem = await _db.ListRightPopLeftPushAsync(
+                    _queueName,
+                    RedisQueueConventions.GetProcessingQueueName(_queueName)
+                )
+                .ConfigureAwait(false);
             if (listItem == null)
             {
                 cancellationsSource.Cancel();
@@ -64,8 +78,12 @@ internal class RedisQueueClient<T> where T : class, IMessage
 
             var tasks = new Task[]
             {
-                _db.HashSetAsync(hashKey, RedisHashKeys.LastProcessed, DateTimeOffset.Now.ToUnixTimeMilliseconds()),
-                _db.HashIncrementAsync(hashKey, RedisHashKeys.DeliveryCount)
+                _db.HashSetAsync(
+                    hashKey,
+                    RedisHashKeys.LastProcessed,
+                    DateTimeOffset.Now.ToUnixTimeMilliseconds()
+                ),
+                _db.HashIncrementAsync(hashKey, RedisHashKeys.DeliveryCount),
             };
             await Task.WhenAll(tasks).ConfigureAwait(false);
             var hash = await _db.HashGetAllAsync(hashKey).ConfigureAwait(false);
@@ -87,16 +105,33 @@ internal class RedisQueueClient<T> where T : class, IMessage
     internal async Task<bool> RequeueDeadletterAsync()
     {
         var deadLetterQueueName = RedisQueueConventions.GetDeadLetterQueueName(_queueName);
-        var deadLetterProcessingQueueName = RedisQueueConventions.GetProcessingQueueName(deadLetterQueueName);
+        var deadLetterProcessingQueueName = RedisQueueConventions.GetProcessingQueueName(
+            deadLetterQueueName
+        );
 
-        byte[] listItem = await _db.ListRightPopLeftPushAsync(deadLetterQueueName, deadLetterProcessingQueueName).ConfigureAwait(false);
-        if (listItem == null) return false;
+        byte[] listItem = await _db.ListRightPopLeftPushAsync(
+                deadLetterQueueName,
+                deadLetterProcessingQueueName
+            )
+            .ConfigureAwait(false);
+        if (listItem == null)
+            return false;
         var message = _serializer.Deserialize<RedisListItem<T>>(listItem.AsSpan());
         var hashKey = RedisQueueConventions.GetMessageHashKey(_queueName, message.Id);
 
-        await _db.HashDeleteAsync(hashKey, [RedisHashKeys.LastProcessed, RedisHashKeys.DeliveryCount]).ConfigureAwait(false);
-        await _db.ListRightPopLeftPushAsync(deadLetterProcessingQueueName, _queueName).ConfigureAwait(false);
-        await _db.PublishAsync(new RedisChannel(_queueName, RedisChannel.PatternMode.Literal), 0, CommandFlags.FireAndForget).ConfigureAwait(false);
+        await _db.HashDeleteAsync(
+                hashKey,
+                [RedisHashKeys.LastProcessed, RedisHashKeys.DeliveryCount]
+            )
+            .ConfigureAwait(false);
+        await _db.ListRightPopLeftPushAsync(deadLetterProcessingQueueName, _queueName)
+            .ConfigureAwait(false);
+        await _db.PublishAsync(
+                new RedisChannel(_queueName, RedisChannel.PatternMode.Literal),
+                0,
+                CommandFlags.FireAndForget
+            )
+            .ConfigureAwait(false);
         return true;
     }
 
@@ -119,7 +154,12 @@ internal class RedisQueueClient<T> where T : class, IMessage
     {
         return Task.WhenAll(
             _db.KeyDeleteAsync(message.HashKey),
-            _db.ListRemoveAsync(RedisQueueConventions.GetProcessingQueueName(_queueName), message.RedisValue, -1));
+            _db.ListRemoveAsync(
+                RedisQueueConventions.GetProcessingQueueName(_queueName),
+                message.RedisValue,
+                -1
+            )
+        );
     }
 
     internal Task AbandonMessageByErrorAsync(RedisMessage<T> message, Exception e)
@@ -127,19 +167,33 @@ internal class RedisQueueClient<T> where T : class, IMessage
         return Task.WhenAll(
             _db.HashSetAsync(message.HashKey, RedisHashKeys.Errors, $"{e.Message}\n{e.StackTrace}"),
             _db.ListLeftPushAsync(_queueName, message.RedisValue),
-            _db.ListRemoveAsync(RedisQueueConventions.GetProcessingQueueName(_queueName), message.RedisValue, -1));
+            _db.ListRemoveAsync(
+                RedisQueueConventions.GetProcessingQueueName(_queueName),
+                message.RedisValue,
+                -1
+            )
+        );
     }
 
     internal Task DeadletterMessageAsync(RedisMessage<T> message, int deadLetterLimit)
     {
         return Task.WhenAll(
-            _db.ListLeftPushAsync(RedisQueueConventions.GetDeadLetterQueueName(_queueName), message.RedisValue),
-            _db.ListRemoveAsync(RedisQueueConventions.GetProcessingQueueName(_queueName), message.RedisValue, -1));
+            _db.ListLeftPushAsync(
+                RedisQueueConventions.GetDeadLetterQueueName(_queueName),
+                message.RedisValue
+            ),
+            _db.ListRemoveAsync(
+                RedisQueueConventions.GetProcessingQueueName(_queueName),
+                message.RedisValue,
+                -1
+            )
+        );
     }
 
     internal async IAsyncEnumerable<RedisMessage<T>> PeekMessagesAsync(int limit)
     {
-        if (limit >= 1) limit--; //0 is the first element of the list, thus 0 will return 1
+        if (limit >= 1)
+            limit--; //0 is the first element of the list, thus 0 will return 1
 
         var values = await _db.ListRangeAsync(_queueName, 0, limit).ConfigureAwait(false);
 
@@ -154,13 +208,22 @@ internal class RedisQueueClient<T> where T : class, IMessage
 
     internal async IAsyncEnumerable<RedisDeadletter<T>> PeekDeadlettersAsync(int limit)
     {
-        if (limit >= 1) limit--; //0 is the first element of the list, thus 0 will return 1
+        if (limit >= 1)
+            limit--; //0 is the first element of the list, thus 0 will return 1
 
-        var values = await _db.ListRangeAsync(RedisQueueConventions.GetDeadLetterQueueName(_queueName), 0, limit).ConfigureAwait(false);
+        var values = await _db.ListRangeAsync(
+                RedisQueueConventions.GetDeadLetterQueueName(_queueName),
+                0,
+                limit
+            )
+            .ConfigureAwait(false);
 
         foreach (byte[] value in values)
         {
-            var deadletter = new RedisDeadletter<T> { Message = _serializer.Deserialize<RedisListItem<T>>(value.AsSpan()) };
+            var deadletter = new RedisDeadletter<T>
+            {
+                Message = _serializer.Deserialize<RedisListItem<T>>(value.AsSpan()),
+            };
             var hash = RedisQueueConventions.GetMessageHashKey(_queueName, deadletter.Message.Id);
             var hashes = await _db.HashGetAllAsync(hash).ConfigureAwait(false);
             deadletter.HashEntries = hashes.ToStringDictionary();
@@ -170,15 +233,25 @@ internal class RedisQueueClient<T> where T : class, IMessage
 
     internal async IAsyncEnumerable<RedisDeadletter<T>> ReadDeadlettersAsync(int limit)
     {
-        var values = await _db.ListRightPopAsync(RedisQueueConventions.GetDeadLetterQueueName(_queueName), limit).ConfigureAwait(false);
+        var values = await _db.ListRightPopAsync(
+                RedisQueueConventions.GetDeadLetterQueueName(_queueName),
+                limit
+            )
+            .ConfigureAwait(false);
 
         foreach (byte[] value in values)
         {
-            var deadLetter = new RedisDeadletter<T> { Message = _serializer.Deserialize<RedisListItem<T>>(value.AsSpan()) };
+            var deadLetter = new RedisDeadletter<T>
+            {
+                Message = _serializer.Deserialize<RedisListItem<T>>(value.AsSpan()),
+            };
             var hash = RedisQueueConventions.GetMessageHashKey(_queueName, deadLetter.Message.Id);
             var hashes = await _db.HashGetAllAsync(hash).ConfigureAwait(false);
             deadLetter.HashEntries = hashes.ToStringDictionary();
-            await _db.KeyDeleteAsync(RedisQueueConventions.GetMessageHashKey(_queueName, deadLetter.Message.Id)).ConfigureAwait(false);
+            await _db.KeyDeleteAsync(
+                    RedisQueueConventions.GetMessageHashKey(_queueName, deadLetter.Message.Id)
+                )
+                .ConfigureAwait(false);
             yield return deadLetter;
         }
     }
@@ -189,29 +262,41 @@ internal class RedisQueueClient<T> where T : class, IMessage
         var hash = RedisQueueConventions.GetMessageHashKey(_queueName, deadletter.Message.Id);
         return Task.WhenAll(
             _db.KeyDeleteAsync(hash),
-            _db.ListRemoveAsync(deadletterQueueName, _serializer.Serialize(deadletter.Message), -1));
+            _db.ListRemoveAsync(deadletterQueueName, _serializer.Serialize(deadletter.Message), -1)
+        );
     }
 
     internal async Task DeleteQueueAsync()
     {
-        await DeleteQueueAsync(RedisQueueConventions.GetProcessingQueueName(_queueName)).ConfigureAwait(false);
-        await DeleteQueueAsync(RedisQueueConventions.GetDeadLetterQueueName(_queueName)).ConfigureAwait(false);
+        await DeleteQueueAsync(RedisQueueConventions.GetProcessingQueueName(_queueName))
+            .ConfigureAwait(false);
+        await DeleteQueueAsync(RedisQueueConventions.GetDeadLetterQueueName(_queueName))
+            .ConfigureAwait(false);
         await DeleteQueueAsync(_queueName).ConfigureAwait(false);
 
-        await _db.SetRemoveAsync(RedisQueueConventions.QueueListKey, _queueName).ConfigureAwait(false);
+        await _db.SetRemoveAsync(RedisQueueConventions.QueueListKey, _queueName)
+            .ConfigureAwait(false);
     }
 
     private async Task DeleteQueueAsync(string path)
     {
         var numberOfMessages = await GetMessageCount(path);
-        if (numberOfMessages == 0) return;
+        if (numberOfMessages == 0)
+            return;
         var values = await _db.ListRightPopAsync(path, numberOfMessages).ConfigureAwait(false);
         // ReSharper disable once ConditionIsAlwaysTrueOrFalse
-        if (values == null) return;
+        if (values == null)
+            return;
         foreach (byte[] value in values)
         {
-            var message = new RedisDeadletter<T> { Message = _serializer.Deserialize<RedisListItem<T>>(value.AsSpan()) };
-            await _db.KeyDeleteAsync(RedisQueueConventions.GetMessageHashKey(_queueName, message.Message.Id)).ConfigureAwait(false);
+            var message = new RedisDeadletter<T>
+            {
+                Message = _serializer.Deserialize<RedisListItem<T>>(value.AsSpan()),
+            };
+            await _db.KeyDeleteAsync(
+                    RedisQueueConventions.GetMessageHashKey(_queueName, message.Message.Id)
+                )
+                .ConfigureAwait(false);
         }
 
         await _db.KeyDeleteAsync(path).ConfigureAwait(false);

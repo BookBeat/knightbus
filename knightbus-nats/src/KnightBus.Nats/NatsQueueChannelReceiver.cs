@@ -24,7 +24,14 @@ public class NatsQueueChannelReceiver<T> : IChannelReceiver
     private IConnection _connection;
     private readonly SemaphoreSlim _maxConcurrent;
 
-    public NatsQueueChannelReceiver(IProcessingSettings settings, IMessageSerializer serializer, IHostConfiguration hostConfiguration, IMessageProcessor processor, INatsConfiguration configuration, IEventSubscription subscription)
+    public NatsQueueChannelReceiver(
+        IProcessingSettings settings,
+        IMessageSerializer serializer,
+        IHostConfiguration hostConfiguration,
+        IMessageProcessor processor,
+        INatsConfiguration configuration,
+        IEventSubscription subscription
+    )
     {
         Settings = settings;
         _serializer = serializer;
@@ -34,8 +41,12 @@ public class NatsQueueChannelReceiver<T> : IChannelReceiver
         _subscription = subscription;
         _log = hostConfiguration.Log;
         _factory = new ConnectionFactory();
-        _maxConcurrent = new SemaphoreSlim(Settings.MaxConcurrentCalls, Settings.MaxConcurrentCalls);
+        _maxConcurrent = new SemaphoreSlim(
+            Settings.MaxConcurrentCalls,
+            Settings.MaxConcurrentCalls
+        );
     }
+
     public Task StartAsync(CancellationToken cancellationToken)
     {
         _cancellationToken = cancellationToken;
@@ -77,16 +88,19 @@ public class NatsQueueChannelReceiver<T> : IChannelReceiver
     {
         while (!_cancellationToken.IsCancellationRequested)
         {
-
             await _maxConcurrent.WaitAsync(_cancellationToken);
             try
             {
                 var msg = subscription.NextMessage();
                 var messageExpiration = new CancellationTokenSource(Settings.MessageLockTimeout);
-                var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(messageExpiration.Token, _cancellationToken);
+                var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(
+                    messageExpiration.Token,
+                    _cancellationToken
+                );
 
 #pragma warning disable CS4014
-                Task.Run(async () =>
+                Task.Run(
+                    async () =>
                     {
                         try
                         {
@@ -98,8 +112,9 @@ public class NatsQueueChannelReceiver<T> : IChannelReceiver
                             messageExpiration.Dispose();
                             linkedToken.Dispose();
                         }
-
-                    }, messageExpiration.Token);
+                    },
+                    messageExpiration.Token
+                );
 #pragma warning restore CS4014
             }
             catch (Exception e)
@@ -113,8 +128,12 @@ public class NatsQueueChannelReceiver<T> : IChannelReceiver
     {
         try
         {
-
-            var stateHandler = new NatsBusMessageStateHandler<T>(msg, _serializer, Settings.DeadLetterDeliveryLimit, _hostConfiguration.DependencyInjection);
+            var stateHandler = new NatsBusMessageStateHandler<T>(
+                msg,
+                _serializer,
+                Settings.DeadLetterDeliveryLimit,
+                _hostConfiguration.DependencyInjection
+            );
             await _processor.ProcessAsync(stateHandler, token).ConfigureAwait(false);
         }
         catch (Exception e)

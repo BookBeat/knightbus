@@ -2,7 +2,6 @@
 
 public class SagaNotFoundException : SagaException
 {
-    public SagaNotFoundException(string partitionKey, string id) : base(partitionKey, id)
-    {
-    }
+    public SagaNotFoundException(string partitionKey, string id)
+        : base(partitionKey, id) { }
 }

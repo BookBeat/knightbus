@@ -12,13 +12,18 @@ internal abstract class MessageProcessorFactoryBase
     {
         _genericInterface = genericInterface;
     }
+
     public IEnumerable<Type> GetInterfaces(Type processorType)
     {
-        return ReflectionHelper.GetAllInterfacesImplementingOpenGenericInterface(processorType, _genericInterface);
+        return ReflectionHelper.GetAllInterfacesImplementingOpenGenericInterface(
+            processorType,
+            _genericInterface
+        );
     }
 
     public bool CanCreate(Type processorInterface)
     {
-        return processorInterface.IsGenericType && processorInterface.GetGenericTypeDefinition() == _genericInterface;
+        return processorInterface.IsGenericType
+            && processorInterface.GetGenericTypeDefinition() == _genericInterface;
     }
 }

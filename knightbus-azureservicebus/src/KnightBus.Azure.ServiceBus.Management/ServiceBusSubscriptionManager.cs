@@ -16,12 +16,17 @@ public class ServiceBusSubscriptionManager : IQueueManager
     private readonly ServiceBusAdministrationClient _adminClient;
     private readonly ServiceBusClient _client;
 
-    public ServiceBusSubscriptionManager(string topic, ServiceBusClient client, ServiceBusAdministrationClient adminClient)
+    public ServiceBusSubscriptionManager(
+        string topic,
+        ServiceBusClient client,
+        ServiceBusAdministrationClient adminClient
+    )
     {
         _topic = topic;
         _adminClient = adminClient;
         _client = client;
     }
+
     public async Task<IEnumerable<QueueProperties>> List(CancellationToken ct)
     {
         var subs = _adminClient.GetSubscriptionsRuntimePropertiesAsync(_topic, ct);
@@ -34,7 +39,9 @@ public class ServiceBusSubscriptionManager : IQueueManager
 
     public async Task<QueueProperties> Get(string path, CancellationToken ct)
     {
-        var sub = await _adminClient.GetSubscriptionRuntimePropertiesAsync(_topic, path, ct).ConfigureAwait(false);
+        var sub = await _adminClient
+            .GetSubscriptionRuntimePropertiesAsync(_topic, path, ct)
+            .ConfigureAwait(false);
         return sub.Value.ToQueueProperties(this, _topic);
     }
 
@@ -43,67 +50,104 @@ public class ServiceBusSubscriptionManager : IQueueManager
         return _adminClient.DeleteSubscriptionAsync(_topic, path, ct);
     }
 
-    public async Task<IReadOnlyList<QueueMessage>> Peek(string name, int count, CancellationToken ct)
+    public async Task<IReadOnlyList<QueueMessage>> Peek(
+        string name,
+        int count,
+        CancellationToken ct
+    )
     {
         var receiver = _client.CreateReceiver(_topic, name);
-        var messages = await receiver.PeekMessagesAsync(count, cancellationToken: ct).ConfigureAwait(false);
-        return messages.Select(m =>
-        {
-            m.ApplicationProperties.TryGetValue("Exception", out var error);
-            return new QueueMessage(
-                Encoding.UTF8.GetString(m.Body),
-                error?.ToString() ?? string.Empty,
-                m.EnqueuedTime,
-                m.ScheduledEnqueueTime != default ? m.ScheduledEnqueueTime : null,
-                m.DeliveryCount,
-                m.MessageId,
-                m.ApplicationProperties);
-        }).ToList();
+        var messages = await receiver
+            .PeekMessagesAsync(count, cancellationToken: ct)
+            .ConfigureAwait(false);
+        return messages
+            .Select(m =>
+            {
+                m.ApplicationProperties.TryGetValue("Exception", out var error);
+                return new QueueMessage(
+                    Encoding.UTF8.GetString(m.Body),
+                    error?.ToString() ?? string.Empty,
+                    m.EnqueuedTime,
+                    m.ScheduledEnqueueTime != default ? m.ScheduledEnqueueTime : null,
+                    m.DeliveryCount,
+                    m.MessageId,
+                    m.ApplicationProperties
+                );
+            })
+            .ToList();
     }
 
-    public async Task<IReadOnlyList<QueueMessage>> PeekDeadLetter(string path, int count, CancellationToken ct)
+    public async Task<IReadOnlyList<QueueMessage>> PeekDeadLetter(
+        string path,
+        int count,
+        CancellationToken ct
+    )
     {
-        var receiver = _client.CreateReceiver(_topic, path, new ServiceBusReceiverOptions { SubQueue = SubQueue.DeadLetter });
-        var messages = await receiver.PeekMessagesAsync(count, cancellationToken: ct).ConfigureAwait(false);
-        return messages.Select(m =>
-        {
-            m.ApplicationProperties.TryGetValue("Exception", out var error);
-            return new QueueMessage(
-                Encoding.UTF8.GetString(m.Body),
-                error?.ToString() ?? string.Empty,
-                m.EnqueuedTime,
-                m.ScheduledEnqueueTime != default ? m.ScheduledEnqueueTime : null,
-                m.DeliveryCount,
-                m.MessageId,
-                m.ApplicationProperties);
-        }).ToList();
+        var receiver = _client.CreateReceiver(
+            _topic,
+            path,
+            new ServiceBusReceiverOptions { SubQueue = SubQueue.DeadLetter }
+        );
+        var messages = await receiver
+            .PeekMessagesAsync(count, cancellationToken: ct)
+            .ConfigureAwait(false);
+        return messages
+            .Select(m =>
+            {
+                m.ApplicationProperties.TryGetValue("Exception", out var error);
+                return new QueueMessage(
+                    Encoding.UTF8.GetString(m.Body),
+                    error?.ToString() ?? string.Empty,
+                    m.EnqueuedTime,
+                    m.ScheduledEnqueueTime != default ? m.ScheduledEnqueueTime : null,
+                    m.DeliveryCount,
+                    m.MessageId,
+                    m.ApplicationProperties
+                );
+            })
+            .ToList();
     }
 
-    public async Task<IReadOnlyList<QueueMessage>> ReadDeadLetter(string path, int receiveLimit, CancellationToken ct)
+    public async Task<IReadOnlyList<QueueMessage>> ReadDeadLetter(
+        string path,
+        int receiveLimit,
+        CancellationToken ct
+    )
     {
         var queueMessages = new List<QueueMessage>();
-        var receiver = _client.CreateReceiver(_topic, path, new ServiceBusReceiverOptions { SubQueue = SubQueue.DeadLetter });
+        var receiver = _client.CreateReceiver(
+            _topic,
+            path,
+            new ServiceBusReceiverOptions { SubQueue = SubQueue.DeadLetter }
+        );
         // Receive messages
         var movedMessages = 0;
         var batchSize = 10;
         while (movedMessages < receiveLimit)
         {
-            batchSize = batchSize > (receiveLimit - movedMessages) ? receiveLimit - movedMessages : batchSize;
+            batchSize =
+                batchSize > (receiveLimit - movedMessages)
+                    ? receiveLimit - movedMessages
+                    : batchSize;
             // Receive batch
-            var messages = await receiver.ReceiveMessagesAsync(batchSize, cancellationToken: ct).ConfigureAwait(false);
+            var messages = await receiver
+                .ReceiveMessagesAsync(batchSize, cancellationToken: ct)
+                .ConfigureAwait(false);
             queueMessages.AddRange(
-                messages.Select(
-                    m =>
-                    {
-                        m.ApplicationProperties.TryGetValue("Exception", out var error);
-                        return new QueueMessage(
-                            Encoding.UTF8.GetString(m.Body),
-                            error?.ToString() ?? string.Empty,
-                            m.EnqueuedTime,
-                            m.ScheduledEnqueueTime != default ? m.ScheduledEnqueueTime : null,
-                            m.DeliveryCount,
-                            m.MessageId, m.ApplicationProperties);
-                    }));
+                messages.Select(m =>
+                {
+                    m.ApplicationProperties.TryGetValue("Exception", out var error);
+                    return new QueueMessage(
+                        Encoding.UTF8.GetString(m.Body),
+                        error?.ToString() ?? string.Empty,
+                        m.EnqueuedTime,
+                        m.ScheduledEnqueueTime != default ? m.ScheduledEnqueueTime : null,
+                        m.DeliveryCount,
+                        m.MessageId,
+                        m.ApplicationProperties
+                    );
+                })
+            );
             if (messages.Count == 0)
             {
                 // No more messages to move => We're done
@@ -111,7 +155,8 @@ public class ServiceBusSubscriptionManager : IQueueManager
             }
 
             // Complete original messages
-            await Task.WhenAll(messages.Select(m => receiver.CompleteMessageAsync(m, ct))).ConfigureAwait(false);
+            await Task.WhenAll(messages.Select(m => receiver.CompleteMessageAsync(m, ct)))
+                .ConfigureAwait(false);
 
             // Keep track of received messages
             movedMessages += messages.Count;
@@ -122,11 +167,15 @@ public class ServiceBusSubscriptionManager : IQueueManager
 
     public Task<int> MoveDeadLetters(string path, int count, CancellationToken ct)
     {
-
-        var receiver = _client.CreateReceiver(_topic, path, new ServiceBusReceiverOptions { SubQueue = SubQueue.DeadLetter });
+        var receiver = _client.CreateReceiver(
+            _topic,
+            path,
+            new ServiceBusReceiverOptions { SubQueue = SubQueue.DeadLetter }
+        );
         var sender = _client.CreateSender(_topic);
 
         return ServiceBusQueueManager.MoveMessages(sender, receiver, count, 10);
     }
+
     public QueueType QueueType => QueueType.Subscription;
 }

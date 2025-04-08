@@ -6,8 +6,8 @@ namespace KnightBus.Host.MessageProcessing.Factories;
 
 internal class EventProcessorFactory : MessageProcessorFactoryBase, IProcessorFactory
 {
-    public EventProcessorFactory() : base(typeof(IProcessEvent<,,>))
-    { }
+    public EventProcessorFactory()
+        : base(typeof(IProcessEvent<,,>)) { }
 
     public ProcessorTypes GetProcessorTypes(Type processorInterface)
     {

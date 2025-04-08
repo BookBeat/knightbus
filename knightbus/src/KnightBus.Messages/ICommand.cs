@@ -3,6 +3,4 @@
 /// <summary>
 /// Base interface for all Commands
 /// </summary>
-public interface ICommand : IMessage
-{
-}
+public interface ICommand : IMessage { }

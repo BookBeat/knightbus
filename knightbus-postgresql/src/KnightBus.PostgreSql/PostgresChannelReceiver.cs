@@ -21,7 +21,8 @@ public class PostgresChannelReceiver<T> : IChannelReceiver
         IProcessingSettings settings,
         IHostConfiguration hostConfiguration,
         IMessageSerializer serializer,
-        IPostgresConfiguration postgresConfiguration)
+        IPostgresConfiguration postgresConfiguration
+    )
     {
         _npgsqlDataSource = npgsqlDataSource;
         _processor = processor;
@@ -34,11 +35,21 @@ public class PostgresChannelReceiver<T> : IChannelReceiver
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         _queueClient = new PostgresQueueClient<T>(_npgsqlDataSource, _serializer);
-        var pump = new PostgresMessagePump<T>(Settings, null, _queueClient, _npgsqlDataSource, _postgresConfiguration, _hostConfiguration.Log);
+        var pump = new PostgresMessagePump<T>(
+            Settings,
+            null,
+            _queueClient,
+            _npgsqlDataSource,
+            _postgresConfiguration,
+            _hostConfiguration.Log
+        );
         await pump.StartAsync<T>(ProcessMessageAsync, cancellationToken);
     }
 
-    private async Task ProcessMessageAsync(PostgresMessage<T> postgresMessage, CancellationToken cancellationToken)
+    private async Task ProcessMessageAsync(
+        PostgresMessage<T> postgresMessage,
+        CancellationToken cancellationToken
+    )
     {
         var stateHandler = new PostgresMessageStateHandler<T>(
             _npgsqlDataSource,
@@ -46,7 +57,8 @@ public class PostgresChannelReceiver<T> : IChannelReceiver
             postgresMessage,
             Settings.DeadLetterDeliveryLimit,
             _serializer,
-            _hostConfiguration.DependencyInjection);
+            _hostConfiguration.DependencyInjection
+        );
 
         await _processor.ProcessAsync(stateHandler, cancellationToken).ConfigureAwait(false);
     }

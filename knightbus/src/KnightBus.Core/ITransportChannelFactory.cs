@@ -9,6 +9,13 @@ namespace KnightBus.Core;
 public interface ITransportChannelFactory
 {
     ITransportConfiguration Configuration { get; set; }
-    IChannelReceiver Create(Type messageType, IEventSubscription subscription, IProcessingSettings processingSettings, IMessageSerializer serializer, IHostConfiguration configuration, IMessageProcessor processor);
+    IChannelReceiver Create(
+        Type messageType,
+        IEventSubscription subscription,
+        IProcessingSettings processingSettings,
+        IMessageSerializer serializer,
+        IHostConfiguration configuration,
+        IMessageProcessor processor
+    );
     bool CanCreate(Type messageType);
 }

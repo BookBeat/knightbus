@@ -17,8 +17,12 @@ public class StorageQueueReaderStarterTests
         Action act = () =>
         {
             var storageQueueReader = new StorageQueueChannelReceiver<LongRunningTestCommand>(
-                new TooHighPrefetchSettings(), Mock.Of<IMessageSerializer>(),
-                Mock.Of<IMessageProcessor>(), Mock.Of<IHostConfiguration>(), new StorageBusConfiguration(""));
+                new TooHighPrefetchSettings(),
+                Mock.Of<IMessageSerializer>(),
+                Mock.Of<IMessageProcessor>(),
+                Mock.Of<IHostConfiguration>(),
+                new StorageBusConfiguration("")
+            );
         };
 
         //assert

@@ -5,8 +5,7 @@ using KnightBus.Core;
 
 namespace KnightBus.Host.Tests.Unit.ExampleProcessors;
 
-public class SingleCommandProcessor :
-    IProcessCommand<TestCommand, TestTopicSettings>
+public class SingleCommandProcessor : IProcessCommand<TestCommand, TestTopicSettings>
 {
     private readonly ICountable _countable;
 
@@ -18,7 +17,8 @@ public class SingleCommandProcessor :
     public Task ProcessAsync(TestCommand message, CancellationToken cancellationToken)
     {
         _countable.Count();
-        if (message.Throw) throw new Exception();
+        if (message.Throw)
+            throw new Exception();
         return Task.CompletedTask;
     }
 }

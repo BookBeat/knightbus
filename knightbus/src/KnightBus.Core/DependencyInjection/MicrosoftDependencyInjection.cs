@@ -16,14 +16,14 @@ public class MicrosoftDependencyInjection : IDependencyInjection
         _scope = scope;
     }
 
-
     public IDependencyInjection GetScope()
     {
         var scope = _provider.CreateScope();
         return new MicrosoftDependencyInjection(scope.ServiceProvider, scope);
     }
 
-    public T GetInstance<T>() where T : class
+    public T GetInstance<T>()
+        where T : class
     {
         return _provider.GetRequiredService<T>();
     }
@@ -42,7 +42,9 @@ public class MicrosoftDependencyInjection : IDependencyInjection
     {
         using var scope = GetScope();
         var allTypes = scope.GetInstances<IGenericProcessor>().Distinct().Select(o => o.GetType());
-        return ReflectionHelper.GetAllTypesImplementingOpenGenericInterface(openGeneric, allTypes).Distinct();
+        return ReflectionHelper
+            .GetAllTypesImplementingOpenGenericInterface(openGeneric, allTypes)
+            .Distinct();
     }
 
     public void Dispose()

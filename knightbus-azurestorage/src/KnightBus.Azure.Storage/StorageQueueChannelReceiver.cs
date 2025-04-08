@@ -10,6 +10,7 @@ using KnightBus.Messages;
 
 [assembly: InternalsVisibleTo("KnightBus.Azure.Storage.Tests.Unit")]
 [assembly: InternalsVisibleTo("KnightBus.Azure.Storage.Tests.Integration")]
+
 namespace KnightBus.Azure.Storage;
 
 internal class StorageQueueChannelReceiver<T> : IChannelReceiver
@@ -23,12 +24,19 @@ internal class StorageQueueChannelReceiver<T> : IChannelReceiver
     public IProcessingSettings Settings { get; set; }
     private StorageQueueMessagePump _messagePump;
 
-
-    public StorageQueueChannelReceiver(IProcessingSettings settings, IMessageSerializer serializer, IMessageProcessor processor, IHostConfiguration hostConfiguration, IStorageBusConfiguration storageOptions)
+    public StorageQueueChannelReceiver(
+        IProcessingSettings settings,
+        IMessageSerializer serializer,
+        IMessageProcessor processor,
+        IHostConfiguration hostConfiguration,
+        IStorageBusConfiguration storageOptions
+    )
     {
         if (settings.PrefetchCount > 32)
-            throw new ArgumentOutOfRangeException(nameof(settings),
-                "PrefetchCount is set too high. The maximum number of messages that may be retrieved at a time is 32.");
+            throw new ArgumentOutOfRangeException(
+                nameof(settings),
+                "PrefetchCount is set too high. The maximum number of messages that may be retrieved at a time is 32."
+            );
 
         Settings = settings;
         _serializer = serializer;
@@ -46,12 +54,31 @@ internal class StorageQueueChannelReceiver<T> : IChannelReceiver
     private void Initialize()
     {
         var queueName = AutoMessageMapper.GetQueueName<T>();
-        _storageQueueClient = new StorageQueueClient(_storageOptions, _serializer, Enumerable.Empty<IMessagePreProcessor>(), queueName);
-        _messagePump = new StorageQueueMessagePump(_storageQueueClient, Settings, _hostConfiguration.Log);
+        _storageQueueClient = new StorageQueueClient(
+            _storageOptions,
+            _serializer,
+            Enumerable.Empty<IMessagePreProcessor>(),
+            queueName
+        );
+        _messagePump = new StorageQueueMessagePump(
+            _storageQueueClient,
+            Settings,
+            _hostConfiguration.Log
+        );
     }
 
     private async Task Handle(StorageQueueMessage message, CancellationToken cancellationToken)
     {
-        await _processor.ProcessAsync(new StorageQueueMessageStateHandler<T>(_storageQueueClient, message, Settings.DeadLetterDeliveryLimit, _hostConfiguration.DependencyInjection), cancellationToken).ConfigureAwait(false);
+        await _processor
+            .ProcessAsync(
+                new StorageQueueMessageStateHandler<T>(
+                    _storageQueueClient,
+                    message,
+                    Settings.DeadLetterDeliveryLimit,
+                    _hostConfiguration.DependencyInjection
+                ),
+                cancellationToken
+            )
+            .ConfigureAwait(false);
     }
 }

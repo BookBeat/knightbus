@@ -18,13 +18,19 @@ public static class RedisExtensions
         return services;
     }
 
-    public static IServiceCollection UseRedis(this IServiceCollection services, Action<IRedisConfiguration> configuration = null)
+    public static IServiceCollection UseRedis(
+        this IServiceCollection services,
+        Action<IRedisConfiguration> configuration = null
+    )
     {
         var redisConfiguration = new RedisConfiguration();
         configuration?.Invoke(redisConfiguration);
         services.AddSingleton<IRedisConfiguration>(_ => redisConfiguration);
         services.AddSingleton<IConnectionMultiplexer>(provider =>
-            ConnectionMultiplexer.Connect(provider.GetRequiredService<IRedisConfiguration>().ConnectionString));
+            ConnectionMultiplexer.Connect(
+                provider.GetRequiredService<IRedisConfiguration>().ConnectionString
+            )
+        );
         services.AddScoped<IRedisBus, RedisBus>();
         return services;
     }

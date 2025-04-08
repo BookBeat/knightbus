@@ -5,7 +5,10 @@ namespace KnightBus.SqlServer;
 
 public static class SqlServerExtensions
 {
-    public static IServiceCollection UseSqlServerSagaStore(this IServiceCollection services, string connectionString)
+    public static IServiceCollection UseSqlServerSagaStore(
+        this IServiceCollection services,
+        string connectionString
+    )
     {
         services.EnableSagas(new SqlServerSagaStore(connectionString));
         return services;

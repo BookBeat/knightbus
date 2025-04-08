@@ -15,19 +15,26 @@ public class NatsBusTests
 {
     private Mock<IConnectionFactory> _factory = new Mock<IConnectionFactory>();
     private Mock<IConnection> _connection = new Mock<IConnection>();
+
     [SetUp]
     public void Setup()
     {
-        _factory.Setup(c => c.CreateConnection(It.IsAny<Options>(), false))
+        _factory
+            .Setup(c => c.CreateConnection(It.IsAny<Options>(), false))
             .Returns(_connection.Object);
     }
+
     [Test]
     public void When_send_should_publish_message()
     {
         //arrange
 
-        var bus = new NatsBus(_factory.Object, new NatsConfiguration(), Enumerable.Empty<IMessagePreProcessor>());
-        //act 
+        var bus = new NatsBus(
+            _factory.Object,
+            new NatsConfiguration(),
+            Enumerable.Empty<IMessagePreProcessor>()
+        );
+        //act
         bus.Send(new TestNatsCommand());
         //assert
         _connection.Verify(c => c.Publish(It.Is<Msg>(m => m.Subject == "queueName")), Times.Once);
@@ -37,8 +44,12 @@ public class NatsBusTests
     public void When_publish_should_publish_message()
     {
         //arrange
-        var bus = new NatsBus(_factory.Object, new NatsConfiguration(), Enumerable.Empty<IMessagePreProcessor>());
-        //act 
+        var bus = new NatsBus(
+            _factory.Object,
+            new NatsConfiguration(),
+            Enumerable.Empty<IMessagePreProcessor>()
+        );
+        //act
         bus.Publish(new TestNatsEvent());
         //assert
         _connection.Verify(c => c.Publish(It.Is<Msg>(m => m.Subject == "topicName")), Times.Once);
@@ -50,12 +61,18 @@ public class NatsBusTests
         //arrange
         var config = new NatsConfiguration();
 
-        _connection.Setup(x =>
-                x.RequestAsync("requestName", It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(() => new Msg("reply", config.MessageSerializer.Serialize(new TestNatsResponse())));
+        _connection
+            .Setup(x =>
+                x.RequestAsync("requestName", It.IsAny<byte[]>(), It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(
+                () => new Msg("reply", config.MessageSerializer.Serialize(new TestNatsResponse()))
+            );
         var bus = new NatsBus(_factory.Object, config, Enumerable.Empty<IMessagePreProcessor>());
-        //act 
-        var response = await bus.RequestAsync<TestNatsRequest, TestNatsResponse>(new TestNatsRequest());
+        //act
+        var response = await bus.RequestAsync<TestNatsRequest, TestNatsResponse>(
+            new TestNatsRequest()
+        );
         //assert
         response.Should().NotBeNull();
     }
@@ -71,10 +88,13 @@ public class NatsBusTests
             .Returns(new Msg("inbox", Array.Empty<byte>()))
             .Returns(new Msg("inbox", stopHeader, Array.Empty<byte>()));
 
-
         _connection.Setup(x => x.SubscribeSync(It.IsAny<string>())).Returns(sub.Object);
-        var bus = new NatsBus(_factory.Object, new NatsConfiguration(), Enumerable.Empty<IMessagePreProcessor>());
-        //act 
+        var bus = new NatsBus(
+            _factory.Object,
+            new NatsConfiguration(),
+            Enumerable.Empty<IMessagePreProcessor>()
+        );
+        //act
         var response = bus.RequestStream<TestNatsRequest, TestNatsResponse>(new TestNatsRequest());
 
         //assert
@@ -92,10 +112,13 @@ public class NatsBusTests
             .Returns(new Msg("inbox", Array.Empty<byte>()))
             .Returns(new Msg("inbox", errorHeader, Array.Empty<byte>()));
 
-
         _connection.Setup(x => x.SubscribeSync(It.IsAny<string>())).Returns(sub.Object);
-        var bus = new NatsBus(_factory.Object, new NatsConfiguration(), Enumerable.Empty<IMessagePreProcessor>());
-        //act 
+        var bus = new NatsBus(
+            _factory.Object,
+            new NatsConfiguration(),
+            Enumerable.Empty<IMessagePreProcessor>()
+        );
+        //act
         var response = bus.RequestStream<TestNatsRequest, TestNatsResponse>(new TestNatsRequest());
 
         //assert

@@ -21,7 +21,11 @@ internal class SingletonChannelReceiver : IChannelReceiver
     private bool _lockPollingEnabled = false;
     private Task _pollingLoop;
 
-    public SingletonChannelReceiver(IChannelReceiver channelReceiver, ISingletonLockManager lockManager, ILogger log)
+    public SingletonChannelReceiver(
+        IChannelReceiver channelReceiver,
+        ISingletonLockManager lockManager,
+        ILogger log
+    )
     {
         _channelReceiver = channelReceiver;
         _lockManager = lockManager;
@@ -32,10 +36,9 @@ internal class SingletonChannelReceiver : IChannelReceiver
         Settings = new SingletonProcessingSettings
         {
             MessageLockTimeout = _channelReceiver.Settings.MessageLockTimeout,
-            DeadLetterDeliveryLimit = _channelReceiver.Settings.DeadLetterDeliveryLimit
+            DeadLetterDeliveryLimit = _channelReceiver.Settings.DeadLetterDeliveryLimit,
         };
         _channelReceiver.Settings = Settings;
-
     }
 
     private async Task TimerLoop(CancellationToken cancellationToken)
@@ -54,28 +57,44 @@ internal class SingletonChannelReceiver : IChannelReceiver
     private async Task AcquireLock(CancellationToken cancellationToken)
     {
         //Try and get the lock
-        var lockHandle = await _lockManager.TryLockAsync(_lockId, LockDuration, cancellationToken).ConfigureAwait(false);
+        var lockHandle = await _lockManager
+            .TryLockAsync(_lockId, LockDuration, cancellationToken)
+            .ConfigureAwait(false);
 
         if (lockHandle != null)
         {
-            var linkedTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            _singletonScope = new SingletonTimerScope(_log, lockHandle, true, LockRefreshInterval, linkedTokenSource);
+            var linkedTokenSource = CancellationTokenSource.CreateLinkedTokenSource(
+                cancellationToken
+            );
+            _singletonScope = new SingletonTimerScope(
+                _log,
+                lockHandle,
+                true,
+                LockRefreshInterval,
+                linkedTokenSource
+            );
             _log.LogInformation("Starting Singleton Processor with name {ProcessorName}", _lockId);
             await _channelReceiver.StartAsync(linkedTokenSource.Token).ConfigureAwait(false);
             _lockPollingEnabled = false;
 
 #pragma warning disable 4014
-            Task.Run(() =>
-            {
-                linkedTokenSource.Token.WaitHandle.WaitOne();
-                //Stop signal received, restart the polling
-                if (!cancellationToken.IsCancellationRequested)
-                {
-                    _lockPollingEnabled = true;
-                    _log.LogInformation("Singleton Processor with name {ProcessorName} lost its lock", _lockId);
-                }
-
-            }, cancellationToken).ContinueWith(t => linkedTokenSource.Dispose());
+            Task.Run(
+                    () =>
+                    {
+                        linkedTokenSource.Token.WaitHandle.WaitOne();
+                        //Stop signal received, restart the polling
+                        if (!cancellationToken.IsCancellationRequested)
+                        {
+                            _lockPollingEnabled = true;
+                            _log.LogInformation(
+                                "Singleton Processor with name {ProcessorName} lost its lock",
+                                _lockId
+                            );
+                        }
+                    },
+                    cancellationToken
+                )
+                .ContinueWith(t => linkedTokenSource.Dispose());
 #pragma warning restore 4014
         }
         else

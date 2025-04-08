@@ -15,22 +15,30 @@ public class PostgresMessageStateHandlerTests : MessageStateHandlerTests<Postgre
     {
         _postgresManagementClient = new PostgresManagementClient(
             PostgresSetup.DataSource,
-            new PostgresConfiguration { MessageSerializer = new MicrosoftJsonSerializer() });
+            new PostgresConfiguration { MessageSerializer = new MicrosoftJsonSerializer() }
+        );
         _postgresQueueClient = new PostgresQueueClient<PostgresTestCommand>(
-            PostgresSetup.DataSource, new MicrosoftJsonSerializer());
+            PostgresSetup.DataSource,
+            new MicrosoftJsonSerializer()
+        );
         _bus = new PostgresBus(
             PostgresSetup.DataSource,
-            new PostgresConfiguration { MessageSerializer = new MicrosoftJsonSerializer() });
+            new PostgresConfiguration { MessageSerializer = new MicrosoftJsonSerializer() }
+        );
 
         await _postgresManagementClient.DeleteQueue(
-            PostgresQueueName.Create(AutoMessageMapper.GetQueueName<PostgresTestCommand>()), default);
+            PostgresQueueName.Create(AutoMessageMapper.GetQueueName<PostgresTestCommand>()),
+            default
+        );
     }
 
     [OneTimeTearDown]
     public async Task CleanUpAfterTests()
     {
         await _postgresManagementClient.DeleteQueue(
-            PostgresQueueName.Create(AutoMessageMapper.GetQueueName<PostgresTestCommand>()), default);
+            PostgresQueueName.Create(AutoMessageMapper.GetQueueName<PostgresTestCommand>()),
+            default
+        );
     }
 
     protected override async Task<List<PostgresTestCommand>> GetMessages(int count)
@@ -61,11 +69,14 @@ public class PostgresMessageStateHandlerTests : MessageStateHandlerTests<Postgre
     {
         await QueueInitializer.InitQueue(
             PostgresQueueName.Create(AutoMessageMapper.GetQueueName<PostgresTestCommand>()),
-            PostgresSetup.DataSource);
+            PostgresSetup.DataSource
+        );
         await _bus.SendAsync(new PostgresTestCommand(message), default);
     }
 
-    protected override async Task<IMessageStateHandler<PostgresTestCommand>> GetMessageStateHandler()
+    protected override async Task<
+        IMessageStateHandler<PostgresTestCommand>
+    > GetMessageStateHandler()
     {
         var messages = _postgresQueueClient.GetMessagesAsync(1, 5, default);
         var result = new List<PostgresMessage<PostgresTestCommand>>();
@@ -73,9 +84,14 @@ public class PostgresMessageStateHandlerTests : MessageStateHandlerTests<Postgre
         {
             result.Add(m);
         }
-        
 
-        return new PostgresMessageStateHandler<PostgresTestCommand>(PostgresSetup.DataSource, _postgresQueueClient,
-            result.First(), 5, new MicrosoftJsonSerializer(), null!);
+        return new PostgresMessageStateHandler<PostgresTestCommand>(
+            PostgresSetup.DataSource,
+            _postgresQueueClient,
+            result.First(),
+            5,
+            new MicrosoftJsonSerializer(),
+            null!
+        );
     }
 }

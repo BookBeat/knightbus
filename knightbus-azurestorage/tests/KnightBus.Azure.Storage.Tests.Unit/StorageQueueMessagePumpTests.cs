@@ -25,18 +25,17 @@ public class StorageQueueMessagePumpTests
     public async Task Should_prefetch_messages()
     {
         //arrange
-        var settings = new TestMessageSettings
-        {
-            DeadLetterDeliveryLimit = 1,
-            PrefetchCount = 10
-        };
+        var settings = new TestMessageSettings { DeadLetterDeliveryLimit = 1, PrefetchCount = 10 };
         var messages = new List<StorageQueueMessage>();
         for (var i = 0; i < 10; i++)
         {
-            messages.Add(new StorageQueueMessage(new LongRunningTestCommand { Message = i.ToString() }));
+            messages.Add(
+                new StorageQueueMessage(new LongRunningTestCommand { Message = i.ToString() })
+            );
         }
 
-        _clientMock.Setup(x => x.GetMessagesAsync<LongRunningTestCommand>(11, It.IsAny<TimeSpan?>()))
+        _clientMock
+            .Setup(x => x.GetMessagesAsync<LongRunningTestCommand>(11, It.IsAny<TimeSpan?>()))
             .ReturnsAsync(messages);
         var pump = new StorageQueueMessagePump(_clientMock.Object, settings, Mock.Of<ILogger>());
         var invocations = 0;
@@ -57,12 +56,15 @@ public class StorageQueueMessagePumpTests
         {
             DeadLetterDeliveryLimit = 1,
             PrefetchCount = 0,
-            MaxConcurrentCalls = 1
+            MaxConcurrentCalls = 1,
         };
-        var messages = new List<StorageQueueMessage> { new(new LongRunningTestCommand { Message = 1.ToString() }) };
+        var messages = new List<StorageQueueMessage>
+        {
+            new(new LongRunningTestCommand { Message = 1.ToString() }),
+        };
 
-
-        _clientMock.Setup(x => x.GetMessagesAsync<LongRunningTestCommand>(1, It.IsAny<TimeSpan?>()))
+        _clientMock
+            .Setup(x => x.GetMessagesAsync<LongRunningTestCommand>(1, It.IsAny<TimeSpan?>()))
             .ReturnsAsync(messages);
         var pump = new StorageQueueMessagePump(_clientMock.Object, settings, Mock.Of<ILogger>());
         var invocations = 0;
@@ -90,16 +92,21 @@ public class StorageQueueMessagePumpTests
         {
             DeadLetterDeliveryLimit = 1,
             PrefetchCount = 1,
-            MaxConcurrentCalls = 1
+            MaxConcurrentCalls = 1,
         };
         var messageCount = 1;
         var messages = new List<StorageQueueMessage>();
         for (var i = 0; i < messageCount; i++)
         {
-            messages.Add(new StorageQueueMessage(new LongRunningTestCommand { Message = i.ToString() }));
+            messages.Add(
+                new StorageQueueMessage(new LongRunningTestCommand { Message = i.ToString() })
+            );
         }
 
-        _clientMock.Setup(x => x.GetMessagesAsync<LongRunningTestCommand>(messageCount, It.IsAny<TimeSpan?>()))
+        _clientMock
+            .Setup(x =>
+                x.GetMessagesAsync<LongRunningTestCommand>(messageCount, It.IsAny<TimeSpan?>())
+            )
             .ReturnsAsync(messages);
         var pump = new StorageQueueMessagePump(_clientMock.Object, settings, Mock.Of<ILogger>());
         Func<StorageQueueMessage, CancellationToken, Task> function = (a, b) =>
@@ -111,27 +118,25 @@ public class StorageQueueMessagePumpTests
         await Task.Delay(100);
         //assert
         pump.AvailableThreads.Should().Be(1);
-
     }
+
     [Test]
     public async Task Should_prefetch_one_message_when_set_to_zero()
     {
         //arrange
-        var settings = new TestMessageSettings
-        {
-            DeadLetterDeliveryLimit = 1,
-            PrefetchCount = 0
-        };
+        var settings = new TestMessageSettings { DeadLetterDeliveryLimit = 1, PrefetchCount = 0 };
         var messages = new List<StorageQueueMessage>
         {
-            new StorageQueueMessage(new LongRunningTestCommand {Message = 1.ToString()})
+            new StorageQueueMessage(new LongRunningTestCommand { Message = 1.ToString() }),
         };
 
-
-        _clientMock.Setup(x => x.GetMessagesAsync<LongRunningTestCommand>(1, It.IsAny<TimeSpan?>())).ReturnsAsync(messages);
+        _clientMock
+            .Setup(x => x.GetMessagesAsync<LongRunningTestCommand>(1, It.IsAny<TimeSpan?>()))
+            .ReturnsAsync(messages);
         var pump = new StorageQueueMessagePump(_clientMock.Object, settings, Mock.Of<ILogger>());
         var invokations = 0;
-        Func<StorageQueueMessage, CancellationToken, Task> function = (a, b) => Task.FromResult(invokations++);
+        Func<StorageQueueMessage, CancellationToken, Task> function = (a, b) =>
+            Task.FromResult(invokations++);
         //act
         await pump.PumpAsync<LongRunningTestCommand>(function, CancellationToken.None);
         await Task.Delay(100);
@@ -147,15 +152,18 @@ public class StorageQueueMessagePumpTests
         {
             DeadLetterDeliveryLimit = 1,
             PrefetchCount = 20,
-            MaxConcurrentCalls = 10
+            MaxConcurrentCalls = 10,
         };
         var messages = new List<StorageQueueMessage>();
         for (var i = 0; i < 20; i++)
         {
-            messages.Add(new StorageQueueMessage(new LongRunningTestCommand { Message = i.ToString() }));
+            messages.Add(
+                new StorageQueueMessage(new LongRunningTestCommand { Message = i.ToString() })
+            );
         }
 
-        _clientMock.Setup(x => x.GetMessagesAsync<LongRunningTestCommand>(30, It.IsAny<TimeSpan?>()))
+        _clientMock
+            .Setup(x => x.GetMessagesAsync<LongRunningTestCommand>(30, It.IsAny<TimeSpan?>()))
             .ReturnsAsync(messages);
         var pump = new StorageQueueMessagePump(_clientMock.Object, settings, Mock.Of<ILogger>());
         var invocations = 0;
@@ -181,16 +189,21 @@ public class StorageQueueMessagePumpTests
         {
             DeadLetterDeliveryLimit = 1,
             PrefetchCount = 0,
-            MaxConcurrentCalls = 1
+            MaxConcurrentCalls = 1,
         };
         var messageCount = 1;
         var messages = new List<StorageQueueMessage>();
         for (var i = 0; i < messageCount; i++)
         {
-            messages.Add(new StorageQueueMessage(new LongRunningTestCommand { Message = i.ToString() }));
+            messages.Add(
+                new StorageQueueMessage(new LongRunningTestCommand { Message = i.ToString() })
+            );
         }
 
-        _clientMock.Setup(x => x.GetMessagesAsync<LongRunningTestCommand>(messageCount, It.IsAny<TimeSpan?>()))
+        _clientMock
+            .Setup(x =>
+                x.GetMessagesAsync<LongRunningTestCommand>(messageCount, It.IsAny<TimeSpan?>())
+            )
             .ReturnsAsync(messages);
         var pump = new StorageQueueMessagePump(_clientMock.Object, settings, Mock.Of<ILogger>());
         Task Function(StorageQueueMessage a, CancellationToken b)
@@ -215,16 +228,21 @@ public class StorageQueueMessagePumpTests
             DeadLetterDeliveryLimit = 1,
             PrefetchCount = 1,
             MaxConcurrentCalls = 1,
-            MessageLockTimeout = TimeSpan.FromMilliseconds(50)
+            MessageLockTimeout = TimeSpan.FromMilliseconds(50),
         };
         var messageCount = 1;
         var messages = new List<StorageQueueMessage>();
         for (var i = 0; i < messageCount; i++)
         {
-            messages.Add(new StorageQueueMessage(new LongRunningTestCommand { Message = i.ToString() }));
+            messages.Add(
+                new StorageQueueMessage(new LongRunningTestCommand { Message = i.ToString() })
+            );
         }
 
-        _clientMock.Setup(x => x.GetMessagesAsync<LongRunningTestCommand>(messageCount, It.IsAny<TimeSpan?>()))
+        _clientMock
+            .Setup(x =>
+                x.GetMessagesAsync<LongRunningTestCommand>(messageCount, It.IsAny<TimeSpan?>())
+            )
             .ReturnsAsync(messages);
         var countable = new Mock<ICountable>();
         var pump = new StorageQueueMessagePump(_clientMock.Object, settings, Mock.Of<ILogger>());
@@ -247,13 +265,12 @@ public class StorageQueueMessagePumpTests
     public async Task Should_create_queue_when_it_doesnt_exists()
     {
         //arrange
-        var settings = new TestMessageSettings
-        {
-            DeadLetterDeliveryLimit = 1,
-            PrefetchCount = 10
-        };
+        var settings = new TestMessageSettings { DeadLetterDeliveryLimit = 1, PrefetchCount = 10 };
 
-        _clientMock.Setup(x => x.GetMessagesAsync<LongRunningTestCommand>(It.IsAny<int>(), It.IsAny<TimeSpan?>()))
+        _clientMock
+            .Setup(x =>
+                x.GetMessagesAsync<LongRunningTestCommand>(It.IsAny<int>(), It.IsAny<TimeSpan?>())
+            )
             .ThrowsAsync(new RequestFailedException(404, "not found", "QueueNotFound", null));
         var pump = new StorageQueueMessagePump(_clientMock.Object, settings, Mock.Of<ILogger>());
 
@@ -270,13 +287,12 @@ public class StorageQueueMessagePumpTests
     public async Task Should_not_create_queue_when_it_exists()
     {
         //arrange
-        var settings = new TestMessageSettings
-        {
-            DeadLetterDeliveryLimit = 1,
-            PrefetchCount = 10
-        };
+        var settings = new TestMessageSettings { DeadLetterDeliveryLimit = 1, PrefetchCount = 10 };
 
-        _clientMock.Setup(x => x.GetMessagesAsync<LongRunningTestCommand>(It.IsAny<int>(), It.IsAny<TimeSpan?>()))
+        _clientMock
+            .Setup(x =>
+                x.GetMessagesAsync<LongRunningTestCommand>(It.IsAny<int>(), It.IsAny<TimeSpan?>())
+            )
             .ReturnsAsync(new List<StorageQueueMessage>());
         var pump = new StorageQueueMessagePump(_clientMock.Object, settings, Mock.Of<ILogger>());
 

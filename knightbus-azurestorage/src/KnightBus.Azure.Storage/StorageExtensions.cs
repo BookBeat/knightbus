@@ -12,7 +12,6 @@ namespace KnightBus.Azure.Storage;
 
 public static class StorageExtensions
 {
-
     public static IServiceCollection UseBlobStorageAttachments(this IServiceCollection services)
     {
         services.AddSingleton<IMessageAttachmentProvider, BlobStorageMessageAttachmentProvider>();
@@ -21,7 +20,10 @@ public static class StorageExtensions
         return services;
     }
 
-    public static IServiceCollection UseBlobStorage(this IServiceCollection services, Action<IStorageBusConfiguration> config = null)
+    public static IServiceCollection UseBlobStorage(
+        this IServiceCollection services,
+        Action<IStorageBusConfiguration> config = null
+    )
     {
         var storageConfig = new StorageBusConfiguration();
         config?.Invoke(storageConfig);
@@ -29,7 +31,11 @@ public static class StorageExtensions
         services.AddScoped<IStorageBus, StorageBus>();
         return services;
     }
-    public static IServiceCollection UseBlobStorage(this IServiceCollection services, string connectionString)
+
+    public static IServiceCollection UseBlobStorage(
+        this IServiceCollection services,
+        string connectionString
+    )
     {
         return services.UseBlobStorage(configuration =>
         {
@@ -37,7 +43,10 @@ public static class StorageExtensions
         });
     }
 
-    public static IServiceCollection UseBlobStorageLockManager(this IServiceCollection services, IBlobLockScheme lockScheme)
+    public static IServiceCollection UseBlobStorageLockManager(
+        this IServiceCollection services,
+        IBlobLockScheme lockScheme
+    )
     {
         services.AddSingleton(lockScheme);
         return services.UseBlobStorageLockManager();

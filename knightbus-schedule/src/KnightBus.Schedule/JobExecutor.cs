@@ -8,14 +8,19 @@ using Quartz;
 
 namespace KnightBus.Schedule;
 
-internal class JobExecutor<T> : IJob where T : class, ISchedule, new()
+internal class JobExecutor<T> : IJob
+    where T : class, ISchedule, new()
 {
     private readonly IDependencyInjection _dependencyInjection;
     private readonly ISingletonLockManager _lockManager;
 
     private readonly ILogger _logger;
 
-    public JobExecutor(ILogger logger, ISingletonLockManager lockManager, IDependencyInjection dependencyInjection)
+    public JobExecutor(
+        ILogger logger,
+        ISingletonLockManager lockManager,
+        IDependencyInjection dependencyInjection
+    )
     {
         _logger = logger;
         _lockManager = lockManager;
@@ -28,7 +33,8 @@ internal class JobExecutor<T> : IJob where T : class, ISchedule, new()
         {
             var schedule = typeof(T).FullName;
             var lockHandle = await _lockManager
-                .TryLockAsync(schedule, TimeSpan.FromSeconds(60), CancellationToken.None).ConfigureAwait(false);
+                .TryLockAsync(schedule, TimeSpan.FromSeconds(60), CancellationToken.None)
+                .ConfigureAwait(false);
 
             if (lockHandle == null)
                 //someone else has locked this instance, do nothing
@@ -36,9 +42,21 @@ internal class JobExecutor<T> : IJob where T : class, ISchedule, new()
 
             _logger.LogInformation("Executing schedule {Schedule}", schedule);
 
-            using (var linkedTokenSource = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken))
+            using (
+                var linkedTokenSource = CancellationTokenSource.CreateLinkedTokenSource(
+                    context.CancellationToken
+                )
+            )
             {
-                using (new SingletonTimerScope(_logger, lockHandle, false, TimeSpan.FromSeconds(19), linkedTokenSource))
+                using (
+                    new SingletonTimerScope(
+                        _logger,
+                        lockHandle,
+                        false,
+                        TimeSpan.FromSeconds(19),
+                        linkedTokenSource
+                    )
+                )
                 using (var scopedDependencyInjection = _dependencyInjection.GetScope())
                 {
                     var processor = scopedDependencyInjection.GetInstance<IProcessSchedule<T>>();

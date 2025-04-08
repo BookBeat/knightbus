@@ -10,7 +10,10 @@ public class PostgresSubscriptionChannelFactory : ITransportChannelFactory
     private readonly NpgsqlDataSource _npgsqlDataSource;
     private readonly IPostgresConfiguration _postgresConfiguration;
 
-    public PostgresSubscriptionChannelFactory(NpgsqlDataSource npgsqlDataSource, IPostgresConfiguration postgresConfiguration)
+    public PostgresSubscriptionChannelFactory(
+        NpgsqlDataSource npgsqlDataSource,
+        IPostgresConfiguration postgresConfiguration
+    )
     {
         _npgsqlDataSource = npgsqlDataSource;
         _postgresConfiguration = postgresConfiguration;
@@ -25,20 +28,26 @@ public class PostgresSubscriptionChannelFactory : ITransportChannelFactory
         IProcessingSettings processingSettings,
         IMessageSerializer serializer,
         IHostConfiguration configuration,
-        IMessageProcessor processor)
+        IMessageProcessor processor
+    )
     {
-        var queueReaderType = typeof(PostgresSubscriptionChannelReceiver<>).MakeGenericType(messageType);
-        var queueReader = Activator.CreateInstance(
-            queueReaderType,
-            _npgsqlDataSource,
-            processor,
-            subscription,
-            processingSettings,
-            configuration,
-            serializer,
-            _postgresConfiguration) as IChannelReceiver;
+        var queueReaderType = typeof(PostgresSubscriptionChannelReceiver<>).MakeGenericType(
+            messageType
+        );
+        var queueReader =
+            Activator.CreateInstance(
+                queueReaderType,
+                _npgsqlDataSource,
+                processor,
+                subscription,
+                processingSettings,
+                configuration,
+                serializer,
+                _postgresConfiguration
+            ) as IChannelReceiver;
 
-        return queueReader ?? throw new InvalidOperationException("ChannelReceiver could not be created");
+        return queueReader
+            ?? throw new InvalidOperationException("ChannelReceiver could not be created");
     }
 
     public bool CanCreate(Type messageType)

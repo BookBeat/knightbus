@@ -8,8 +8,10 @@ public interface ISagaHandler
 {
     Task Initialize(CancellationToken ct);
 }
+
 public class SagaHandler<TData, TMessage> : ISagaHandler
-    where TData : new() where TMessage : IMessage
+    where TData : new()
+    where TMessage : IMessage
 {
     private readonly ISagaStore _sagaStore;
     private readonly ISaga<TData> _saga;
@@ -29,7 +31,13 @@ public class SagaHandler<TData, TMessage> : ISagaHandler
         _saga.Id = _saga.MessageMapper.GetMapping<TMessage>().Invoke(_message);
         if (_saga.MessageMapper.IsStartMessage(typeof(TMessage)))
         {
-            sagaData = await _sagaStore.Create(_saga.PartitionKey, _saga.Id, new TData(), _saga.TimeToLive, ct);
+            sagaData = await _sagaStore.Create(
+                _saga.PartitionKey,
+                _saga.Id,
+                new TData(),
+                _saga.TimeToLive,
+                ct
+            );
         }
         else
         {

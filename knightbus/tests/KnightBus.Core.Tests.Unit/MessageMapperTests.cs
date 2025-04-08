@@ -40,7 +40,9 @@ public class MessageMapperTests
     [Test]
     public void Should_throw_for_non_registered_message()
     {
-        var action = new Func<string>(() => MessageMapper.GetQueueName(typeof(NotRegisteredMessage)));
+        var action = new Func<string>(
+            () => MessageMapper.GetQueueName(typeof(NotRegisteredMessage))
+        );
         action.Invoking(m => m.Invoke()).Should().Throw<MessageMappingMissingException>();
     }
 
@@ -58,13 +60,13 @@ public class MessageMapperTests
         name.Should().Be("awesome-queue");
         mapping.GetType().Should().Be(typeof(TestCommandMapping));
     }
-
 }
 
 public class MessageMapperRegisteredCommand : ICommand
 {
     public string MessageId { get; set; }
 }
+
 public class MessageMapperRegisteredCommandMapping : IMessageMapping<MessageMapperRegisteredCommand>
 {
     public string QueueName => "awesome-queue";

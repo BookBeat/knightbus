@@ -10,33 +10,42 @@ namespace KnightBus.Azure.ServiceBus;
 
 public interface IClientFactory : IAsyncDisposable
 {
-    Task<ServiceBusSender> GetSenderClient<T>() where T : IMessage;
-    Task<ServiceBusProcessor> GetReceiverClient<T>(ServiceBusProcessorOptions options) where T : ICommand;
-    Task<ServiceBusProcessor> GetReceiverClient<TTopic, TSubscription>(TSubscription subscription, ServiceBusProcessorOptions options) where TTopic : IEvent where TSubscription : IEventSubscription<TTopic>;
+    Task<ServiceBusSender> GetSenderClient<T>()
+        where T : IMessage;
+    Task<ServiceBusProcessor> GetReceiverClient<T>(ServiceBusProcessorOptions options)
+        where T : ICommand;
+    Task<ServiceBusProcessor> GetReceiverClient<TTopic, TSubscription>(
+        TSubscription subscription,
+        ServiceBusProcessorOptions options
+    )
+        where TTopic : IEvent
+        where TSubscription : IEventSubscription<TTopic>;
 }
 
 public class ClientFactory : IClientFactory
 {
     private readonly ServiceBusClient _serviceBusClient;
     private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
-    private ConcurrentDictionary<Type, ServiceBusSender> SenderClients { get; } = new ConcurrentDictionary<Type, ServiceBusSender>();
+    private ConcurrentDictionary<Type, ServiceBusSender> SenderClients { get; } =
+        new ConcurrentDictionary<Type, ServiceBusSender>();
 
     public ClientFactory(string connectionString)
     {
         _serviceBusClient = new ServiceBusClient(connectionString);
     }
 
-    public ClientFactory(IServiceBusConfiguration configuration) : this(configuration.ConnectionString)
-    {
-    }
+    public ClientFactory(IServiceBusConfiguration configuration)
+        : this(configuration.ConnectionString) { }
 
-    private ServiceBusSender CreateQueueClient<T>() where T : IMessage
+    private ServiceBusSender CreateQueueClient<T>()
+        where T : IMessage
     {
         var queueName = AutoMessageMapper.GetQueueName<T>();
         return _serviceBusClient.CreateSender(queueName);
     }
 
-    public async Task<ServiceBusSender> GetSenderClient<T>() where T : IMessage
+    public async Task<ServiceBusSender> GetSenderClient<T>()
+        where T : IMessage
     {
         if (SenderClients.TryGetValue(typeof(T), out var client))
         {
@@ -63,16 +72,24 @@ public class ClientFactory : IClientFactory
         }
     }
 
-    public Task<ServiceBusProcessor> GetReceiverClient<T>(ServiceBusProcessorOptions options) where T : ICommand
+    public Task<ServiceBusProcessor> GetReceiverClient<T>(ServiceBusProcessorOptions options)
+        where T : ICommand
     {
         var queueName = AutoMessageMapper.GetQueueName<T>();
         return Task.FromResult(_serviceBusClient.CreateProcessor(queueName, options));
     }
 
-    public Task<ServiceBusProcessor> GetReceiverClient<TTopic, TSubscription>(TSubscription subscription, ServiceBusProcessorOptions options) where TTopic : IEvent where TSubscription : IEventSubscription<TTopic>
+    public Task<ServiceBusProcessor> GetReceiverClient<TTopic, TSubscription>(
+        TSubscription subscription,
+        ServiceBusProcessorOptions options
+    )
+        where TTopic : IEvent
+        where TSubscription : IEventSubscription<TTopic>
     {
         var topicName = AutoMessageMapper.GetQueueName<TTopic>();
-        return Task.FromResult(_serviceBusClient.CreateProcessor(topicName, subscription.Name, options));
+        return Task.FromResult(
+            _serviceBusClient.CreateProcessor(topicName, subscription.Name, options)
+        );
     }
 
     public async ValueTask DisposeAsync()

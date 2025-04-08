@@ -9,10 +9,12 @@ public class LongRunningTestCommand : IStorageQueueCommand
 {
     public string Message { get; set; }
 }
+
 public class LongRunningTestMessageMapping : IMessageMapping<LongRunningTestCommand>
 {
     public string QueueName => "longrunningtestcommand";
 }
+
 public class TestMessageSettings : IProcessingSettings
 {
     public int MaxConcurrentCalls { get; set; } = 1;

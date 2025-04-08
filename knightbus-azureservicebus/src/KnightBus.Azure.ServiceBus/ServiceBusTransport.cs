@@ -4,16 +4,15 @@ namespace KnightBus.Azure.ServiceBus;
 
 public class ServiceBusTransport : ITransport
 {
-    public ServiceBusTransport(string connectionString) : this(new ServiceBusConfiguration(connectionString))
-    {
-    }
+    public ServiceBusTransport(string connectionString)
+        : this(new ServiceBusConfiguration(connectionString)) { }
 
     public ServiceBusTransport(IServiceBusConfiguration configuration)
     {
         TransportChannelFactories = new ITransportChannelFactory[]
         {
             new ServiceBusQueueChannelFactory(configuration),
-            new ServiceBusTopicChannelFactory(configuration)
+            new ServiceBusTopicChannelFactory(configuration),
         };
     }
 
@@ -26,5 +25,6 @@ public class ServiceBusTransport : ITransport
 
         return this;
     }
+
     public ITransportChannelFactory[] TransportChannelFactories { get; }
 }

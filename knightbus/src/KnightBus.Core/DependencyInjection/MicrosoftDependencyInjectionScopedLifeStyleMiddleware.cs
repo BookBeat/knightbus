@@ -6,7 +6,13 @@ namespace KnightBus.Core.DependencyInjection;
 
 public class MicrosoftDependencyInjectionScopedLifeStyleMiddleware : IMessageScopeProviderMiddleware
 {
-    public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, IPipelineInformation pipelineInformation, IMessageProcessor next, CancellationToken cancellationToken) where T : class, IMessage
+    public async Task ProcessAsync<T>(
+        IMessageStateHandler<T> messageStateHandler,
+        IPipelineInformation pipelineInformation,
+        IMessageProcessor next,
+        CancellationToken cancellationToken
+    )
+        where T : class, IMessage
     {
         using var scope = messageStateHandler.MessageScope.GetScope();
         messageStateHandler.MessageScope = scope;

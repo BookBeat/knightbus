@@ -14,12 +14,24 @@ public class ThrottlingMiddleware : IMessageProcessorMiddleware
     {
         _semaphoreQueue = new SemaphoreSlim(maxConcurrent);
     }
-    public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, IPipelineInformation pipelineInformation, IMessageProcessor next, CancellationToken cancellationToken) where T : class, IMessage
+
+    public async Task ProcessAsync<T>(
+        IMessageStateHandler<T> messageStateHandler,
+        IPipelineInformation pipelineInformation,
+        IMessageProcessor next,
+        CancellationToken cancellationToken
+    )
+        where T : class, IMessage
     {
         var queueName = AutoMessageMapper.GetQueueName<T>();
 
         var log = pipelineInformation?.HostConfiguration?.Log;
-        log?.LogDebug("{ThreadCount} remaining threads that can process messages in {QueueName} in {Name}", _semaphoreQueue.CurrentCount, queueName, nameof(ThrottlingMiddleware));
+        log?.LogDebug(
+            "{ThreadCount} remaining threads that can process messages in {QueueName} in {Name}",
+            _semaphoreQueue.CurrentCount,
+            queueName,
+            nameof(ThrottlingMiddleware)
+        );
 
         await _semaphoreQueue.WaitAsync(cancellationToken).ConfigureAwait(false);
         try

@@ -10,13 +10,15 @@ namespace KnightBus.Core;
 
 public static class AutoMessageMapper
 {
-    private static readonly ConcurrentDictionary<string, bool> AlreadyMappedAssemblies = new ConcurrentDictionary<string, bool>();
+    private static readonly ConcurrentDictionary<string, bool> AlreadyMappedAssemblies =
+        new ConcurrentDictionary<string, bool>();
     private static readonly SemaphoreSlim Semaphore = new SemaphoreSlim(1, 1);
 
     private static void MapFromMessageAssembly(Type type)
     {
         var assembly = type.Assembly;
-        if (AlreadyMappedAssemblies.ContainsKey(assembly.FullName)) return;
+        if (AlreadyMappedAssemblies.ContainsKey(assembly.FullName))
+            return;
 
         // This is so that we do not call RegisterMappingsFromAssembly twice for the same assembly.
         // While the assembly is being scanned, it won't be in AlreadyMappedAssemblies, and
@@ -27,7 +29,8 @@ public static class AutoMessageMapper
             Semaphore.Wait();
 
             // If the assembly was mapped while we were waiting for the semaphore to release, return
-            if (AlreadyMappedAssemblies.ContainsKey(assembly.FullName)) return;
+            if (AlreadyMappedAssemblies.ContainsKey(assembly.FullName))
+                return;
 
             MessageMapper.RegisterMappingsFromAssembly(assembly);
             AlreadyMappedAssemblies.AddOrUpdate(assembly.FullName, false, (s, b) => b);
@@ -51,7 +54,8 @@ public static class AutoMessageMapper
         }
     }
 
-    public static string GetQueueName<T>() where T : IMessage
+    public static string GetQueueName<T>()
+        where T : IMessage
     {
         return GetQueueName(typeof(T));
     }
@@ -69,7 +73,8 @@ public static class AutoMessageMapper
         }
     }
 
-    public static IMessageMapping GetMapping<T>() where T : IMessage
+    public static IMessageMapping GetMapping<T>()
+        where T : IMessage
     {
         return GetMapping(typeof(T));
     }

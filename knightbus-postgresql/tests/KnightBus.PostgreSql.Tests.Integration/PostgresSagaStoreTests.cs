@@ -10,6 +10,9 @@ public class PostgresSagaStoreTests : SagaStoreTests
 {
     public override void Setup()
     {
-        SagaStore = new PostgresSagaStore(DataSource, new PostgresConfiguration(DataSource.ConnectionString));
+        SagaStore = new PostgresSagaStore(
+            DataSource,
+            new PostgresConfiguration(DataSource.ConnectionString)
+        );
     }
 }

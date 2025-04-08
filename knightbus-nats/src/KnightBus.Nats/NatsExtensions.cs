@@ -6,7 +6,10 @@ namespace KnightBus.Nats;
 
 public static class NatsExtensions
 {
-    public static IServiceCollection UseNats(this IServiceCollection services, Action<INatsConfiguration> configuration = null)
+    public static IServiceCollection UseNats(
+        this IServiceCollection services,
+        Action<INatsConfiguration> configuration = null
+    )
     {
         var natsConfiguration = new NatsConfiguration();
         configuration?.Invoke(natsConfiguration);

@@ -15,7 +15,10 @@ public class NewtonsoftSerializer : IMessageSerializer
 
     public NewtonsoftSerializer()
     {
-        _settings = new JsonSerializerSettings { ContractResolver = new IgnoreAttachmentsResolver() };
+        _settings = new JsonSerializerSettings
+        {
+            ContractResolver = new IgnoreAttachmentsResolver(),
+        };
     }
 
     public byte[] Serialize<T>(T message)
@@ -31,7 +34,10 @@ public class NewtonsoftSerializer : IMessageSerializer
 
     public T Deserialize<T>(ReadOnlyMemory<byte> serialized)
     {
-        return JsonConvert.DeserializeObject<T>(Encoding.UTF8.GetString(serialized.Span), _settings);
+        return JsonConvert.DeserializeObject<T>(
+            Encoding.UTF8.GetString(serialized.Span),
+            _settings
+        );
     }
 
     public Task<T> Deserialize<T>(Stream serialized)
@@ -48,10 +54,16 @@ public class NewtonsoftSerializer : IMessageSerializer
 
 public class IgnoreAttachmentsResolver : DefaultContractResolver
 {
-    protected override JsonProperty CreateProperty(MemberInfo member, MemberSerialization memberSerialization)
+    protected override JsonProperty CreateProperty(
+        MemberInfo member,
+        MemberSerialization memberSerialization
+    )
     {
         var prop = base.CreateProperty(member, memberSerialization);
-        if (typeof(ICommandWithAttachment).IsAssignableFrom(member.DeclaringType) && member.Name == nameof(ICommandWithAttachment.Attachment))
+        if (
+            typeof(ICommandWithAttachment).IsAssignableFrom(member.DeclaringType)
+            && member.Name == nameof(ICommandWithAttachment.Attachment)
+        )
         {
             prop.Ignored = true;
         }

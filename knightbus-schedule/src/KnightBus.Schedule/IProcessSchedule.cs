@@ -4,7 +4,8 @@ using KnightBus.Core;
 
 namespace KnightBus.Schedule;
 
-public interface IProcessSchedule<T> : IGenericProcessor where T : class, ISchedule, new()
+public interface IProcessSchedule<T> : IGenericProcessor
+    where T : class, ISchedule, new()
 {
     Task ProcessAsync(CancellationToken cancellationToken);
 }

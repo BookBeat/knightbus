@@ -23,7 +23,8 @@ class Program
 
         const string connectionString = "";
 
-        var knightBusHost = global::Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
+        var knightBusHost = global::Microsoft
+            .Extensions.Hosting.Host.CreateDefaultBuilder()
             .UseDefaultServiceProvider(options =>
             {
                 options.ValidateScopes = true;
@@ -48,15 +49,17 @@ class Program
         //Start the KnightBus Host, it will now connect to the postgresql and listen
         await knightBusHost.StartAsync();
         await Task.Delay(TimeSpan.FromSeconds(5));
-        
 
-        var client =
-            (PostgresBus)knightBusHost.Services.CreateScope().ServiceProvider.GetRequiredService<IPostgresBus>();
+        var client = (PostgresBus)
+            knightBusHost.Services.CreateScope().ServiceProvider.GetRequiredService<IPostgresBus>();
 
         // Start the saga
         await client.SendAsync(new SamplePostgresSagaStarterCommand(), CancellationToken.None);
-        
-        await client.PublishAsync(new SamplePostgresEvent { MessageBody = "Yo" }, CancellationToken.None);
+
+        await client.PublishAsync(
+            new SamplePostgresEvent { MessageBody = "Yo" },
+            CancellationToken.None
+        );
         var messages = new List<SamplePostgresMessage>();
         for (int i = 0; i < 10000; i++)
         {
@@ -69,7 +72,10 @@ class Program
 
         Console.ReadKey();
 
-        await client.SendAsync(new SamplePoisonPostgresMessage { MessageBody = $"error_{Guid.NewGuid()}" }, default );
+        await client.SendAsync(
+            new SamplePoisonPostgresMessage { MessageBody = $"error_{Guid.NewGuid()}" },
+            default
+        );
 
         Console.ReadKey();
     }
@@ -90,7 +96,6 @@ class SamplePoisonPostgresMessage : IPostgresCommand
     public required string MessageBody { get; set; }
 }
 
-
 class SamplePostgresSagaStarterCommand : IPostgresCommand
 {
     public string SagaId => "abe7d7a5b99a475291aa7c7b25589308";
@@ -106,14 +111,16 @@ class SamplePostgresEventMapping : IMessageMapping<SamplePostgresEvent>
     public string QueueName => "sample_topic";
 }
 
-class SampleSubscription: IEventSubscription<SamplePostgresEvent>
+class SampleSubscription : IEventSubscription<SamplePostgresEvent>
 {
     public string Name => "sample_subscription";
 }
-class SampleSubscription2: IEventSubscription<SamplePostgresEvent>
+
+class SampleSubscription2 : IEventSubscription<SamplePostgresEvent>
 {
     public string Name => "sample_subscription_2";
 }
+
 class SamplePostgresMessageMapping : IMessageMapping<SamplePostgresMessage>
 {
     public string QueueName => "postgres_sample_message";
@@ -134,11 +141,11 @@ class SamplePostgresSagaCommandMapping : IMessageMapping<SamplePostgresSagaComma
     public string QueueName => "sample_postgres_saga_command";
 }
 
-class PostgresCommandProcessor :
-    IProcessCommand<SamplePostgresMessage, PostgresProcessingSetting>,
-    IProcessCommand<SamplePoisonPostgresMessage, PostgresProcessingSetting>,
-    IProcessEvent<SamplePostgresEvent, SampleSubscription, PostgresProcessingSetting>,
-    IProcessEvent<SamplePostgresEvent, SampleSubscription2, PostgresProcessingSetting>
+class PostgresCommandProcessor
+    : IProcessCommand<SamplePostgresMessage, PostgresProcessingSetting>,
+        IProcessCommand<SamplePoisonPostgresMessage, PostgresProcessingSetting>,
+        IProcessEvent<SamplePostgresEvent, SampleSubscription, PostgresProcessingSetting>,
+        IProcessEvent<SamplePostgresEvent, SampleSubscription2, PostgresProcessingSetting>
 {
     public Task ProcessAsync(SamplePostgresMessage message, CancellationToken cancellationToken)
     {
@@ -146,7 +153,10 @@ class PostgresCommandProcessor :
         return Task.CompletedTask;
     }
 
-    public Task ProcessAsync(SamplePoisonPostgresMessage message, CancellationToken cancellationToken)
+    public Task ProcessAsync(
+        SamplePoisonPostgresMessage message,
+        CancellationToken cancellationToken
+    )
     {
         Console.WriteLine($"Handler 2: '{message.MessageBody}'");
         throw new InvalidOperationException();
@@ -172,9 +182,10 @@ class PostgresSagaData
     public int Counter { get; set; }
 }
 
-class PostgresSagaProcessor : Saga<PostgresSagaData>,
-    IProcessCommand<SamplePostgresSagaStarterCommand, PostgresProcessingSetting>,
-    IProcessCommand<SamplePostgresSagaCommand, PostgresProcessingSetting>
+class PostgresSagaProcessor
+    : Saga<PostgresSagaData>,
+        IProcessCommand<SamplePostgresSagaStarterCommand, PostgresProcessingSetting>,
+        IProcessCommand<SamplePostgresSagaCommand, PostgresProcessingSetting>
 {
     public override string PartitionKey => "postgres-saga-processor";
     public override TimeSpan TimeToLive => TimeSpan.FromHours(1);
@@ -184,17 +195,23 @@ class PostgresSagaProcessor : Saga<PostgresSagaData>,
     public PostgresSagaProcessor(IPostgresBus bus)
     {
         _bus = bus;
-        
+
         MessageMapper.MapStartMessage<SamplePostgresSagaStarterCommand>(m => m.SagaId);
         MessageMapper.MapMessage<SamplePostgresSagaCommand>(m => m.SagaId);
     }
 
-    public async Task ProcessAsync(SamplePostgresSagaStarterCommand message, CancellationToken cancellationToken)
+    public async Task ProcessAsync(
+        SamplePostgresSagaStarterCommand message,
+        CancellationToken cancellationToken
+    )
     {
         await _bus.SendAsync(new SamplePostgresSagaCommand(), cancellationToken);
     }
 
-    public async Task ProcessAsync(SamplePostgresSagaCommand message, CancellationToken cancellationToken)
+    public async Task ProcessAsync(
+        SamplePostgresSagaCommand message,
+        CancellationToken cancellationToken
+    )
     {
         Data.Counter++;
         await UpdateAsync(CancellationToken.None);

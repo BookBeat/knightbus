@@ -7,21 +7,34 @@ public class PostgresTopicManager : IQueueManager
     private readonly PostgresManagementClient _managementClient;
     private readonly IPostgresConfiguration _configuration;
 
-    public PostgresTopicManager(PostgresManagementClient managementClient, IPostgresConfiguration configuration)
+    public PostgresTopicManager(
+        PostgresManagementClient managementClient,
+        IPostgresConfiguration configuration
+    )
     {
         _managementClient = managementClient;
         _configuration = configuration;
     }
+
     public async Task<IEnumerable<QueueProperties>> List(CancellationToken ct)
     {
         var topics = await _managementClient.ListTopics(ct);
-        return topics.Select(t =>
-            new QueueProperties(t.Name, new PostgresSubscriptionManager(t.Name, _managementClient, _configuration), false, QueueType.Topic));
+        return topics.Select(t => new QueueProperties(
+            t.Name,
+            new PostgresSubscriptionManager(t.Name, _managementClient, _configuration),
+            false,
+            QueueType.Topic
+        ));
     }
 
     public Task<QueueProperties> Get(string path, CancellationToken ct)
     {
-        var topic = new QueueProperties(path, new PostgresSubscriptionManager(path, _managementClient, _configuration), false, QueueType.Topic);
+        var topic = new QueueProperties(
+            path,
+            new PostgresSubscriptionManager(path, _managementClient, _configuration),
+            false,
+            QueueType.Topic
+        );
         return Task.FromResult(topic);
     }
 
@@ -35,12 +48,20 @@ public class PostgresTopicManager : IQueueManager
         throw new NotImplementedException();
     }
 
-    public Task<IReadOnlyList<QueueMessage>> PeekDeadLetter(string path, int count, CancellationToken ct)
+    public Task<IReadOnlyList<QueueMessage>> PeekDeadLetter(
+        string path,
+        int count,
+        CancellationToken ct
+    )
     {
         throw new NotImplementedException();
     }
 
-    public Task<IReadOnlyList<QueueMessage>> ReadDeadLetter(string path, int count, CancellationToken ct)
+    public Task<IReadOnlyList<QueueMessage>> ReadDeadLetter(
+        string path,
+        int count,
+        CancellationToken ct
+    )
     {
         throw new NotImplementedException();
     }
