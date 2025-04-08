@@ -1,6 +1,6 @@
 # KnightBus.Core Changelog
 
-# 16.2.0
+# 7.1.0
 * Add support for metadata in `IMessageAttachement`s
 
 # 16.1.4
