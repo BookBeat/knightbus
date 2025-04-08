@@ -3,9 +3,9 @@
 # and runs dotnet format on them before adding them back to staging
 FILES=$(git diff --cached --name-only --diff-filter=ACM "*.cs")
 [ -z "$FILES" ] && exit 0
-echo "Running dotnet format for $FILES"
-dotnet format --include $FILES
+echo "Running csharpier formatter"
+dotnet csharpier .
 
 # Add back the modified files to staging
 echo "$FILES" | xargs git add
-echo "dotnet format done"
+echo "csharpier format done"
