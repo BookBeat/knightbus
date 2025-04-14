@@ -60,36 +60,73 @@ public class CosmosBus : ICosmosBus
     {
         await InternalInsert(messages, cancellationToken);
     }
-    
-    private async Task InternalInsert<T> (IEnumerable<T> messages, CancellationToken cancellationToken) where T : IMessage
+
+    //Internal function to insert messages into cosmos
+    private async Task InternalInsert<T>(IEnumerable<T> messages, CancellationToken cancellationToken) where T : IMessage
     {
-        // Create an item in the container on topic
+        // Get container
         Container container = _client.GetContainer(_cosmosConfiguration.Database, AutoMessageMapper.GetQueueName<T>());
-
-        // Optimized for bulk execution
-        List<Task> tasks = new List<Task>();
-        foreach (var msg in messages)
+        
+        const int maxClientRetries = 5; //Could be made into configurable setting
+        
+        int retryCount = 0;
+        
+        while (retryCount <= maxClientRetries)
         {
-            var internalMessage = new InternalCosmosMessage<T>(msg);
-            tasks.Add(container.CreateItemAsync(internalMessage, new PartitionKey(internalMessage.id)).ContinueWith(
-                itemResponse =>
-                {
-                    if (!itemResponse.IsCompletedSuccessfully)
+            
+            //Insert messages asynchronously to utilize bulk execution
+            List<Task> tasks = new List<Task>();
+            var failedMessages = new List<T>();
+            
+            foreach (var msg in messages)
+            {
+                var internalMessage = new InternalCosmosMessage<T>(msg);
+                tasks.Add(container.CreateItemAsync(internalMessage, new PartitionKey(internalMessage.id), cancellationToken: cancellationToken)
+                    .ContinueWith(itemResponse =>
                     {
-                        AggregateException innerExceptions = itemResponse.Exception.Flatten();
-                        if (innerExceptions.InnerExceptions.FirstOrDefault(innerEx => innerEx is CosmosException) is CosmosException cosmosException)
+                        //Error handling for failed messages
+                        if (!itemResponse.IsCompletedSuccessfully)
                         {
-                            Console.WriteLine($"Received {cosmosException.StatusCode} ({cosmosException.ResponseBody}).");
+                            AggregateException? innerExceptions = itemResponse.Exception?.Flatten();
+                            CosmosException? cosmosException = innerExceptions?.InnerExceptions
+                                .OfType<CosmosException>()
+                                .FirstOrDefault();
+                            //Add Rate limited messages to list that will be retried later
+                            if (cosmosException is { StatusCode: HttpStatusCode.TooManyRequests })
+                            {
+                                failedMessages.Add(msg);
+                            }
+                            //Log cosmosException
+                            else if (cosmosException != null)
+                            {
+                                Console.WriteLine(
+                                    $"CosmosException: {cosmosException.StatusCode} ({cosmosException.ResponseBody}).");
+                            }
+                            //Log other exceptions 
+                            else
+                            {
+                                Console.WriteLine($"Exception: {innerExceptions?.InnerExceptions.FirstOrDefault()}.");
+                            }
                         }
-                        else
-                        {
-                            Console.WriteLine($"Exception {innerExceptions.InnerExceptions.FirstOrDefault()}.");
-                        }
-                    }
-                }));
-        }
+                    }, cancellationToken));
+            }
 
-        await Task.WhenAll(tasks);
+            await Task.WhenAll(tasks);
+            if (failedMessages.Count == 0)
+            {
+                Console.WriteLine("All messages inserted");
+                return;
+            }
+            
+            retryCount++;
+            messages = failedMessages;
+            if(retryCount <= maxClientRetries)
+                Console.WriteLine($"Retrying {failedMessages.Count} messages ...");
+            
+            await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken);
+        }
+        
+        Console.WriteLine($"{messages.Count()} messages could not be sent");
     }
 }
 

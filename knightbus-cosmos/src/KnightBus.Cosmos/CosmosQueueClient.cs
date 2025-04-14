@@ -36,7 +36,7 @@ public class CosmosQueueClient<T> where T : class, IMessage
         CheckHttpResponse(databaseResponse.StatusCode, _cosmosConfiguration.Database);
         Database = databaseResponse.Database;
         
-        Lease = await CreateContainerAsync(_cosmosConfiguration.LeaseContainer, cancellationToken);
+        Lease = await CreateContainerAsync(_cosmosConfiguration.LeaseContainer, cancellationToken); 
         
         if (typeof(ICosmosEvent).IsAssignableFrom(typeof(T)))
         {
@@ -106,7 +106,7 @@ public class CosmosQueueClient<T> where T : class, IMessage
     
     public async Task CompleteAsync(InternalCosmosMessage<T> message)
     {
-        await RemoveItemAsync(message, PersonalQueue);
+        await Task.CompletedTask;
     }
 
     public async Task AbandonByErrorAsync(InternalCosmosMessage<T> message)
@@ -126,7 +126,6 @@ public class CosmosQueueClient<T> where T : class, IMessage
     public async Task DeadLetterAsync(InternalCosmosMessage<T> message)
     {
         await DeadLetterQueue.CreateItemAsync(message, new PartitionKey(message.id));
-        await RemoveItemAsync(message, PersonalQueue);
     }
 
     public async Task AddItemAsync(InternalCosmosMessage<T> message, Container container)

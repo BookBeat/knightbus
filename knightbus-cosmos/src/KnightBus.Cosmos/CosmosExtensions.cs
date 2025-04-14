@@ -14,7 +14,13 @@ public static class CosmosExtensions
         collection.AddSingleton<ICosmosConfiguration>(_ => configuration);
         collection.AddScoped<ICosmosBus, CosmosBus>();
         collection.AddScoped<CosmosBus>();
-        collection.AddSingleton<CosmosClient>(_ = new CosmosClient(configuration.ConnectionString, new CosmosClientOptions(){AllowBulkExecution = true}));
+        
+        collection.AddSingleton<CosmosClient>(_ = new CosmosClient(configuration.ConnectionString, new CosmosClientOptions()
+        {
+            AllowBulkExecution = true,
+            MaxRetryAttemptsOnRateLimitedRequests = 100,
+            MaxRetryWaitTimeOnRateLimitedRequests = TimeSpan.FromSeconds(20)
+        }));
         
         return collection;
     }

@@ -35,7 +35,7 @@ class Program
                         configuration.Database = databaseId;
                         configuration.LeaseContainer = leaseContainer;
                         configuration.PollingDelay = TimeSpan.FromMilliseconds(500);
-                        configuration.DefaultTimeToLive = TimeSpan.FromSeconds(120);
+                        configuration.DefaultTimeToLive = TimeSpan.FromSeconds(60);
                     })
                     .RegisterProcessors(typeof(Program).Assembly) //Can be any class name in this project
                     .UseTransport<CosmosTransport>();
@@ -50,12 +50,12 @@ class Program
         
         var client = knightBusHost.Services.CreateScope().ServiceProvider.GetRequiredService<CosmosBus>();
 
-        const int numMessages = 100;
+        const int numMessages = 1;
         //Send some commands
         SampleCosmosCommand[] messages = new SampleCosmosCommand[numMessages];
         for (int i = 0; i < numMessages; i++)
         {
-            messages[i] = new SampleCosmosCommand() { MessageBody = $"msg data {i}" };
+            messages[i] = new SampleCosmosCommand() { MessageBody = $"data {i}" };
         }
         await client.SendAsync(messages, CancellationToken.None);
 
@@ -90,10 +90,8 @@ class CosmosEventProcessor :
     public Task ProcessAsync(SampleCosmosEvent message, CancellationToken cancellationToken)
     {
         Console.WriteLine($"Sub1: '{message.MessageBody}'");
-        if (random.Next() % 5 == 0)
-        {
-            throw new HttpRequestException("Simulated network error");
-        }
+        //if (random.Next() % 10 == 0)
+        //    throw new HttpRequestException("Simulated network error");
         return Task.CompletedTask;
     }
     

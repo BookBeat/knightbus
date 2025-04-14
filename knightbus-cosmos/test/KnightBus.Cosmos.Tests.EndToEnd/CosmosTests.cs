@@ -30,6 +30,25 @@ class ProcessedMessages()
         }
         return true;
     }
+
+    public static void NumberOfDuplicatesAndNotProcessed(IEnumerable<string> messageStrings, int deliveriesPerMessage = 1)
+    {
+        int notProcessed = 0;
+        int duplicateProcessed = 0;
+        foreach (var id in messageStrings)
+        {
+            if (!dict.TryGetValue(id, out var value) || value < deliveriesPerMessage)
+            {
+                notProcessed++;
+            }
+            else if(value > deliveriesPerMessage)
+            {
+                duplicateProcessed++;
+            }
+        }
+        Console.WriteLine($"Not Processed: {notProcessed}");
+        Console.WriteLine($"Duplicate Processed: {duplicateProcessed}");
+    }
 }
 
 [TestFixture]
@@ -94,7 +113,7 @@ class CosmosTests
     [Test]
     public async Task AllCommandsProcessed()
     {
-        const int numMessages = 100;
+        const int numMessages = 4000;
         //Send some commands
         SampleCosmosCommand[] messages = new SampleCosmosCommand[numMessages];
         string[] messageContents = new string[numMessages];
@@ -105,12 +124,12 @@ class CosmosTests
         }
         await _publisher.SendAsync(messages, CancellationToken.None);
         
-
         var startTime = DateTime.UtcNow;
         while (!ProcessedMessages.AllMessagesInDictionary(messageContents) && DateTime.UtcNow.Subtract(startTime) < TimeSpan.FromSeconds(60))
         {
             await Task.Delay(TimeSpan.FromSeconds(1));
         }
+        ProcessedMessages.NumberOfDuplicatesAndNotProcessed(messageContents);
         ProcessedMessages.AllMessagesInDictionary(messageContents).Should().BeTrue();
     }
     
@@ -134,7 +153,7 @@ class CosmosTests
         
         
         var startTime = DateTime.UtcNow;
-        while (!ProcessedMessages.AllMessagesInDictionary(messageContents) && DateTime.UtcNow.Subtract(startTime) < TimeSpan.FromSeconds(60))
+        while (!ProcessedMessages.AllMessagesInDictionary(messageContents) && DateTime.UtcNow.Subtract(startTime) < TimeSpan.FromSeconds(30))
         {
             await Task.Delay(TimeSpan.FromSeconds(1));
         }
@@ -161,7 +180,7 @@ class CosmosTests
         
         
         var startTime = DateTime.UtcNow;
-        while (!ProcessedMessages.AllMessagesInDictionary(messageContents,2) && DateTime.UtcNow.Subtract(startTime) < TimeSpan.FromSeconds(60))
+        while (!ProcessedMessages.AllMessagesInDictionary(messageContents,2) && DateTime.UtcNow.Subtract(startTime) < TimeSpan.FromSeconds(30))
         {
             await Task.Delay(TimeSpan.FromSeconds(1));
         }
@@ -188,7 +207,7 @@ class CosmosTests
         
         var startTime = DateTime.UtcNow;
         int deadLetterLimit = new CosmosProcessingSetting().DeadLetterDeliveryLimit;
-        while (!ProcessedMessages.AllMessagesInDictionary(messageContents,deadLetterLimit) && DateTime.UtcNow.Subtract(startTime) < TimeSpan.FromSeconds(60))
+        while (!ProcessedMessages.AllMessagesInDictionary(messageContents,deadLetterLimit) && DateTime.UtcNow.Subtract(startTime) < TimeSpan.FromSeconds(30))
         {
             await Task.Delay(TimeSpan.FromSeconds(1));
         }
