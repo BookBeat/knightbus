@@ -18,8 +18,8 @@ public static class CosmosExtensions
         collection.AddSingleton<CosmosClient>(_ = new CosmosClient(configuration.ConnectionString, new CosmosClientOptions()
         {
             AllowBulkExecution = true,
-            MaxRetryAttemptsOnRateLimitedRequests = 100,
-            MaxRetryWaitTimeOnRateLimitedRequests = TimeSpan.FromSeconds(20)
+            MaxRetryAttemptsOnRateLimitedRequests = 200,
+            MaxRetryWaitTimeOnRateLimitedRequests = TimeSpan.FromSeconds(60)
         }));
         
         return collection;

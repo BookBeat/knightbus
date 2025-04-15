@@ -122,8 +122,9 @@ public class CosmosBus : ICosmosBus
             messages = failedMessages;
             if(retryCount <= maxClientRetries)
                 Console.WriteLine($"Retrying {failedMessages.Count} messages ...");
-            
-            await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken);
+
+            double failRate = failedMessages.Count() / messages.Count();
+            await Task.Delay(TimeSpan.FromSeconds(10*failRate), cancellationToken);
         }
         
         Console.WriteLine($"{messages.Count()} messages could not be sent");

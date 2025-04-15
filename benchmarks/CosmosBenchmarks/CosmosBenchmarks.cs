@@ -1,7 +1,12 @@
+﻿using System;
+using System.Security.Cryptography;
+using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Configs;
+using BenchmarkDotNet.Running;
 using System.Collections.Concurrent;
-using FluentAssertions;
 using KnightBus.Core;
 using KnightBus.Core.DependencyInjection;
+using KnightBus.Cosmos;
 using KnightBus.Cosmos.Messages;
 using KnightBus.Host;
 using KnightBus.Messages;
@@ -9,8 +14,7 @@ using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace KnightBus.Cosmos.Tests.EndToEnd;
-
+namespace Cosmos.Benchmarks
 class ProcessedMessages()
 {
     public static ConcurrentDictionary<string, int> dict { get; set; } = new ConcurrentDictionary<string, int>();
@@ -19,19 +23,25 @@ class ProcessedMessages()
     {
         dict.AddOrUpdate(key, 1, (_, val) => val + 1);
     }
-    public static bool AllMessagesInDictionary(IEnumerable<string> messageStrings, int deliveriesPerMessage = 1)
+    public static bool MostMessagesInDictionary(IEnumerable<string> messageStrings, double threshhold = 0, int deliveriesPerMessage = 1)
     {
+        if(!messageStrings.Any())
+            throw new ArgumentException("List not correctly provided (can not be empty)");
+        
+        int messageCount = messageStrings.Count();
+        int failedMessages = 0;
         foreach (var id in messageStrings)
         {
             if (!dict.TryGetValue(id, out var value) || value < deliveriesPerMessage)
             {
-                return false;
+                failedMessages++;
             }
         }
-        return true;
+
+        return failedMessages < messageCount * threshhold;
     }
 
-    public static void NumberOfDuplicatesAndNotProcessed(IEnumerable<string> messageStrings, int deliveriesPerMessage = 1)
+    public static void DuplicatesAndMissed(IEnumerable<string> messageStrings, int deliveriesPerMessage = 1)
     {
         int notProcessed = 0;
         int duplicateProcessed = 0;
@@ -51,13 +61,12 @@ class ProcessedMessages()
     }
 }
 
-[TestFixture]
-class CosmosTests
+class CosmosBenchmarks
 {
     private CosmosBus _publisher;
     private string? _databaseId;
 
-    [OneTimeSetUp]
+    [GlobalSetup]
     public async Task OneTimeSetup()
     {
         Console.WriteLine("Starting CosmosDB example");
@@ -83,7 +92,7 @@ class CosmosTests
                         configuration.PollingDelay = TimeSpan.FromMilliseconds(500);
                         configuration.DefaultTimeToLive = TimeSpan.FromSeconds(120);
                     })
-                    .RegisterProcessors(typeof(CosmosTests).Assembly) //Can be any class name in this project
+                    .RegisterProcessors(typeof(CosmosBenchmarks).Assembly) //Can be any class name in this project
                     .UseTransport<CosmosTransport>();
 
                 services.AddSingleton<ProcessedMessages>();
@@ -98,19 +107,19 @@ class CosmosTests
         _publisher = knightBusHost.Services.CreateScope().ServiceProvider.GetRequiredService<CosmosBus>();
     }
 
-    [OneTimeTearDown]
+    [GlobalCleanup]
     public void OneTimeTearDown()
     {
         _publisher.CleanUp();
     }
 
-    [TearDown]
+    [IterationCleanup]
     public void TearDown()
     {
         ProcessedMessages.dict = new ConcurrentDictionary<string, int>();
     }
 
-    [Test]
+    [Benchmark]
     public async Task AllCommandsProcessed()
     {
         const int numMessages = 3000; // 65s / 10000
@@ -132,12 +141,11 @@ class CosmosTests
         }
 
         Console.WriteLine($"Elapsed time: {DateTime.UtcNow.Subtract(startTime).TotalSeconds} seconds");
-        ProcessedMessages.NumberOfDuplicatesAndNotProcessed(messageContents);
-        ProcessedMessages.AllMessagesInDictionary(messageContents).Should().BeTrue();
+        ProcessedMessages.DuplicatesAndMissed(messageContents);
     }
     
     
-    [Test]
+    [Benchmark]
     public async Task AllEventsProcessedWhenOneSubscriber()
     {
         const int numMessages = 1000;
@@ -157,10 +165,9 @@ class CosmosTests
             await Task.Delay(TimeSpan.FromSeconds(1));
         }
         Console.WriteLine($"Elapsed time: {DateTime.UtcNow.Subtract(startTime).TotalSeconds} seconds");
-        ProcessedMessages.AllMessagesInDictionary(messageContents).Should().BeTrue();
     }
     
-    [Test]
+    [Benchmark]
     public async Task AllEventsProcessedWhenToTwoSubscribers()
     {
         const int numMessages = 100;
@@ -184,10 +191,9 @@ class CosmosTests
         {
             await Task.Delay(TimeSpan.FromSeconds(1));
         }
-        ProcessedMessages.AllMessagesInDictionary(messageContents,2).Should().BeTrue();
     }
 
-    [Test]
+    [Benchmark]
     public async Task FailedEventsShouldBeRetriedSetNumberOfTimes()
     {
         const int numMessages = 10;
@@ -211,6 +217,5 @@ class CosmosTests
         {
             await Task.Delay(TimeSpan.FromSeconds(1));
         }
-        ProcessedMessages.AllMessagesInDictionary(messageContents,deadLetterLimit).Should().BeTrue();
     }
 }

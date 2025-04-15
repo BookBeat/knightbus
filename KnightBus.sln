@@ -119,6 +119,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.Cosmos.Messages",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.Cosmos.Tests.EndToEnd", "knightbus-cosmos\test\KnightBus.Cosmos.Tests.EndToEnd\KnightBus.Cosmos.Tests.EndToEnd.csproj", "{4A7DED99-6DA9-478C-872D-B2E17359A0EA}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Benchmarks", "Benchmarks", "{F37E9121-0F2A-4046-BE5D-195B5BA7711E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CosmosBenchmarks", "benchmarks\CosmosBenchmarks\CosmosBenchmarks.csproj", "{4D909785-D741-4D32-8AE5-FAC7AF539474}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -309,6 +313,10 @@ Global
 		{4A7DED99-6DA9-478C-872D-B2E17359A0EA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4A7DED99-6DA9-478C-872D-B2E17359A0EA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4A7DED99-6DA9-478C-872D-B2E17359A0EA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4D909785-D741-4D32-8AE5-FAC7AF539474}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4D909785-D741-4D32-8AE5-FAC7AF539474}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4D909785-D741-4D32-8AE5-FAC7AF539474}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4D909785-D741-4D32-8AE5-FAC7AF539474}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -350,6 +358,7 @@ Global
 		{5D635AFD-F0E6-4479-89CD-8F221E4C120B} = {08429A53-BCD5-48CA-8C98-F7E9A6DB7E40}
 		{8E24C34D-4C81-4558-90FE-D5478920A6C0} = {08429A53-BCD5-48CA-8C98-F7E9A6DB7E40}
 		{4A7DED99-6DA9-478C-872D-B2E17359A0EA} = {08429A53-BCD5-48CA-8C98-F7E9A6DB7E40}
+		{4D909785-D741-4D32-8AE5-FAC7AF539474} = {F37E9121-0F2A-4046-BE5D-195B5BA7711E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {14950A56-4265-429E-AF71-2D98B3B8AC48}
