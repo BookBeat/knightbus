@@ -12,7 +12,7 @@ public class CosmosQueueClient<T> where T : class, IMessage
     public CosmosClient Client { get; private set; }
     public Database Database { get; private set; }
     public Container TopicQueue { get; private set; }
-    public Container PersonalQueue { get; private set; }
+    public Container RetryQueue { get; private set; }
     public Container Lease { get; private set; }
     private Container DeadLetterQueue { get; set; }
     
@@ -52,14 +52,14 @@ public class CosmosQueueClient<T> where T : class, IMessage
     {
         TopicQueue = await CreateContainerAsync(AutoMessageMapper.GetQueueName<T>(), cancellationToken);
 
-        PersonalQueue = await CreateContainerAsync(AutoMessageMapper.GetQueueName<T>() + ": " + _subscription.Name, cancellationToken);
+        RetryQueue = await CreateContainerAsync(AutoMessageMapper.GetQueueName<T>() + ": " + _subscription.Name, cancellationToken);
         
         DeadLetterQueue = await CreateContainerAsync(AutoMessageMapper.GetQueueName<T>() + ": " + _subscription.Name + " - DL", cancellationToken, -1 ); //Deadlettered items should never expire
     }
     
     private async Task SetupCommandAsync(CancellationToken cancellationToken){
         
-        PersonalQueue = await CreateContainerAsync(AutoMessageMapper.GetQueueName<T>(), cancellationToken);
+        RetryQueue = await CreateContainerAsync(AutoMessageMapper.GetQueueName<T>(), cancellationToken);
         
         DeadLetterQueue = await CreateContainerAsync(AutoMessageMapper.GetQueueName<T>() + " - DL", cancellationToken, -1 ); //Deadlettered items should never expire
     }
@@ -111,16 +111,10 @@ public class CosmosQueueClient<T> where T : class, IMessage
 
     public async Task AbandonByErrorAsync(InternalCosmosMessage<T> message)
     {
-        //Update item
-         ItemResponse<InternalCosmosMessage<T>> response = await PersonalQueue.PatchItemAsync<InternalCosmosMessage<T>>(
-
-            id: message.id,
-            partitionKey: new PartitionKey(message.id),
-            patchOperations:
-            [
-                PatchOperation.Increment("/DeliveryCount", 1)
-            ]
-        );
+        message.DeliveryCount++;
+        //Upsert item into retryQueue
+        ItemResponse<InternalCosmosMessage<T>> response = await RetryQueue.UpsertItemAsync<InternalCosmosMessage<T>>(
+            message, new PartitionKey(message.id));
     }
 
     public async Task DeadLetterAsync(InternalCosmosMessage<T> message)

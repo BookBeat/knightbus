@@ -2,7 +2,7 @@
 using KnightBus.Cosmos.Messages;
 using KnightBus.Messages;
 
-namespace Cosmos.Benchmarks
+namespace CosmosBenchmarks;
 
 class CosmosEventProcessor :
     IProcessEvent<OneSubCosmosEvent, SampleSubscription, CosmosProcessingSetting>,

@@ -41,20 +41,20 @@ public class CosmosSubscriptionChannelReceiver<T> : IChannelReceiver where T : c
     {
         await _cosmosQueueClient.StartAsync(_cosmosClient, cancellationToken);
         
-        //Fetch messages from topic to subscription queue
+        //Process event on topic
         ChangeFeedProcessor eventFetcher = _cosmosQueueClient.TopicQueue
-            .GetChangeFeedProcessorBuilder<InternalCosmosMessage<T>>(processorName: AutoMessageMapper.GetQueueName<T>() + "->" + _subscription.Name, onChangesDelegate: FetchChangesAsync)
+            .GetChangeFeedProcessorBuilder<InternalCosmosMessage<T>>(processorName: AutoMessageMapper.GetQueueName<T>() + "->" + _subscription.Name, onChangesDelegate: ProcessChangesAsync)
             .WithInstanceName($"consoleHost") //Must use program variable for parallel processing
             .WithLeaseContainer(_cosmosQueueClient.Lease)
             .WithPollInterval(_cosmosConfiguration.PollingDelay)
             .Build();
         
         await eventFetcher.StartAsync();
-        Console.WriteLine($"Fetcher on topic {AutoMessageMapper.GetQueueName<T>()} started.");
+        Console.WriteLine($"{_subscription.Name} processor on topic {AutoMessageMapper.GetQueueName<T>()} started.");
         
         
-        //Process messages in subscription queue
-        ChangeFeedProcessor eventProcessor = _cosmosQueueClient.PersonalQueue
+        //Process messages in Retry queue
+        ChangeFeedProcessor eventProcessor = _cosmosQueueClient.RetryQueue
             .GetChangeFeedProcessorBuilder<InternalCosmosMessage<T>>(processorName: _subscription.Name, onChangesDelegate: ProcessChangesAsync)
             .WithInstanceName($"consoleHost") //Must use program variable for parallel processing
             .WithLeaseContainer(_cosmosQueueClient.Lease)
@@ -62,17 +62,8 @@ public class CosmosSubscriptionChannelReceiver<T> : IChannelReceiver where T : c
             .Build();
         
         await eventProcessor.StartAsync();
-        Console.WriteLine($"Processor on {_subscription.Name} started.");
+        Console.WriteLine($"{_subscription.Name} retry processor for started.");
     }
-
-    private async Task FetchChangesAsync(ChangeFeedProcessorContext context, IReadOnlyCollection<InternalCosmosMessage<T>> messages, CancellationToken cancellationToken)
-    {
-        foreach (var message in messages)
-        {
-            await _cosmosQueueClient.AddItemAsync(message, _cosmosQueueClient.PersonalQueue);
-        }
-    }
-    
     private async Task ProcessChangesAsync(ChangeFeedProcessorContext context, IReadOnlyCollection<InternalCosmosMessage<T>> messages, CancellationToken cancellationToken)
     {
         List<Task> tasks = new List<Task>();

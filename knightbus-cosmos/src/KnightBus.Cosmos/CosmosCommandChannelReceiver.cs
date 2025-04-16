@@ -42,7 +42,7 @@ public class CosmosCommandChannelReceiver<T> : IChannelReceiver where T : class,
         await _cosmosQueueClient.StartAsync(_cosmosClient, cancellationToken);
         
         //Process messages in subscription queue
-        ChangeFeedProcessor changeFeedProcessor = _cosmosQueueClient.PersonalQueue
+        ChangeFeedProcessor changeFeedProcessor = _cosmosQueueClient.RetryQueue
             .GetChangeFeedProcessorBuilder<InternalCosmosMessage<T>>(processorName: "Command-" + AutoMessageMapper.GetQueueName<T>(), onChangesDelegate: ProcessChangesAsync)
             .WithInstanceName($"consoleHost") //Must use program variable or machine name for parallel processing
             .WithLeaseContainer(_cosmosQueueClient.Lease)
