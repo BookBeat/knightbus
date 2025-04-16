@@ -37,33 +37,19 @@ public class CosmosQueueClient<T> where T : class, IMessage
         Database = databaseResponse.Database;
         
         Lease = await CreateContainerAsync(_cosmosConfiguration.LeaseContainer, cancellationToken); 
+        TopicQueue = await CreateContainerAsync(AutoMessageMapper.GetQueueName<T>(), cancellationToken);
         
         if (typeof(ICosmosEvent).IsAssignableFrom(typeof(T)))
         {
-            await SetupEventAsync(cancellationToken);
+            RetryQueue = await CreateContainerAsync(AutoMessageMapper.GetQueueName<T>() + "-" + _subscription.Name + "-Retry", cancellationToken);
+            DeadLetterQueue = await CreateContainerAsync(AutoMessageMapper.GetQueueName<T>() + "-" + _subscription.Name + "-DL", cancellationToken, -1 ); //Deadlettered items should never expire
         }
         else if (typeof(ICosmosCommand).IsAssignableFrom(typeof(T)))
         {
-            await SetupCommandAsync(cancellationToken);
+            DeadLetterQueue = await CreateContainerAsync(AutoMessageMapper.GetQueueName<T>() + "-DL", cancellationToken, -1 ); //Deadlettered items should never expire
         }
     }
-
-    private async Task SetupEventAsync(CancellationToken cancellationToken)
-    {
-        TopicQueue = await CreateContainerAsync(AutoMessageMapper.GetQueueName<T>(), cancellationToken);
-
-        RetryQueue = await CreateContainerAsync(AutoMessageMapper.GetQueueName<T>() + ": " + _subscription.Name, cancellationToken);
-        
-        DeadLetterQueue = await CreateContainerAsync(AutoMessageMapper.GetQueueName<T>() + ": " + _subscription.Name + " - DL", cancellationToken, -1 ); //Deadlettered items should never expire
-    }
     
-    private async Task SetupCommandAsync(CancellationToken cancellationToken){
-        
-        RetryQueue = await CreateContainerAsync(AutoMessageMapper.GetQueueName<T>(), cancellationToken);
-        
-        DeadLetterQueue = await CreateContainerAsync(AutoMessageMapper.GetQueueName<T>() + " - DL", cancellationToken, -1 ); //Deadlettered items should never expire
-    }
-
     private async Task<Container> CreateContainerAsync(string id, CancellationToken cancellationToken, int? TTL = null)
     {
         TTL ??= (int)_cosmosConfiguration.DefaultTimeToLive.TotalSeconds; //Get configured TTL if not specified

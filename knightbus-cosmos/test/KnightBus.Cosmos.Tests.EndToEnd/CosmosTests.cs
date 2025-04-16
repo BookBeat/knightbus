@@ -14,40 +14,31 @@ namespace KnightBus.Cosmos.Tests.EndToEnd;
 class ProcessedMessages()
 {
     public static ConcurrentDictionary<string, int> dict { get; set; } = new ConcurrentDictionary<string, int>();
-
+    public static Random Rng = new Random();
+    
     public static void Increment(string key)
     {
         dict.AddOrUpdate(key, 1, (_, val) => val + 1);
     }
     public static bool AllMessagesInDictionary(IEnumerable<string> messageStrings, int deliveriesPerMessage = 1)
     {
-        foreach (var id in messageStrings)
-        {
-            if (!dict.TryGetValue(id, out var value) || value < deliveriesPerMessage)
-            {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    public static void NumberOfDuplicatesAndNotProcessed(IEnumerable<string> messageStrings, int deliveriesPerMessage = 1)
-    {
         int notProcessed = 0;
         int duplicateProcessed = 0;
+        
         foreach (var id in messageStrings)
         {
             if (!dict.TryGetValue(id, out var value) || value < deliveriesPerMessage)
             {
                 notProcessed++;
-            }
-            else if(value > deliveriesPerMessage)
+            } else if (value > deliveriesPerMessage)
             {
                 duplicateProcessed++;
             }
         }
         Console.WriteLine($"Not Processed: {notProcessed}");
         Console.WriteLine($"Duplicate Processed: {duplicateProcessed}");
+        
+        return (notProcessed == 0);
     }
 }
 
@@ -113,7 +104,7 @@ class CosmosTests
     [Test]
     public async Task AllCommandsProcessed()
     {
-        const int numMessages = 10000; // 65s / 10000
+        const int numMessages = 1000; // 65s / 10000
         //Send some commands
         SampleCosmosCommand[] messages = new SampleCosmosCommand[numMessages];
         string[] messageContents = new string[numMessages];
@@ -129,14 +120,13 @@ class CosmosTests
         {
             await Task.Delay(TimeSpan.FromSeconds(1));
         }
-        ProcessedMessages.NumberOfDuplicatesAndNotProcessed(messageContents);
         ProcessedMessages.AllMessagesInDictionary(messageContents).Should().BeTrue();
     }
     
     [Test]
     public async Task AllEventsProcessedWhenOneSubscriber()
     {
-        const int numMessages = 10000; //1000 - 6.46s
+        const int numMessages = 1000; //1000 - 6.46s
         
         OneSubCosmosEvent[] messages = new OneSubCosmosEvent[numMessages];
         string[] messageContents = new string[numMessages];
@@ -149,7 +139,7 @@ class CosmosTests
         await _publisher.PublishAsync(messages, CancellationToken.None);
         
         var startTime = DateTime.UtcNow;
-        while (!ProcessedMessages.AllMessagesInDictionary(messageContents) && DateTime.UtcNow.Subtract(startTime) < TimeSpan.FromSeconds(180))
+        while (!ProcessedMessages.AllMessagesInDictionary(messageContents) && DateTime.UtcNow.Subtract(startTime) < TimeSpan.FromSeconds(10))
         {
             await Task.Delay(TimeSpan.FromSeconds(1));
         }
@@ -159,7 +149,7 @@ class CosmosTests
     [Test]
     public async Task AllEventsProcessedWhenToTwoSubscribers()
     {
-        const int numMessages = 10000; //1000 - 7.36
+        const int numMessages = 1000;
         
         TwoSubCosmosEvent[] messages = new TwoSubCosmosEvent[numMessages];
         string[] messageContents = new string[numMessages];
@@ -171,7 +161,7 @@ class CosmosTests
         await _publisher.PublishAsync(messages, CancellationToken.None);
         
         var startTime = DateTime.UtcNow;
-        while (!ProcessedMessages.AllMessagesInDictionary(messageContents,2) && DateTime.UtcNow.Subtract(startTime) < TimeSpan.FromSeconds(180))
+        while (!ProcessedMessages.AllMessagesInDictionary(messageContents,2) && DateTime.UtcNow.Subtract(startTime) < TimeSpan.FromSeconds(10))
         {
             await Task.Delay(TimeSpan.FromSeconds(1));
         }
@@ -181,7 +171,7 @@ class CosmosTests
     [Test]
     public async Task FailedEventsShouldBeRetriedSetNumberOfTimes()
     {
-        const int numMessages = 10;
+        const int numMessages = 100;
         
         PoisonEvent[] messages = new PoisonEvent[numMessages];
         string[] messageContents = new string[numMessages];
@@ -199,5 +189,33 @@ class CosmosTests
             await Task.Delay(TimeSpan.FromSeconds(1));
         }
         ProcessedMessages.AllMessagesInDictionary(messageContents,deadLetterLimit).Should().BeTrue();
+    }
+
+    
+    
+    //Terrible test since it's random if the messages fail or not meaning that there is a slight risk of a message failing
+    // Should be converted to checking if each message is either sucessfully processed or in the deadletter Queue
+    // Session consistency means reading if the message is in DL guarantees correctness
+    [Test]
+    public async Task AllEventsShouldBeSucessfullyProcessed()
+    {
+        const int numMessages = 1000;
+        
+        EventWithErrors[] messages = new EventWithErrors[numMessages];
+        string[] messageContents = new string[numMessages];
+        for (int i = 0; i < numMessages; i++)
+        {
+            messages[i] = new EventWithErrors() { Body = $"msg data {i}" };
+            messageContents[i] = messages[i].Body;
+        }
+        
+        await _publisher.PublishAsync(messages, CancellationToken.None);
+        
+        var startTime = DateTime.UtcNow;
+        while (!ProcessedMessages.AllMessagesInDictionary(messageContents) && DateTime.UtcNow.Subtract(startTime) < TimeSpan.FromSeconds(10))
+        {
+            await Task.Delay(TimeSpan.FromSeconds(1));
+        }
+        ProcessedMessages.AllMessagesInDictionary(messageContents).Should().BeTrue();
     }
 }

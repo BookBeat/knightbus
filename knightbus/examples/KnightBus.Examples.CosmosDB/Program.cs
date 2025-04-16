@@ -34,8 +34,8 @@ class Program
                         configuration.ConnectionString = connectionString;
                         configuration.Database = databaseId;
                         configuration.LeaseContainer = leaseContainer;
-                        configuration.PollingDelay = TimeSpan.FromMilliseconds(500);
-                        configuration.DefaultTimeToLive = TimeSpan.FromSeconds(60);
+                        configuration.PollingDelay = TimeSpan.FromSeconds(2);
+                        configuration.DefaultTimeToLive = TimeSpan.FromSeconds(120);
                     })
                     .RegisterProcessors(typeof(Program).Assembly) //Can be any class name in this project
                     .UseTransport<CosmosTransport>();
@@ -50,7 +50,7 @@ class Program
         
         var client = knightBusHost.Services.CreateScope().ServiceProvider.GetRequiredService<CosmosBus>();
 
-        const int numMessages = 1;
+        const int numMessages = 100;
         //Send some commands
         SampleCosmosCommand[] messages = new SampleCosmosCommand[numMessages];
         for (int i = 0; i < numMessages; i++)
@@ -71,27 +71,33 @@ class Program
 
         Console.ReadKey();
         
+        SamplePoisonEvent[] poisonEvents = new SamplePoisonEvent[numMessages];
         //Publish poison event
-        await client.PublishAsync(new SamplePoisonEvent() { Bad_Message = $"danger" }, CancellationToken.None);
+        for (int i = 0; i < numMessages; i++)
+        {
+            poisonEvents[i] = new SamplePoisonEvent() { Bad_Message = $"danger {1}" };
+        }
+        await client.PublishAsync(new SamplePoisonEvent() { Bad_Message = $"danger {1}"}, CancellationToken.None);
         
         //Clean-up
-        client.CleanUp();
         Console.WriteLine("End of program, press any key to exit.");
         Console.ReadKey();
+        client.CleanUp();
     }
 }
 
 class CosmosEventProcessor :
     IProcessEvent<SampleCosmosEvent, SampleSubscription, CosmosProcessingSetting>,
     IProcessEvent<SampleCosmosEvent, OtherSubscription, CosmosProcessingSetting>,
-    IProcessEvent<SamplePoisonEvent, SamplePoisonSubscription, CosmosProcessingSetting>
+    IProcessEvent<SamplePoisonEvent, SamplePoisonSubscription, CosmosProcessingSetting>,
+    IProcessEvent<SamplePoisonEvent, OtherSamplePoisonSubscription, CosmosProcessingSetting>
 {
     private Random random = new Random(); //Probably not ideal way to do this
     public Task ProcessAsync(SampleCosmosEvent message, CancellationToken cancellationToken)
     {
         Console.WriteLine($"Sub1: '{message.MessageBody}'");
-        //if (random.Next() % 10 == 0)
-        //    throw new HttpRequestException("Simulated network error");
+        if (random.Next() % 10 == 0)
+            throw new HttpRequestException("Simulated network error");
         return Task.CompletedTask;
     }
     

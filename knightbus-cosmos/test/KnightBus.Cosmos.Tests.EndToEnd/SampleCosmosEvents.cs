@@ -8,7 +8,8 @@ class CosmosEventProcessor :
     IProcessEvent<OneSubCosmosEvent, SampleSubscription, CosmosProcessingSetting>,
     IProcessEvent<TwoSubCosmosEvent, Subscription1, CosmosProcessingSetting>,
     IProcessEvent<TwoSubCosmosEvent, Subscription2, CosmosProcessingSetting>,
-    IProcessEvent<PoisonEvent, PoisonSubscription, CosmosProcessingSetting>
+    IProcessEvent<PoisonEvent, PoisonSubscription, CosmosProcessingSetting>,
+    IProcessEvent<EventWithErrors, EventWithErrorsSubscription, CosmosProcessingSetting>
 {
     public Task ProcessAsync(OneSubCosmosEvent message, CancellationToken cancellationToken)
     {
@@ -28,6 +29,16 @@ class CosmosEventProcessor :
         ProcessedMessages.Increment(message.Body);
         throw new HttpRequestException("Simulated error");
     }
+
+    public Task ProcessAsync(EventWithErrors message, CancellationToken cancellationToken)
+    {
+        if (ProcessedMessages.Rng.Next(0,10) == 0)
+        {
+            throw new HttpRequestException("Simulated error");
+        }
+        ProcessedMessages.Increment(message.Body);
+        return Task.CompletedTask;
+    }
 }
 
 class CosmosProcessingSetting : IProcessingSettings
@@ -35,7 +46,7 @@ class CosmosProcessingSetting : IProcessingSettings
     public int MaxConcurrentCalls => 10; //Currently not used
     public int PrefetchCount => 50; //Currently not used
     public TimeSpan MessageLockTimeout => TimeSpan.FromMinutes(5); //Currently not used
-    public int DeadLetterDeliveryLimit => 2;
+    public int DeadLetterDeliveryLimit => 3;
 }
 
 public class OneSubCosmosEvent : ICosmosEvent
@@ -82,4 +93,23 @@ class PoisonEventMapping : IMessageMapping<PoisonEvent>
 class PoisonSubscription : IEventSubscription<PoisonEvent>
 {
     public string Name => "poison_subscription";
+}
+
+
+
+
+//Event with simulated errors
+public class EventWithErrors : ICosmosEvent
+{
+    public required string Body { get; set;  }
+}
+
+class EventWithErrorsMapping : IMessageMapping<EventWithErrors>
+{
+    public string QueueName => "error-handling";
+}
+
+class EventWithErrorsSubscription : IEventSubscription<EventWithErrors>
+{
+    public string Name => "EH_subscription";
 }
