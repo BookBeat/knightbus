@@ -113,7 +113,7 @@ class CosmosTests
     [Test]
     public async Task AllCommandsProcessed()
     {
-        const int numMessages = 3000; // 65s / 10000
+        const int numMessages = 10000; // 65s / 10000
         //Send some commands
         SampleCosmosCommand[] messages = new SampleCosmosCommand[numMessages];
         string[] messageContents = new string[numMessages];
@@ -122,52 +122,44 @@ class CosmosTests
             messages[i] = new SampleCosmosCommand() { MessageBody = $"msg data {i}" };
             messageContents[i] = messages[i].MessageBody;
         }
-        
-        var startTime = DateTime.UtcNow;
         await _publisher.SendAsync(messages, CancellationToken.None);
         
-        while (!ProcessedMessages.AllMessagesInDictionary(messageContents) && (DateTime.UtcNow.Subtract(startTime)) < TimeSpan.FromMinutes(4))
+        var startTime = DateTime.UtcNow;
+        while (!ProcessedMessages.AllMessagesInDictionary(messageContents) && DateTime.UtcNow.Subtract(startTime) < TimeSpan.FromSeconds(120))
         {
             await Task.Delay(TimeSpan.FromSeconds(1));
         }
-
-        Console.WriteLine($"Elapsed time: {DateTime.UtcNow.Subtract(startTime).TotalSeconds} seconds");
         ProcessedMessages.NumberOfDuplicatesAndNotProcessed(messageContents);
         ProcessedMessages.AllMessagesInDictionary(messageContents).Should().BeTrue();
     }
     
-    
     [Test]
     public async Task AllEventsProcessedWhenOneSubscriber()
     {
-        const int numMessages = 1000;
+        const int numMessages = 10000; //1000 - 6.46s
+        
         OneSubCosmosEvent[] messages = new OneSubCosmosEvent[numMessages];
         string[] messageContents = new string[numMessages];
-        
         for (int i = 0; i < numMessages; i++)
         {
             messages[i] = new OneSubCosmosEvent() { MessageBody = $"msg data {i}" };
             messageContents[i] = messages[i].MessageBody;
         }
-        var startTime = DateTime.UtcNow;
+        
         await _publisher.PublishAsync(messages, CancellationToken.None);
         
-        while (!ProcessedMessages.AllMessagesInDictionary(messageContents) && DateTime.UtcNow.Subtract(startTime) < TimeSpan.FromSeconds(30))
+        var startTime = DateTime.UtcNow;
+        while (!ProcessedMessages.AllMessagesInDictionary(messageContents) && DateTime.UtcNow.Subtract(startTime) < TimeSpan.FromSeconds(180))
         {
             await Task.Delay(TimeSpan.FromSeconds(1));
         }
-        Console.WriteLine($"Elapsed time: {DateTime.UtcNow.Subtract(startTime).TotalSeconds} seconds");
         ProcessedMessages.AllMessagesInDictionary(messageContents).Should().BeTrue();
     }
     
     [Test]
     public async Task AllEventsProcessedWhenToTwoSubscribers()
     {
-        const int numMessages = 100;
-        for (int i = 0; i < numMessages; i++)
-        {
-            await _publisher.PublishAsync(new TwoSubCosmosEvent() { MessageBody = $"data {i}" }, CancellationToken.None);
-        }
+        const int numMessages = 10000; //1000 - 7.36
         
         TwoSubCosmosEvent[] messages = new TwoSubCosmosEvent[numMessages];
         string[] messageContents = new string[numMessages];
@@ -178,9 +170,8 @@ class CosmosTests
         }
         await _publisher.PublishAsync(messages, CancellationToken.None);
         
-        
         var startTime = DateTime.UtcNow;
-        while (!ProcessedMessages.AllMessagesInDictionary(messageContents,2) && DateTime.UtcNow.Subtract(startTime) < TimeSpan.FromSeconds(30))
+        while (!ProcessedMessages.AllMessagesInDictionary(messageContents,2) && DateTime.UtcNow.Subtract(startTime) < TimeSpan.FromSeconds(180))
         {
             await Task.Delay(TimeSpan.FromSeconds(1));
         }
@@ -191,10 +182,6 @@ class CosmosTests
     public async Task FailedEventsShouldBeRetriedSetNumberOfTimes()
     {
         const int numMessages = 10;
-        for (int i = 0; i < numMessages; i++)
-        {
-            await _publisher.PublishAsync(new PoisonEvent() { Body = $"data {i}" }, CancellationToken.None);
-        }
         
         PoisonEvent[] messages = new PoisonEvent[numMessages];
         string[] messageContents = new string[numMessages];

@@ -41,7 +41,7 @@ public class CosmosCommandChannelReceiver<T> : IChannelReceiver where T : class,
     {
         await _cosmosQueueClient.StartAsync(_cosmosClient, cancellationToken);
         
-        //Process messages in subscription queue
+        //Process messages in topic queue
         ChangeFeedProcessor changeFeedProcessor = _cosmosQueueClient.RetryQueue
             .GetChangeFeedProcessorBuilder<InternalCosmosMessage<T>>(processorName: "Command-" + AutoMessageMapper.GetQueueName<T>(), onChangesDelegate: ProcessChangesAsync)
             .WithInstanceName($"consoleHost") //Must use program variable or machine name for parallel processing
@@ -61,7 +61,6 @@ public class CosmosCommandChannelReceiver<T> : IChannelReceiver where T : class,
             var messageStateHandler = new CosmosMessageStateHandler<T>(_cosmosQueueClient, message, settings.DeadLetterDeliveryLimit, _hostConfiguration.DependencyInjection);
             tasks.Add(_processor.ProcessAsync(messageStateHandler, cancellationToken));
         }
-        Console.WriteLine("Processing complete");
         await Task.WhenAll(tasks);
     }
     

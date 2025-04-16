@@ -41,7 +41,7 @@ public class CosmosSubscriptionChannelReceiver<T> : IChannelReceiver where T : c
     {
         await _cosmosQueueClient.StartAsync(_cosmosClient, cancellationToken);
         
-        //Process event on topic
+        //Process events directly on topic
         ChangeFeedProcessor eventFetcher = _cosmosQueueClient.TopicQueue
             .GetChangeFeedProcessorBuilder<InternalCosmosMessage<T>>(processorName: AutoMessageMapper.GetQueueName<T>() + "->" + _subscription.Name, onChangesDelegate: ProcessChangesAsync)
             .WithInstanceName($"consoleHost") //Must use program variable for parallel processing
@@ -53,7 +53,7 @@ public class CosmosSubscriptionChannelReceiver<T> : IChannelReceiver where T : c
         Console.WriteLine($"{_subscription.Name} processor on topic {AutoMessageMapper.GetQueueName<T>()} started.");
         
         
-        //Process messages in Retry queue
+        //Process events in Retry queue
         ChangeFeedProcessor eventProcessor = _cosmosQueueClient.RetryQueue
             .GetChangeFeedProcessorBuilder<InternalCosmosMessage<T>>(processorName: _subscription.Name, onChangesDelegate: ProcessChangesAsync)
             .WithInstanceName($"consoleHost") //Must use program variable for parallel processing
