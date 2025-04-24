@@ -92,7 +92,7 @@ class CosmosTests
     [OneTimeTearDown]
     public void OneTimeTearDown()
     {
-        _publisher.CleanUp();
+        _publisher.Dispose();
     }
 
     [TearDown]
@@ -190,8 +190,6 @@ class CosmosTests
         }
         ProcessedMessages.AllMessagesInDictionary(messageContents,deadLetterLimit).Should().BeTrue();
     }
-
-    
     
     //Terrible test since it's random if the messages fail or not meaning that there is a slight risk of a message failing
     // Should be converted to checking if each message is either sucessfully processed or in the deadletter Queue

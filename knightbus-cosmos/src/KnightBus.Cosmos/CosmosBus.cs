@@ -31,9 +31,15 @@ public class CosmosBus : ICosmosBus
         _client = client;
     }
 
-    public void CleanUp()
+    public void Dispose()
     {
         _client.Dispose();
+    }
+
+    public async Task RemoveDatabase()
+    {
+        Database database = _client.GetDatabase(_cosmosConfiguration.Database);
+        await database.DeleteAsync();
     }
     
     //Send a single command
