@@ -37,11 +37,7 @@ public class ErrorHandlingMiddleware : IMessageProcessorMiddleware
                 TimeSpan delay = TimeSpan.Zero;
                 if (pipelineInformation.ProcessingSettings is IDelayReProcessing delaySetting)
                 {
-                    var backOffFactor =
-                        delaySetting.BackOffMode is BackOffMode.Exponential
-                            ? Math.Pow(2, messageStateHandler.DeliveryCount)
-                            : 1;
-                    delay = backOffFactor * delaySetting.Delay;
+                    delay = delaySetting.BackOffGenerator(messageStateHandler.DeliveryCount);
                 }
 
                 await messageStateHandler.AbandonByErrorAsync(e, delay).ConfigureAwait(false);
