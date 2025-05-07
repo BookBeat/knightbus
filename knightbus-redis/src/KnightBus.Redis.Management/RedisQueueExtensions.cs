@@ -14,8 +14,6 @@ public static class RedisQueueExtensions
         services = services
             .AddScoped<RedisQueueManager>()
             .AddScoped<IQueueManager, RedisQueueManager>()
-            .AddScoped<IQueueMessageAttachmentProvider, RedisQueueManager>()
-            .AddSingleton<RedisAttachmentProvider>()
             .AddScoped<IRedisManagementClient, RedisManagementClient>();
 
         return services.UseRedis(c =>

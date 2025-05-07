@@ -10,7 +10,6 @@ using KnightBus.Shared.Tests.Integration;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
-using StackExchange.Redis;
 
 namespace KnightBus.Redis.Tests.Integration;
 
@@ -30,14 +29,7 @@ public class RedisMessageStateHandlerTests : MessageStateHandlerTests<TestComman
             RedisTestBase.Configuration,
             logger.Object
         );
-        var qm = new RedisQueueManager(
-            managementClient,
-            RedisTestBase.Configuration,
-            new RedisAttachmentProvider(
-                ConnectionMultiplexer.Connect(RedisTestBase.Configuration.ConnectionString),
-                RedisTestBase.Configuration
-            )
-        );
+        var qm = new RedisQueueManager(managementClient, RedisTestBase.Configuration);
         _bus = new RedisBus(
             RedisTestBase.Configuration.ConnectionString,
             Array.Empty<IMessagePreProcessor>()
