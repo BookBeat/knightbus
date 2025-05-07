@@ -46,7 +46,7 @@ internal class ServiceBusMessageStateHandler<T> : IMessageStateHandler<T>
         throw new NotImplementedException();
     }
 
-    public async Task AbandonByErrorAsync(Exception e)
+    public async Task AbandonByErrorAsync(Exception e, TimeSpan delay)
     {
         await _sbMessage.AbandonByErrorAsync(_processMessage, e).ConfigureAwait(false);
     }

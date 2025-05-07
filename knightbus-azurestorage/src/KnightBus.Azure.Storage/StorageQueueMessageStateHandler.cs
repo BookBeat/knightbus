@@ -40,7 +40,7 @@ internal class StorageQueueMessageStateHandler<T> : IMessageStateHandler<T>, IMe
         throw new NotImplementedException();
     }
 
-    public Task AbandonByErrorAsync(Exception e)
+    public Task AbandonByErrorAsync(Exception e, TimeSpan delay)
     {
         var errorMessage = e.ToString();
         if (errorMessage.Length > 30000)
@@ -50,7 +50,7 @@ internal class StorageQueueMessageStateHandler<T> : IMessageStateHandler<T>, IMe
         }
 
         _message.Properties["Error"] = errorMessage;
-        return _queueClient.AbandonByErrorAsync(_message, null);
+        return _queueClient.AbandonByErrorAsync(_message, delay);
     }
 
     public Task DeadLetterAsync(int deadLetterLimit)

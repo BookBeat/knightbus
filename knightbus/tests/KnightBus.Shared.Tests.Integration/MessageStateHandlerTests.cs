@@ -56,7 +56,7 @@ public abstract class MessageStateHandlerTests<TCommand>
         var stateHandler = await GetMessageStateHandler();
 
         //act
-        await stateHandler.AbandonByErrorAsync(new Exception());
+        await stateHandler.AbandonByErrorAsync(new Exception(), TimeSpan.Zero);
 
         //assert
         var messages = await GetMessages(10);

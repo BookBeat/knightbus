@@ -95,7 +95,10 @@ public class StandardMessagePipelineTests
         //act
         await _messageProcessor.ProcessAsync(_stateHandler.Object, CancellationToken.None);
         //assert
-        _stateHandler.Verify(x => x.AbandonByErrorAsync(It.IsAny<TestException>()), Times.Once);
+        _stateHandler.Verify(
+            x => x.AbandonByErrorAsync(It.IsAny<TestException>(), TimeSpan.Zero),
+            Times.Once
+        );
     }
 
     [Test]

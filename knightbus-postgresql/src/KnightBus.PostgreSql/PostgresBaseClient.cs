@@ -107,7 +107,11 @@ WHERE message_id = ($1);
         await command.ExecuteNonQueryAsync().ConfigureAwait(false);
     }
 
-    public async Task AbandonByErrorAsync(PostgresMessage<T> message, Exception exception)
+    public async Task AbandonByErrorAsync(
+        PostgresMessage<T> message,
+        Exception exception,
+        TimeSpan delay
+    )
     {
         var errorString = exception.ToString();
         message.Properties["error_message"] = errorString;
@@ -115,7 +119,7 @@ WHERE message_id = ($1);
         await using var command = _npgsqlDataSource.CreateCommand(
             @$"
 UPDATE {SchemaName}.{_prefix}_{_queueName}
-SET properties = ($1), visibility_timeout = now()
+SET properties = ($1), visibility_timeout = now() + $3
 WHERE message_id = ($2);
 "
         );
@@ -127,6 +131,10 @@ WHERE message_id = ($2);
             }
         );
         command.Parameters.Add(new NpgsqlParameter<long> { Value = message.Id });
+        command.Parameters.Add(
+            new NpgsqlParameter { Value = delay, NpgsqlDbType = NpgsqlDbType.Interval }
+        );
+
         await command.ExecuteNonQueryAsync().ConfigureAwait(false);
     }
 
