@@ -180,7 +180,8 @@ WHERE message_id = {message[0].Id}"
 
         await _postgresQueueClient.AbandonByErrorAsync(
             message[0],
-            new Exception("some error message")
+            new Exception("some error message"),
+            TimeSpan.Zero
         );
 
         var result = _postgresQueueClient

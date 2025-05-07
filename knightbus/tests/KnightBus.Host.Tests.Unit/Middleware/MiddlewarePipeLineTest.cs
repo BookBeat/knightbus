@@ -221,6 +221,11 @@ public class MiddlewarePipelineTest
             throw new NotImplementedException();
         }
 
+        public Task AbandonByErrorWithDelayAsync(Exception e, TimeSpan delay)
+        {
+            throw new NotImplementedException();
+        }
+
         public Task DeadLetterAsync(int deadLetterLimit)
         {
             throw new NotImplementedException();

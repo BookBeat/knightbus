@@ -53,6 +53,11 @@ internal class NatsBusMessageStateHandler<T> : IMessageStateHandler<T>
         return Task.CompletedTask;
     }
 
+    public Task AbandonByErrorWithDelayAsync(Exception e, TimeSpan delay)
+    {
+        throw new NotImplementedException();
+    }
+
     public Task DeadLetterAsync(int deadLetterLimit)
     {
         return Task.CompletedTask;

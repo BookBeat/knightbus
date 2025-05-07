@@ -42,3 +42,11 @@ public interface IExtendMessageLockTimeout
     /// </summary>
     TimeSpan ExtensionInterval { get; }
 }
+
+/// <summary>
+/// Implement this for <see cref="IProcessingSettings"/> to be able to delay re-processing
+/// </summary>
+public interface IDelayReProcessing
+{
+    TimeSpan Delay { get; }
+}

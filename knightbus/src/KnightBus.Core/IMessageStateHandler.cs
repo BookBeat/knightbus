@@ -40,6 +40,11 @@ public interface IMessageStateHandler<T>
     /// Mark the message as failed and available for pickup by another receiver
     /// </summary>
     Task AbandonByErrorAsync(Exception e);
+    
+    /// <summary>
+    /// Mark the message as failed and available for pickup by another receiver after a delay
+    /// </summary>
+    Task AbandonByErrorWithDelayAsync(Exception e, TimeSpan delay);
 
     /// <summary>
     /// Move the message to dead letter queue

@@ -34,7 +34,14 @@ public class ErrorHandlingMiddleware : IMessageProcessorMiddleware
             _log.LogError(e, "Error processing message {@" + typeof(T).Name + "}", message);
             try
             {
-                await messageStateHandler.AbandonByErrorAsync(e).ConfigureAwait(false);
+                if (pipelineInformation.ProcessingSettings is IDelayReProcessing delaySetting)
+                {
+                    await messageStateHandler.AbandonByErrorWithDelayAsync(e, delaySetting.Delay).ConfigureAwait(false);
+                }
+                else
+                {
+                    await messageStateHandler.AbandonByErrorAsync(e).ConfigureAwait(false);
+                }
             }
             catch (Exception exception)
             {

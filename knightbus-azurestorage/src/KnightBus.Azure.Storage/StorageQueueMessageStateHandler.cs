@@ -53,6 +53,11 @@ internal class StorageQueueMessageStateHandler<T> : IMessageStateHandler<T>, IMe
         return _queueClient.AbandonByErrorAsync(_message, null);
     }
 
+    public Task AbandonByErrorWithDelayAsync(Exception e, TimeSpan delay)
+    {
+        throw new NotImplementedException();
+    }
+
     public Task DeadLetterAsync(int deadLetterLimit)
     {
         _message.Properties["MaxDeliveryCountExceeded"] =
