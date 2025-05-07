@@ -3,22 +3,26 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using KnightBus.Core;
 using KnightBus.Core.Management;
 
 namespace KnightBus.Redis.Management;
 
-public class RedisQueueManager : IQueueManager
+public class RedisQueueManager : IQueueManager, IQueueMessageAttachmentProvider
 {
     private readonly IRedisManagementClient _managementClient;
     private readonly IRedisConfiguration _configuration;
+    private readonly RedisAttachmentProvider _attachmentProvider;
 
     public RedisQueueManager(
         IRedisManagementClient managementClient,
-        IRedisConfiguration configuration
+        IRedisConfiguration configuration,
+        RedisAttachmentProvider attachmentProvider
     )
     {
         _managementClient = managementClient;
         _configuration = configuration;
+        _attachmentProvider = attachmentProvider;
     }
 
     public async Task<IEnumerable<QueueProperties>> List(CancellationToken ct)
@@ -139,4 +143,38 @@ public class RedisQueueManager : IQueueManager
     }
 
     public QueueType QueueType => QueueType.Queue;
+
+    public async Task<QueueMessageAttachment> GetAttachment(
+        string queue,
+        Dictionary<string, string> messageProperties,
+        CancellationToken cancellationToken
+    )
+    {
+        var attachmentId = AttachmentUtility.GetAttachmentIds(messageProperties).FirstOrDefault();
+        if (string.IsNullOrEmpty(attachmentId))
+            return null;
+
+        var attachment = await _attachmentProvider.GetAttachmentAsync(
+            queue,
+            attachmentId,
+            cancellationToken
+        );
+
+        if (attachment is null)
+            return null;
+
+        return new QueueMessageAttachment(
+            attachment.Stream,
+            attachment.ContentType,
+            attachment.Filename,
+            attachment.Length
+        );
+    }
+
+    public bool HasAttachment(Dictionary<string, string> messageProperties)
+    {
+        return !string.IsNullOrEmpty(
+            AttachmentUtility.GetAttachmentIds(messageProperties).FirstOrDefault()
+        );
+    }
 }

@@ -12,7 +12,9 @@ public static class StorageQueueExtensions
     {
         services = services
             .AddScoped<StorageQueueManager>()
-            .AddScoped<IQueueManager, StorageQueueManager>();
+            .AddScoped<IQueueManager, StorageQueueManager>()
+            .AddScoped<IQueueMessageAttachmentProvider, StorageQueueManager>()
+            .AddSingleton<BlobStorageMessageAttachmentProvider>();
 
         return StorageExtensions.UseBlobStorage(services, connectionString);
     }
