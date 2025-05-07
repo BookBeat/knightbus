@@ -40,7 +40,7 @@ public interface IMessageStateHandler<T>
     /// Mark the message as failed and available for pickup by another receiver
     /// </summary>
     Task AbandonByErrorAsync(Exception e);
-    
+
     /// <summary>
     /// Mark the message as failed and available for pickup by another receiver after a delay
     /// </summary>
