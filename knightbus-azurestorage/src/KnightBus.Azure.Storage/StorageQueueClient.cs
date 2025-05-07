@@ -25,7 +25,7 @@ public interface IStorageQueueClient
     Task RequeueDeadLettersAsync<T>(int count, Func<T, bool> shouldRequeue)
         where T : IStorageQueueCommand;
     Task CompleteAsync(StorageQueueMessage message);
-    Task AbandonByErrorAsync(StorageQueueMessage message, TimeSpan? visibilityTimeout);
+    Task AbandonByErrorAsync(StorageQueueMessage message, TimeSpan visibilityTimeout);
     Task SendAsync<T>(T message, TimeSpan? delay, CancellationToken cancellationToken)
         where T : IStorageQueueCommand;
     Task<List<StorageQueueMessage>> PeekMessagesAsync<T>(int count)
@@ -102,15 +102,14 @@ public class StorageQueueClient(
         await TryDeleteBlob(message.BlobMessageId).ConfigureAwait(false);
     }
 
-    public async Task AbandonByErrorAsync(StorageQueueMessage message, TimeSpan? visibilityTimeout)
+    public async Task AbandonByErrorAsync(StorageQueueMessage message, TimeSpan visibilityTimeout)
     {
-        visibilityTimeout = visibilityTimeout ?? TimeSpan.Zero;
         var result = await _queue
             .UpdateMessageAsync(
                 message.QueueMessageId,
                 message.PopReceipt,
                 new BinaryData(serializer.Serialize(message.Properties)),
-                visibilityTimeout.Value
+                visibilityTimeout
             )
             .ConfigureAwait(false);
         message.PopReceipt = result.Value.PopReceipt;

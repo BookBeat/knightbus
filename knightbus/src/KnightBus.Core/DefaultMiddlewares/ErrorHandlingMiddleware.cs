@@ -34,21 +34,17 @@ public class ErrorHandlingMiddleware : IMessageProcessorMiddleware
             _log.LogError(e, "Error processing message {@" + typeof(T).Name + "}", message);
             try
             {
+                TimeSpan delay = TimeSpan.Zero;
                 if (pipelineInformation.ProcessingSettings is IDelayReProcessing delaySetting)
                 {
                     var backOffFactor =
                         delaySetting.BackOffMode is BackOffMode.Exponential
                             ? Math.Pow(2, messageStateHandler.DeliveryCount)
                             : 1;
-                    var delay = backOffFactor * delaySetting.Delay;
-                    await messageStateHandler
-                        .AbandonByErrorWithDelayAsync(e, delay)
-                        .ConfigureAwait(false);
+                    delay = backOffFactor * delaySetting.Delay;
                 }
-                else
-                {
-                    await messageStateHandler.AbandonByErrorAsync(e).ConfigureAwait(false);
-                }
+
+                await messageStateHandler.AbandonByErrorAsync(e, delay).ConfigureAwait(false);
             }
             catch (Exception exception)
             {

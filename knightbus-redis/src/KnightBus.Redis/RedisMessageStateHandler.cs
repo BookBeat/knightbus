@@ -49,14 +49,9 @@ internal class RedisMessageStateHandler<T> : IMessageStateHandler<T>
         throw new NotImplementedException();
     }
 
-    public Task AbandonByErrorAsync(Exception e)
+    public Task AbandonByErrorAsync(Exception e, TimeSpan delay)
     {
         return _queueClient.AbandonMessageByErrorAsync(_redisMessage, e);
-    }
-
-    public Task AbandonByErrorWithDelayAsync(Exception e, TimeSpan delay)
-    {
-        throw new NotImplementedException();
     }
 
     public Task DeadLetterAsync(int deadLetterLimit)

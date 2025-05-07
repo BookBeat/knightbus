@@ -216,12 +216,7 @@ public class MiddlewarePipelineTest
             throw new NotImplementedException();
         }
 
-        public Task AbandonByErrorAsync(Exception e)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task AbandonByErrorWithDelayAsync(Exception e, TimeSpan delay)
+        public Task AbandonByErrorAsync(Exception e, TimeSpan delay)
         {
             throw new NotImplementedException();
         }

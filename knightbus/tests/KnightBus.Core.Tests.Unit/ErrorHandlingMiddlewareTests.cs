@@ -91,7 +91,10 @@ public class ErrorHandlingMiddlewareTests
             CancellationToken.None
         );
         //assert
-        messageStateHandler.Verify(x => x.AbandonByErrorAsync(It.IsAny<Exception>()), Times.Once);
+        messageStateHandler.Verify(
+            x => x.AbandonByErrorAsync(It.IsAny<Exception>(), TimeSpan.Zero),
+            Times.Once
+        );
     }
 
     [Test]
@@ -101,7 +104,7 @@ public class ErrorHandlingMiddlewareTests
         var nextProcessor = new Mock<IMessageProcessor>();
         var messageStateHandler = new Mock<IMessageStateHandler<TestCommand>>();
         messageStateHandler
-            .Setup(x => x.AbandonByErrorAsync(It.IsAny<Exception>()))
+            .Setup(x => x.AbandonByErrorAsync(It.IsAny<Exception>(), TimeSpan.Zero))
             .Throws<Exception>();
         nextProcessor
             .Setup(x => x.ProcessAsync(messageStateHandler.Object, CancellationToken.None))
