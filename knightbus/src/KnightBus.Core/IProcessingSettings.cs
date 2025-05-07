@@ -48,5 +48,14 @@ public interface IExtendMessageLockTimeout
 /// </summary>
 public interface IDelayReProcessing
 {
+    /// <summary>
+    /// Delegate that computes how long the current message should stay invisible
+    /// before the next re-processing attempt.
+    /// </summary>
+    /// <value>
+    /// The function receives the 1-based delivery-attempt count and must return a
+    /// <see cref="TimeSpan"/> representing the delay.
+    /// Return <see cref="TimeSpan.Zero"/> to retry immediately.
+    /// </value>
     Func<int, TimeSpan> BackOffGenerator { get; }
 }
