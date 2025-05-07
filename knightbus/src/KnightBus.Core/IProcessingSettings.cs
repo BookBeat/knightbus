@@ -49,4 +49,11 @@ public interface IExtendMessageLockTimeout
 public interface IDelayReProcessing
 {
     TimeSpan Delay { get; }
+    BackOffMode BackOffMode { get; }
+}
+
+public enum BackOffMode
+{
+    Flat = 0,
+    Exponential = 1,
 }
