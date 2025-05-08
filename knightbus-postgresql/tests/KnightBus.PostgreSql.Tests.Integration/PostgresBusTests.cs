@@ -4,6 +4,7 @@ using KnightBus.Core;
 using KnightBus.Messages;
 using KnightBus.PostgreSql.Management;
 using KnightBus.PostgreSql.Messages;
+using Npgsql;
 using NUnit.Framework;
 
 namespace KnightBus.PostgreSql.Tests.Integration;
@@ -180,7 +181,8 @@ WHERE message_id = {message[0].Id}"
 
         await _postgresQueueClient.AbandonByErrorAsync(
             message[0],
-            new Exception("some error message")
+            new Exception("some error message"),
+            TimeSpan.Zero
         );
 
         var result = _postgresQueueClient
@@ -189,6 +191,50 @@ WHERE message_id = {message[0].Id}"
             .ToList();
         result[0].ReadCount.Should().Be(2);
         result[0].Properties["error_message"].Should().Contain("some error message");
+    }
+
+    [Test]
+    public async Task AbandonByError_When_Delay_Should_Set_VisibilityTimeout()
+    {
+        await _postgresBus.SendAsync<TestCommand>(
+            [new TestCommand { MessageBody = "abandon me" }],
+            CancellationToken.None
+        );
+
+        var message = _postgresQueueClient
+            .GetMessagesAsync(1, 10, CancellationToken.None)
+            .ToBlockingEnumerable()
+            .ToList()
+            .Single();
+
+        //lang=postgresql
+        var sql = $"""
+            SELECT visibility_timeout
+            FROM {PostgresConstants.SchemaName}.{PostgresConstants.QueuePrefix}_{AutoMessageMapper.GetQueueName<TestCommand>()}
+            WHERE message_id = $1;
+            """;
+
+        var cmd = PostgresSetup.DataSource.CreateCommand(sql);
+        cmd.Parameters.Add(new NpgsqlParameter<long> { Value = message.Id });
+        var previousVisibilityTimeout = (DateTime)(await cmd.ExecuteScalarAsync())!;
+
+        var delay = TimeSpan.FromMinutes(10);
+        await _postgresQueueClient.AbandonByErrorAsync(message, new Exception(), delay);
+
+        //lang=postgresql
+        sql = $"""
+            SELECT visibility_timeout
+            FROM {PostgresConstants.SchemaName}.{PostgresConstants.QueuePrefix}_{AutoMessageMapper.GetQueueName<TestCommand>()}
+            WHERE message_id = $1;
+            """;
+
+        cmd = PostgresSetup.DataSource.CreateCommand(sql);
+        cmd.Parameters.Add(new NpgsqlParameter<long> { Value = message.Id });
+        var newVisibilityTimeout = (DateTime)(await cmd.ExecuteScalarAsync())!;
+
+        newVisibilityTimeout
+            .Should()
+            .BeCloseTo(previousVisibilityTimeout + delay, precision: TimeSpan.FromMinutes(1));
     }
 
     [Test]

@@ -39,7 +39,7 @@ public interface IMessageStateHandler<T>
     /// <summary>
     /// Mark the message as failed and available for pickup by another receiver
     /// </summary>
-    Task AbandonByErrorAsync(Exception e);
+    Task AbandonByErrorAsync(Exception e, TimeSpan delay);
 
     /// <summary>
     /// Move the message to dead letter queue
