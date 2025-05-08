@@ -53,9 +53,24 @@ public interface IDelayReProcessing
     /// before the next re-processing attempt.
     /// </summary>
     /// <value>
-    /// The function receives the 1-based delivery-attempt count and must return a
+    /// The function receives a <see cref="DelayBackOffGeneratorData"/> instance and must return a
     /// <see cref="TimeSpan"/> representing the delay.
     /// Return <see cref="TimeSpan.Zero"/> to retry immediately.
     /// </value>
-    Func<int, TimeSpan> BackOffGenerator { get; }
+    Func<DelayBackOffGeneratorData, TimeSpan> BackOffGenerator { get; }
+}
+
+/// <summary>
+/// Context passed to <see cref="IDelayReProcessing.BackOffGenerator"/> so it can
+/// choose an appropriate delay. Additional fields can be added in the future
+/// without breaking callers.
+/// </summary>
+public record DelayBackOffGeneratorData
+{
+    /// <summary>
+    /// 1-based count of how many times the message has already been delivered
+    /// to a processor (including the current attempt).
+    /// For example, the first failure yields <c>DeliveryCount = 1</c>.
+    /// </summary>
+    public int DeliveryCount { get; init; }
 }

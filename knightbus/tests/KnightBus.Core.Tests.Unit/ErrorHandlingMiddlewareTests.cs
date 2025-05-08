@@ -217,16 +217,17 @@ public abstract class MyDelaySetting : IProcessingSettings, IDelayReProcessing
     public int PrefetchCount { get; }
     public TimeSpan MessageLockTimeout { get; }
     public int DeadLetterDeliveryLimit { get; }
-    public abstract Func<int, TimeSpan> BackOffGenerator { get; }
+    public abstract Func<DelayBackOffGeneratorData, TimeSpan> BackOffGenerator { get; }
 }
 
 public class MyFlatDelaySetting : MyDelaySetting
 {
-    public override Func<int, TimeSpan> BackOffGenerator => _ => TimeSpan.FromMinutes(10);
+    public override Func<DelayBackOffGeneratorData, TimeSpan> BackOffGenerator =>
+        _ => TimeSpan.FromMinutes(10);
 }
 
 public class MyExponentialDelaySetting : MyDelaySetting
 {
-    public override Func<int, TimeSpan> BackOffGenerator =>
-        deliveryCount => TimeSpan.FromMinutes(Math.Pow(2, deliveryCount));
+    public override Func<DelayBackOffGeneratorData, TimeSpan> BackOffGenerator =>
+        data => TimeSpan.FromMinutes(Math.Pow(2, data.DeliveryCount));
 }
