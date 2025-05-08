@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using KnightBus.Core.DefaultMiddlewares;
+using KnightBus.Messages;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
@@ -139,4 +140,93 @@ public class ErrorHandlingMiddlewareTests
             Times.Once
         );
     }
+
+    [Test]
+    public async Task ProcessAsync_When_Flat_Delay_Setting_Should_Abandon_Message_With_Delay()
+    {
+        // Arrange
+        var messageStateHandler = new Mock<IMessageStateHandler<TestCommand>>();
+
+        var nextProcessor = new Mock<IMessageProcessor>();
+        nextProcessor
+            .Setup(x => x.ProcessAsync(messageStateHandler.Object, CancellationToken.None))
+            .Throws<Exception>();
+
+        var pipeline = new MyPipeline { ProcessingSettings = new MyFlatDelaySetting() };
+
+        var middleware = new ErrorHandlingMiddleware(Mock.Of<ILogger>());
+
+        // Act
+        await middleware.ProcessAsync(
+            messageStateHandler.Object,
+            pipeline,
+            nextProcessor.Object,
+            CancellationToken.None
+        );
+
+        // Assert
+        messageStateHandler.Verify(
+            x => x.AbandonByErrorAsync(It.IsAny<Exception>(), TimeSpan.FromMinutes(10)),
+            Times.Once
+        );
+    }
+
+    [Test]
+    public async Task ProcessAsync_When_Exponential_Delay_Setting_Should_Abandon_Message_With_Delay()
+    {
+        // Arrange
+        var messageStateHandler = new Mock<IMessageStateHandler<TestCommand>>();
+        messageStateHandler.Setup(x => x.DeliveryCount).Returns(2);
+
+        var nextProcessor = new Mock<IMessageProcessor>();
+        nextProcessor
+            .Setup(x => x.ProcessAsync(messageStateHandler.Object, CancellationToken.None))
+            .Throws<Exception>();
+
+        var pipeline = new MyPipeline { ProcessingSettings = new MyExponentialDelaySetting() };
+
+        var middleware = new ErrorHandlingMiddleware(Mock.Of<ILogger>());
+
+        // Act
+        await middleware.ProcessAsync(
+            messageStateHandler.Object,
+            pipeline,
+            nextProcessor.Object,
+            CancellationToken.None
+        );
+
+        // Assert
+        messageStateHandler.Verify(
+            x => x.AbandonByErrorAsync(It.IsAny<Exception>(), TimeSpan.FromMinutes(4)),
+            Times.Once
+        );
+    }
+}
+
+public class MyPipeline : IPipelineInformation
+{
+    public Type ProcessorInterfaceType { get; }
+    public IEventSubscription Subscription { get; }
+    public IProcessingSettings ProcessingSettings { get; set; }
+    public IHostConfiguration HostConfiguration { get; set; }
+}
+
+public abstract class MyDelaySetting : IProcessingSettings, IDelayReProcessing
+{
+    public int MaxConcurrentCalls { get; }
+    public int PrefetchCount { get; }
+    public TimeSpan MessageLockTimeout { get; }
+    public int DeadLetterDeliveryLimit { get; }
+    public abstract Func<int, TimeSpan> BackOffGenerator { get; }
+}
+
+public class MyFlatDelaySetting : MyDelaySetting
+{
+    public override Func<int, TimeSpan> BackOffGenerator => _ => TimeSpan.FromMinutes(10);
+}
+
+public class MyExponentialDelaySetting : MyDelaySetting
+{
+    public override Func<int, TimeSpan> BackOffGenerator =>
+        deliveryCount => TimeSpan.FromMinutes(Math.Pow(2, deliveryCount));
 }
