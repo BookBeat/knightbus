@@ -45,6 +45,13 @@ public interface IExtendMessageLockTimeout
 
 /// <summary>
 /// Implement this for <see cref="IProcessingSettings"/> to be able to delay re-processing
+///
+/// <para>
+/// <b>Supported message brokers</b><br/>
+///   • Azure Storage Bus <br/>
+///   • PostgreSQL <br/>
+/// </para>
+/// Other transports will ignore the <see cref="BackOffGenerator"/>.
 /// </summary>
 public interface IDelayReProcessing
 {
