@@ -211,7 +211,7 @@ public class MyPipeline : IPipelineInformation
     public IHostConfiguration HostConfiguration { get; set; }
 }
 
-public abstract class MyDelaySetting : IProcessingSettings, IDelayReProcessing
+public abstract class MyDelaySetting : IProcessingSettings, IRetryBackoff
 {
     public int MaxConcurrentCalls { get; }
     public int PrefetchCount { get; }

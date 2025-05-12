@@ -35,7 +35,7 @@ public class ErrorHandlingMiddleware : IMessageProcessorMiddleware
             try
             {
                 TimeSpan delay = TimeSpan.Zero;
-                if (pipelineInformation.ProcessingSettings is IDelayReProcessing delaySetting)
+                if (pipelineInformation.ProcessingSettings is IRetryBackoff delaySetting)
                 {
                     delay = delaySetting.BackOffGenerator(
                         new DelayBackOffGeneratorData

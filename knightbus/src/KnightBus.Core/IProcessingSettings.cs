@@ -53,7 +53,7 @@ public interface IExtendMessageLockTimeout
 /// </para>
 /// Other transports will ignore the <see cref="BackOffGenerator"/>.
 /// </summary>
-public interface IDelayReProcessing
+public interface IRetryBackoff
 {
     /// <summary>
     /// Delegate that computes how long the current message should stay invisible
@@ -68,7 +68,7 @@ public interface IDelayReProcessing
 }
 
 /// <summary>
-/// Context passed to <see cref="IDelayReProcessing.BackOffGenerator"/> so it can
+/// Context passed to <see cref="IRetryBackoff.BackOffGenerator"/> so it can
 /// choose an appropriate delay. Additional fields can be added in the future
 /// without breaking callers.
 /// </summary>
