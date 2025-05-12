@@ -39,6 +39,13 @@ public interface IMessageStateHandler<T>
     /// <summary>
     /// Mark the message as failed and available for pickup by another receiver
     /// </summary>
+    /// <param name="e">
+    /// The <see cref="Exception"/> that caused the failure.
+    /// </param>
+    /// <param name="delay">
+    /// <see cref="TimeSpan"/> Representing how long the message should remain invisible before it becomes eligible for re-processing:
+    /// <see cref="TimeSpan.Zero"/> to make the message immediately available to other workers.
+    /// </param>
     Task AbandonByErrorAsync(Exception e, TimeSpan delay);
 
     /// <summary>
