@@ -24,6 +24,8 @@ public interface IStorageQueueClient
         where T : IStorageQueueCommand;
     Task RequeueDeadLettersAsync<T>(int count, Func<T, bool> shouldRequeue)
         where T : IStorageQueueCommand;
+    Task RequeueDeadLettersAsync<T>(string toQueueName, int count, Func<T, bool> shouldRequeue)
+        where T : IStorageQueueCommand;
     Task CompleteAsync(StorageQueueMessage message);
     Task AbandonByErrorAsync(StorageQueueMessage message, TimeSpan? visibilityTimeout);
     Task SendAsync<T>(T message, TimeSpan? delay, CancellationToken cancellationToken)
@@ -190,6 +192,57 @@ public class StorageQueueClient(
 
             // enqueue the new message again
             await _queue
+                .SendMessageAsync(
+                    new BinaryData(serializer.Serialize(deadletter.Properties)),
+                    TimeSpan.Zero,
+                    TimeSpan.FromSeconds(-1)
+                )
+                .ConfigureAwait(false);
+        }
+    }
+
+    public async Task RequeueDeadLettersAsync<T>(
+        string toQueueName,
+        int count,
+        Func<T, bool> shouldRequeue
+    )
+        where T : IStorageQueueCommand
+    {
+        var toQueue = new QueueClient(
+            configuration.ConnectionString,
+            toQueueName,
+            new QueueClientOptions { MessageEncoding = configuration.MessageEncoding }
+        );
+        var toContainer = new BlobContainerClient(configuration.ConnectionString, toQueueName);
+
+        for (var i = 0; i < count; i++)
+        {
+            var messages = await GetMessagesAsync<T>(1, TimeSpan.FromMinutes(2), _dlQueue)
+                .ConfigureAwait(false);
+
+            if (!messages.Any())
+                continue;
+            var deadletter = messages.Single();
+
+            // Delete the old message
+            await _dlQueue
+                .DeleteMessageAsync(deadletter.QueueMessageId, deadletter.PopReceipt)
+                .ConfigureAwait(false);
+
+            // The dead letter will be deleted even though shouldRequeue is false
+            if (shouldRequeue != null && !shouldRequeue((T)deadletter.Message))
+                continue;
+
+            var newBlob = toContainer.GetBlobClient(deadletter.BlobMessageId);
+            using (var stream = new MemoryStream(serializer.Serialize(deadletter.Message)))
+            {
+                await newBlob.UploadAsync(stream).ConfigureAwait(false);
+            }
+            var oldBlob = _container.GetBlobClient(deadletter.BlobMessageId);
+            await oldBlob.DeleteIfExistsAsync();
+
+            // enqueue the new message again
+            await toQueue
                 .SendMessageAsync(
                     new BinaryData(serializer.Serialize(deadletter.Properties)),
                     TimeSpan.Zero,

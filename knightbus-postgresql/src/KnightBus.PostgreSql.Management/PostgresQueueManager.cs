@@ -150,6 +150,23 @@ public class PostgresQueueManager : IQueueManager, IQueueMessageSender
         return (int)result;
     }
 
+    public async Task<int> MoveDeadLetters(
+        string fromPath,
+        string toPath,
+        int count,
+        CancellationToken ct
+    )
+    {
+        var result = await _managementClient.RequeueDeadLettersAsync(
+            PostgresQueueName.Create(fromPath),
+            PostgresQueueName.Create(toPath),
+            count,
+            ct
+        );
+
+        return (int)result;
+    }
+
     public async Task SendMessage(string path, string jsonBody, CancellationToken cancellationToken)
     {
         await _managementClient.SendMessage(

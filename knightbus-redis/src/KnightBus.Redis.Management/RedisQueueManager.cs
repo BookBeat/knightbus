@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -136,6 +137,16 @@ public class RedisQueueManager : IQueueManager
     public Task<int> MoveDeadLetters(string path, int count, CancellationToken ct)
     {
         return _managementClient.RequeueDeadlettersAsync<DictionaryMessage>(path, count);
+    }
+
+    public Task<int> MoveDeadLetters(
+        string fromPath,
+        string toPath,
+        int count,
+        CancellationToken ct
+    )
+    {
+        throw new NotImplementedException();
     }
 
     public QueueType QueueType => QueueType.Queue;

@@ -148,6 +148,39 @@ public abstract class QueueManagerTests<TCommand>
     }
 
     [Test]
+    public virtual async Task ShouldMoveDeadLetterMessagesToAnotherQueue()
+    {
+        // Arrange
+        var messageText = Guid.NewGuid().ToString("N");
+        var queueName = await SendMessage(messageText);
+        var anotherQueueName = await CreateQueue();
+        var stateHandler = await GetMessageStateHandler(queueName);
+        await stateHandler.DeadLetterAsync(1);
+
+        // Act
+        var moved = await QueueManager.MoveDeadLetters(
+            queueName,
+            anotherQueueName,
+            1,
+            CancellationToken.None
+        );
+
+        // Assert
+        using var scope = new AssertionScope();
+        moved.Should().Be(1);
+        var deadLetterMessages = await QueueManager.PeekDeadLetter(
+            queueName,
+            10,
+            CancellationToken.None
+        );
+        deadLetterMessages.Should().HaveCount(0);
+        var messages = await QueueManager.Peek(anotherQueueName, 10, CancellationToken.None);
+        messages.Should().HaveCount(1);
+        messages[0].Body.Should().Contain(messageText);
+        messages[0].Time.Should().NotBeNull();
+    }
+
+    [Test]
     public async Task Should_reflect_current_queue_properties()
     {
         //arrange

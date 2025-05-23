@@ -41,6 +41,8 @@ public interface IQueueManager
     /// </summary>
     Task<int> MoveDeadLetters(string path, int count, CancellationToken ct);
 
+    Task<int> MoveDeadLetters(string fromPath, string toPath, int count, CancellationToken ct);
+
     /// <summary>
     /// Type of queue <see cref="QueueType"/>
     /// </summary>

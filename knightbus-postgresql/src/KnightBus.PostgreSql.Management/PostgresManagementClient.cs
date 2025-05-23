@@ -458,35 +458,46 @@ FROM deleted_rows;
         }
     }
 
-    public async Task<long> RequeueDeadLettersAsync(
+    public Task<long> RequeueDeadLettersAsync(
         PostgresQueueName queueName,
         int count,
         CancellationToken ct
     )
     {
-        await using var command = _npgsqlDataSource.CreateCommand(
-            @$"
-WITH deleted_rows AS (
-    DELETE FROM {SchemaName}.{DlQueuePrefix}_{queueName}
-    WHERE message_id IN (
-        SELECT message_id
-        FROM {SchemaName}.{DlQueuePrefix}_{queueName}  
-        ORDER BY message_id ASC
-        LIMIT ($1)
-        FOR UPDATE
+        return RequeueDeadLettersAsync(queueName, queueName, count, ct);
+    }
+
+    public async Task<long> RequeueDeadLettersAsync(
+        PostgresQueueName fromQueueName,
+        PostgresQueueName toQueueName,
+        int count,
+        CancellationToken ct
     )
-    RETURNING *
-), inserted_rows AS (  
-    INSERT INTO {SchemaName}.{QueuePrefix}_{queueName} (visibility_timeout, message) 
-    SELECT now(), message  
-    FROM deleted_rows  
-    RETURNING *
-)
-SELECT COUNT(*) FROM inserted_rows;
-"
+    {
+        await using var command = _npgsqlDataSource.CreateCommand(
+            //lang=postgresql
+            $"""
+                WITH deleted_rows AS (
+                    DELETE FROM {SchemaName}.{DlQueuePrefix}_{fromQueueName}
+                    WHERE message_id IN (
+                        SELECT message_id
+                        FROM {SchemaName}.{DlQueuePrefix}_{fromQueueName}  
+                        ORDER BY message_id ASC
+                        LIMIT ($1)
+                        FOR UPDATE
+                    )
+                    RETURNING *
+                ), inserted_rows AS (  
+                    INSERT INTO {SchemaName}.{QueuePrefix}_{toQueueName} (visibility_timeout, message) 
+                    SELECT now(), message  
+                    FROM deleted_rows  
+                    RETURNING *
+                )
+                SELECT COUNT(*) FROM inserted_rows;
+            """
         );
         command.Parameters.Add(new NpgsqlParameter<int> { TypedValue = count });
-        var result = await command.ExecuteScalarAsync(ct);
+        var result = await command.ExecuteScalarAsync(ct).ConfigureAwait(false);
         return (long)(result ?? 0);
     }
 

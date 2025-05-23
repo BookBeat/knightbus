@@ -162,11 +162,21 @@ public class ServiceBusQueueManager : IQueueManager, IQueueMessageSender
 
     public Task<int> MoveDeadLetters(string path, int count, CancellationToken ct)
     {
+        return MoveDeadLetters(path, path, count, ct);
+    }
+
+    public Task<int> MoveDeadLetters(
+        string fromPath,
+        string toPath,
+        int count,
+        CancellationToken ct
+    )
+    {
         var receiver = _client.CreateReceiver(
-            path,
+            fromPath,
             new ServiceBusReceiverOptions { SubQueue = SubQueue.DeadLetter }
         );
-        var sender = _client.CreateSender(path);
+        var sender = _client.CreateSender(toPath);
 
         return MoveMessages(sender, receiver, count, 10);
     }
