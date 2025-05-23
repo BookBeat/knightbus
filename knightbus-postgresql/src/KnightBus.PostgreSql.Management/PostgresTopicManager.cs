@@ -71,5 +71,15 @@ public class PostgresTopicManager : IQueueManager
         throw new NotImplementedException();
     }
 
+    public Task<int> MoveDeadLetters(
+        string fromPath,
+        string toPath,
+        int count,
+        CancellationToken ct
+    )
+    {
+        throw new NotImplementedException();
+    }
+
     public QueueType QueueType => QueueType.Topic;
 }

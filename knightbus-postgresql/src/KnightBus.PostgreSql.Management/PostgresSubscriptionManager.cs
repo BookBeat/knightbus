@@ -161,5 +161,15 @@ public class PostgresSubscriptionManager : IQueueManager
         return (int)result;
     }
 
+    public Task<int> MoveDeadLetters(
+        string fromPath,
+        string toPath,
+        int count,
+        CancellationToken ct
+    )
+    {
+        throw new NotImplementedException();
+    }
+
     public QueueType QueueType => QueueType.Subscription;
 }

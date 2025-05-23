@@ -208,6 +208,25 @@ public class StorageQueueManager : IQueueManager, IQueueMessageAttachmentProvide
         return count;
     }
 
+    public async Task<int> MoveDeadLetters(
+        string fromPath,
+        string toPath,
+        int count,
+        CancellationToken ct
+    )
+    {
+        var qc = new StorageQueueClient(
+            _configuration,
+            _configuration.MessageSerializer,
+            _preProcessors,
+            fromPath
+        );
+
+        await qc.RequeueDeadLettersAsync<DictionaryMessage>(toPath, count, null)
+            .ConfigureAwait(false);
+        return count;
+    }
+
     public QueueType QueueType => QueueType.Queue;
 
     public async Task<QueueMessageAttachment> GetAttachment(

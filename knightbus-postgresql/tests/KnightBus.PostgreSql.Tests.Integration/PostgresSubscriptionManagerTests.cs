@@ -89,6 +89,12 @@ public class PostgresSubscriptionManagerTests : QueueManagerTests<PostgresTestEv
         );
     }
 
+    [Test, Ignore("Not supported for PostgresBus Subscriptions")]
+    public override Task ShouldMoveDeadLetterMessagesToAnotherQueue()
+    {
+        return Task.CompletedTask;
+    }
+
     private async Task CleanUpTestData()
     {
         var queues = await QueueManager.List(default);
