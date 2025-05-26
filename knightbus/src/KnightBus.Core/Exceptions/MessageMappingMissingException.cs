@@ -2,6 +2,6 @@
 
 public sealed class MessageMappingMissingException : KnightBusException
 {
-    public MessageMappingMissingException(string message) : base(message)
-    { }
+    public MessageMappingMissingException(string message)
+        : base(message) { }
 }

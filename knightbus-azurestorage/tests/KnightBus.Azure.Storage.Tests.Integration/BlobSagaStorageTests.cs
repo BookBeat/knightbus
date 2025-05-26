@@ -15,7 +15,7 @@ public class BlobSagaStorageTests : SagaStoreTests
 {
     public override void Setup()
     {
-        SagaStore = new BlobSagaStore("UseDevelopmentStorage=true");
+        SagaStore = new BlobSagaStore(StorageSetup.ConnectionString);
     }
 
     [Test]
@@ -24,10 +24,27 @@ public class BlobSagaStorageTests : SagaStoreTests
         //arrange
         var partitionKey = Guid.NewGuid().ToString("N");
         var id = Guid.NewGuid().ToString("N");
-        await SagaStore.Create(partitionKey, id, new Data { Message = "yo" }, TimeSpan.FromMinutes(1), CancellationToken.None);
+        await SagaStore.Create(
+            partitionKey,
+            id,
+            new Data { Message = "yo" },
+            TimeSpan.FromMinutes(1),
+            CancellationToken.None
+        );
         //act & assert
         await SagaStore
-            .Awaiting(x => x.Update(partitionKey, id, new SagaData<Data> { Data = new Data { Message = "updated" }, ConcurrencyStamp = "etag" }, CancellationToken.None))
+            .Awaiting(x =>
+                x.Update(
+                    partitionKey,
+                    id,
+                    new SagaData<Data>
+                    {
+                        Data = new Data { Message = "updated" },
+                        ConcurrencyStamp = "etag",
+                    },
+                    CancellationToken.None
+                )
+            )
             .Should()
             .ThrowAsync<SagaDataConflictException>();
     }
@@ -38,9 +55,24 @@ public class BlobSagaStorageTests : SagaStoreTests
         //arrange
         var partitionKey = Guid.NewGuid().ToString("N");
         var id = Guid.NewGuid().ToString("N");
-        var sagaData = await SagaStore.Create(partitionKey, id, new Data { Message = "yo" }, TimeSpan.FromMinutes(1), CancellationToken.None);
+        var sagaData = await SagaStore.Create(
+            partitionKey,
+            id,
+            new Data { Message = "yo" },
+            TimeSpan.FromMinutes(1),
+            CancellationToken.None
+        );
         //act
-        await SagaStore.Update(partitionKey, id, new SagaData<Data> { Data = new Data { Message = "updated" }, ConcurrencyStamp = sagaData.ConcurrencyStamp }, CancellationToken.None);
+        await SagaStore.Update(
+            partitionKey,
+            id,
+            new SagaData<Data>
+            {
+                Data = new Data { Message = "updated" },
+                ConcurrencyStamp = sagaData.ConcurrencyStamp,
+            },
+            CancellationToken.None
+        );
         //assert
         var data = await SagaStore.GetSaga<Data>(partitionKey, id, CancellationToken.None);
         data.Data.Message.Should().Be("updated");
@@ -52,7 +84,13 @@ public class BlobSagaStorageTests : SagaStoreTests
         //arrange
         var partitionKey = Guid.NewGuid().ToString("N");
         var id = Guid.NewGuid().ToString("N");
-        var sagaData = await SagaStore.Create(partitionKey, id, new Data { Message = "yo" }, TimeSpan.FromMinutes(1), CancellationToken.None);
+        var sagaData = await SagaStore.Create(
+            partitionKey,
+            id,
+            new Data { Message = "yo" },
+            TimeSpan.FromMinutes(1),
+            CancellationToken.None
+        );
         //act
         sagaData.Data.Message = "updated";
         await SagaStore.Update(partitionKey, id, sagaData, CancellationToken.None);
@@ -69,10 +107,23 @@ public class BlobSagaStorageTests : SagaStoreTests
         //arrange
         var partitionKey = Guid.NewGuid().ToString("N");
         var id = Guid.NewGuid().ToString("N");
-        await SagaStore.Create(partitionKey, id, new Data { Message = "yo" }, TimeSpan.FromMinutes(1), CancellationToken.None);
+        await SagaStore.Create(
+            partitionKey,
+            id,
+            new Data { Message = "yo" },
+            TimeSpan.FromMinutes(1),
+            CancellationToken.None
+        );
         //act & assert
         await SagaStore
-            .Awaiting(x => x.Complete(partitionKey, id, new SagaData<Data> { ConcurrencyStamp = "etag" }, CancellationToken.None))
+            .Awaiting(x =>
+                x.Complete(
+                    partitionKey,
+                    id,
+                    new SagaData<Data> { ConcurrencyStamp = "etag" },
+                    CancellationToken.None
+                )
+            )
             .Should()
             .ThrowAsync<SagaDataConflictException>();
     }
@@ -84,9 +135,20 @@ public class BlobSagaStorageTests : SagaStoreTests
         var partitionKey = Guid.NewGuid().ToString("N");
         var id = Guid.NewGuid().ToString("N");
         var sagaData = new SagaData<Data> { Data = new Data { Message = "yo" } };
-        sagaData = await SagaStore.Create(partitionKey, id, sagaData.Data, TimeSpan.FromMinutes(1), CancellationToken.None);
+        sagaData = await SagaStore.Create(
+            partitionKey,
+            id,
+            sagaData.Data,
+            TimeSpan.FromMinutes(1),
+            CancellationToken.None
+        );
         //act
-        await SagaStore.Complete(partitionKey, id, new SagaData<Data> { ConcurrencyStamp = sagaData.ConcurrencyStamp }, CancellationToken.None);
+        await SagaStore.Complete(
+            partitionKey,
+            id,
+            new SagaData<Data> { ConcurrencyStamp = sagaData.ConcurrencyStamp },
+            CancellationToken.None
+        );
         //assert
         await SagaStore
             .Awaiting(x => x.GetSaga<Data>(partitionKey, id, CancellationToken.None))

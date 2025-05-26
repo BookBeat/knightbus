@@ -6,10 +6,16 @@ namespace KnightBus.Core.DistributedTracing;
 
 public class DistributedTracingMiddleware : IMessageProcessorMiddleware
 {
-    public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, IPipelineInformation pipelineInformation,
-        IMessageProcessor next, CancellationToken cancellationToken) where T : class, IMessage
+    public async Task ProcessAsync<T>(
+        IMessageStateHandler<T> messageStateHandler,
+        IPipelineInformation pipelineInformation,
+        IMessageProcessor next,
+        CancellationToken cancellationToken
+    )
+        where T : class, IMessage
     {
-        var distributedTracingProvider = messageStateHandler.MessageScope.GetInstance<IDistributedTracingProvider>();
+        var distributedTracingProvider =
+            messageStateHandler.MessageScope.GetInstance<IDistributedTracingProvider>();
         distributedTracingProvider.SetProperties(messageStateHandler.MessageProperties);
 
         await next.ProcessAsync(messageStateHandler, cancellationToken).ConfigureAwait(false);

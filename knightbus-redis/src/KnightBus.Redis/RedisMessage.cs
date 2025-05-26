@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using KnightBus.Messages;
-using KnightBus.Redis.Messages;
 using StackExchange.Redis;
 
 namespace KnightBus.Redis;
 
-public class RedisMessage<T> where T : class, IMessage
+public class RedisMessage<T>
+    where T : class, IMessage
 {
     public string Id { get; }
     public T Message { get; }
@@ -14,7 +14,13 @@ public class RedisMessage<T> where T : class, IMessage
     public RedisValue RedisValue { get; }
     public IDictionary<string, string> HashEntries { get; }
 
-    public RedisMessage(RedisValue redisValue, string id, T message, HashEntry[] hashEntries, string queueName)
+    public RedisMessage(
+        RedisValue redisValue,
+        string id,
+        T message,
+        HashEntry[] hashEntries,
+        string queueName
+    )
     {
         Id = id;
         RedisValue = redisValue;
@@ -24,15 +30,13 @@ public class RedisMessage<T> where T : class, IMessage
     }
 
     public DateTimeOffset LastProcessed =>
-        HashEntries.TryGetValue(RedisHashKeys.LastProcessed, out var value) ?
-            DateTimeOffset.FromUnixTimeMilliseconds(long.Parse(value)) :
-            DateTimeOffset.MinValue;
+        HashEntries.TryGetValue(RedisHashKeys.LastProcessed, out var value)
+            ? DateTimeOffset.FromUnixTimeMilliseconds(long.Parse(value))
+            : DateTimeOffset.MinValue;
 
     public string Error =>
-        HashEntries.TryGetValue(RedisHashKeys.Errors, out var value) ? value :
-            string.Empty;
+        HashEntries.TryGetValue(RedisHashKeys.Errors, out var value) ? value : string.Empty;
 
     public int DeliveryCount =>
-        HashEntries.TryGetValue(RedisHashKeys.DeliveryCount, out var value) ?
-            int.Parse(value) : 0;
+        HashEntries.TryGetValue(RedisHashKeys.DeliveryCount, out var value) ? int.Parse(value) : 0;
 }

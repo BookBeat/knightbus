@@ -1,5 +1,21 @@
 # CHANGELOG
 
+# 2025-04-08
+Add support for metadata on message attachments
+
+### KnightBus.Core 17.1.0
+### KnightBus.Messages 7.1.0
+### KnightBus.Redis 14.1.0
+### KnightBus.Azure.Storage 17.1.0
+
+## 2025-03-28
+Upgraded to .net 9. All packages now target net9.0
+
+### Deleted packages
+The following packages was never used and has been removed:
+* KnightBus.MessagePack
+* KnightBus.ProtoBufNet
+
 ## 2024-01-03
 * Added pre processors of messages before they are sent
 * Converter Attachments to using a pre processor

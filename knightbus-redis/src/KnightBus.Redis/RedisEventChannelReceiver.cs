@@ -13,8 +13,27 @@ internal class RedisEventChannelReceiver<T> : RedisChannelReceiver<T>
     private readonly RedisConfiguration _redisConfiguration;
     private readonly IEventSubscription<T> _subscription;
 
-    public RedisEventChannelReceiver(IConnectionMultiplexer connectionMultiplexer, IProcessingSettings settings, IMessageSerializer serializer, IEventSubscription<T> subscription, RedisConfiguration configuration, IHostConfiguration hostConfiguration, IMessageProcessor processor)
-        : base(connectionMultiplexer, RedisQueueConventions.GetSubscriptionQueueName(AutoMessageMapper.GetQueueName<T>(), subscription.Name), settings, serializer, configuration, hostConfiguration, processor)
+    public RedisEventChannelReceiver(
+        IConnectionMultiplexer connectionMultiplexer,
+        IProcessingSettings settings,
+        IMessageSerializer serializer,
+        IEventSubscription<T> subscription,
+        RedisConfiguration configuration,
+        IHostConfiguration hostConfiguration,
+        IMessageProcessor processor
+    )
+        : base(
+            connectionMultiplexer,
+            RedisQueueConventions.GetSubscriptionQueueName(
+                AutoMessageMapper.GetQueueName<T>(),
+                subscription.Name
+            ),
+            settings,
+            serializer,
+            configuration,
+            hostConfiguration,
+            processor
+        )
     {
         _subscription = subscription;
         _redisConfiguration = configuration;
@@ -23,8 +42,16 @@ internal class RedisEventChannelReceiver<T> : RedisChannelReceiver<T>
     public override async Task StartAsync(CancellationToken cancellationToken)
     {
         var db = ConnectionMultiplexer.GetDatabase(_redisConfiguration.DatabaseId);
-        await db.SetAddAsync(RedisQueueConventions.GetSubscriptionKey(AutoMessageMapper.GetQueueName<T>()), _subscription.Name).ConfigureAwait(false);
-        await db.SetAddAsync(RedisQueueConventions.TopicListKey, AutoMessageMapper.GetQueueName<T>()).ConfigureAwait(false);
+        await db.SetAddAsync(
+                RedisQueueConventions.GetSubscriptionKey(AutoMessageMapper.GetQueueName<T>()),
+                _subscription.Name
+            )
+            .ConfigureAwait(false);
+        await db.SetAddAsync(
+                RedisQueueConventions.TopicListKey,
+                AutoMessageMapper.GetQueueName<T>()
+            )
+            .ConfigureAwait(false);
 
         await base.StartAsync(cancellationToken).ConfigureAwait(false);
     }

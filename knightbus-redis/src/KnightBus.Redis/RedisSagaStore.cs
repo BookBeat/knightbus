@@ -16,39 +16,72 @@ public class RedisSagaStore : ISagaStore
 
     private string GetKey(string partitionKey, string id) => $"sagas:{partitionKey}:{id}";
 
-    public RedisSagaStore(IConnectionMultiplexer connectionMultiplexer, IRedisConfiguration configuration)
+    public RedisSagaStore(
+        IConnectionMultiplexer connectionMultiplexer,
+        IRedisConfiguration configuration
+    )
     {
         _connectionMultiplexer = connectionMultiplexer;
         _configuration = configuration;
         _serializer = _configuration.MessageSerializer;
     }
+
     public async Task<SagaData<T>> GetSaga<T>(string partitionKey, string id, CancellationToken ct)
     {
-        byte[] saga = await _connectionMultiplexer.GetDatabase(_configuration.DatabaseId).StringGetAsync(GetKey(partitionKey, id)).ConfigureAwait(false);
-        if (saga == null) throw new SagaNotFoundException(partitionKey, id);
+        byte[] saga = await _connectionMultiplexer
+            .GetDatabase(_configuration.DatabaseId)
+            .StringGetAsync(GetKey(partitionKey, id))
+            .ConfigureAwait(false);
+        if (saga == null)
+            throw new SagaNotFoundException(partitionKey, id);
         return new SagaData<T> { Data = _serializer.Deserialize<T>(saga.AsSpan()) };
     }
 
-    public async Task<SagaData<T>> Create<T>(string partitionKey, string id, T sagaData, TimeSpan ttl, CancellationToken ct)
+    public async Task<SagaData<T>> Create<T>(
+        string partitionKey,
+        string id,
+        T sagaData,
+        TimeSpan ttl,
+        CancellationToken ct
+    )
     {
         var saga = _serializer.Serialize(sagaData);
-        var sagaSaved = await _connectionMultiplexer.GetDatabase(_configuration.DatabaseId).StringSetAsync(GetKey(partitionKey, id), saga, ttl, When.NotExists).ConfigureAwait(false);
-        if (!sagaSaved) throw new SagaAlreadyStartedException(partitionKey, id);
+        var sagaSaved = await _connectionMultiplexer
+            .GetDatabase(_configuration.DatabaseId)
+            .StringSetAsync(GetKey(partitionKey, id), saga, ttl, When.NotExists)
+            .ConfigureAwait(false);
+        if (!sagaSaved)
+            throw new SagaAlreadyStartedException(partitionKey, id);
         return new SagaData<T> { Data = sagaData };
     }
 
-    public async Task Update<T>(string partitionKey, string id, SagaData<T> sagaData, CancellationToken ct)
+    public async Task Update<T>(
+        string partitionKey,
+        string id,
+        SagaData<T> sagaData,
+        CancellationToken ct
+    )
     {
         var saga = _serializer.Serialize(sagaData.Data);
-        var sagaSaved = await _connectionMultiplexer.GetDatabase(_configuration.DatabaseId).StringSetAsync(GetKey(partitionKey, id), saga, null, When.Exists).ConfigureAwait(false);
-        if (!sagaSaved) throw new SagaNotFoundException(partitionKey, id);
+        var sagaSaved = await _connectionMultiplexer
+            .GetDatabase(_configuration.DatabaseId)
+            .StringSetAsync(GetKey(partitionKey, id), saga, null, When.Exists)
+            .ConfigureAwait(false);
+        if (!sagaSaved)
+            throw new SagaNotFoundException(partitionKey, id);
     }
 
-    public async Task Complete<T>(string partitionKey, string id, SagaData<T> sagaData, CancellationToken ct)
+    public async Task Complete<T>(
+        string partitionKey,
+        string id,
+        SagaData<T> sagaData,
+        CancellationToken ct
+    )
     {
         var db = _connectionMultiplexer.GetDatabase(_configuration.DatabaseId);
         var saga = await db.StringGetAsync(GetKey(partitionKey, id)).ConfigureAwait(false);
-        if (saga.IsNullOrEmpty) throw new SagaNotFoundException(partitionKey, id);
+        if (saga.IsNullOrEmpty)
+            throw new SagaNotFoundException(partitionKey, id);
         await db.KeyDeleteAsync(GetKey(partitionKey, id)).ConfigureAwait(false);
     }
 
@@ -56,7 +89,8 @@ public class RedisSagaStore : ISagaStore
     {
         var db = _connectionMultiplexer.GetDatabase(_configuration.DatabaseId);
         var saga = await db.StringGetAsync(GetKey(partitionKey, id)).ConfigureAwait(false);
-        if (saga.IsNullOrEmpty) throw new SagaNotFoundException(partitionKey, id);
+        if (saga.IsNullOrEmpty)
+            throw new SagaNotFoundException(partitionKey, id);
         await db.KeyDeleteAsync(GetKey(partitionKey, id)).ConfigureAwait(false);
     }
 }

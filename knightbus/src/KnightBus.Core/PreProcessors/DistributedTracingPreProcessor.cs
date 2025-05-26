@@ -15,7 +15,11 @@ public class DistributedTracingPreProcessor : IMessagePreProcessor
         _distributedTracingProvider = distributedTracingProvider;
     }
 
-    public Task<IDictionary<string, object>> PreProcess<T>(T message, CancellationToken cancellationToken) where T : IMessage
+    public Task<IDictionary<string, object>> PreProcess<T>(
+        T message,
+        CancellationToken cancellationToken
+    )
+        where T : IMessage
     {
         var properties = _distributedTracingProvider.GetProperties();
 

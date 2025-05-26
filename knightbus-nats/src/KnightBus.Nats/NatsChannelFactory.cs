@@ -14,18 +14,35 @@ public class NatsChannelFactory : ITransportChannelFactory
 
     public ITransportConfiguration Configuration { get; set; }
 
-    public IChannelReceiver Create(Type messageType, IEventSubscription subscription, IProcessingSettings processingSettings,
-        IMessageSerializer serializer, IHostConfiguration configuration, IMessageProcessor processor)
+    public IChannelReceiver Create(
+        Type messageType,
+        IEventSubscription subscription,
+        IProcessingSettings processingSettings,
+        IMessageSerializer serializer,
+        IHostConfiguration configuration,
+        IMessageProcessor processor
+    )
     {
-
         var readerType = typeof(NatsQueueChannelReceiver<>).MakeGenericType(messageType);
-        var reader = (IChannelReceiver)Activator.CreateInstance(readerType, processingSettings, serializer, configuration, processor, Configuration, subscription);
+        var reader = (IChannelReceiver)
+            Activator.CreateInstance(
+                readerType,
+                processingSettings,
+                serializer,
+                configuration,
+                processor,
+                Configuration,
+                subscription
+            );
 
         return reader;
     }
 
     public bool CanCreate(Type messageType)
     {
-        return typeof(INatsCommand).IsAssignableFrom(messageType) || typeof(INatsEvent).IsAssignableFrom(messageType) || typeof(INatsRequest).IsAssignableFrom(messageType); ;
+        return typeof(INatsCommand).IsAssignableFrom(messageType)
+            || typeof(INatsEvent).IsAssignableFrom(messageType)
+            || typeof(INatsRequest).IsAssignableFrom(messageType);
+        ;
     }
 }

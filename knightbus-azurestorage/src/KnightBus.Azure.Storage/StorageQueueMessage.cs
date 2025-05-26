@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using KnightBus.Core;
 using KnightBus.Messages;
 
@@ -10,9 +11,8 @@ public class StorageQueueMessage
     {
         Message = message;
     }
-    public StorageQueueMessage()
-    {
-    }
+
+    public StorageQueueMessage() { }
 
     public string BlobMessageId
     {
@@ -24,7 +24,8 @@ public class StorageQueueMessage
     public string PopReceipt { get; internal set; }
     public IMessage Message { get; internal set; }
     public int DequeueCount { get; set; }
-    public Dictionary<string, string> Properties { get; internal set; } = new Dictionary<string, string>();
+    public Dictionary<string, string> Properties { get; internal set; } = new();
+    public DateTimeOffset? Time { get; internal set; }
 
     public string[] GetAttachmentIds()
     {

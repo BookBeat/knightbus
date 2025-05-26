@@ -4,5 +4,5 @@ public enum QueueType
 {
     Queue,
     Topic,
-    Subscription
+    Subscription,
 }

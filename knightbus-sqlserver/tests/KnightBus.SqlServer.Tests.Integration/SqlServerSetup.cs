@@ -1,7 +1,7 @@
 ﻿using System.Threading.Tasks;
-
+using DotNet.Testcontainers.Containers;
 using NUnit.Framework;
-using Testcontainers.SqlEdge;
+using Testcontainers.MsSql;
 
 namespace KnightBus.SqlServer.Tests.Integration;
 
@@ -9,13 +9,13 @@ namespace KnightBus.SqlServer.Tests.Integration;
 public class SqlServerSetup
 {
     private const string DatabaseName = "KnightBus";
-    
-    private static readonly SqlEdgeContainer MsSql = new SqlEdgeBuilder()
+
+    private static readonly IDatabaseContainer MsSql = new MsSqlBuilder()
         .WithPortBinding(14333, 1433)
         .Build();
 
     public static string ConnectionString;
-    
+
     [OneTimeSetUp]
     public async Task OneTimeSetup()
     {

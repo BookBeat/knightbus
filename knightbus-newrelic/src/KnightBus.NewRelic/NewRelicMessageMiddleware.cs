@@ -9,9 +9,14 @@ namespace KnightBus.NewRelicMiddleware;
 
 public class NewRelicMessageMiddleware : IMessageProcessorMiddleware
 {
-
     [Transaction]
-    public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, IPipelineInformation pipelineInformation, IMessageProcessor next, CancellationToken cancellationToken) where T : class, IMessage
+    public async Task ProcessAsync<T>(
+        IMessageStateHandler<T> messageStateHandler,
+        IPipelineInformation pipelineInformation,
+        IMessageProcessor next,
+        CancellationToken cancellationToken
+    )
+        where T : class, IMessage
     {
         var messageName = typeof(T).FullName;
         NewRelic.Api.Agent.NewRelic.SetTransactionName("Message", messageName);

@@ -2,12 +2,6 @@
 
 namespace KnightBus.Redis.Messages;
 
-public interface IRedisCommand : ICommand
-{
+public interface IRedisCommand : ICommand { }
 
-}
-
-public interface IRedisEvent : IEvent
-{
-
-}
+public interface IRedisEvent : IEvent { }

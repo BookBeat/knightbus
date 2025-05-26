@@ -21,10 +21,21 @@ public class SagaMiddlewareTests
         var partitionKey = "a";
         var id = "b";
         var sagaStore = new Mock<ISagaStore>();
-        sagaStore.Setup(x => x.Create(partitionKey, id, It.IsAny<SagaData>(), TimeSpan.FromHours(1), CancellationToken.None)).ThrowsAsync(new SagaAlreadyStartedException(partitionKey, id));
+        sagaStore
+            .Setup(x =>
+                x.Create(
+                    partitionKey,
+                    id,
+                    It.IsAny<SagaData>(),
+                    TimeSpan.FromHours(1),
+                    CancellationToken.None
+                )
+            )
+            .ThrowsAsync(new SagaAlreadyStartedException(partitionKey, id));
 
         var di = new Mock<IDependencyInjection>();
-        di.Setup(x => x.GetInstance<object>(typeof(IProcessCommand<SagaStartMessage, Settings>))).Returns(new Saga());
+        di.Setup(x => x.GetInstance<object>(typeof(IProcessCommand<SagaStartMessage, Settings>)))
+            .Returns(new Saga());
 
         var hostConfiguration = new Mock<IHostConfiguration>();
         hostConfiguration.Setup(x => x.Log).Returns(Mock.Of<ILogger>());
@@ -33,13 +44,19 @@ public class SagaMiddlewareTests
         messageStateHandler.Setup(x => x.MessageScope).Returns(di.Object);
         var pipelineInformation = new Mock<IPipelineInformation>();
         pipelineInformation.Setup(x => x.HostConfiguration).Returns(hostConfiguration.Object);
-        pipelineInformation.Setup(x => x.ProcessorInterfaceType).Returns(typeof(IProcessCommand<SagaStartMessage, Settings>));
-
+        pipelineInformation
+            .Setup(x => x.ProcessorInterfaceType)
+            .Returns(typeof(IProcessCommand<SagaStartMessage, Settings>));
 
         var middleware = new SagaMiddleware(sagaStore.Object);
 
         //act
-        await middleware.ProcessAsync(messageStateHandler.Object, pipelineInformation.Object, null, CancellationToken.None);
+        await middleware.ProcessAsync(
+            messageStateHandler.Object,
+            pipelineInformation.Object,
+            null,
+            CancellationToken.None
+        );
         //assert
         messageStateHandler.Verify(x => x.CompleteAsync(), Times.Once);
     }
@@ -51,11 +68,22 @@ public class SagaMiddlewareTests
         var partitionKey = "a";
         var id = "b";
         var sagaStore = new Mock<ISagaStore>();
-        sagaStore.Setup(x => x.Create<SagaData>(partitionKey, id, It.IsAny<SagaData>(), TimeSpan.FromHours(1), CancellationToken.None)).ThrowsAsync(new SagaAlreadyStartedException(partitionKey, id));
+        sagaStore
+            .Setup(x =>
+                x.Create<SagaData>(
+                    partitionKey,
+                    id,
+                    It.IsAny<SagaData>(),
+                    TimeSpan.FromHours(1),
+                    CancellationToken.None
+                )
+            )
+            .ThrowsAsync(new SagaAlreadyStartedException(partitionKey, id));
 
         var di = new Mock<IDependencyInjection>();
         var countable = new Mock<ICountable>();
-        di.Setup(x => x.GetInstance<object>(typeof(IProcessCommand<SagaStartMessage, Settings>))).Returns(new SagaDuplicateWithDuplicate(countable.Object));
+        di.Setup(x => x.GetInstance<object>(typeof(IProcessCommand<SagaStartMessage, Settings>)))
+            .Returns(new SagaDuplicateWithDuplicate(countable.Object));
 
         var hostConfiguration = new Mock<IHostConfiguration>();
         hostConfiguration.Setup(x => x.Log).Returns(Mock.Of<ILogger>());
@@ -64,13 +92,19 @@ public class SagaMiddlewareTests
         messageStateHandler.Setup(x => x.MessageScope).Returns(di.Object);
         var pipelineInformation = new Mock<IPipelineInformation>();
         pipelineInformation.Setup(x => x.HostConfiguration).Returns(hostConfiguration.Object);
-        pipelineInformation.Setup(x => x.ProcessorInterfaceType).Returns(typeof(IProcessCommand<SagaStartMessage, Settings>));
-
+        pipelineInformation
+            .Setup(x => x.ProcessorInterfaceType)
+            .Returns(typeof(IProcessCommand<SagaStartMessage, Settings>));
 
         var middleware = new SagaMiddleware(sagaStore.Object);
 
         //act
-        await middleware.ProcessAsync(messageStateHandler.Object, pipelineInformation.Object, null, CancellationToken.None);
+        await middleware.ProcessAsync(
+            messageStateHandler.Object,
+            pipelineInformation.Object,
+            null,
+            CancellationToken.None
+        );
         //assert
         countable.Verify(x => x.Count(), Times.Once);
         messageStateHandler.Verify(x => x.CompleteAsync(), Times.Once);
@@ -83,11 +117,22 @@ public class SagaMiddlewareTests
         var partitionKey = "a";
         var id = "b";
         var sagaStore = new Mock<ISagaStore>();
-        sagaStore.Setup(x => x.Create<SagaData>(partitionKey, id, It.IsAny<SagaData>(), TimeSpan.FromHours(1), CancellationToken.None)).ThrowsAsync(new SagaAlreadyStartedException(partitionKey, id));
+        sagaStore
+            .Setup(x =>
+                x.Create<SagaData>(
+                    partitionKey,
+                    id,
+                    It.IsAny<SagaData>(),
+                    TimeSpan.FromHours(1),
+                    CancellationToken.None
+                )
+            )
+            .ThrowsAsync(new SagaAlreadyStartedException(partitionKey, id));
 
         var di = new Mock<IDependencyInjection>();
         var countable = new Mock<ICountable>();
-        di.Setup(x => x.GetInstance<object>(typeof(IProcessCommand<SagaStartMessage, Settings>))).Returns(new SagaDuplicateWithDuplicate(countable.Object, true));
+        di.Setup(x => x.GetInstance<object>(typeof(IProcessCommand<SagaStartMessage, Settings>)))
+            .Returns(new SagaDuplicateWithDuplicate(countable.Object, true));
 
         var hostConfiguration = new Mock<IHostConfiguration>();
         hostConfiguration.Setup(x => x.Log).Returns(Mock.Of<ILogger>());
@@ -96,14 +141,22 @@ public class SagaMiddlewareTests
         messageStateHandler.Setup(x => x.MessageScope).Returns(di.Object);
         var pipelineInformation = new Mock<IPipelineInformation>();
         pipelineInformation.Setup(x => x.HostConfiguration).Returns(hostConfiguration.Object);
-        pipelineInformation.Setup(x => x.ProcessorInterfaceType).Returns(typeof(IProcessCommand<SagaStartMessage, Settings>));
-
+        pipelineInformation
+            .Setup(x => x.ProcessorInterfaceType)
+            .Returns(typeof(IProcessCommand<SagaStartMessage, Settings>));
 
         var middleware = new SagaMiddleware(sagaStore.Object);
 
         //act
         await middleware
-            .Awaiting(x => x.ProcessAsync(messageStateHandler.Object, pipelineInformation.Object, null, CancellationToken.None))
+            .Awaiting(x =>
+                x.ProcessAsync(
+                    messageStateHandler.Object,
+                    pipelineInformation.Object,
+                    null,
+                    CancellationToken.None
+                )
+            )
             .Should()
             .ThrowAsync<ApplicationException>();
         //assert
@@ -118,12 +171,23 @@ public class SagaMiddlewareTests
         var partitionKey = "a";
         var id = "b";
         var sagaStore = new Mock<ISagaStore>();
-        sagaStore.Setup(x => x.Create(partitionKey, id, It.IsAny<SagaData>(), TimeSpan.FromHours(1), CancellationToken.None)).ReturnsAsync(new SagaData<SagaData> { Data = new SagaData { Data = "loaded" } });
+        sagaStore
+            .Setup(x =>
+                x.Create(
+                    partitionKey,
+                    id,
+                    It.IsAny<SagaData>(),
+                    TimeSpan.FromHours(1),
+                    CancellationToken.None
+                )
+            )
+            .ReturnsAsync(new SagaData<SagaData> { Data = new SagaData { Data = "loaded" } });
 
         var saga = new Saga();
 
         var di = new Mock<IDependencyInjection>();
-        di.Setup(x => x.GetInstance<object>(typeof(IProcessCommand<SagaStartMessage, Settings>))).Returns(saga);
+        di.Setup(x => x.GetInstance<object>(typeof(IProcessCommand<SagaStartMessage, Settings>)))
+            .Returns(saga);
 
         var hostConfiguration = new Mock<IHostConfiguration>();
         hostConfiguration.Setup(x => x.Log).Returns(Mock.Of<ILogger>());
@@ -133,16 +197,26 @@ public class SagaMiddlewareTests
         messageStateHandler.Setup(x => x.MessageScope).Returns(di.Object);
         var pipelineInformation = new Mock<IPipelineInformation>();
         pipelineInformation.Setup(x => x.HostConfiguration).Returns(hostConfiguration.Object);
-        pipelineInformation.Setup(x => x.ProcessorInterfaceType).Returns(typeof(IProcessCommand<SagaStartMessage, Settings>));
+        pipelineInformation
+            .Setup(x => x.ProcessorInterfaceType)
+            .Returns(typeof(IProcessCommand<SagaStartMessage, Settings>));
 
         var next = new Mock<IMessageProcessor>();
 
         var middleware = new SagaMiddleware(sagaStore.Object);
 
         //act
-        await middleware.ProcessAsync(messageStateHandler.Object, pipelineInformation.Object, next.Object, CancellationToken.None);
+        await middleware.ProcessAsync(
+            messageStateHandler.Object,
+            pipelineInformation.Object,
+            next.Object,
+            CancellationToken.None
+        );
         //assert
-        next.Verify(x => x.ProcessAsync(messageStateHandler.Object, CancellationToken.None), Times.Once);
+        next.Verify(
+            x => x.ProcessAsync(messageStateHandler.Object, CancellationToken.None),
+            Times.Once
+        );
         saga.Data.Data.Should().Be("loaded");
     }
 
@@ -162,7 +236,10 @@ public class SagaMiddlewareTests
         }
     }
 
-    public class SagaDuplicateWithDuplicate : Saga<SagaData>, IProcessCommand<SagaStartMessage, Settings>, ISagaDuplicateDetected<SagaStartMessage>
+    public class SagaDuplicateWithDuplicate
+        : Saga<SagaData>,
+            IProcessCommand<SagaStartMessage, Settings>,
+            ISagaDuplicateDetected<SagaStartMessage>
     {
         private readonly ICountable _countable;
         private readonly bool _throwOnProcess;
@@ -181,7 +258,10 @@ public class SagaMiddlewareTests
             throw new NotImplementedException();
         }
 
-        public Task ProcessDuplicateAsync(SagaStartMessage message, CancellationToken cancellationToken)
+        public Task ProcessDuplicateAsync(
+            SagaStartMessage message,
+            CancellationToken cancellationToken
+        )
         {
             _countable.Count();
 

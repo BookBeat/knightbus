@@ -11,7 +11,8 @@ public record QueueMessage(
     DateTimeOffset? ScheduledTime,
     int DeliveryCount,
     string MessageId,
-    IReadOnlyDictionary<string, string> Properties)
+    IReadOnlyDictionary<string, string> Properties
+)
 {
     public QueueMessage(
         string Body,
@@ -20,6 +21,15 @@ public record QueueMessage(
         DateTimeOffset? ScheduledTime,
         int DeliveryCount,
         string MessageId,
-        IReadOnlyDictionary<string, object> Properties) : this(Body, Error, Time, ScheduledTime, DeliveryCount, MessageId, Properties.ToDictionary(x => x.Key, x => x.Value.ToString()))
-    { }
+        IReadOnlyDictionary<string, object> Properties
+    )
+        : this(
+            Body,
+            Error,
+            Time,
+            ScheduledTime,
+            DeliveryCount,
+            MessageId,
+            Properties.ToDictionary(x => x.Key, x => x.Value.ToString())
+        ) { }
 };

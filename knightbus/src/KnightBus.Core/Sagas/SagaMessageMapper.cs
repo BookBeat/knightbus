@@ -6,9 +6,12 @@ namespace KnightBus.Core.Sagas;
 
 public interface ISagaMessageMapper
 {
-    void MapMessage<TMessage>(Func<TMessage, string> mapping) where TMessage : IMessage;
-    void MapStartMessage<TMessage>(Func<TMessage, string> mapping) where TMessage : IMessage;
-    Func<TMessage, string> GetMapping<TMessage>() where TMessage : IMessage;
+    void MapMessage<TMessage>(Func<TMessage, string> mapping)
+        where TMessage : IMessage;
+    void MapStartMessage<TMessage>(Func<TMessage, string> mapping)
+        where TMessage : IMessage;
+    Func<TMessage, string> GetMapping<TMessage>()
+        where TMessage : IMessage;
     bool IsStartMessage(Type type);
 }
 
@@ -16,7 +19,9 @@ internal class SagaMessageMapper : ISagaMessageMapper
 {
     private readonly Dictionary<Type, object> _mappings = new Dictionary<Type, object>();
     private readonly HashSet<Type> _startMessages = new HashSet<Type>();
-    public void MapMessage<TMessage>(Func<TMessage, string> mapping) where TMessage : IMessage
+
+    public void MapMessage<TMessage>(Func<TMessage, string> mapping)
+        where TMessage : IMessage
     {
         if (!_mappings.ContainsKey(typeof(TMessage)))
         {
@@ -24,13 +29,15 @@ internal class SagaMessageMapper : ISagaMessageMapper
         }
     }
 
-    public void MapStartMessage<TMessage>(Func<TMessage, string> mapping) where TMessage : IMessage
+    public void MapStartMessage<TMessage>(Func<TMessage, string> mapping)
+        where TMessage : IMessage
     {
         MapMessage(mapping);
         _startMessages.Add(typeof(TMessage));
     }
 
-    public Func<TMessage, string> GetMapping<TMessage>() where TMessage : IMessage
+    public Func<TMessage, string> GetMapping<TMessage>()
+        where TMessage : IMessage
     {
         try
         {
@@ -50,6 +57,6 @@ internal class SagaMessageMapper : ISagaMessageMapper
 
 public class SagaMessageMappingNotFoundException : Exception
 {
-    public SagaMessageMappingNotFoundException(Type type) : base($"No mapping found for message {type.FullName}")
-    { }
+    public SagaMessageMappingNotFoundException(Type type)
+        : base($"No mapping found for message {type.FullName}") { }
 }

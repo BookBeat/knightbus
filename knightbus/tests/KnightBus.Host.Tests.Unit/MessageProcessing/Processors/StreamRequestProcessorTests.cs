@@ -20,13 +20,21 @@ public class StreamRequestProcessorTests
         //arrange
         var request = new TestRequest();
         var response = AsyncEnumerable.Empty<TestResponse>();
-        var requestProcessor = new StreamRequestProcessor<TestResponse>(typeof(StreamRequestProcessor));
-        var commandHandler = new Mock<IProcessMessage<TestRequest, IAsyncEnumerable<TestResponse>>>();
-        commandHandler.Setup(x => x.ProcessAsync(request, CancellationToken.None))
+        var requestProcessor = new StreamRequestProcessor<TestResponse>(
+            typeof(StreamRequestProcessor)
+        );
+        var commandHandler =
+            new Mock<IProcessMessage<TestRequest, IAsyncEnumerable<TestResponse>>>();
+        commandHandler
+            .Setup(x => x.ProcessAsync(request, CancellationToken.None))
             .Returns(response);
         var messageStateHandler = new Mock<IMessageStateHandler<TestRequest>>();
         messageStateHandler
-            .Setup(x => x.MessageScope.GetInstance<IProcessMessage<TestRequest, IAsyncEnumerable<TestResponse>>>(typeof(StreamRequestProcessor)))
+            .Setup(x =>
+                x.MessageScope.GetInstance<
+                    IProcessMessage<TestRequest, IAsyncEnumerable<TestResponse>>
+                >(typeof(StreamRequestProcessor))
+            )
             .Returns(commandHandler.Object);
         messageStateHandler.Setup(x => x.GetMessage()).Returns(request);
         //act
@@ -41,13 +49,21 @@ public class StreamRequestProcessorTests
         //arrange
         var request = new TestRequest();
         var response = AsyncEnumerable.Empty<TestResponse>();
-        var requestProcessor = new StreamRequestProcessor<TestResponse>(typeof(StreamRequestProcessor));
-        var commandHandler = new Mock<IProcessMessage<TestRequest, IAsyncEnumerable<TestResponse>>>();
-        commandHandler.Setup(x => x.ProcessAsync(request, CancellationToken.None))
+        var requestProcessor = new StreamRequestProcessor<TestResponse>(
+            typeof(StreamRequestProcessor)
+        );
+        var commandHandler =
+            new Mock<IProcessMessage<TestRequest, IAsyncEnumerable<TestResponse>>>();
+        commandHandler
+            .Setup(x => x.ProcessAsync(request, CancellationToken.None))
             .Returns(response);
         var messageStateHandler = new Mock<IMessageStateHandler<TestRequest>>();
         messageStateHandler
-            .Setup(x => x.MessageScope.GetInstance<IProcessMessage<TestRequest, IAsyncEnumerable<TestResponse>>>(typeof(StreamRequestProcessor)))
+            .Setup(x =>
+                x.MessageScope.GetInstance<
+                    IProcessMessage<TestRequest, IAsyncEnumerable<TestResponse>>
+                >(typeof(StreamRequestProcessor))
+            )
             .Returns(commandHandler.Object);
         messageStateHandler.Setup(x => x.GetMessage()).Returns(request);
         //act
@@ -61,16 +77,25 @@ public class StreamRequestProcessorTests
     {
         //arrange
         var request = new TestRequest();
-        var response = AsyncEnumerable.Empty<TestResponse>()
+        var response = AsyncEnumerable
+            .Empty<TestResponse>()
             .Append(new TestResponse())
             .Append(new TestResponse());
-        var requestProcessor = new StreamRequestProcessor<TestResponse>(typeof(StreamRequestProcessor));
-        var commandHandler = new Mock<IProcessMessage<TestRequest, IAsyncEnumerable<TestResponse>>>();
-        commandHandler.Setup(x => x.ProcessAsync(request, CancellationToken.None))
+        var requestProcessor = new StreamRequestProcessor<TestResponse>(
+            typeof(StreamRequestProcessor)
+        );
+        var commandHandler =
+            new Mock<IProcessMessage<TestRequest, IAsyncEnumerable<TestResponse>>>();
+        commandHandler
+            .Setup(x => x.ProcessAsync(request, CancellationToken.None))
             .Returns(response);
         var messageStateHandler = new Mock<IMessageStateHandler<TestRequest>>();
         messageStateHandler
-            .Setup(x => x.MessageScope.GetInstance<IProcessMessage<TestRequest, IAsyncEnumerable<TestResponse>>>(typeof(StreamRequestProcessor)))
+            .Setup(x =>
+                x.MessageScope.GetInstance<
+                    IProcessMessage<TestRequest, IAsyncEnumerable<TestResponse>>
+                >(typeof(StreamRequestProcessor))
+            )
             .Returns(commandHandler.Object);
         messageStateHandler.Setup(x => x.GetMessage()).Returns(request);
         //act
@@ -84,18 +109,28 @@ public class StreamRequestProcessorTests
     {
         //arrange
         var request = new TestRequest();
-        var requestProcessor = new StreamRequestProcessor<TestResponse>(typeof(StreamRequestProcessor));
-        var commandHandler = new Mock<IProcessMessage<TestRequest, IAsyncEnumerable<TestResponse>>>();
-        commandHandler.Setup(x => x.ProcessAsync(request, CancellationToken.None))
+        var requestProcessor = new StreamRequestProcessor<TestResponse>(
+            typeof(StreamRequestProcessor)
+        );
+        var commandHandler =
+            new Mock<IProcessMessage<TestRequest, IAsyncEnumerable<TestResponse>>>();
+        commandHandler
+            .Setup(x => x.ProcessAsync(request, CancellationToken.None))
             .Throws(new Exception());
         var messageStateHandler = new Mock<IMessageStateHandler<TestRequest>>();
         messageStateHandler
-            .Setup(x => x.MessageScope.GetInstance<IProcessMessage<TestRequest, IAsyncEnumerable<TestResponse>>>(typeof(StreamRequestProcessor)))
+            .Setup(x =>
+                x.MessageScope.GetInstance<
+                    IProcessMessage<TestRequest, IAsyncEnumerable<TestResponse>>
+                >(typeof(StreamRequestProcessor))
+            )
             .Returns(commandHandler.Object);
         messageStateHandler.Setup(x => x.GetMessage()).Returns(request);
         //act
-        requestProcessor.Awaiting(x => x.ProcessAsync(messageStateHandler.Object, CancellationToken.None))
-            .Should().ThrowAsync<Exception>();
+        requestProcessor
+            .Awaiting(x => x.ProcessAsync(messageStateHandler.Object, CancellationToken.None))
+            .Should()
+            .ThrowAsync<Exception>();
         //assert
         messageStateHandler.Verify(x => x.CompleteAsync(), Times.Never);
     }
@@ -106,18 +141,28 @@ public class StreamRequestProcessorTests
         //arrange
         var request = new TestRequest();
         var response = new TestResponse();
-        var requestProcessor = new StreamRequestProcessor<TestResponse>(typeof(StreamRequestProcessor));
-        var commandHandler = new Mock<IProcessMessage<TestRequest, IAsyncEnumerable<TestResponse>>>();
-        commandHandler.Setup(x => x.ProcessAsync(request, CancellationToken.None))
+        var requestProcessor = new StreamRequestProcessor<TestResponse>(
+            typeof(StreamRequestProcessor)
+        );
+        var commandHandler =
+            new Mock<IProcessMessage<TestRequest, IAsyncEnumerable<TestResponse>>>();
+        commandHandler
+            .Setup(x => x.ProcessAsync(request, CancellationToken.None))
             .Throws(new Exception());
         var messageStateHandler = new Mock<IMessageStateHandler<TestRequest>>();
         messageStateHandler
-            .Setup(x => x.MessageScope.GetInstance<IProcessMessage<TestRequest, IAsyncEnumerable<TestResponse>>>(typeof(StreamRequestProcessor)))
+            .Setup(x =>
+                x.MessageScope.GetInstance<
+                    IProcessMessage<TestRequest, IAsyncEnumerable<TestResponse>>
+                >(typeof(StreamRequestProcessor))
+            )
             .Returns(commandHandler.Object);
         messageStateHandler.Setup(x => x.GetMessage()).Returns(request);
         //act
-        requestProcessor.Awaiting(x => x.ProcessAsync(messageStateHandler.Object, CancellationToken.None))
-            .Should().ThrowAsync<Exception>();
+        requestProcessor
+            .Awaiting(x => x.ProcessAsync(messageStateHandler.Object, CancellationToken.None))
+            .Should()
+            .ThrowAsync<Exception>();
         //assert
         messageStateHandler.Verify(x => x.ReplyAsync(response), Times.Never);
     }

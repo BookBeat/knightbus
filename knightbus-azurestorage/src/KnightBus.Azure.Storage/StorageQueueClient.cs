@@ -18,42 +18,51 @@ public interface IStorageQueueClient
     Task<int> GetQueueCountAsync();
     Task DeadLetterAsync(StorageQueueMessage message);
     Task<int> GetDeadLetterCountAsync();
-    Task<List<StorageQueueMessage>> PeekDeadLettersAsync<T>(int count) where T : IStorageQueueCommand;
-    Task<StorageQueueMessage> ReceiveDeadLetterAsync<T>() where T : IStorageQueueCommand;
-    Task RequeueDeadLettersAsync<T>(int count, Func<T, bool> shouldRequeue) where T : IStorageQueueCommand;
+    Task<List<StorageQueueMessage>> PeekDeadLettersAsync<T>(int count)
+        where T : IStorageQueueCommand;
+    Task<StorageQueueMessage> ReceiveDeadLetterAsync<T>()
+        where T : IStorageQueueCommand;
+    Task RequeueDeadLettersAsync<T>(int count, Func<T, bool> shouldRequeue)
+        where T : IStorageQueueCommand;
     Task CompleteAsync(StorageQueueMessage message);
     Task AbandonByErrorAsync(StorageQueueMessage message, TimeSpan? visibilityTimeout);
-    Task SendAsync<T>(T message, TimeSpan? delay, CancellationToken cancellationToken) where T : IStorageQueueCommand;
-    Task<List<StorageQueueMessage>> PeekMessagesAsync<T>(int count) where T : IStorageQueueCommand;
-    Task<List<StorageQueueMessage>> GetMessagesAsync<T>(int count, TimeSpan? lockDuration) where T : IStorageQueueCommand;
+    Task SendAsync<T>(T message, TimeSpan? delay, CancellationToken cancellationToken)
+        where T : IStorageQueueCommand;
+    Task<List<StorageQueueMessage>> PeekMessagesAsync<T>(int count)
+        where T : IStorageQueueCommand;
+    Task<List<StorageQueueMessage>> GetMessagesAsync<T>(int count, TimeSpan? lockDuration)
+        where T : IStorageQueueCommand;
     Task CreateIfNotExistsAsync();
     Task DeleteIfExistsAsync();
-    Task SetVisibilityTimeout(StorageQueueMessage message, TimeSpan timeToExtend, CancellationToken cancellationToken);
+    Task SetVisibilityTimeout(
+        StorageQueueMessage message,
+        TimeSpan timeToExtend,
+        CancellationToken cancellationToken
+    );
 }
 
-public class StorageQueueClient : IStorageQueueClient
+public class StorageQueueClient(
+    IStorageBusConfiguration configuration,
+    IMessageSerializer serializer,
+    IEnumerable<IMessagePreProcessor> messagePreProcessors,
+    string queueName
+) : IStorageQueueClient
 {
-    private readonly IMessageSerializer _serializer;
-    private readonly QueueClient _queue;
-    private readonly QueueClient _dlQueue;
-    private readonly BlobContainerClient _container;
-    private readonly IEnumerable<IMessagePreProcessor> _messagePreProcessors;
-
-    public StorageQueueClient(
-        IStorageBusConfiguration configuration,
-        IMessageSerializer serializer,
-        IEnumerable<IMessagePreProcessor> messagePreProcessors,
-        string queueName
-    )
-    {
-        _serializer = serializer;
-
-        //QueueMessageEncoding.Base64 required for backwards compability with v11 storage clients
-        _queue = new QueueClient(configuration.ConnectionString, queueName, new QueueClientOptions { MessageEncoding = configuration.MessageEncoding });
-        _dlQueue = new QueueClient(configuration.ConnectionString, GetDeadLetterName(queueName), new QueueClientOptions { MessageEncoding = configuration.MessageEncoding });
-        _container = new BlobContainerClient(configuration.ConnectionString, queueName);
-        _messagePreProcessors = messagePreProcessors;
-    }
+    //QueueMessageEncoding.Base64 required for backwards compability with v11 storage clients
+    private readonly QueueClient _queue = new(
+        configuration.ConnectionString,
+        queueName,
+        new QueueClientOptions { MessageEncoding = configuration.MessageEncoding }
+    );
+    private readonly QueueClient _dlQueue = new(
+        configuration.ConnectionString,
+        GetDeadLetterName(queueName),
+        new QueueClientOptions { MessageEncoding = configuration.MessageEncoding }
+    );
+    private readonly BlobContainerClient _container = new(
+        configuration.ConnectionString,
+        queueName
+    );
 
     public static string GetDeadLetterName(string queueName)
     {
@@ -68,8 +77,15 @@ public class StorageQueueClient : IStorageQueueClient
 
     public async Task DeadLetterAsync(StorageQueueMessage message)
     {
-        await _dlQueue.SendMessageAsync(new BinaryData(_serializer.Serialize(message.Properties)), timeToLive: TimeSpan.FromSeconds(-1)).ConfigureAwait(false);
-        await _queue.DeleteMessageAsync(message.QueueMessageId, message.PopReceipt).ConfigureAwait(false);
+        await _dlQueue
+            .SendMessageAsync(
+                new BinaryData(serializer.Serialize(message.Properties)),
+                timeToLive: TimeSpan.FromSeconds(-1)
+            )
+            .ConfigureAwait(false);
+        await _queue
+            .DeleteMessageAsync(message.QueueMessageId, message.PopReceipt)
+            .ConfigureAwait(false);
     }
 
     public async Task<int> GetDeadLetterCountAsync()
@@ -80,25 +96,39 @@ public class StorageQueueClient : IStorageQueueClient
 
     public async Task CompleteAsync(StorageQueueMessage message)
     {
-        await _queue.DeleteMessageAsync(message.QueueMessageId, message.PopReceipt).ConfigureAwait(false);
+        await _queue
+            .DeleteMessageAsync(message.QueueMessageId, message.PopReceipt)
+            .ConfigureAwait(false);
         await TryDeleteBlob(message.BlobMessageId).ConfigureAwait(false);
     }
 
     public async Task AbandonByErrorAsync(StorageQueueMessage message, TimeSpan? visibilityTimeout)
     {
         visibilityTimeout = visibilityTimeout ?? TimeSpan.Zero;
-        var result = await _queue.UpdateMessageAsync(message.QueueMessageId, message.PopReceipt, new BinaryData(_serializer.Serialize(message.Properties)), visibilityTimeout.Value).ConfigureAwait(false);
+        var result = await _queue
+            .UpdateMessageAsync(
+                message.QueueMessageId,
+                message.PopReceipt,
+                new BinaryData(serializer.Serialize(message.Properties)),
+                visibilityTimeout.Value
+            )
+            .ConfigureAwait(false);
         message.PopReceipt = result.Value.PopReceipt;
     }
 
-    public async Task SendAsync<T>(T message, TimeSpan? delay, CancellationToken cancellationToken = default) where T : IStorageQueueCommand
+    public async Task SendAsync<T>(
+        T message,
+        TimeSpan? delay,
+        CancellationToken cancellationToken = default
+    )
+        where T : IStorageQueueCommand
     {
         var storageMessage = new StorageQueueMessage(message)
         {
-            BlobMessageId = Guid.NewGuid().ToString()
+            BlobMessageId = Guid.NewGuid().ToString(),
         };
 
-        foreach (var preProcessor in _messagePreProcessors)
+        foreach (var preProcessor in messagePreProcessors)
         {
             var properties = await preProcessor.PreProcess(message, cancellationToken);
             foreach (var property in properties)
@@ -110,11 +140,18 @@ public class StorageQueueClient : IStorageQueueClient
         try
         {
             var blob = _container.GetBlobClient(storageMessage.BlobMessageId);
-            using (var stream = new MemoryStream(_serializer.Serialize(message)))
+            using (var stream = new MemoryStream(serializer.Serialize(message)))
             {
                 await blob.UploadAsync(stream, cancellationToken).ConfigureAwait(false);
             }
-            await _queue.SendMessageAsync(new BinaryData(_serializer.Serialize(storageMessage.Properties)), delay ?? TimeSpan.Zero, TimeSpan.FromSeconds(-1), cancellationToken).ConfigureAwait(false);
+            await _queue
+                .SendMessageAsync(
+                    new BinaryData(serializer.Serialize(storageMessage.Properties)),
+                    delay ?? TimeSpan.Zero,
+                    TimeSpan.FromSeconds(-1),
+                    cancellationToken
+                )
+                .ConfigureAwait(false);
         }
         catch (Exception)
         {
@@ -124,7 +161,8 @@ public class StorageQueueClient : IStorageQueueClient
         }
     }
 
-    public Task<List<StorageQueueMessage>> PeekDeadLettersAsync<T>(int count) where T : IStorageQueueCommand
+    public Task<List<StorageQueueMessage>> PeekDeadLettersAsync<T>(int count)
+        where T : IStorageQueueCommand
     {
         return PeekMessagesAsync<T>(count, _dlQueue);
     }
@@ -142,7 +180,8 @@ public class StorageQueueClient : IStorageQueueClient
             var deadletter = messages.Single();
 
             // Delete the old message
-            await _dlQueue.DeleteMessageAsync(deadletter.QueueMessageId, deadletter.PopReceipt)
+            await _dlQueue
+                .DeleteMessageAsync(deadletter.QueueMessageId, deadletter.PopReceipt)
                 .ConfigureAwait(false);
 
             // The dead letter will be deleted even though shouldRequeue is false
@@ -150,17 +189,27 @@ public class StorageQueueClient : IStorageQueueClient
                 continue;
 
             // enqueue the new message again
-            await _queue.SendMessageAsync(new BinaryData(_serializer.Serialize(deadletter.Properties)), TimeSpan.Zero, TimeSpan.FromSeconds(-1)).ConfigureAwait(false);
+            await _queue
+                .SendMessageAsync(
+                    new BinaryData(serializer.Serialize(deadletter.Properties)),
+                    TimeSpan.Zero,
+                    TimeSpan.FromSeconds(-1)
+                )
+                .ConfigureAwait(false);
         }
     }
 
-    public async Task<StorageQueueMessage> ReceiveDeadLetterAsync<T>() where T : IStorageQueueCommand
+    public async Task<StorageQueueMessage> ReceiveDeadLetterAsync<T>()
+        where T : IStorageQueueCommand
     {
         var messages = await GetMessagesAsync<T>(1, null, _dlQueue).ConfigureAwait(false);
-        if (!messages.Any()) return null;
+        if (!messages.Any())
+            return null;
         var message = messages.Single();
 
-        await _dlQueue.DeleteMessageAsync(message.QueueMessageId, message.PopReceipt).ConfigureAwait(false);
+        await _dlQueue
+            .DeleteMessageAsync(message.QueueMessageId, message.PopReceipt)
+            .ConfigureAwait(false);
         await TryDeleteBlob(message.BlobMessageId).ConfigureAwait(false);
         return message;
     }
@@ -180,37 +229,58 @@ public class StorageQueueClient : IStorageQueueClient
     public async Task CreateIfNotExistsAsync()
     {
         await Task.WhenAll(
-            _container.CreateIfNotExistsAsync(),
-            _queue.CreateIfNotExistsAsync(),
-            _dlQueue.CreateIfNotExistsAsync()
-        ).ConfigureAwait(false);
+                _container.CreateIfNotExistsAsync(),
+                _queue.CreateIfNotExistsAsync(),
+                _dlQueue.CreateIfNotExistsAsync()
+            )
+            .ConfigureAwait(false);
     }
 
     public async Task DeleteIfExistsAsync()
     {
         await Task.WhenAll(
-            _container.DeleteIfExistsAsync(),
-            _queue.DeleteIfExistsAsync(),
-            _dlQueue.DeleteIfExistsAsync()
-        ).ConfigureAwait(false);
+                _container.DeleteIfExistsAsync(),
+                _queue.DeleteIfExistsAsync(),
+                _dlQueue.DeleteIfExistsAsync()
+            )
+            .ConfigureAwait(false);
     }
 
-    public async Task SetVisibilityTimeout(StorageQueueMessage message, TimeSpan timeToExtend, CancellationToken cancellationToken)
+    public async Task SetVisibilityTimeout(
+        StorageQueueMessage message,
+        TimeSpan timeToExtend,
+        CancellationToken cancellationToken
+    )
     {
-        var result = await _queue.UpdateMessageAsync(message.QueueMessageId, message.PopReceipt, visibilityTimeout: timeToExtend, cancellationToken: cancellationToken).ConfigureAwait(false);
+        var result = await _queue
+            .UpdateMessageAsync(
+                message.QueueMessageId,
+                message.PopReceipt,
+                visibilityTimeout: timeToExtend,
+                cancellationToken: cancellationToken
+            )
+            .ConfigureAwait(false);
         message.PopReceipt = result.Value.PopReceipt;
     }
 
-
-    public Task<List<StorageQueueMessage>> GetMessagesAsync<T>(int count, TimeSpan? lockDuration) where T : IStorageQueueCommand
+    public Task<List<StorageQueueMessage>> GetMessagesAsync<T>(int count, TimeSpan? lockDuration)
+        where T : IStorageQueueCommand
     {
         return GetMessagesAsync<T>(count, lockDuration, _queue);
     }
 
-    private async Task<List<StorageQueueMessage>> GetMessagesAsync<T>(int count, TimeSpan? lockDuration, QueueClient queue) where T : IStorageQueueCommand
+    private async Task<List<StorageQueueMessage>> GetMessagesAsync<T>(
+        int count,
+        TimeSpan? lockDuration,
+        QueueClient queue
+    )
+        where T : IStorageQueueCommand
     {
-        var messages = (await queue.ReceiveMessagesAsync(count, lockDuration).ConfigureAwait(false)).Value;
-        if (!messages.Any()) return new List<StorageQueueMessage>();
+        var messages = (
+            await queue.ReceiveMessagesAsync(count, lockDuration).ConfigureAwait(false)
+        ).Value;
+        if (!messages.Any())
+            return new List<StorageQueueMessage>();
         var messageContainers = new List<StorageQueueMessage>(messages.Length);
         foreach (var queueMessage in messages)
         {
@@ -221,14 +291,18 @@ public class StorageQueueClient : IStorageQueueClient
                     QueueMessageId = queueMessage.MessageId,
                     DequeueCount = (int)queueMessage.DequeueCount,
                     PopReceipt = queueMessage.PopReceipt,
-                    Properties = TryDeserializeProperties(queueMessage.Body)
+                    Time = queueMessage.InsertedOn,
+                    Properties = TryDeserializeProperties(queueMessage.Body),
                 };
                 using (var stream = new MemoryStream())
                 {
-                    await _container.GetBlobClient(message.BlobMessageId).DownloadToAsync(stream).ConfigureAwait(false);
+                    await _container
+                        .GetBlobClient(message.BlobMessageId)
+                        .DownloadToAsync(stream)
+                        .ConfigureAwait(false);
                     stream.Position = 0;
 
-                    message.Message = await _serializer.Deserialize<T>(stream).ConfigureAwait(false);
+                    message.Message = await serializer.Deserialize<T>(stream).ConfigureAwait(false);
                     messageContainers.Add(message);
                 }
             }
@@ -242,15 +316,18 @@ public class StorageQueueClient : IStorageQueueClient
         return messageContainers;
     }
 
-    public Task<List<StorageQueueMessage>> PeekMessagesAsync<T>(int count) where T : IStorageQueueCommand
+    public Task<List<StorageQueueMessage>> PeekMessagesAsync<T>(int count)
+        where T : IStorageQueueCommand
     {
         return PeekMessagesAsync<T>(count, _queue);
     }
 
-    private async Task<List<StorageQueueMessage>> PeekMessagesAsync<T>(int count, QueueClient queue) where T : IStorageQueueCommand
+    private async Task<List<StorageQueueMessage>> PeekMessagesAsync<T>(int count, QueueClient queue)
+        where T : IStorageQueueCommand
     {
         var messages = (await queue.PeekMessagesAsync(count).ConfigureAwait(false)).Value;
-        if (!messages.Any()) return new List<StorageQueueMessage>();
+        if (!messages.Any())
+            return new List<StorageQueueMessage>();
         var messageContainers = new List<StorageQueueMessage>(messages.Length);
         foreach (var queueMessage in messages)
         {
@@ -260,14 +337,18 @@ public class StorageQueueClient : IStorageQueueClient
                 {
                     QueueMessageId = queueMessage.MessageId,
                     DequeueCount = (int)queueMessage.DequeueCount,
-                    Properties = TryDeserializeProperties(queueMessage.Body)
+                    Properties = TryDeserializeProperties(queueMessage.Body),
+                    Time = queueMessage.InsertedOn,
                 };
                 using (var stream = new MemoryStream())
                 {
-                    await _container.GetBlobClient(message.BlobMessageId).DownloadToAsync(stream).ConfigureAwait(false);
+                    await _container
+                        .GetBlobClient(message.BlobMessageId)
+                        .DownloadToAsync(stream)
+                        .ConfigureAwait(false);
                     stream.Position = 0;
 
-                    message.Message = await _serializer.Deserialize<T>(stream).ConfigureAwait(false);
+                    message.Message = await serializer.Deserialize<T>(stream).ConfigureAwait(false);
                     messageContainers.Add(message);
                 }
             }
@@ -284,7 +365,7 @@ public class StorageQueueClient : IStorageQueueClient
     {
         try
         {
-            return _serializer.Deserialize<Dictionary<string, string>>(serialized.ToMemory());
+            return serializer.Deserialize<Dictionary<string, string>>(serialized.ToMemory());
         }
         catch
         {

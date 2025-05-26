@@ -18,7 +18,6 @@ namespace KnightBus.Host.Tests.Unit.Middleware;
 [TestFixture]
 public class MiddlewarePipelineTest
 {
-
     [Test]
     public async Task Should_execute_ordered_pipeline_from_microsoft_di()
     {
@@ -31,9 +30,15 @@ public class MiddlewarePipelineTest
         }
         var finalProcessor = new Mock<IMessageProcessor>();
         var provider = services.BuildServiceProvider();
-        var pipeline = new MiddlewarePipeline(provider.GetServices<IMessageProcessorMiddleware>(), Mock.Of<IPipelineInformation>(), Mock.Of<ILogger>());
+        var pipeline = new MiddlewarePipeline(
+            provider.GetServices<IMessageProcessorMiddleware>(),
+            Mock.Of<IPipelineInformation>(),
+            Mock.Of<ILogger>()
+        );
         var stateHandler = new Mock<IMessageStateHandler<TestCommand>>();
-        stateHandler.Setup(x => x.MessageScope).Returns(new MicrosoftDependencyInjection(provider).GetScope);
+        stateHandler
+            .Setup(x => x.MessageScope)
+            .Returns(new MicrosoftDependencyInjection(provider).GetScope);
         //act
         var chain = pipeline.GetPipeline(finalProcessor.Object);
         await chain.ProcessAsync(stateHandler.Object, CancellationToken.None);
@@ -43,7 +48,14 @@ public class MiddlewarePipelineTest
         {
             executionOrderList[i].Should().Be(i);
         }
-        finalProcessor.Verify(x => x.ProcessAsync(It.IsAny<IMessageStateHandler<TestCommand>>(), CancellationToken.None), Times.Once);
+        finalProcessor.Verify(
+            x =>
+                x.ProcessAsync(
+                    It.IsAny<IMessageStateHandler<TestCommand>>(),
+                    CancellationToken.None
+                ),
+            Times.Once
+        );
     }
 
     [Test]
@@ -59,12 +71,18 @@ public class MiddlewarePipelineTest
 
         middlewares.Add(new MessageScopeTestMiddleware(executionOrderList, 0));
 
-
         var finalProcessor = new Mock<IMessageProcessor>();
-        var pipeline = new MiddlewarePipeline(middlewares, Mock.Of<IPipelineInformation>(), Mock.Of<ILogger>());
+        var pipeline = new MiddlewarePipeline(
+            middlewares,
+            Mock.Of<IPipelineInformation>(),
+            Mock.Of<ILogger>()
+        );
         //act
         var chain = pipeline.GetPipeline(finalProcessor.Object);
-        await chain.ProcessAsync(Mock.Of<IMessageStateHandler<TestCommand>>(), CancellationToken.None);
+        await chain.ProcessAsync(
+            Mock.Of<IMessageStateHandler<TestCommand>>(),
+            CancellationToken.None
+        );
         //assert
 
         for (int i = 0; i < 11; i++)
@@ -73,7 +91,14 @@ public class MiddlewarePipelineTest
         }
 
         executionOrderList.Count.Should().Be(11);
-        finalProcessor.Verify(x => x.ProcessAsync(It.IsAny<IMessageStateHandler<TestCommand>>(), CancellationToken.None), Times.Once);
+        finalProcessor.Verify(
+            x =>
+                x.ProcessAsync(
+                    It.IsAny<IMessageStateHandler<TestCommand>>(),
+                    CancellationToken.None
+                ),
+            Times.Once
+        );
     }
 
     private class TestMiddleware : IMessageProcessorMiddleware
@@ -86,7 +111,14 @@ public class MiddlewarePipelineTest
             _list = list;
             _order = order;
         }
-        public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, IPipelineInformation pipelineInformation, IMessageProcessor next, CancellationToken cancellationToken) where T : class, IMessage
+
+        public async Task ProcessAsync<T>(
+            IMessageStateHandler<T> messageStateHandler,
+            IPipelineInformation pipelineInformation,
+            IMessageProcessor next,
+            CancellationToken cancellationToken
+        )
+            where T : class, IMessage
         {
             _list.Add(_order);
             await next.ProcessAsync(messageStateHandler, cancellationToken);
@@ -102,36 +134,47 @@ public class MiddlewarePipelineTest
         container.AddSingleton(countableMock.Object);
 
         container.RegisterProcessors(Assembly.GetExecutingAssembly());
-        var hostConfiguration = new HostConfiguration { DependencyInjection = new MicrosoftDependencyInjection(container.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true })) };
+        var hostConfiguration = new HostConfiguration
+        {
+            DependencyInjection = new MicrosoftDependencyInjection(
+                container.BuildServiceProvider(
+                    new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true }
+                )
+            ),
+        };
 
         var pipelineInformation = new Mock<IPipelineInformation>();
         pipelineInformation.Setup(x => x.HostConfiguration).Returns(hostConfiguration);
 
-        var finalProcessor = new MessageProcessor(typeof(IProcessCommand<DiTestMessage, DiTestMessageSettings>));
-        var pipeline = new MiddlewarePipeline(new List<IMessageProcessorMiddleware>(), pipelineInformation.Object, Mock.Of<ILogger>());
+        var finalProcessor = new MessageProcessor(
+            typeof(IProcessCommand<DiTestMessage, DiTestMessageSettings>)
+        );
+        var pipeline = new MiddlewarePipeline(
+            new List<IMessageProcessorMiddleware>(),
+            pipelineInformation.Object,
+            Mock.Of<ILogger>()
+        );
 
         var messageStateHandler = new Mock<IMessageStateHandler<DiTestMessage>>();
-        messageStateHandler.Setup(x => x.MessageScope).Returns(hostConfiguration.DependencyInjection.GetScope);
+        messageStateHandler
+            .Setup(x => x.MessageScope)
+            .Returns(hostConfiguration.DependencyInjection.GetScope);
 
         //act
         var chain = pipeline.GetPipeline(finalProcessor);
         await chain.ProcessAsync(messageStateHandler.Object, CancellationToken.None);
 
-        //assert 
+        //assert
         countableMock.Verify(x => x.Count(), Times.Once);
     }
 
     private class MessageScopeTestMiddleware : TestMiddleware, IMessageScopeProviderMiddleware
     {
-        public MessageScopeTestMiddleware(List<int> list, int order) : base(list, order)
-        {
-        }
+        public MessageScopeTestMiddleware(List<int> list, int order)
+            : base(list, order) { }
     }
 
-    public class DiTestMessage : ICommand
-    {
-
-    }
+    public class DiTestMessage : ICommand { }
 
     public class DiTestMessageSettings : IProcessingSettings
     {
@@ -141,7 +184,6 @@ public class MiddlewarePipelineTest
         public int PrefetchCount { get; set; }
     }
 
-
     public class DiTestCommandHandler : IProcessCommand<DiTestMessage, DiTestMessageSettings>
     {
         private readonly ICountable _countable;
@@ -150,6 +192,7 @@ public class MiddlewarePipelineTest
         {
             _countable = countable;
         }
+
         public Task ProcessAsync(DiTestMessage message, CancellationToken cancellationToken)
         {
             _countable.Count();
@@ -162,6 +205,7 @@ public class MiddlewarePipelineTest
         public int DeliveryCount { get; }
         public int DeadLetterDeliveryLimit { get; }
         public IDictionary<string, string> MessageProperties { get; }
+
         public Task CompleteAsync()
         {
             throw new NotImplementedException();

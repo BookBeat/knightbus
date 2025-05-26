@@ -7,7 +7,10 @@ namespace KnightBus.Azure.ServiceBus.Management;
 
 public static class ServiceBusExtensions
 {
-    internal static QueueProperties ToQueueProperties(this QueueRuntimeProperties properties, IQueueManager manager)
+    internal static QueueProperties ToQueueProperties(
+        this QueueRuntimeProperties properties,
+        IQueueManager manager
+    )
     {
         return new QueueProperties(properties.Name, manager, true)
         {
@@ -20,10 +23,15 @@ public static class ServiceBusExtensions
             ScheduledMessageCount = properties.ScheduledMessageCount,
             AccessedAt = properties.AccessedAt,
             CreatedAt = properties.CreatedAt,
-            UpdatedAt = properties.UpdatedAt
+            UpdatedAt = properties.UpdatedAt,
         };
     }
-    internal static SubscriptionQueueProperties ToQueueProperties(this SubscriptionRuntimeProperties properties, IQueueManager manager, string topic)
+
+    internal static SubscriptionQueueProperties ToQueueProperties(
+        this SubscriptionRuntimeProperties properties,
+        IQueueManager manager,
+        string topic
+    )
     {
         return new SubscriptionQueueProperties(properties.SubscriptionName, manager, topic, false)
         {
@@ -34,11 +42,14 @@ public static class ServiceBusExtensions
             TransferDeadLetterMessageCount = properties.TransferDeadLetterMessageCount,
             AccessedAt = properties.AccessedAt,
             CreatedAt = properties.CreatedAt,
-            UpdatedAt = properties.UpdatedAt
+            UpdatedAt = properties.UpdatedAt,
         };
     }
 
-    internal static QueueProperties ToQueueProperties(this TopicRuntimeProperties properties, IQueueManager manager)
+    internal static QueueProperties ToQueueProperties(
+        this TopicRuntimeProperties properties,
+        IQueueManager manager
+    )
     {
         return new QueueProperties(properties.Name, manager, false, QueueType.Topic)
         {
@@ -46,11 +57,14 @@ public static class ServiceBusExtensions
             ScheduledMessageCount = properties.ScheduledMessageCount,
             AccessedAt = properties.AccessedAt,
             CreatedAt = properties.CreatedAt,
-            UpdatedAt = properties.UpdatedAt
+            UpdatedAt = properties.UpdatedAt,
         };
     }
 
-    public static IServiceCollection AddServiceBusManagement(this IServiceCollection services, string connectionString)
+    public static IServiceCollection AddServiceBusManagement(
+        this IServiceCollection services,
+        string connectionString
+    )
     {
         return services
             .AddScoped<IQueueMessageSender, ServiceBusQueueManager>()

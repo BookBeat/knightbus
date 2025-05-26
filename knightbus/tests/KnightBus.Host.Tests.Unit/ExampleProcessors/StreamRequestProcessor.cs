@@ -6,7 +6,8 @@ using KnightBus.Core;
 
 namespace KnightBus.Host.Tests.Unit.ExampleProcessors;
 
-public class StreamRequestProcessor : IProcessStreamRequest<TestRequest, TestResponse, TestMessageSettings>
+public class StreamRequestProcessor
+    : IProcessStreamRequest<TestRequest, TestResponse, TestMessageSettings>
 {
     private readonly ICountable _countable;
 
@@ -14,7 +15,11 @@ public class StreamRequestProcessor : IProcessStreamRequest<TestRequest, TestRes
     {
         _countable = countable;
     }
-    public async IAsyncEnumerable<TestResponse> ProcessAsync(TestRequest message, [EnumeratorCancellation] CancellationToken cancellationToken)
+
+    public async IAsyncEnumerable<TestResponse> ProcessAsync(
+        TestRequest message,
+        [EnumeratorCancellation] CancellationToken cancellationToken
+    )
     {
         _countable.Count();
         await Task.Delay(1, cancellationToken);

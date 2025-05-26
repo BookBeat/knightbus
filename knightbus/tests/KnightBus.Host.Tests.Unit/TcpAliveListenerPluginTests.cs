@@ -16,7 +16,10 @@ public class TcpAliveListenerPluginTests
     public async Task Should_RespondToPing()
     {
         //Arrange
-        var target = new TcpAliveListenerPlugin(new TcpAliveListenerConfiguration(13000), Mock.Of<ILogger<TcpAliveListenerPlugin>>());
+        var target = new TcpAliveListenerPlugin(
+            new TcpAliveListenerConfiguration(13000),
+            Mock.Of<ILogger<TcpAliveListenerPlugin>>()
+        );
         await target.StartAsync(CancellationToken.None);
         await Task.Delay(TimeSpan.FromSeconds(1));
 

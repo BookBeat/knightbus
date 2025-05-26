@@ -36,15 +36,30 @@ public class MessageProcessorLocatorTests
         collection.RegisterProcessor<SingleCommandProcessor>();
         collection.AddScoped((_) => Mock.Of<ICountable>());
 
-        var locator = new MessageProcessorLocator(new HostConfiguration
-        {
-            DependencyInjection = new MicrosoftDependencyInjection(collection.BuildServiceProvider()),
-            Log = Mock.Of<ILogger>()
-
-        }, new[] { _queueStarterFactory.Object });
+        var locator = new MessageProcessorLocator(
+            new HostConfiguration
+            {
+                DependencyInjection = new MicrosoftDependencyInjection(
+                    collection.BuildServiceProvider()
+                ),
+                Log = Mock.Of<ILogger>(),
+            },
+            new[] { _queueStarterFactory.Object }
+        );
         _queueStarterFactory.Setup(x => x.CanCreate(typeof(TestCommand))).Returns(true);
-        _queueStarterFactory.Setup(x => x.Create(typeof(TestCommand), null, It.IsAny<TestTopicSettings>(), It.IsAny<IMessageSerializer>(), It.IsAny<HostConfiguration>(), It.IsAny<IMessageProcessor>()))
-            .Returns(Mock.Of<IChannelReceiver>()).Verifiable();
+        _queueStarterFactory
+            .Setup(x =>
+                x.Create(
+                    typeof(TestCommand),
+                    null,
+                    It.IsAny<TestTopicSettings>(),
+                    It.IsAny<IMessageSerializer>(),
+                    It.IsAny<HostConfiguration>(),
+                    It.IsAny<IMessageProcessor>()
+                )
+            )
+            .Returns(Mock.Of<IChannelReceiver>())
+            .Verifiable();
         //act
         var reader = locator.CreateReceivers().ToList();
         //assert
@@ -60,15 +75,30 @@ public class MessageProcessorLocatorTests
         collection.RegisterProcessor<SingleRequestProcessor>();
         collection.AddScoped((_) => Mock.Of<ICountable>());
 
-        var locator = new MessageProcessorLocator(new HostConfiguration
-        {
-            DependencyInjection = new MicrosoftDependencyInjection(collection.BuildServiceProvider()),
-            Log = Mock.Of<ILogger>()
-
-        }, new[] { _queueStarterFactory.Object });
+        var locator = new MessageProcessorLocator(
+            new HostConfiguration
+            {
+                DependencyInjection = new MicrosoftDependencyInjection(
+                    collection.BuildServiceProvider()
+                ),
+                Log = Mock.Of<ILogger>(),
+            },
+            new[] { _queueStarterFactory.Object }
+        );
         _queueStarterFactory.Setup(x => x.CanCreate(typeof(TestRequest))).Returns(true);
-        _queueStarterFactory.Setup(x => x.Create(typeof(TestRequest), null, It.IsAny<TestMessageSettings>(), It.IsAny<IMessageSerializer>(), It.IsAny<HostConfiguration>(), It.IsAny<IMessageProcessor>()))
-            .Returns(Mock.Of<IChannelReceiver>()).Verifiable();
+        _queueStarterFactory
+            .Setup(x =>
+                x.Create(
+                    typeof(TestRequest),
+                    null,
+                    It.IsAny<TestMessageSettings>(),
+                    It.IsAny<IMessageSerializer>(),
+                    It.IsAny<HostConfiguration>(),
+                    It.IsAny<IMessageProcessor>()
+                )
+            )
+            .Returns(Mock.Of<IChannelReceiver>())
+            .Verifiable();
         //act
         var reader = locator.CreateReceivers().ToList();
         //assert
@@ -84,16 +114,31 @@ public class MessageProcessorLocatorTests
         collection.RegisterProcessor<StreamRequestProcessor>();
         collection.AddScoped((_) => Mock.Of<ICountable>());
 
-        var locator = new MessageProcessorLocator(new HostConfiguration
-        {
-            DependencyInjection = new MicrosoftDependencyInjection(collection.BuildServiceProvider()),
-            Log = Mock.Of<ILogger>()
-
-        }, new[] { _queueStarterFactory.Object });
+        var locator = new MessageProcessorLocator(
+            new HostConfiguration
+            {
+                DependencyInjection = new MicrosoftDependencyInjection(
+                    collection.BuildServiceProvider()
+                ),
+                Log = Mock.Of<ILogger>(),
+            },
+            new[] { _queueStarterFactory.Object }
+        );
 
         _queueStarterFactory.Setup(x => x.CanCreate(typeof(TestRequest))).Returns(true);
-        _queueStarterFactory.Setup(x => x.Create(typeof(TestRequest), null, It.IsAny<TestMessageSettings>(), It.IsAny<IMessageSerializer>(), It.IsAny<HostConfiguration>(), It.IsAny<IMessageProcessor>()))
-            .Returns(Mock.Of<IChannelReceiver>()).Verifiable();
+        _queueStarterFactory
+            .Setup(x =>
+                x.Create(
+                    typeof(TestRequest),
+                    null,
+                    It.IsAny<TestMessageSettings>(),
+                    It.IsAny<IMessageSerializer>(),
+                    It.IsAny<HostConfiguration>(),
+                    It.IsAny<IMessageProcessor>()
+                )
+            )
+            .Returns(Mock.Of<IChannelReceiver>())
+            .Verifiable();
         //act
         var reader = locator.CreateReceivers().ToList();
         //assert
@@ -109,18 +154,44 @@ public class MessageProcessorLocatorTests
         collection.RegisterProcessor<MultipleCommandProcessor>();
         collection.AddScoped((_) => Mock.Of<ICountable>());
 
-        var locator = new MessageProcessorLocator(new HostConfiguration
-        {
-            DependencyInjection = new MicrosoftDependencyInjection(collection.BuildServiceProvider()),
-            Log = Mock.Of<ILogger>()
-
-        }, new[] { _queueStarterFactory.Object });
+        var locator = new MessageProcessorLocator(
+            new HostConfiguration
+            {
+                DependencyInjection = new MicrosoftDependencyInjection(
+                    collection.BuildServiceProvider()
+                ),
+                Log = Mock.Of<ILogger>(),
+            },
+            new[] { _queueStarterFactory.Object }
+        );
         _queueStarterFactory.Setup(x => x.CanCreate(typeof(TestCommandOne))).Returns(true);
         _queueStarterFactory.Setup(x => x.CanCreate(typeof(TestCommandTwo))).Returns(true);
-        _queueStarterFactory.Setup(x => x.Create(typeof(TestCommandOne), null, It.IsAny<TestTopicSettings>(), It.IsAny<IMessageSerializer>(), It.IsAny<HostConfiguration>(), It.IsAny<IMessageProcessor>()))
-            .Returns(Mock.Of<IChannelReceiver>()).Verifiable();
-        _queueStarterFactory.Setup(x => x.Create(typeof(TestCommandTwo), null, It.IsAny<TestTopicSettings>(), It.IsAny<IMessageSerializer>(), It.IsAny<HostConfiguration>(), It.IsAny<IMessageProcessor>()))
-            .Returns(Mock.Of<IChannelReceiver>()).Verifiable();
+        _queueStarterFactory
+            .Setup(x =>
+                x.Create(
+                    typeof(TestCommandOne),
+                    null,
+                    It.IsAny<TestTopicSettings>(),
+                    It.IsAny<IMessageSerializer>(),
+                    It.IsAny<HostConfiguration>(),
+                    It.IsAny<IMessageProcessor>()
+                )
+            )
+            .Returns(Mock.Of<IChannelReceiver>())
+            .Verifiable();
+        _queueStarterFactory
+            .Setup(x =>
+                x.Create(
+                    typeof(TestCommandTwo),
+                    null,
+                    It.IsAny<TestTopicSettings>(),
+                    It.IsAny<IMessageSerializer>(),
+                    It.IsAny<HostConfiguration>(),
+                    It.IsAny<IMessageProcessor>()
+                )
+            )
+            .Returns(Mock.Of<IChannelReceiver>())
+            .Verifiable();
         //act
         var reader = locator.CreateReceivers().ToList();
         //assert
@@ -136,15 +207,22 @@ public class MessageProcessorLocatorTests
         collection.RegisterProcessor<SingleCommandProcessor>();
         collection.AddScoped((_) => Mock.Of<ICountable>());
 
-        var locator = new MessageProcessorLocator(new HostConfiguration
-        {
-            DependencyInjection = new MicrosoftDependencyInjection(collection.BuildServiceProvider()),
-            Log = Mock.Of<ILogger>()
-
-        }, new[] { _queueStarterFactory.Object });
+        var locator = new MessageProcessorLocator(
+            new HostConfiguration
+            {
+                DependencyInjection = new MicrosoftDependencyInjection(
+                    collection.BuildServiceProvider()
+                ),
+                Log = Mock.Of<ILogger>(),
+            },
+            new[] { _queueStarterFactory.Object }
+        );
         _queueStarterFactory.Setup(x => x.CanCreate(typeof(TestCommand))).Returns(false);
         //act and assert
-        locator.Invoking(x => x.CreateReceivers().ToList()).Should().Throw<TransportMissingException>();
+        locator
+            .Invoking(x => x.CreateReceivers().ToList())
+            .Should()
+            .Throw<TransportMissingException>();
     }
 
     [Test]
@@ -155,16 +233,31 @@ public class MessageProcessorLocatorTests
         collection.RegisterProcessor<EventProcessor>();
         collection.AddScoped((_) => Mock.Of<ICountable>());
 
-        var locator = new MessageProcessorLocator(new HostConfiguration
-        {
-            DependencyInjection = new MicrosoftDependencyInjection(collection.BuildServiceProvider()),
-            Log = Mock.Of<ILogger>()
-
-        }, new[] { _queueStarterFactory.Object });
+        var locator = new MessageProcessorLocator(
+            new HostConfiguration
+            {
+                DependencyInjection = new MicrosoftDependencyInjection(
+                    collection.BuildServiceProvider()
+                ),
+                Log = Mock.Of<ILogger>(),
+            },
+            new[] { _queueStarterFactory.Object }
+        );
 
         _queueStarterFactory.Setup(x => x.CanCreate(typeof(TestEvent))).Returns(true);
-        _queueStarterFactory.Setup(x => x.Create(typeof(TestEvent), It.IsAny<TestSubscription>(), It.IsAny<TestTopicSettings>(), It.IsAny<IMessageSerializer>(), It.IsAny<HostConfiguration>(), It.IsAny<IMessageProcessor>()))
-            .Returns(Mock.Of<IChannelReceiver>()).Verifiable();
+        _queueStarterFactory
+            .Setup(x =>
+                x.Create(
+                    typeof(TestEvent),
+                    It.IsAny<TestSubscription>(),
+                    It.IsAny<TestTopicSettings>(),
+                    It.IsAny<IMessageSerializer>(),
+                    It.IsAny<HostConfiguration>(),
+                    It.IsAny<IMessageProcessor>()
+                )
+            )
+            .Returns(Mock.Of<IChannelReceiver>())
+            .Verifiable();
         //act
         var reader = locator.CreateReceivers().ToList();
         //assert
@@ -179,22 +272,41 @@ public class MessageProcessorLocatorTests
         var collection = new ServiceCollection();
         collection.RegisterProcessor<SingletonCommandProcessor>();
         collection.UseSingletonLocks(Mock.Of<ISingletonLockManager>());
-        var locator = new MessageProcessorLocator(new HostConfiguration
-        {
-            DependencyInjection = new MicrosoftDependencyInjection(collection.BuildServiceProvider()),
-            Log = Mock.Of<ILogger>()
-
-        }, new[] { _queueStarterFactory.Object });
+        var locator = new MessageProcessorLocator(
+            new HostConfiguration
+            {
+                DependencyInjection = new MicrosoftDependencyInjection(
+                    collection.BuildServiceProvider()
+                ),
+                Log = Mock.Of<ILogger>(),
+            },
+            new[] { _queueStarterFactory.Object }
+        );
 
         var underlyingQueueStarter = new Mock<IChannelReceiver>();
-        underlyingQueueStarter.Setup(x => x.Settings).Returns(new SingletonProcessingSettings
-        {
-            MessageLockTimeout = TimeSpan.FromMinutes(1),
-            DeadLetterDeliveryLimit = 1
-        });
+        underlyingQueueStarter
+            .Setup(x => x.Settings)
+            .Returns(
+                new SingletonProcessingSettings
+                {
+                    MessageLockTimeout = TimeSpan.FromMinutes(1),
+                    DeadLetterDeliveryLimit = 1,
+                }
+            );
         _queueStarterFactory.Setup(x => x.CanCreate(typeof(SingletonCommand))).Returns(true);
-        _queueStarterFactory.Setup(x => x.Create(typeof(SingletonCommand), null, It.IsAny<TestTopicSettings>(), It.IsAny<IMessageSerializer>(), It.IsAny<IHostConfiguration>(), It.IsAny<IMessageProcessor>()))
-            .Returns(underlyingQueueStarter.Object).Verifiable();
+        _queueStarterFactory
+            .Setup(x =>
+                x.Create(
+                    typeof(SingletonCommand),
+                    null,
+                    It.IsAny<TestTopicSettings>(),
+                    It.IsAny<IMessageSerializer>(),
+                    It.IsAny<IHostConfiguration>(),
+                    It.IsAny<IMessageProcessor>()
+                )
+            )
+            .Returns(underlyingQueueStarter.Object)
+            .Verifiable();
         //act
         var reader = locator.CreateReceivers().ToList();
         //assert

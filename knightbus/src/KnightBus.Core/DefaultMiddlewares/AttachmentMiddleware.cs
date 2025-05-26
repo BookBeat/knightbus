@@ -13,7 +13,14 @@ public class AttachmentMiddleware : IMessageProcessorMiddleware
     {
         _attachmentProvider = attachmentProvider;
     }
-    public async Task ProcessAsync<T>(IMessageStateHandler<T> messageStateHandler, IPipelineInformation pipelineInformation, IMessageProcessor next, CancellationToken cancellationToken) where T : class, IMessage
+
+    public async Task ProcessAsync<T>(
+        IMessageStateHandler<T> messageStateHandler,
+        IPipelineInformation pipelineInformation,
+        IMessageProcessor next,
+        CancellationToken cancellationToken
+    )
+        where T : class, IMessage
     {
         IMessageAttachment attachment = null;
         var queueName = AutoMessageMapper.GetQueueName<T>();
@@ -22,10 +29,14 @@ public class AttachmentMiddleware : IMessageProcessorMiddleware
             string attachmentId = null;
             if (typeof(ICommandWithAttachment).IsAssignableFrom(typeof(T)))
             {
-                attachmentId = AttachmentUtility.GetAttachmentIds(messageStateHandler.MessageProperties).FirstOrDefault();
+                attachmentId = AttachmentUtility
+                    .GetAttachmentIds(messageStateHandler.MessageProperties)
+                    .FirstOrDefault();
                 if (!string.IsNullOrEmpty(attachmentId))
                 {
-                    attachment = await _attachmentProvider.GetAttachmentAsync(queueName, attachmentId, cancellationToken).ConfigureAwait(false);
+                    attachment = await _attachmentProvider
+                        .GetAttachmentAsync(queueName, attachmentId, cancellationToken)
+                        .ConfigureAwait(false);
                     var message = (ICommandWithAttachment)messageStateHandler.GetMessage();
                     message.Attachment = attachment;
                 }
@@ -35,7 +46,9 @@ public class AttachmentMiddleware : IMessageProcessorMiddleware
             if (attachment != null)
             {
                 attachment.Stream?.Dispose();
-                await _attachmentProvider.DeleteAttachmentAsync(queueName, attachmentId, cancellationToken).ConfigureAwait(false);
+                await _attachmentProvider
+                    .DeleteAttachmentAsync(queueName, attachmentId, cancellationToken)
+                    .ConfigureAwait(false);
             }
         }
         finally

@@ -5,7 +5,10 @@ namespace KnightBus.Azure.ServiceBus;
 
 public static class ServiceBusExtensions
 {
-    public static IServiceCollection UseServiceBus(this IServiceCollection collection, Action<IServiceBusConfiguration> config = null)
+    public static IServiceCollection UseServiceBus(
+        this IServiceCollection collection,
+        Action<IServiceBusConfiguration> config = null
+    )
     {
         var configuration = new ServiceBusConfiguration();
         config?.Invoke(configuration);

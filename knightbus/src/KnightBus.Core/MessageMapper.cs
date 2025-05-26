@@ -10,7 +10,8 @@ namespace KnightBus.Core;
 
 internal static class MessageMapper
 {
-    private static readonly ConcurrentDictionary<Type, IMessageMapping> Mappings = new ConcurrentDictionary<Type, IMessageMapping>();
+    private static readonly ConcurrentDictionary<Type, IMessageMapping> Mappings =
+        new ConcurrentDictionary<Type, IMessageMapping>();
 
     public static void RegisterMappingsFromAssembly(Assembly assembly)
     {
@@ -19,7 +20,8 @@ internal static class MessageMapper
         foreach (var mapping in mappings)
         {
             var messageMappingInterface = ReflectionHelper
-                .GetAllInterfacesImplementingOpenGenericInterface(mapping, type).Single();
+                .GetAllInterfacesImplementingOpenGenericInterface(mapping, type)
+                .Single();
             var messageType = messageMappingInterface.GenericTypeArguments[0];
             IMessageMapping mappingInstance;
             if (typeof(IMessageMapping).IsAssignableFrom(mapping))
@@ -28,12 +30,15 @@ internal static class MessageMapper
             }
             else
             {
-                throw new MessageMappingMissingException($"No message mapping exists for {messageType.FullName}");
+                throw new MessageMappingMissingException(
+                    $"No message mapping exists for {messageType.FullName}"
+                );
             }
 
             RegisterMapping(messageType, mappingInstance);
         }
     }
+
     public static void RegisterMapping(Type messageType, IMessageMapping mappingType)
     {
         Mappings.GetOrAdd(messageType, t => mappingType);

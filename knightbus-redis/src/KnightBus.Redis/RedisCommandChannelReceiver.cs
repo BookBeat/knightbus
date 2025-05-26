@@ -12,8 +12,23 @@ internal class RedisCommandChannelReceiver<T> : RedisChannelReceiver<T>
 {
     private readonly RedisConfiguration _configuration;
 
-    public RedisCommandChannelReceiver(IConnectionMultiplexer connectionMultiplexer, IProcessingSettings settings, IMessageSerializer serializer, RedisConfiguration configuration, IHostConfiguration hostConfiguration, IMessageProcessor processor)
-        : base(connectionMultiplexer, AutoMessageMapper.GetQueueName<T>(), settings, serializer, configuration, hostConfiguration, processor)
+    public RedisCommandChannelReceiver(
+        IConnectionMultiplexer connectionMultiplexer,
+        IProcessingSettings settings,
+        IMessageSerializer serializer,
+        RedisConfiguration configuration,
+        IHostConfiguration hostConfiguration,
+        IMessageProcessor processor
+    )
+        : base(
+            connectionMultiplexer,
+            AutoMessageMapper.GetQueueName<T>(),
+            settings,
+            serializer,
+            configuration,
+            hostConfiguration,
+            processor
+        )
     {
         _configuration = configuration;
     }
@@ -21,7 +36,11 @@ internal class RedisCommandChannelReceiver<T> : RedisChannelReceiver<T>
     public override async Task StartAsync(CancellationToken cancellationToken)
     {
         var db = ConnectionMultiplexer.GetDatabase(_configuration.DatabaseId);
-        await db.SetAddAsync(RedisQueueConventions.QueueListKey, AutoMessageMapper.GetQueueName<T>()).ConfigureAwait(false);
+        await db.SetAddAsync(
+                RedisQueueConventions.QueueListKey,
+                AutoMessageMapper.GetQueueName<T>()
+            )
+            .ConfigureAwait(false);
         await base.StartAsync(cancellationToken).ConfigureAwait(false);
     }
 }

@@ -9,7 +9,8 @@ using StackExchange.Redis;
 
 namespace KnightBus.Redis;
 
-internal class RedisMessagePump<T> : GenericMessagePump<RedisMessage<T>, IMessage> where T : class, IMessage
+internal class RedisMessagePump<T> : GenericMessagePump<RedisMessage<T>, IMessage>
+    where T : class, IMessage
 {
     private readonly IConnectionMultiplexer _connectionMultiplexer;
     private readonly string _queueName;
@@ -19,7 +20,15 @@ internal class RedisMessagePump<T> : GenericMessagePump<RedisMessage<T>, IMessag
     private LostMessageBackgroundService<T> _lostMessageService;
     private Task _lostMessageTask;
 
-    public RedisMessagePump(IConnectionMultiplexer connectionMultiplexer, string queueName, IMessageSerializer serializer, RedisConfiguration redisConfiguration, IProcessingSettings settings, ILogger log) : base(settings, log)
+    public RedisMessagePump(
+        IConnectionMultiplexer connectionMultiplexer,
+        string queueName,
+        IMessageSerializer serializer,
+        RedisConfiguration redisConfiguration,
+        IProcessingSettings settings,
+        ILogger log
+    )
+        : base(settings, log)
     {
         _connectionMultiplexer = connectionMultiplexer;
         _queueName = queueName;
@@ -27,13 +36,31 @@ internal class RedisMessagePump<T> : GenericMessagePump<RedisMessage<T>, IMessag
         _redisConfiguration = redisConfiguration;
     }
 
-    public override async Task StartAsync<TMessage>(Func<RedisMessage<T>, CancellationToken, Task> action, CancellationToken cancellationToken)
+    public override async Task StartAsync<TMessage>(
+        Func<RedisMessage<T>, CancellationToken, Task> action,
+        CancellationToken cancellationToken
+    )
     {
-        _queueClient = new RedisQueueClient<T>(_connectionMultiplexer.GetDatabase(_redisConfiguration.DatabaseId), AutoMessageMapper.GetQueueName<T>(), _serializer, Log);
+        _queueClient = new RedisQueueClient<T>(
+            _connectionMultiplexer.GetDatabase(_redisConfiguration.DatabaseId),
+            AutoMessageMapper.GetQueueName<T>(),
+            _serializer,
+            Log
+        );
         var sub = _connectionMultiplexer.GetSubscriber();
-        await sub.SubscribeAsync(new RedisChannel(_queueName, RedisChannel.PatternMode.Literal), MessageSignalReceivedHandler);
+        await sub.SubscribeAsync(
+            new RedisChannel(_queueName, RedisChannel.PatternMode.Literal),
+            MessageSignalReceivedHandler
+        );
         await base.StartAsync<TMessage>(action, cancellationToken);
-        _lostMessageService = new LostMessageBackgroundService<T>(_connectionMultiplexer, _redisConfiguration.DatabaseId, _serializer, Log, Settings.MessageLockTimeout, _queueName);
+        _lostMessageService = new LostMessageBackgroundService<T>(
+            _connectionMultiplexer,
+            _redisConfiguration.DatabaseId,
+            _serializer,
+            Log,
+            Settings.MessageLockTimeout,
+            _queueName
+        );
         _lostMessageTask = _lostMessageService.Start(cancellationToken);
     }
 
@@ -42,7 +69,10 @@ internal class RedisMessagePump<T> : GenericMessagePump<RedisMessage<T>, IMessag
         CancelPollingDelay();
     }
 
-    protected override async IAsyncEnumerable<RedisMessage<T>> GetMessagesAsync<TMessage>(int count, TimeSpan? lockDuration)
+    protected override async IAsyncEnumerable<RedisMessage<T>> GetMessagesAsync<TMessage>(
+        int count,
+        TimeSpan? lockDuration
+    )
     {
         var messages = await _queueClient.GetMessagesAsync(count);
         foreach (var message in messages)

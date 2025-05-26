@@ -14,7 +14,13 @@ public class SingletonTimerScope : IDisposable
     private readonly CancellationTokenSource _cts;
     private Task _runningTask;
 
-    public SingletonTimerScope(ILogger log, ISingletonLockHandle lockHandle, bool autoRelease, TimeSpan renewalInterval, CancellationTokenSource cancellationTokenSource)
+    public SingletonTimerScope(
+        ILogger log,
+        ISingletonLockHandle lockHandle,
+        bool autoRelease,
+        TimeSpan renewalInterval,
+        CancellationTokenSource cancellationTokenSource
+    )
     {
         _log = log;
         _lockHandle = lockHandle;
@@ -49,16 +55,17 @@ public class SingletonTimerScope : IDisposable
         var retries = 3;
         while (!cancellationToken.IsCancellationRequested)
         {
-            if (retries == 0) return;
+            if (retries == 0)
+                return;
             var exit = await _lockHandle.RenewAsync(_log, cancellationToken).ConfigureAwait(false);
-            if (exit) return;
+            if (exit)
+                return;
 
             await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
             delay += 1000;
             retries -= 1;
         }
     }
-
 
     public void Dispose()
     {

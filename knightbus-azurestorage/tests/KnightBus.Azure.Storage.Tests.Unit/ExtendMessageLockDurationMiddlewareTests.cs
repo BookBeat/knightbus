@@ -23,24 +23,49 @@ public class ExtendMessageLockDurationMiddlewareTests
         var pipeline = new MyPipeline
         {
             ProcessingSettings = new Mock<IProcessingSettings>().Object,
-            HostConfiguration = new Mock<IHostConfiguration>().Object
+            HostConfiguration = new Mock<IHostConfiguration>().Object,
         };
 
         var middleware = new ExtendMessageLockDurationMiddleware();
         var storageQueueClient = new Mock<IStorageQueueClient>();
         var message = new StorageQueueMessage();
-        var storageQueueMessageStateHandler = new StorageQueueMessageStateHandler<MyMessage>(storageQueueClient.Object, message, 0, _dependencyInjection.Object);
+        var storageQueueMessageStateHandler = new StorageQueueMessageStateHandler<MyMessage>(
+            storageQueueClient.Object,
+            message,
+            0,
+            _dependencyInjection.Object
+        );
 
         var next = new Mock<IMessageProcessor>();
-        next.Setup(x => x.ProcessAsync(It.IsAny<IMessageStateHandler<MyMessage>>(), It.IsAny<CancellationToken>()))
+        next.Setup(x =>
+                x.ProcessAsync(
+                    It.IsAny<IMessageStateHandler<MyMessage>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
             .Returns(() => Task.Delay(2000));
 
         //act
-        await middleware.ProcessAsync(storageQueueMessageStateHandler, pipeline, next.Object, CancellationToken.None);
+        await middleware.ProcessAsync(
+            storageQueueMessageStateHandler,
+            pipeline,
+            next.Object,
+            CancellationToken.None
+        );
 
         //assert
-        storageQueueClient.Verify(x => x.SetVisibilityTimeout(It.IsAny<StorageQueueMessage>(), TimeSpan.FromMilliseconds(1000), It.IsAny<CancellationToken>()), Times.Never);
-        next.Verify(x => x.ProcessAsync(storageQueueMessageStateHandler, It.IsAny<CancellationToken>()));
+        storageQueueClient.Verify(
+            x =>
+                x.SetVisibilityTimeout(
+                    It.IsAny<StorageQueueMessage>(),
+                    TimeSpan.FromMilliseconds(1000, 0),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Never
+        );
+        next.Verify(x =>
+            x.ProcessAsync(storageQueueMessageStateHandler, It.IsAny<CancellationToken>())
+        );
     }
 
     [Test]
@@ -51,24 +76,47 @@ public class ExtendMessageLockDurationMiddlewareTests
         var settings = new MySettings
         {
             ExtensionDuration = TimeSpan.FromMilliseconds(1000),
-            ExtensionInterval = TimeSpan.FromMilliseconds(100)
+            ExtensionInterval = TimeSpan.FromMilliseconds(100),
         };
         pipeline.ProcessingSettings = settings;
         pipeline.HostConfiguration = new Mock<IHostConfiguration>().Object;
         var middleware = new ExtendMessageLockDurationMiddleware();
         var storageQueueClient = new Mock<IStorageQueueClient>();
         var message = new StorageQueueMessage();
-        var storageQueueMessageStateHandler = new StorageQueueMessageStateHandler<MyMessage>(storageQueueClient.Object, message, 0, _dependencyInjection.Object);
+        var storageQueueMessageStateHandler = new StorageQueueMessageStateHandler<MyMessage>(
+            storageQueueClient.Object,
+            message,
+            0,
+            _dependencyInjection.Object
+        );
 
         var next = new Mock<IMessageProcessor>();
-        next.Setup(x => x.ProcessAsync(It.IsAny<IMessageStateHandler<MyMessage>>(), It.IsAny<CancellationToken>()))
+        next.Setup(x =>
+                x.ProcessAsync(
+                    It.IsAny<IMessageStateHandler<MyMessage>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
             .Returns(() => Task.Delay(2000));
         //act
 
-        await middleware.ProcessAsync(storageQueueMessageStateHandler, pipeline, next.Object, CancellationToken.None);
+        await middleware.ProcessAsync(
+            storageQueueMessageStateHandler,
+            pipeline,
+            next.Object,
+            CancellationToken.None
+        );
 
         //assert
-        storageQueueClient.Verify(x => x.SetVisibilityTimeout(It.IsAny<StorageQueueMessage>(), TimeSpan.FromMilliseconds(1000), It.IsAny<CancellationToken>()), Times.Between(15, 20, Range.Inclusive));
+        storageQueueClient.Verify(
+            x =>
+                x.SetVisibilityTimeout(
+                    It.IsAny<StorageQueueMessage>(),
+                    TimeSpan.FromMilliseconds(1000, 0),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Between(15, 20, Range.Inclusive)
+        );
     }
 
     [Test]
@@ -80,24 +128,47 @@ public class ExtendMessageLockDurationMiddlewareTests
         {
             ExtensionDuration = TimeSpan.FromMilliseconds(1000),
             ExtensionInterval = TimeSpan.FromMilliseconds(100),
-            MessageLockTimeout = TimeSpan.FromMilliseconds(1000)
+            MessageLockTimeout = TimeSpan.FromMilliseconds(1000),
         };
         pipeline.ProcessingSettings = settings;
         pipeline.HostConfiguration = new Mock<IHostConfiguration>().Object;
         var middleware = new ExtendMessageLockDurationMiddleware();
         var storageQueueClient = new Mock<IStorageQueueClient>();
         var message = new StorageQueueMessage();
-        var storageQueueMessageStateHandler = new StorageQueueMessageStateHandler<MyMessage>(storageQueueClient.Object, message, 0, _dependencyInjection.Object);
+        var storageQueueMessageStateHandler = new StorageQueueMessageStateHandler<MyMessage>(
+            storageQueueClient.Object,
+            message,
+            0,
+            _dependencyInjection.Object
+        );
 
         var next = new Mock<IMessageProcessor>();
-        next.Setup(x => x.ProcessAsync(It.IsAny<IMessageStateHandler<MyMessage>>(), It.IsAny<CancellationToken>()))
+        next.Setup(x =>
+                x.ProcessAsync(
+                    It.IsAny<IMessageStateHandler<MyMessage>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
             .Returns(() => Task.Delay(2000));
         //act
 
-        await middleware.ProcessAsync(storageQueueMessageStateHandler, pipeline, next.Object, new CancellationTokenSource(settings.MessageLockTimeout).Token);
+        await middleware.ProcessAsync(
+            storageQueueMessageStateHandler,
+            pipeline,
+            next.Object,
+            new CancellationTokenSource(settings.MessageLockTimeout).Token
+        );
 
         //assert
-        storageQueueClient.Verify(x => x.SetVisibilityTimeout(It.IsAny<StorageQueueMessage>(), TimeSpan.FromMilliseconds(1000), It.IsAny<CancellationToken>()), Times.Between(5, 10, Range.Inclusive));
+        storageQueueClient.Verify(
+            x =>
+                x.SetVisibilityTimeout(
+                    It.IsAny<StorageQueueMessage>(),
+                    TimeSpan.FromMilliseconds(1000, 0),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Between(5, 10, Range.Inclusive)
+        );
     }
 
     [Test]
@@ -109,28 +180,54 @@ public class ExtendMessageLockDurationMiddlewareTests
         {
             ExtensionDuration = TimeSpan.FromMilliseconds(1000),
             ExtensionInterval = TimeSpan.FromMilliseconds(100),
-            MessageLockTimeout = TimeSpan.FromMilliseconds(1000)
+            MessageLockTimeout = TimeSpan.FromMilliseconds(1000),
         };
         pipeline.ProcessingSettings = settings;
         pipeline.HostConfiguration = new Mock<IHostConfiguration>().Object;
         var middleware = new ExtendMessageLockDurationMiddleware();
         var storageQueueClient = new Mock<IStorageQueueClient>();
         var message = new StorageQueueMessage();
-        var storageQueueMessageStateHandler = new StorageQueueMessageStateHandler<MyMessage>(storageQueueClient.Object, message, 0, _dependencyInjection.Object);
+        var storageQueueMessageStateHandler = new StorageQueueMessageStateHandler<MyMessage>(
+            storageQueueClient.Object,
+            message,
+            0,
+            _dependencyInjection.Object
+        );
         var cancellationToken = new CancellationTokenSource(settings.MessageLockTimeout).Token;
 
         var next = new Mock<IMessageProcessor>();
-        next.Setup(x => x.ProcessAsync(It.IsAny<IMessageStateHandler<MyMessage>>(), It.IsAny<CancellationToken>()))
+        next.Setup(x =>
+                x.ProcessAsync(
+                    It.IsAny<IMessageStateHandler<MyMessage>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
             .Returns(Task.CompletedTask);
         //act
 
-        await middleware.ProcessAsync(storageQueueMessageStateHandler, pipeline, next.Object, cancellationToken);
+        await middleware.ProcessAsync(
+            storageQueueMessageStateHandler,
+            pipeline,
+            next.Object,
+            cancellationToken
+        );
         // for good measure, make sure the test not passes only because we immediately return ProcessAsync
         await Task.Delay(1000);
 
         //assert
-        storageQueueClient.Verify(x => x.SetVisibilityTimeout(It.IsAny<StorageQueueMessage>(), TimeSpan.FromMilliseconds(1000), It.IsAny<CancellationToken>()), Times.Never);
-        next.Verify(x => x.ProcessAsync(storageQueueMessageStateHandler, cancellationToken), Times.Once());
+        storageQueueClient.Verify(
+            x =>
+                x.SetVisibilityTimeout(
+                    It.IsAny<StorageQueueMessage>(),
+                    TimeSpan.FromMilliseconds(1000, 0),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Never
+        );
+        next.Verify(
+            x => x.ProcessAsync(storageQueueMessageStateHandler, cancellationToken),
+            Times.Once()
+        );
     }
 
     [OneTimeSetUp]
@@ -141,10 +238,7 @@ public class ExtendMessageLockDurationMiddlewareTests
     }
 }
 
-public class MyMessage : IStorageQueueCommand
-{
-
-}
+public class MyMessage : IStorageQueueCommand { }
 
 public class MyPipeline : IPipelineInformation
 {

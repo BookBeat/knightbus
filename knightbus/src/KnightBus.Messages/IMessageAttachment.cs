@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.IO;
 
 namespace KnightBus.Messages;
 
@@ -8,4 +9,5 @@ public interface IMessageAttachment
     string ContentType { get; }
     long Length { get; }
     Stream Stream { get; }
+    Dictionary<string, string> Metadata { get; }
 }

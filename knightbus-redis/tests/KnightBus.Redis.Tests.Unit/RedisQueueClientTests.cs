@@ -19,7 +19,12 @@ public class RedisQueueClientTests
     public void Setup()
     {
         _db = new Mock<IDatabase>();
-        _target = new RedisQueueClient<TestCommand>(_db.Object, AutoMessageMapper.GetQueueName<TestCommand>(), new MicrosoftJsonSerializer(), _log);
+        _target = new RedisQueueClient<TestCommand>(
+            _db.Object,
+            AutoMessageMapper.GetQueueName<TestCommand>(),
+            new MicrosoftJsonSerializer(),
+            _log
+        );
     }
 
     [Test]
@@ -35,8 +40,15 @@ public class RedisQueueClientTests
 
         //Assert
         messages.Length.Should().Be(messageCount);
-        _db.Verify(d => d.ListRightPopLeftPushAsync(It.IsAny<RedisKey>(), It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()),
-            Times.AtLeastOnce);
+        _db.Verify(
+            d =>
+                d.ListRightPopLeftPushAsync(
+                    It.IsAny<RedisKey>(),
+                    It.IsAny<RedisKey>(),
+                    It.IsAny<CommandFlags>()
+                ),
+            Times.AtLeastOnce
+        );
     }
 
     [Test]
@@ -52,7 +64,18 @@ public class RedisQueueClientTests
 
         //Assert
         messages.Length.Should().Be(messageCount);
-        _db.Verify(d => d.ListLengthAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()), Times.Once);
-        _db.Verify(d => d.ListRightPopLeftPushAsync(It.IsAny<RedisKey>(), It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()), Times.Never);
+        _db.Verify(
+            d => d.ListLengthAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()),
+            Times.Once
+        );
+        _db.Verify(
+            d =>
+                d.ListRightPopLeftPushAsync(
+                    It.IsAny<RedisKey>(),
+                    It.IsAny<RedisKey>(),
+                    It.IsAny<CommandFlags>()
+                ),
+            Times.Never
+        );
     }
 }

@@ -5,14 +5,22 @@ using Npgsql;
 
 namespace KnightBus.PostgreSql;
 
-public class PostgresMessagePump<T> : GenericMessagePump<PostgresMessage<T>, IMessage> where T : class, IMessage
+public class PostgresMessagePump<T> : GenericMessagePump<PostgresMessage<T>, IMessage>
+    where T : class, IMessage
 {
     private readonly IEventSubscription? _subscription;
     private readonly PostgresBaseClient<T> _queueClient;
     private readonly NpgsqlDataSource _npgsqlDataSource;
     private readonly IPostgresConfiguration _postgresConfiguration;
 
-    public PostgresMessagePump(IProcessingSettings settings, IEventSubscription? subscription, PostgresBaseClient<T> queueClient, NpgsqlDataSource npgsqlDataSource, IPostgresConfiguration postgresConfiguration, ILogger log)
+    public PostgresMessagePump(
+        IProcessingSettings settings,
+        IEventSubscription? subscription,
+        PostgresBaseClient<T> queueClient,
+        NpgsqlDataSource npgsqlDataSource,
+        IPostgresConfiguration postgresConfiguration,
+        ILogger log
+    )
         : base(settings, log)
     {
         _subscription = subscription;
@@ -20,13 +28,17 @@ public class PostgresMessagePump<T> : GenericMessagePump<PostgresMessage<T>, IMe
         _npgsqlDataSource = npgsqlDataSource;
         _postgresConfiguration = postgresConfiguration;
     }
-    
-    protected override IAsyncEnumerable<PostgresMessage<T>> GetMessagesAsync<TMessage>(int count, TimeSpan? lockDuration)
+
+    protected override IAsyncEnumerable<PostgresMessage<T>> GetMessagesAsync<TMessage>(
+        int count,
+        TimeSpan? lockDuration
+    )
     {
         return _queueClient.GetMessagesAsync(
             count,
             lockDuration.HasValue ? (int)lockDuration.Value.TotalSeconds : 0,
-            CancellationToken.None);
+            CancellationToken.None
+        );
     }
 
     protected override async Task CreateChannel(Type messageType)
@@ -35,14 +47,16 @@ public class PostgresMessagePump<T> : GenericMessagePump<PostgresMessage<T>, IMe
         {
             await QueueInitializer.InitQueue(
                 PostgresQueueName.Create(AutoMessageMapper.GetQueueName(messageType)),
-                _npgsqlDataSource);    
+                _npgsqlDataSource
+            );
         }
         else
         {
             await QueueInitializer.InitSubscription(
                 PostgresQueueName.Create(AutoMessageMapper.GetQueueName(messageType)),
                 PostgresQueueName.Create(_subscription.Name),
-                _npgsqlDataSource);
+                _npgsqlDataSource
+            );
         }
     }
 

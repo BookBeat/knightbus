@@ -33,10 +33,7 @@ internal class BlobLockHandle : ISingletonLockHandle
     {
         try
         {
-            var condition = new BlobRequestConditions
-            {
-                LeaseId = LeaseId
-            };
+            var condition = new BlobRequestConditions { LeaseId = LeaseId };
             var requestStart = DateTimeOffset.UtcNow;
             await Blob.RenewAsync(condition, cancellationToken).ConfigureAwait(false);
             _lastRenewal = DateTime.UtcNow;
@@ -49,7 +46,14 @@ internal class BlobLockHandle : ISingletonLockHandle
         {
             if (exception.IsServerSideError())
             {
-                log.LogWarning(exception, string.Format(CultureInfo.InvariantCulture, "Singleton lock renewal failed for blob '{0}'", LockId));
+                log.LogWarning(
+                    exception,
+                    string.Format(
+                        CultureInfo.InvariantCulture,
+                        "Singleton lock renewal failed for blob '{0}'",
+                        LockId
+                    )
+                );
                 return false; // The next execution should occur more quickly (try to renew the lease before it expires).
             }
 
@@ -61,20 +65,31 @@ internal class BlobLockHandle : ISingletonLockHandle
 
             // Log the details we've been accumulating to help with debugging this scenario
             var leasePeriodMilliseconds = (int)_leasePeriod.TotalMilliseconds;
-            var lastRenewalFormatted = _lastRenewal.ToString("yyyy-MM-ddTHH:mm:ss.FFFZ", CultureInfo.InvariantCulture);
-            var millisecondsSinceLastSuccess = (int)(DateTime.UtcNow - _lastRenewal).TotalMilliseconds;
+            var lastRenewalFormatted = _lastRenewal.ToString(
+                "yyyy-MM-ddTHH:mm:ss.FFFZ",
+                CultureInfo.InvariantCulture
+            );
+            var millisecondsSinceLastSuccess = (int)
+                (DateTime.UtcNow - _lastRenewal).TotalMilliseconds;
             var lastRenewalMilliseconds = (int)_lastRenewalLatency.TotalMilliseconds;
 
-            var msg = string.Format(CultureInfo.InvariantCulture, "Singleton lock renewal failed for blob '{0}'. The last successful renewal completed at {1} ({2} milliseconds ago) with a duration of {3} milliseconds. The lease period was {4} milliseconds.",
-                LockId, lastRenewalFormatted, millisecondsSinceLastSuccess, lastRenewalMilliseconds, leasePeriodMilliseconds);
+            var msg = string.Format(
+                CultureInfo.InvariantCulture,
+                "Singleton lock renewal failed for blob '{0}'. The last successful renewal completed at {1} ({2} milliseconds ago) with a duration of {3} milliseconds. The lease period was {4} milliseconds.",
+                LockId,
+                lastRenewalFormatted,
+                millisecondsSinceLastSuccess,
+                lastRenewalMilliseconds,
+                leasePeriodMilliseconds
+            );
             log.LogError(exception, msg);
 
             // If we've lost the lease or cannot re-establish it, we want to fail any
             // in progress function execution
             throw;
-
         }
     }
+
     public async Task ReleaseAsync(CancellationToken cancellationToken)
     {
         try
@@ -83,8 +98,7 @@ internal class BlobLockHandle : ISingletonLockHandle
         }
         catch (RequestFailedException exception)
         {
-            if (exception.Status == 404 ||
-                exception.Status == 409)
+            if (exception.Status == 404 || exception.Status == 409)
             {
                 // if the blob no longer exists, or there is another lease
                 // now active, there is nothing for us to release so we can

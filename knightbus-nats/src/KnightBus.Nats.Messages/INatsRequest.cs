@@ -2,7 +2,4 @@
 
 namespace KnightBus.Nats.Messages;
 
-public interface INatsRequest : IRequest
-{
-
-}
+public interface INatsRequest : IRequest { }
