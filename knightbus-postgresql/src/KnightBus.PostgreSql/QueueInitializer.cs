@@ -135,8 +135,10 @@ public static class QueueInitializer
                 Console.WriteLine($"Rollback failed {rollbackException.Message}");
             }
         }
-
+        finally
+        {
         Semaphore.Release();
+        }
     }
 
     private static NpgsqlCommand CreateTopicTableCmd(
