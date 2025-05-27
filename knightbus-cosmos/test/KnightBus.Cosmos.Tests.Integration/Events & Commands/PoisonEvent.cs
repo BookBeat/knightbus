@@ -4,10 +4,9 @@ using KnightBus.Messages;
 
 namespace KnightBus.Cosmos.Tests.Integration;
 
-
 public class PoisonEvent : ICosmosEvent
 {
-    public required string Body { get; set;  }
+    public required string Body { get; set; }
 }
 
 class PoisonEventMapping : IMessageMapping<PoisonEvent>
@@ -20,9 +19,7 @@ class PoisonSubscription : IEventSubscription<PoisonEvent>
     public string Name => "poison_subscription";
 }
 
-class PoisonEventProcessor :
-
-    IProcessEvent<PoisonEvent, PoisonSubscription, CosmosProcessingSetting>
+class PoisonEventProcessor : IProcessEvent<PoisonEvent, PoisonSubscription, CosmosProcessingSetting>
 {
     public Task ProcessAsync(PoisonEvent message, CancellationToken cancellationToken)
     {

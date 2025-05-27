@@ -11,7 +11,6 @@ using Microsoft.Extensions.Hosting;
 
 namespace KnightBus.Cosmos.Tests.Integration;
 
-
 [TestFixture]
 class ProcessingTests : CosmosTestBase
 {
@@ -20,7 +19,7 @@ class ProcessingTests : CosmosTestBase
     {
         ProcessedTracker.processed = new ConcurrentDictionary<string, int>();
     }
-    
+
     //Message bodies must be unique to keep track of processing
     [Test]
     public async Task AllCommandsProcessed()
@@ -37,13 +36,13 @@ class ProcessingTests : CosmosTestBase
         await ProcessedTracker.WaitForProcessedMessagesAsync(messageContents, numMessages);
         ProcessedTracker.Processed(messageContents).Should().Be(numMessages);
     }
-    
+
     //Message bodies must be unique to keep track of processing
     [Test]
     public async Task AllEventsProcessedWhenOneSubscriber()
     {
         const int numMessages = 1000;
-        
+
         OneSubCosmosEvent[] messages = new OneSubCosmosEvent[numMessages];
         string[] messageContents = new string[numMessages];
         for (int i = 0; i < numMessages; i++)
@@ -51,18 +50,18 @@ class ProcessingTests : CosmosTestBase
             messages[i] = new OneSubCosmosEvent() { MessageBody = $"msg data {i}" };
             messageContents[i] = messages[i].MessageBody;
         }
-        
+
         await _publisher.PublishAsync(messages, CancellationToken.None);
         await ProcessedTracker.WaitForProcessedMessagesAsync(messageContents, numMessages);
         ProcessedTracker.Processed(messageContents).Should().Be(numMessages);
     }
-    
+
     //Message bodies must be unique to keep track of processing
     [Test]
     public async Task AllEventsProcessedWhenToTwoSubscribers()
     {
         const int numMessages = 1000;
-        
+
         TwoSubCosmosEvent[] messages = new TwoSubCosmosEvent[numMessages];
         string[] messageContents = new string[numMessages];
         for (int i = 0; i < numMessages; i++)
@@ -71,8 +70,8 @@ class ProcessingTests : CosmosTestBase
             messageContents[i] = messages[i].MessageBody;
         }
         await _publisher.PublishAsync(messages, CancellationToken.None);
-        await ProcessedTracker.WaitForProcessedMessagesAsync(messageContents, numMessages,2);
-        ProcessedTracker.Processed(messageContents,2).Should().Be(numMessages);
+        await ProcessedTracker.WaitForProcessedMessagesAsync(messageContents, numMessages, 2);
+        ProcessedTracker.Processed(messageContents, 2).Should().Be(numMessages);
     }
 
     //Message bodies must be unique to keep track of processing
@@ -80,7 +79,7 @@ class ProcessingTests : CosmosTestBase
     public async Task FailedEventsShouldBeRetriedAccordingToDeadLetterLimit()
     {
         const int numMessages = 200;
-        
+
         PoisonEvent[] messages = new PoisonEvent[numMessages];
         string[] messageContents = new string[numMessages];
         for (int i = 0; i < numMessages; i++)
@@ -90,20 +89,25 @@ class ProcessingTests : CosmosTestBase
         }
         var settings = new CosmosProcessingSetting();
         int deadLetterLimit = settings.DeadLetterDeliveryLimit;
-        
+
         await _publisher.PublishAsync(messages, CancellationToken.None);
-        await ProcessedTracker.WaitForProcessedMessagesAsync(messageContents, numMessages, deadLetterLimit, 10);
+        await ProcessedTracker.WaitForProcessedMessagesAsync(
+            messageContents,
+            numMessages,
+            deadLetterLimit,
+            10
+        );
         //Processed denotes times processing an event has started
         ProcessedTracker.Processed(messageContents, deadLetterLimit).Should().Be(numMessages);
     }
-    
+
     //Message bodies must be unique to keep track of processing
     //Test might fail if previous execution of test failed
     [Test]
     public async Task EventsShouldBeProcessedOrDeadLettered()
     {
         const int numMessages = 1000;
-        
+
         SporadicErrorEvent[] messages = new SporadicErrorEvent[numMessages];
         string[] messageContents = new string[numMessages];
         for (int i = 0; i < numMessages; i++)
@@ -111,16 +115,19 @@ class ProcessingTests : CosmosTestBase
             messages[i] = new SporadicErrorEvent() { Body = $"{i}" };
             messageContents[i] = messages[i].Body;
         }
-        
+
         await _publisher.PublishAsync(messages, CancellationToken.None);
         await ProcessedTracker.WaitForProcessedMessagesAsync(messageContents, numMessages);
         //Processed denotes times processing an event has completed
         int processed = ProcessedTracker.Processed(messageContents);
-        
+
         //Get deadlettered events
         var connectionString = Environment.GetEnvironmentVariable("CosmosString");
         CosmosClient cosmosClient = new CosmosClient(connectionString);
-        Container container = cosmosClient.GetContainer("PubSub", $"{AutoMessageMapper.GetQueueName<SporadicErrorEvent>()}_DL");
+        Container container = cosmosClient.GetContainer(
+            "PubSub",
+            $"{AutoMessageMapper.GetQueueName<SporadicErrorEvent>()}_DL"
+        );
         var query = container.GetItemQueryIterator<SporadicErrorEvent>("SELECT * FROM c");
         int deadletters = 0;
 
@@ -129,13 +136,10 @@ class ProcessingTests : CosmosTestBase
             var response = await query.ReadNextAsync();
             deadletters += response.Count;
         }
-        
+
         //Remove container after test to prevent deadlettered events impacting future tests
         await container.DeleteContainerAsync();
-        
+
         (processed + deadletters).Should().Be(numMessages);
-        
     }
 }
-
-

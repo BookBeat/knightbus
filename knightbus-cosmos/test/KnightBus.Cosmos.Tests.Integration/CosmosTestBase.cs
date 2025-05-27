@@ -26,7 +26,8 @@ public abstract class CosmosTestBase
         _databaseId = "PubSub";
         const string leaseContainer = "Leases";
 
-        var knightBusHost = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
+        var knightBusHost = Microsoft
+            .Extensions.Hosting.Host.CreateDefaultBuilder()
             .UseDefaultServiceProvider(options =>
             {
                 options.ValidateScopes = true;
@@ -34,7 +35,8 @@ public abstract class CosmosTestBase
             })
             .ConfigureServices(services =>
             {
-                services.UseCosmos(configuration =>
+                services
+                    .UseCosmos(configuration =>
                     {
                         configuration.ConnectionString = connectionString;
                         configuration.Database = _databaseId;
@@ -53,7 +55,9 @@ public abstract class CosmosTestBase
         await knightBusHost.StartAsync();
         await Task.Delay(TimeSpan.FromSeconds(5));
 
-        _publisher = knightBusHost.Services.CreateScope().ServiceProvider.GetRequiredService<CosmosBus>();
+        _publisher = knightBusHost
+            .Services.CreateScope()
+            .ServiceProvider.GetRequiredService<CosmosBus>();
     }
 
     [OneTimeTearDown]

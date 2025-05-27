@@ -14,39 +14,43 @@ class CosmosProcessingSetting : IProcessingSettings
 
 public class OneSubCosmosEvent : ICosmosEvent
 {
-    public required string MessageBody { get; set;  }
+    public required string MessageBody { get; set; }
 }
+
 class OneSubCosmosEventMapping : IMessageMapping<OneSubCosmosEvent>
 {
     public string QueueName => "test-topic";
 }
-class SampleSubscription: IEventSubscription<OneSubCosmosEvent>
+
+class SampleSubscription : IEventSubscription<OneSubCosmosEvent>
 {
     public string Name => "sample_subscription";
 }
 
 public class TwoSubCosmosEvent : ICosmosEvent
 {
-    public required string MessageBody { get; set;  }
+    public required string MessageBody { get; set; }
 }
+
 class TwoSubCosmosEventMapping : IMessageMapping<TwoSubCosmosEvent>
 {
     public string QueueName => "other-topic";
 }
-class Subscription1: IEventSubscription<TwoSubCosmosEvent>
+
+class Subscription1 : IEventSubscription<TwoSubCosmosEvent>
 {
     public string Name => "subscription_1";
 }
 
-class Subscription2: IEventSubscription<TwoSubCosmosEvent>
+class Subscription2 : IEventSubscription<TwoSubCosmosEvent>
 {
     public string Name => "subscription_2";
 }
 
-class CosmosEventProcessor :
-    IProcessEvent<OneSubCosmosEvent, SampleSubscription, CosmosProcessingSetting>,
-    IProcessEvent<TwoSubCosmosEvent, Subscription1, CosmosProcessingSetting>,
-    IProcessEvent<TwoSubCosmosEvent, Subscription2, CosmosProcessingSetting>
+class CosmosEventProcessor
+    : IProcessEvent<OneSubCosmosEvent, SampleSubscription, CosmosProcessingSetting>,
+        IProcessEvent<TwoSubCosmosEvent, Subscription1, CosmosProcessingSetting>,
+        IProcessEvent<TwoSubCosmosEvent, Subscription2, CosmosProcessingSetting>
 {
     public Task ProcessAsync(OneSubCosmosEvent message, CancellationToken cancellationToken)
     {

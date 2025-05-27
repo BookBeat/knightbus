@@ -7,19 +7,16 @@ public interface ICosmosConfiguration : ITransportConfiguration
 {
     TimeSpan PollingDelay { get; set; }
     string Database { get; set; }
-    
+
     string DLQDatabase { get; set; }
 
     string LeaseContainer { get; set; }
-    
 
     TimeSpan DefaultTimeToLive { get; set; }
-    
 }
 
 public class CosmosConfiguration : ICosmosConfiguration
 {
-
     public CosmosConfiguration() { }
 
     public string? ConnectionString { get; set; }
@@ -33,5 +30,4 @@ public class CosmosConfiguration : ICosmosConfiguration
     public string DLQDatabase { get; set; }
 
     public string LeaseContainer { get; set; }
-    
 }

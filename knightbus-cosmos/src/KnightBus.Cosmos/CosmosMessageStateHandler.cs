@@ -5,9 +5,8 @@ using Microsoft.Azure.Cosmos;
 
 namespace KnightBus.Cosmos;
 
-
-public class CosmosMessageStateHandler<T> :
-    IMessageStateHandler<T> where T : class, IMessage //ICosmosEvent prob shouldn't be needed
+public class CosmosMessageStateHandler<T> : IMessageStateHandler<T>
+    where T : class, IMessage //ICosmosEvent prob shouldn't be needed
 {
     private readonly CosmosQueueClient<T> _cosmosQueueClient;
     private readonly InternalCosmosMessage<T> _internalMessage;
@@ -16,7 +15,8 @@ public class CosmosMessageStateHandler<T> :
         CosmosQueueClient<T> cosmosQueueClient,
         InternalCosmosMessage<T> message,
         int deadLetterDeliveryLimit,
-        IDependencyInjection messageScope)
+        IDependencyInjection messageScope
+    )
     {
         _cosmosQueueClient = cosmosQueueClient;
         _internalMessage = message;
@@ -26,7 +26,7 @@ public class CosmosMessageStateHandler<T> :
 
     public int DeliveryCount => _internalMessage.DeliveryCount;
     public int DeadLetterDeliveryLimit { get; }
-    public IDictionary<string, string>? MessageProperties => null ; // Not implemented
+    public IDictionary<string, string>? MessageProperties => null; // Not implemented
 
     public Task CompleteAsync()
     {

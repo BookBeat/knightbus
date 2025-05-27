@@ -4,11 +4,10 @@ using KnightBus.Messages;
 
 namespace KnightBus.Cosmos.Tests.Integration;
 
-
 //Event where the first attempt to process each event will fail
 public class FailFirstEvent : ICosmosEvent
 {
-    public required string Body { get; set;  }
+    public required string Body { get; set; }
 }
 
 class FailFirstMapping : IMessageMapping<FailFirstEvent>
@@ -21,9 +20,8 @@ class FailFirstSubscription : IEventSubscription<FailFirstEvent>
     public string Name => "FFSub";
 }
 
-
-class FailFirstProcessor :
-    IProcessEvent<FailFirstEvent, FailFirstSubscription, CosmosProcessingSetting>
+class FailFirstProcessor
+    : IProcessEvent<FailFirstEvent, FailFirstSubscription, CosmosProcessingSetting>
 {
     public Task ProcessAsync(FailFirstEvent message, CancellationToken cancellationToken)
     {
@@ -39,8 +37,3 @@ class FailFirstProcessor :
         }
     }
 }
-
-
-
-
-

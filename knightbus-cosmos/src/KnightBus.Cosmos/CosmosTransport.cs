@@ -10,7 +10,7 @@ public class CosmosTransport : ITransport
         TransportChannelFactories =
         [
             new CosmosSubscriptionChannelFactory(cosmosClient, configuration),
-            new CosmosCommandChannelFactory(cosmosClient, configuration)
+            new CosmosCommandChannelFactory(cosmosClient, configuration),
         ];
     }
 

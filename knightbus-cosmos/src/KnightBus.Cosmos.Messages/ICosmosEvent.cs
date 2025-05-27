@@ -3,6 +3,4 @@ using KnightBus.Messages;
 
 namespace KnightBus.Cosmos.Messages;
 
-public interface ICosmosEvent : IEvent
-{
-}
+public interface ICosmosEvent : IEvent { }

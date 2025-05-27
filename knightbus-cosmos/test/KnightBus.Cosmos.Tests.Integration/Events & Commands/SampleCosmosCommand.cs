@@ -4,7 +4,6 @@ using KnightBus.Messages;
 
 namespace KnightBus.Cosmos.Tests.Integration;
 
-
 //Commands
 class SampleCosmosCommand : ICosmosCommand
 {
@@ -16,8 +15,7 @@ class SampleCosmosMessageMapping : IMessageMapping<SampleCosmosCommand>
     public string QueueName => "test-command";
 }
 
-class PostgresCommandProcessor :
-    IProcessCommand<SampleCosmosCommand, CosmosProcessingSetting>
+class PostgresCommandProcessor : IProcessCommand<SampleCosmosCommand, CosmosProcessingSetting>
 {
     public Task ProcessAsync(SampleCosmosCommand message, CancellationToken cancellationToken)
     {
@@ -26,4 +24,3 @@ class PostgresCommandProcessor :
         return Task.CompletedTask;
     }
 }
-
