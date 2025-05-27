@@ -2,7 +2,7 @@
 using KnightBus.Cosmos.Messages;
 using KnightBus.Messages;
 
-namespace KnightBus.Cosmos.Tests.EndToEnd;
+namespace KnightBus.Cosmos.Tests.Integration;
 
 
 //Commands
@@ -21,7 +21,7 @@ class PostgresCommandProcessor :
 {
     public Task ProcessAsync(SampleCosmosCommand message, CancellationToken cancellationToken)
     {
-        ProcessedMessages.Increment(message.MessageBody);
+        ProcessedTracker.Increment(message.MessageBody);
 
         return Task.CompletedTask;
     }

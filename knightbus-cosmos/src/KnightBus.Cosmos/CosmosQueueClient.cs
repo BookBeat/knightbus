@@ -39,10 +39,10 @@ public class CosmosQueueClient<T> where T : class, IMessage
         Lease = await CreateContainerAsync(_cosmosConfiguration.LeaseContainer, cancellationToken); 
         TopicQueue = await CreateContainerAsync(AutoMessageMapper.GetQueueName<T>(), cancellationToken);
         
-        DeadLetterQueue = await CreateContainerAsync(AutoMessageMapper.GetQueueName<T>() +" : DL", cancellationToken, "/Subscription",-1 ); //Deadlettered items should never expire
+        DeadLetterQueue = await CreateContainerAsync(AutoMessageMapper.GetQueueName<T>() +"_DL", cancellationToken, "/Subscription",-1 ); //Deadlettered items should never expire
         
         if (typeof(ICosmosEvent).IsAssignableFrom(typeof(T)))
-            RetryQueue = await CreateContainerAsync(AutoMessageMapper.GetQueueName<T>() + " : Retry - " + _subscription!.Name , cancellationToken);
+            RetryQueue = await CreateContainerAsync(AutoMessageMapper.GetQueueName<T>() + "_Retry_" + _subscription!.Name , cancellationToken);
     }
     
     //TODO: Does not handle cases where PartitionKey does not match

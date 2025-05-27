@@ -114,7 +114,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.Cosmos", "knightb
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.Cosmos.Messages", "knightbus-cosmos\src\KnightBus.Cosmos.Messages\KnightBus.Cosmos.Messages.csproj", "{8E24C34D-4C81-4558-90FE-D5478920A6C0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.Cosmos.Tests.EndToEnd", "knightbus-cosmos\test\KnightBus.Cosmos.Tests.EndToEnd\KnightBus.Cosmos.Tests.EndToEnd.csproj", "{4A7DED99-6DA9-478C-872D-B2E17359A0EA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.Cosmos.Tests.Integration", "knightbus-cosmos\test\KnightBus.Cosmos.Tests.Integration\KnightBus.Cosmos.Tests.Integration.csproj", "{4A7DED99-6DA9-478C-872D-B2E17359A0EA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
