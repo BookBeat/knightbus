@@ -45,18 +45,36 @@ public class PostgresMessagePump<T> : GenericMessagePump<PostgresMessage<T>, IMe
     {
         if (_subscription is null)
         {
-            await QueueInitializer.InitQueue(
-                PostgresQueueName.Create(AutoMessageMapper.GetQueueName(messageType)),
-                _npgsqlDataSource
-            );
+            try
+            {
+                await QueueInitializer.InitQueue(
+                    PostgresQueueName.Create(AutoMessageMapper.GetQueueName(messageType)),
+                    _npgsqlDataSource
+                );
+            }
+            catch (Exception ex)
+            {
+                Log.LogError(
+                    ex,
+                    "Setup of {QueueName} failed",
+                    AutoMessageMapper.GetQueueName(messageType)
+                );
+            }
         }
         else
         {
-            await QueueInitializer.InitSubscription(
-                PostgresQueueName.Create(AutoMessageMapper.GetQueueName(messageType)),
-                PostgresQueueName.Create(_subscription.Name),
-                _npgsqlDataSource
-            );
+            try
+            {
+                await QueueInitializer.InitSubscription(
+                    PostgresQueueName.Create(AutoMessageMapper.GetQueueName(messageType)),
+                    PostgresQueueName.Create(_subscription.Name),
+                    _npgsqlDataSource
+                );
+            }
+            catch (Exception ex)
+            {
+                Log.LogError(ex, "Setup of {QueueName} failed", _subscription.Name);
+            }
         }
     }
 

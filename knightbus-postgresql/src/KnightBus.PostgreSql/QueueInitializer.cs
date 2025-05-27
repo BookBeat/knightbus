@@ -16,63 +16,32 @@ public static class QueueInitializer
         NpgsqlDataSource npgsqlDataSource
     )
     {
-
         await using var connection = await npgsqlDataSource.OpenConnectionAsync();
         await using var transaction = await connection.BeginTransactionAsync();
 
-        await using var createSchema = new NpgsqlCommand(
-            @$"
- CREATE SCHEMA IF NOT EXISTS {SchemaName};
-",
-            connection
-        );
-
         var topicSubscriptionQueueName = PostgresQueueName.Create($"{topic}_{subscription}");
 
-        await using var createPublishFunctionCmd = CreatePublishFunction(connection);
-        await using var createTopicCmd = CreateTopicTableCmd(topic, connection);
-        await using var insertTopicCmd = InsertTopicSubscriptionCmd(
-            topic,
-            subscription,
-            connection
-        );
-
-        await using var createQueueCmd = CreateQueueCmd(
-            SubscriptionPrefix,
-            topicSubscriptionQueueName,
-            connection
-        );
-        await using var createIndexCmd = CreateQueueIndexCmd(
-            SubscriptionPrefix,
-            topicSubscriptionQueueName,
-            connection
-        );
-        await using var createDlQueueCmd = CreateDlQueueCmd(
-            DlQueuePrefix,
-            topicSubscriptionQueueName,
-            connection
-        );
-        
         await Semaphore.WaitAsync();
 
         try
         {
-            await using var batch = new NpgsqlBatch(connection);
-            batch.Transaction = transaction;
-            batch.BatchCommands.Add(new NpgsqlBatchCommand(createSchema.CommandText));
-            batch.BatchCommands.Add(new NpgsqlBatchCommand(createTopicCmd.CommandText));
-            batch.BatchCommands.Add(new NpgsqlBatchCommand(insertTopicCmd.CommandText));
-            batch.BatchCommands.Add(new NpgsqlBatchCommand(createQueueCmd.CommandText));
-            batch.BatchCommands.Add(new NpgsqlBatchCommand(createIndexCmd.CommandText));
-            batch.BatchCommands.Add(new NpgsqlBatchCommand(createDlQueueCmd.CommandText));
-            batch.BatchCommands.Add(new NpgsqlBatchCommand(createPublishFunctionCmd.CommandText));
+            await using var batch = new NpgsqlBatch(connection, transaction);
+            batch.BatchCommands.AddRange(
+                CreateSchemaCmd(),
+                CreatePublishFunction(),
+                CreateTopicTableCmd(topic),
+                InsertTopicSubscriptionCmd(topic, subscription),
+                CreateQueueCmd(SubscriptionPrefix, topicSubscriptionQueueName),
+                CreateQueueIndexCmd(SubscriptionPrefix, topicSubscriptionQueueName),
+                CreateDlQueueCmd(DlQueuePrefix, topicSubscriptionQueueName)
+            );
             await batch.ExecuteNonQueryAsync().ConfigureAwait(false);
             await transaction.CommitAsync();
         }
         catch (Exception e)
         {
             await transaction.RollbackAsync();
-            Console.WriteLine($"SQL setup failed for sub {subscription} - {e.Message}");
+            throw;
         }
         finally
         {
@@ -88,37 +57,25 @@ public static class QueueInitializer
         await using var connection = await npgsqlDataSource.OpenConnectionAsync();
         await using var transaction = await connection.BeginTransactionAsync();
 
-        await using var createSchema = new NpgsqlCommand(
-            @$"
- CREATE SCHEMA IF NOT EXISTS {SchemaName};
-",
-            connection
-        );
-
-        await using var createQueueCmd = CreateQueueCmd(QueuePrefix, queueName, connection);
-        await using var createDlQueueCmd = CreateDlQueueCmd(DlQueuePrefix, queueName, connection);
-        await using var createIndexCmd = CreateQueueIndexCmd(QueuePrefix, queueName, connection);
-        await using var createMetadataTableCmd = CreateMetadataTableCmd(connection);
-        await using var insertMetadataCmd = InsertMetadataCmd(queueName, connection);
-
         await Semaphore.WaitAsync();
         try
         {
-            await using var batch = new NpgsqlBatch(connection);
-            batch.Transaction = transaction;
-            batch.BatchCommands.Add(new NpgsqlBatchCommand(createSchema.CommandText));
-            batch.BatchCommands.Add(new NpgsqlBatchCommand(createQueueCmd.CommandText));
-            batch.BatchCommands.Add(new NpgsqlBatchCommand(createDlQueueCmd.CommandText));
-            batch.BatchCommands.Add(new NpgsqlBatchCommand(createIndexCmd.CommandText));
-            batch.BatchCommands.Add(new NpgsqlBatchCommand(createMetadataTableCmd.CommandText));
-            batch.BatchCommands.Add(new NpgsqlBatchCommand(insertMetadataCmd.CommandText));
+            await using var batch = new NpgsqlBatch(connection, transaction);
+            batch.BatchCommands.AddRange(
+                CreateSchemaCmd(),
+                CreateQueueCmd(QueuePrefix, queueName),
+                CreateDlQueueCmd(DlQueuePrefix, queueName),
+                CreateQueueIndexCmd(QueuePrefix, queueName),
+                CreateMetadataTableCmd(),
+                InsertMetadataCmd(queueName)
+            );
             await batch.ExecuteNonQueryAsync().ConfigureAwait(false);
             await transaction.CommitAsync();
         }
-        catch (Exception e)
+        catch
         {
             await transaction.RollbackAsync();
-            Console.WriteLine($"SQL setup failed for queue {queueName} - {e.Message}");
+            throw;
         }
         finally
         {
@@ -126,42 +83,45 @@ public static class QueueInitializer
         }
     }
 
-    private static NpgsqlCommand CreateTopicTableCmd(
-        PostgresQueueName topic,
-        NpgsqlConnection connection
-    )
+    private static NpgsqlBatchCommand CreateSchemaCmd()
     {
-        var createTopicTableCmd = new NpgsqlCommand(
+        return new NpgsqlBatchCommand(
+            @$"
+ CREATE SCHEMA IF NOT EXISTS {SchemaName};
+"
+        );
+    }
+
+    private static NpgsqlBatchCommand CreateTopicTableCmd(PostgresQueueName topic)
+    {
+        var createTopicTableCmd = new NpgsqlBatchCommand(
             $@"
 CREATE TABLE IF NOT EXISTS {SchemaName}.{TopicPrefix}_{topic} (
     subscription_name VARCHAR UNIQUE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
-);",
-            connection
+);"
         );
         return createTopicTableCmd;
     }
 
-    private static NpgsqlCommand InsertTopicSubscriptionCmd(
+    private static NpgsqlBatchCommand InsertTopicSubscriptionCmd(
         PostgresQueueName topic,
-        PostgresQueueName topicSubscription,
-        NpgsqlConnection connection
+        PostgresQueueName topicSubscription
     )
     {
-        var insertMetadataCmd = new NpgsqlCommand(
+        var insertMetadataCmd = new NpgsqlBatchCommand(
             @$"
 INSERT INTO {SchemaName}.{TopicPrefix}_{topic}(subscription_name)
 VALUES ('{topicSubscription}')
 ON CONFLICT
-DO NOTHING;",
-            connection
+DO NOTHING;"
         );
         return insertMetadataCmd;
     }
 
-    private static NpgsqlCommand CreatePublishFunction(NpgsqlConnection connection)
+    private static NpgsqlBatchCommand CreatePublishFunction()
     {
-        var publishFunction = new NpgsqlCommand(
+        var publishFunction = new NpgsqlBatchCommand(
             @$"
 CREATE OR REPLACE FUNCTION {SchemaName}.publish_events(
     topic TEXT,
@@ -182,63 +142,51 @@ BEGIN
         ', '{SchemaName}', topic, subscription_name) USING messages;
     END LOOP;
 END;
-$$ LANGUAGE plpgsql;",
-            connection
+$$ LANGUAGE plpgsql;"
         );
         return publishFunction;
     }
 
-    private static NpgsqlCommand InsertMetadataCmd(
-        PostgresQueueName queueName,
-        NpgsqlConnection connection
-    )
+    private static NpgsqlBatchCommand InsertMetadataCmd(PostgresQueueName queueName)
     {
-        var insertMetadataCmd = new NpgsqlCommand(
+        var insertMetadataCmd = new NpgsqlBatchCommand(
             @$"
 INSERT INTO {SchemaName}.metadata (queue_name)
 VALUES ('{queueName}')
 ON CONFLICT
-DO NOTHING;",
-            connection
+DO NOTHING;"
         );
         return insertMetadataCmd;
     }
 
-    private static NpgsqlCommand CreateMetadataTableCmd(NpgsqlConnection connection)
+    private static NpgsqlBatchCommand CreateMetadataTableCmd()
     {
-        var createMetadataTableCmd = new NpgsqlCommand(
+        var createMetadataTableCmd = new NpgsqlBatchCommand(
             $@"
 CREATE TABLE IF NOT EXISTS {SchemaName}.metadata (
     queue_name VARCHAR UNIQUE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
-);",
-            connection
+);"
         );
         return createMetadataTableCmd;
     }
 
-    private static NpgsqlCommand CreateQueueIndexCmd(
+    private static NpgsqlBatchCommand CreateQueueIndexCmd(
         string prefix,
-        PostgresQueueName queueName,
-        NpgsqlConnection connection
+        PostgresQueueName queueName
     )
     {
-        var createIndexCmd = new NpgsqlCommand(
+        var createIndexCmd = new NpgsqlBatchCommand(
             @$"
 CREATE INDEX IF NOT EXISTS {SchemaName}_{prefix}_{queueName}_visibility_timeout_idx
-ON {SchemaName}.{prefix}_{queueName} (visibility_timeout ASC);",
-            connection
+ON {SchemaName}.{prefix}_{queueName} (visibility_timeout ASC);"
         );
         return createIndexCmd;
     }
 
-    private static NpgsqlCommand CreateDlQueueCmd(
-        string prefix,
-        PostgresQueueName queueName,
-        NpgsqlConnection connection
-    )
+    private static NpgsqlBatchCommand CreateDlQueueCmd(string prefix, PostgresQueueName queueName)
     {
-        var createDlQueueCmd = new NpgsqlCommand(
+        var createDlQueueCmd = new NpgsqlBatchCommand(
             @$"
 CREATE TABLE IF NOT EXISTS {SchemaName}.{prefix}_{queueName} (
     message_id BIGINT PRIMARY KEY,
@@ -246,19 +194,14 @@ CREATE TABLE IF NOT EXISTS {SchemaName}.{prefix}_{queueName} (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
     message JSONB,
     properties JSONB
-);",
-            connection
+);"
         );
         return createDlQueueCmd;
     }
 
-    private static NpgsqlCommand CreateQueueCmd(
-        string prefix,
-        PostgresQueueName queueName,
-        NpgsqlConnection connection
-    )
+    private static NpgsqlBatchCommand CreateQueueCmd(string prefix, PostgresQueueName queueName)
     {
-        var createQueueCmd = new NpgsqlCommand(
+        var createQueueCmd = new NpgsqlBatchCommand(
             @$"
 CREATE TABLE IF NOT EXISTS {SchemaName}.{prefix}_{queueName} (
     message_id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
@@ -267,8 +210,7 @@ CREATE TABLE IF NOT EXISTS {SchemaName}.{prefix}_{queueName} (
     visibility_timeout TIMESTAMP WITH TIME ZONE NOT NULL,
     message JSONB,
     properties JSONB
-);",
-            connection
+);"
         );
         return createQueueCmd;
     }
