@@ -1,11 +1,12 @@
-﻿using Npgsql;
+﻿using System.Transactions;
+using Npgsql;
 using static KnightBus.PostgreSql.PostgresConstants;
 
 namespace KnightBus.PostgreSql;
 
 public static class QueueInitializer
 {
-    // CREATE IF NOT EXISTS is not thread-safe
+    // "CREATE IF NOT EXISTS" is not thread-safe
     //Semaphore used to ensure that setup of each subscriber/command sets up sequentially.
     private static readonly SemaphoreSlim Semaphore = new SemaphoreSlim(1, 1);
 
@@ -15,9 +16,9 @@ public static class QueueInitializer
         NpgsqlDataSource npgsqlDataSource
     )
     {
-        await Semaphore.WaitAsync();
 
         await using var connection = await npgsqlDataSource.OpenConnectionAsync();
+        await using var transaction = await connection.BeginTransactionAsync();
 
         await using var createSchema = new NpgsqlCommand(
             @$"
@@ -51,27 +52,26 @@ public static class QueueInitializer
             topicSubscriptionQueueName,
             connection
         );
+        
+        await Semaphore.WaitAsync();
 
         try
         {
-            //Batch is implicitly wrapped into a transaction that is rolled back on failure
-            await using var batch = new NpgsqlBatch(connection)
-            {
-                BatchCommands =
-                {
-                    new NpgsqlBatchCommand(createSchema.CommandText),
-                    new NpgsqlBatchCommand(createTopicCmd.CommandText),
-                    new NpgsqlBatchCommand(insertTopicCmd.CommandText),
-                    new NpgsqlBatchCommand(createQueueCmd.CommandText),
-                    new NpgsqlBatchCommand(createIndexCmd.CommandText),
-                    new NpgsqlBatchCommand(createDlQueueCmd.CommandText),
-                    new NpgsqlBatchCommand(createPublishFunctionCmd.CommandText),
-                },
-            };
+            await using var batch = new NpgsqlBatch(connection);
+            batch.Transaction = transaction;
+            batch.BatchCommands.Add(new NpgsqlBatchCommand(createSchema.CommandText));
+            batch.BatchCommands.Add(new NpgsqlBatchCommand(createTopicCmd.CommandText));
+            batch.BatchCommands.Add(new NpgsqlBatchCommand(insertTopicCmd.CommandText));
+            batch.BatchCommands.Add(new NpgsqlBatchCommand(createQueueCmd.CommandText));
+            batch.BatchCommands.Add(new NpgsqlBatchCommand(createIndexCmd.CommandText));
+            batch.BatchCommands.Add(new NpgsqlBatchCommand(createDlQueueCmd.CommandText));
+            batch.BatchCommands.Add(new NpgsqlBatchCommand(createPublishFunctionCmd.CommandText));
             await batch.ExecuteNonQueryAsync().ConfigureAwait(false);
+            await transaction.CommitAsync();
         }
         catch (Exception e)
         {
+            await transaction.RollbackAsync();
             Console.WriteLine($"SQL setup failed for sub {subscription} - {e.Message}");
         }
         finally
@@ -85,8 +85,8 @@ public static class QueueInitializer
         NpgsqlDataSource npgsqlDataSource
     )
     {
-        await Semaphore.WaitAsync();
         await using var connection = await npgsqlDataSource.OpenConnectionAsync();
+        await using var transaction = await connection.BeginTransactionAsync();
 
         await using var createSchema = new NpgsqlCommand(
             @$"
@@ -101,25 +101,23 @@ public static class QueueInitializer
         await using var createMetadataTableCmd = CreateMetadataTableCmd(connection);
         await using var insertMetadataCmd = InsertMetadataCmd(queueName, connection);
 
+        await Semaphore.WaitAsync();
         try
         {
-            //Batch is implicitly wrapped into a transaction that is rolled back on failure
-            await using var batch = new NpgsqlBatch(connection)
-            {
-                BatchCommands =
-                {
-                    new NpgsqlBatchCommand(createSchema.CommandText),
-                    new NpgsqlBatchCommand(createQueueCmd.CommandText),
-                    new NpgsqlBatchCommand(createDlQueueCmd.CommandText),
-                    new NpgsqlBatchCommand(createIndexCmd.CommandText),
-                    new NpgsqlBatchCommand(createMetadataTableCmd.CommandText),
-                    new NpgsqlBatchCommand(insertMetadataCmd.CommandText),
-                },
-            };
+            await using var batch = new NpgsqlBatch(connection);
+            batch.Transaction = transaction;
+            batch.BatchCommands.Add(new NpgsqlBatchCommand(createSchema.CommandText));
+            batch.BatchCommands.Add(new NpgsqlBatchCommand(createQueueCmd.CommandText));
+            batch.BatchCommands.Add(new NpgsqlBatchCommand(createDlQueueCmd.CommandText));
+            batch.BatchCommands.Add(new NpgsqlBatchCommand(createIndexCmd.CommandText));
+            batch.BatchCommands.Add(new NpgsqlBatchCommand(createMetadataTableCmd.CommandText));
+            batch.BatchCommands.Add(new NpgsqlBatchCommand(insertMetadataCmd.CommandText));
             await batch.ExecuteNonQueryAsync().ConfigureAwait(false);
+            await transaction.CommitAsync();
         }
         catch (Exception e)
         {
+            await transaction.RollbackAsync();
             Console.WriteLine($"SQL setup failed for queue {queueName} - {e.Message}");
         }
         finally
