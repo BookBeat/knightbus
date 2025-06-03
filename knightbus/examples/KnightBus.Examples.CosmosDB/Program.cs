@@ -1,12 +1,12 @@
-﻿using KnightBus.Core.DependencyInjection;
+﻿using KnightBus.Core;
+using KnightBus.Core.DependencyInjection;
 using KnightBus.Cosmos;
 using KnightBus.Cosmos.Messages;
-using Microsoft.Extensions.Hosting;
-using KnightBus.Core;
 using KnightBus.Host;
 using KnightBus.Messages;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Azure.Cosmos;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace KnightBus.Examples.CosmosDB;
 
@@ -17,11 +17,12 @@ class Program
         Console.WriteLine("Starting CosmosDB example");
 
         //Connection string should be saved as environment variable named "CosmosString"
-        string? connectionString = Environment.GetEnvironmentVariable("CosmosString"); 
+        string? connectionString = Environment.GetEnvironmentVariable("CosmosString");
         const string databaseId = "PubSub";
         const string leaseContainer = "Leases";
 
-        var knightBusHost = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
+        var knightBusHost = Microsoft
+            .Extensions.Hosting.Host.CreateDefaultBuilder()
             .UseDefaultServiceProvider(options =>
             {
                 options.ValidateScopes = true;
@@ -29,7 +30,8 @@ class Program
             })
             .ConfigureServices(services =>
             {
-                services.UseCosmos(configuration =>
+                services
+                    .UseCosmos(configuration =>
                     {
                         configuration.ConnectionString = connectionString;
                         configuration.Database = databaseId;
@@ -41,18 +43,18 @@ class Program
                     .UseTransport<CosmosTransport>();
             })
             .UseKnightBus()
-        .Build();
-        
+            .Build();
+
         //Start the KnightBus Host
         await knightBusHost.StartAsync();
         await Task.Delay(TimeSpan.FromSeconds(1));
         Console.WriteLine("Started host");
-        
-        var client = knightBusHost.Services.CreateScope().ServiceProvider.GetRequiredService<CosmosBus>();
 
+        var client = knightBusHost
+            .Services.CreateScope()
+            .ServiceProvider.GetRequiredService<CosmosBus>();
 
         const int numMessages = 10;
-        
 
         //Send some commands
         SampleCosmosCommand[] messages = new SampleCosmosCommand[numMessages];
@@ -72,7 +74,7 @@ class Program
         await client.PublishAsync(events, CancellationToken.None);
 
         Console.ReadKey();
-        
+
         SamplePoisonEvent[] poisonEvents = new SamplePoisonEvent[numMessages];
         //Publish poison event
         for (int i = 0; i < numMessages; i++)
@@ -80,7 +82,7 @@ class Program
             poisonEvents[i] = new SamplePoisonEvent() { Bad_Message = $"danger {i}" };
         }
         await client.PublishAsync(poisonEvents, CancellationToken.None);
-        
+
         //Clean-up
         Console.WriteLine("End of program, press any key to exit.");
         Console.ReadKey();
@@ -88,12 +90,13 @@ class Program
     }
 }
 
-class CosmosEventProcessor :
-    IProcessEvent<SampleCosmosEvent, SampleSubscription, CosmosProcessingSetting>,
-    IProcessEvent<SamplePoisonEvent, SamplePoisonSubscription, CosmosProcessingSetting>,
-    IProcessEvent<SamplePoisonEvent, OtherSamplePoisonSubscription, CosmosProcessingSetting>
+class CosmosEventProcessor
+    : IProcessEvent<SampleCosmosEvent, SampleSubscription, CosmosProcessingSetting>,
+        IProcessEvent<SamplePoisonEvent, SamplePoisonSubscription, CosmosProcessingSetting>,
+        IProcessEvent<SamplePoisonEvent, OtherSamplePoisonSubscription, CosmosProcessingSetting>
 {
     private Random random = new Random(); //Probably not ideal way to do this
+
     public Task ProcessAsync(SampleCosmosEvent message, CancellationToken cancellationToken)
     {
         Console.WriteLine($"Sub1: '{message.MessageBody}'");
@@ -101,7 +104,7 @@ class CosmosEventProcessor :
         //    throw new HttpRequestException("Simulated network error");
         return Task.CompletedTask;
     }
-    
+
     public Task ProcessAsync(SamplePoisonEvent message, CancellationToken cancellationToken)
     {
         Console.WriteLine($"Poison sub: {message.Bad_Message}");
@@ -109,8 +112,8 @@ class CosmosEventProcessor :
     }
 }
 
-class OtherCosmosEventProcessor :
-    IProcessEvent<SampleCosmosEvent, OtherSubscription, CosmosProcessingSetting>
+class OtherCosmosEventProcessor
+    : IProcessEvent<SampleCosmosEvent, OtherSubscription, CosmosProcessingSetting>
 {
     public Task ProcessAsync(SampleCosmosEvent message, CancellationToken cancellationToken)
     {
@@ -127,47 +130,48 @@ class CosmosProcessingSetting : IProcessingSettings
     public int DeadLetterDeliveryLimit => 2;
 }
 
-
 //Sample event
 public class SampleCosmosEvent : ICosmosEvent
 {
-    public string? MessageBody { get; set;  }
+    public string? MessageBody { get; set; }
 }
+
 class SampleCosmosEventMapping : IMessageMapping<SampleCosmosEvent>
 {
     public string QueueName => "test-topic";
 }
-class SampleSubscription: IEventSubscription<SampleCosmosEvent>
+
+class SampleSubscription : IEventSubscription<SampleCosmosEvent>
 {
     public string Name => "subscription_1";
 }
 
-class OtherSubscription: IEventSubscription<SampleCosmosEvent>
+class OtherSubscription : IEventSubscription<SampleCosmosEvent>
 {
     public string Name => "subscription_2";
 }
-
 
 //Poison event
 
 public class SamplePoisonEvent : ICosmosEvent
 {
-    public required string Bad_Message { get; set;  }
+    public required string Bad_Message { get; set; }
 }
+
 class SamplePoisonEventMapping : IMessageMapping<SamplePoisonEvent>
 {
     public string QueueName => "poison-topic";
 }
-class SamplePoisonSubscription: IEventSubscription<SamplePoisonEvent>
+
+class SamplePoisonSubscription : IEventSubscription<SamplePoisonEvent>
 {
     public string Name => "poison_subscription_1";
 }
 
-class OtherSamplePoisonSubscription: IEventSubscription<SamplePoisonEvent>
+class OtherSamplePoisonSubscription : IEventSubscription<SamplePoisonEvent>
 {
     public string Name => "poison_subscription_2";
 }
-
 
 //Sample Command
 class SampleCosmosCommand : ICosmosCommand
@@ -180,8 +184,7 @@ class SampleCosmosMessageMapping : IMessageMapping<SampleCosmosCommand>
     public string QueueName => "cosmos_sample_message";
 }
 
-class PostgresCommandProcessor :
-    IProcessCommand<SampleCosmosCommand, CosmosProcessingSetting>
+class PostgresCommandProcessor : IProcessCommand<SampleCosmosCommand, CosmosProcessingSetting>
 {
     public Task ProcessAsync(SampleCosmosCommand command, CancellationToken cancellationToken)
     {
@@ -189,4 +192,3 @@ class PostgresCommandProcessor :
         return Task.CompletedTask;
     }
 }
-
