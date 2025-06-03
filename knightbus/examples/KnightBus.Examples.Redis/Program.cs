@@ -14,13 +14,12 @@ using KnightBus.Redis.Messages;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-using StackExchange.Redis;
+namespace KnightBus.Examples.Redis;
 
 class Program
 {
     static async Task Main(string[] args)
     {
-        
         var redisConnection = "localhost:6379";
 
         var knightBusHost = global::Microsoft
@@ -129,7 +128,6 @@ class Program
     {
         public Task ProcessAsync(SampleRedisCommand command, CancellationToken cancellationToken)
         {
-            Console.WriteLine($"Processing command {command.Message}");
             return Task.CompletedTask;
         }
     }
