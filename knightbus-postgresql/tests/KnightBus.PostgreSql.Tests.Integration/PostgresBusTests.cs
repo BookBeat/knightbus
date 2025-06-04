@@ -86,6 +86,25 @@ public class PostgresBusTests
     }
 
     [Test]
+    public async Task InsertALotOfMessages()
+    {
+        TestCommand[] messages = new TestCommand[100000];
+        Array.Fill(messages, new TestCommand { MessageBody = "Hej" }, 0, 100000);
+
+        await _postgresBus.SendAsync<TestCommand>(messages, CancellationToken.None);
+
+        var messagesCount = (long)(
+            await PostgresSetup
+                .DataSource.CreateCommand(
+                    $"SELECT COUNT(*) FROM knightbus.q_{AutoMessageMapper.GetQueueName<TestCommand>()};"
+                )
+                .ExecuteScalarAsync() ?? 0
+        );
+
+        messagesCount.Should().Be(100_000);
+    }
+
+    [Test]
     public async Task GetMessages()
     {
         await _postgresBus.SendAsync<TestCommand>(
