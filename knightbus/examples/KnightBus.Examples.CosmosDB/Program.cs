@@ -18,8 +18,6 @@ class Program
 
         //Connection string should be saved as environment variable named "CosmosString"
         string? connectionString = Environment.GetEnvironmentVariable("CosmosString");
-        const string databaseId = "PubSub";
-        const string leaseContainer = "Leases";
 
         var knightBusHost = Microsoft
             .Extensions.Hosting.Host.CreateDefaultBuilder()
@@ -34,8 +32,6 @@ class Program
                     .UseCosmos(configuration =>
                     {
                         configuration.ConnectionString = connectionString;
-                        configuration.Database = databaseId;
-                        configuration.LeaseContainer = leaseContainer;
                         configuration.PollingDelay = TimeSpan.FromSeconds(2);
                         configuration.DefaultTimeToLive = TimeSpan.FromSeconds(120);
                     })
@@ -54,20 +50,17 @@ class Program
             .Services.CreateScope()
             .ServiceProvider.GetRequiredService<CosmosBus>();
 
-        const int numMessages = 10;
-
         //Send some commands
-        SampleCosmosCommand[] messages = new SampleCosmosCommand[numMessages];
-        for (int i = 0; i < numMessages; i++)
+        SampleCosmosCommand[] messages = new SampleCosmosCommand[1000];
+        for (int i = 0; i < 1000; i++)
         {
             messages[i] = new SampleCosmosCommand() { MessageBody = $"data {i}" };
         }
         await client.SendAsync(messages, CancellationToken.None);
 
-        Console.ReadKey();
-        //Publish event
-        SampleCosmosEvent[] events = new SampleCosmosEvent[numMessages];
-        for (int i = 0; i < numMessages; i++)
+        //Publish some events
+        SampleCosmosEvent[] events = new SampleCosmosEvent[1000];
+        for (int i = 0; i < 1000; i++)
         {
             events[i] = new SampleCosmosEvent() { MessageBody = $"msg data {i}" };
         }
@@ -75,9 +68,10 @@ class Program
 
         Console.ReadKey();
 
-        SamplePoisonEvent[] poisonEvents = new SamplePoisonEvent[numMessages];
+        //Publish poison events
+        SamplePoisonEvent[] poisonEvents = new SamplePoisonEvent[10];
         //Publish poison event
-        for (int i = 0; i < numMessages; i++)
+        for (int i = 0; i < 10; i++)
         {
             poisonEvents[i] = new SamplePoisonEvent() { Bad_Message = $"danger {i}" };
         }
@@ -95,13 +89,9 @@ class CosmosEventProcessor
         IProcessEvent<SamplePoisonEvent, SamplePoisonSubscription, CosmosProcessingSetting>,
         IProcessEvent<SamplePoisonEvent, OtherSamplePoisonSubscription, CosmosProcessingSetting>
 {
-    private Random random = new Random(); //Probably not ideal way to do this
-
     public Task ProcessAsync(SampleCosmosEvent message, CancellationToken cancellationToken)
     {
         Console.WriteLine($"Sub1: '{message.MessageBody}'");
-        //if (random.Next() % 10 == 0)
-        //    throw new HttpRequestException("Simulated network error");
         return Task.CompletedTask;
     }
 
@@ -124,9 +114,9 @@ class OtherCosmosEventProcessor
 
 class CosmosProcessingSetting : IProcessingSettings
 {
-    public int MaxConcurrentCalls => 10; //Currently not used
-    public int PrefetchCount => 50; //Currently not used
-    public TimeSpan MessageLockTimeout => TimeSpan.FromMinutes(5); //Currently not used
+    public int MaxConcurrentCalls => 10; //TODO Remove
+    public int PrefetchCount => 50; //TODO remove
+    public TimeSpan MessageLockTimeout => TimeSpan.FromMinutes(5); //TODO remove
     public int DeadLetterDeliveryLimit => 2;
 }
 

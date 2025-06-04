@@ -65,7 +65,6 @@ public class CosmosQueueClient<T>
             );
     }
 
-    //TODO: Does not handle cases where PartitionKey does not match
     private async Task<Container> CreateContainerAsync(
         string id,
         CancellationToken cancellationToken,
@@ -73,10 +72,10 @@ public class CosmosQueueClient<T>
         int? TTL = null
     )
     {
-        TTL ??= (int)_cosmosConfiguration.DefaultTimeToLive.TotalSeconds; //Get configured TTL if not specified
+        TTL ??= (int)_cosmosConfiguration.DefaultTimeToLive.TotalSeconds; //Get default TTL if not specified
 
         //Get container
-        //Replace it if it exists and does not match expectations
+        //Replace it if it exists and partitionKey or default TTL does not match the specified values
         try
         {
             Container container = Database.GetContainer(id);
@@ -95,7 +94,8 @@ public class CosmosQueueClient<T>
             properties.PartitionKeyPath = partitionKeyPath;
             properties.DefaultTimeToLive = TTL;
 
-            await container.ReplaceContainerAsync(properties, cancellationToken: cancellationToken); //Update container properties, does not loose data
+            //Updates metadata, old items are kept
+            await container.ReplaceContainerAsync(properties, cancellationToken: cancellationToken);
 
             return container;
         }
