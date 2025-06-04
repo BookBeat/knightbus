@@ -59,6 +59,7 @@ public class PostgresMessagePump<T> : GenericMessagePump<PostgresMessage<T>, IMe
                     "Setup of {QueueName} failed",
                     AutoMessageMapper.GetQueueName(messageType)
                 );
+                throw;
             }
         }
         else
@@ -74,6 +75,7 @@ public class PostgresMessagePump<T> : GenericMessagePump<PostgresMessage<T>, IMe
             catch (Exception ex)
             {
                 Log.LogError(ex, "Setup of {QueueName} failed", _subscription.Name);
+                throw;
             }
         }
     }
