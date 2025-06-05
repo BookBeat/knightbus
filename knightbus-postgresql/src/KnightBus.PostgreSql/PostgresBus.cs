@@ -89,22 +89,37 @@ public class PostgresBus : IPostgresBus
             .OpenConnectionAsync(ct)
             .ConfigureAwait(false);
 
-        var batch = new NpgsqlBatch(connection);
-        var now = DateTimeOffset.UtcNow;
-        var visibilityTimeout = delay is null ? now : now.Add(delay.Value);
-
-        foreach (var message in messagesList)
+        if (messagesList.Count < 50)
         {
-            var messageBody = _serializer.Serialize(message);
+            await BatchInsert(connection, queueName, messagesList, delay, ct).ConfigureAwait(false);
+            return;
+        }
+
+        await BatchCopy(connection, queueName, messagesList, delay, ct).ConfigureAwait(false);
+    }
+
+    private async Task BatchInsert<T>(
+        NpgsqlConnection connection,
+        string queueName,
+        List<T> messages,
+        TimeSpan? delay,
+        CancellationToken ct
+    )
+        where T : IPostgresCommand
+    {
+        var visibilityTimeout = $"now() + INTERVAL '{delay?.TotalSeconds ?? 0} seconds'";
+
+        await using var batch = new NpgsqlBatch(connection);
+        foreach (var messageBody in messages.Select(message => _serializer.Serialize(message)))
+        {
             batch.BatchCommands.Add(
                 new NpgsqlBatchCommand(
                     //lang=postgresql
-                    $"INSERT INTO {SchemaName}.{QueuePrefix}_{queueName} (visibility_timeout, message) VALUES ($1, $2)"
+                    $"INSERT INTO {SchemaName}.{QueuePrefix}_{queueName} (visibility_timeout, message) VALUES ({visibilityTimeout}, $1)"
                 )
                 {
                     Parameters =
                     {
-                        new NpgsqlParameter<DateTimeOffset> { TypedValue = visibilityTimeout },
                         new NpgsqlParameter<byte[]>
                         {
                             TypedValue = messageBody,
@@ -117,6 +132,36 @@ public class PostgresBus : IPostgresBus
 
         await batch.PrepareAsync(ct).ConfigureAwait(false);
         await batch.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+    }
+
+    private async Task BatchCopy<T>(
+        NpgsqlConnection connection,
+        string queueName,
+        List<T> messages,
+        TimeSpan? delay,
+        CancellationToken ct
+    )
+        where T : IPostgresCommand
+    {
+        string sql =
+            //lang=postgresql
+            $"COPY {SchemaName}.{QueuePrefix}_{queueName} (visibility_timeout, message) FROM STDIN (FORMAT binary)";
+
+        await using var importer = await connection
+            .BeginBinaryImportAsync(sql, ct)
+            .ConfigureAwait(false);
+
+        var visibilityTimeout = DateTimeOffset.UtcNow.AddSeconds(delay?.TotalSeconds ?? 0);
+        foreach (var messageBody in messages.Select(message => _serializer.Serialize(message)))
+        {
+            await importer.StartRowAsync(ct).ConfigureAwait(false);
+            await importer
+                .WriteAsync(visibilityTimeout, NpgsqlDbType.TimestampTz, ct)
+                .ConfigureAwait(false);
+            await importer.WriteAsync(messageBody, NpgsqlDbType.Jsonb, ct).ConfigureAwait(false);
+        }
+
+        await importer.CompleteAsync(ct).ConfigureAwait(false);
     }
 
     private async Task PublishAsyncInternal<T>(IEnumerable<T> messages, CancellationToken ct)

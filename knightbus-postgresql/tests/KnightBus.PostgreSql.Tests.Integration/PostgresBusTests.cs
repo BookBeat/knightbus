@@ -88,11 +88,19 @@ public class PostgresBusTests
     [Test]
     public async Task InsertALotOfMessages()
     {
-        TestCommand[] messages = new TestCommand[100000];
-        Array.Fill(messages, new TestCommand { MessageBody = "Hej" }, 0, 100000);
+        // Arrange
+        static IEnumerable<TestCommand> GenerateCommands()
+        {
+            for (var i = 0; i < 100_000; i++)
+            {
+                yield return new TestCommand { MessageBody = $"Message {i}" };
+            }
+        }
 
-        await _postgresBus.SendAsync<TestCommand>(messages, CancellationToken.None);
+        // Act
+        await _postgresBus.SendAsync(GenerateCommands(), CancellationToken.None);
 
+        // Assert
         var messagesCount = (long)(
             await PostgresSetup
                 .DataSource.CreateCommand(
@@ -107,6 +115,7 @@ public class PostgresBusTests
     [Test]
     public async Task ScheduleALotOfMessages()
     {
+        // Arrange
         static IEnumerable<TestCommand> GenerateCommands()
         {
             for (var i = 0; i < 100_000; i++)
@@ -115,8 +124,10 @@ public class PostgresBusTests
             }
         }
 
+        // Act
         await _postgresBus.ScheduleAsync(GenerateCommands(), TimeSpan.FromSeconds(3), default);
 
+        // Assert
         var messages = _postgresQueueClient
             .GetMessagesAsync(100_000, 10, default)
             .ToBlockingEnumerable()

@@ -26,13 +26,13 @@ public class PostgresMessageStateHandlerTests : MessageStateHandlerTests<Postgre
             new PostgresConfiguration { MessageSerializer = new MicrosoftJsonSerializer() }
         );
 
-        await _postgresManagementClient.DeleteQueue(
+        await QueueInitializer.InitQueue(
             PostgresQueueName.Create(AutoMessageMapper.GetQueueName<PostgresTestCommand>()),
-            default
+            PostgresSetup.DataSource
         );
     }
 
-    [OneTimeTearDown]
+    [TearDown]
     public async Task CleanUpAfterTests()
     {
         await _postgresManagementClient.DeleteQueue(
