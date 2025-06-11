@@ -10,12 +10,12 @@ namespace KnightBus.Cosmos;
 public class CosmosCommandChannelReceiver<T> : IChannelReceiver
     where T : class, ICosmosCommand
 {
-    private readonly IProcessingSettings settings;
+    private readonly IProcessingSettings _settings;
     private readonly IMessageSerializer _serializer;
     private readonly IHostConfiguration _hostConfiguration;
     private readonly IMessageProcessor _processor;
     private readonly ICosmosConfiguration _cosmosConfiguration;
-    private CosmosClient _cosmosClient;
+    private readonly CosmosClient _cosmosClient;
     private readonly CosmosQueueClient<T> _cosmosQueueClient;
 
     public CosmosCommandChannelReceiver(
@@ -27,7 +27,7 @@ public class CosmosCommandChannelReceiver<T> : IChannelReceiver
         CosmosClient cosmosClient
     )
     {
-        settings = processorSettings;
+        _settings = processorSettings;
         _serializer = serializer;
         _hostConfiguration = config;
         _processor = processor;
@@ -46,9 +46,10 @@ public class CosmosCommandChannelReceiver<T> : IChannelReceiver
                 processorName: "Command-" + AutoMessageMapper.GetQueueName<T>(),
                 onChangesDelegate: ProcessChangesAsync
             )
-            .WithInstanceName($"consoleHost") //Must use program variable or machine name for parallel processing
+            .WithInstanceName($"consoleHost") //TODO must use unique name for parallel processing
             .WithLeaseContainer(_cosmosQueueClient.Lease)
             .WithPollInterval(_cosmosConfiguration.PollingDelay)
+            .WithStartTime(DateTime.Now - _cosmosConfiguration.StartRewind)
             .Build();
 
         await changeFeedProcessor.StartAsync();
@@ -67,7 +68,7 @@ public class CosmosCommandChannelReceiver<T> : IChannelReceiver
             var messageStateHandler = new CosmosMessageStateHandler<T>(
                 _cosmosQueueClient,
                 message,
-                settings.DeadLetterDeliveryLimit,
+                _settings.DeadLetterDeliveryLimit,
                 _hostConfiguration.DependencyInjection
             );
             tasks.Add(_processor.ProcessAsync(messageStateHandler, cancellationToken));

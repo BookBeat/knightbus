@@ -42,22 +42,6 @@ public class CosmosSubscriptionChannelReceiver<T> : IChannelReceiver
     {
         await _cosmosQueueClient.StartAsync(_cosmosClient, cancellationToken);
 
-        //Process events directly on topic
-        ChangeFeedProcessor eventFetcher = _cosmosQueueClient
-            .TopicQueue.GetChangeFeedProcessorBuilder<InternalCosmosMessage<T>>(
-                processorName: AutoMessageMapper.GetQueueName<T>() + "->" + _subscription.Name,
-                onChangesDelegate: ProcessChangesAsync
-            )
-            .WithInstanceName($"consoleHost") //Must use program variable for parallel processing
-            .WithLeaseContainer(_cosmosQueueClient.Lease)
-            .WithPollInterval(_cosmosConfiguration.PollingDelay)
-            .Build();
-
-        await eventFetcher.StartAsync();
-        Console.WriteLine(
-            $"{_subscription.Name} processor on topic {AutoMessageMapper.GetQueueName<T>()} started."
-        );
-
         //Process events in Retry queue
         ChangeFeedProcessor eventProcessor = _cosmosQueueClient
             .RetryQueue.GetChangeFeedProcessorBuilder<InternalCosmosMessage<T>>(
@@ -70,7 +54,20 @@ public class CosmosSubscriptionChannelReceiver<T> : IChannelReceiver
             .Build();
 
         await eventProcessor.StartAsync();
-        Console.WriteLine($"{_subscription.Name} retry processor for started.");
+
+        //Process events directly on topic
+        ChangeFeedProcessor eventFetcher = _cosmosQueueClient
+            .TopicQueue.GetChangeFeedProcessorBuilder<InternalCosmosMessage<T>>(
+                processorName: $"{_subscription.Name}-Retry",
+                onChangesDelegate: ProcessChangesAsync
+            )
+            .WithInstanceName($"consoleHost") //Must use program variable for parallel processing
+            .WithLeaseContainer(_cosmosQueueClient.Lease)
+            .WithPollInterval(_cosmosConfiguration.PollingDelay)
+            .WithStartTime(DateTime.Now - _cosmosConfiguration.StartRewind)
+            .Build();
+
+        await eventFetcher.StartAsync();
     }
 
     private async Task ProcessChangesAsync(
@@ -79,7 +76,7 @@ public class CosmosSubscriptionChannelReceiver<T> : IChannelReceiver
         CancellationToken cancellationToken
     )
     {
-        List<Task> tasks = new List<Task>();
+        List<Task> tasks = [];
         foreach (var message in messages)
         {
             var messageStateHandler = new CosmosMessageStateHandler<T>(

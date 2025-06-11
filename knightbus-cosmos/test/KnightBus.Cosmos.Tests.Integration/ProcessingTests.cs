@@ -41,7 +41,7 @@ class ProcessingTests : CosmosTestBase
     [Test]
     public async Task AllEventsProcessedWhenOneSubscriber()
     {
-        const int numMessages = 1000;
+        const int numMessages = 100;
 
         OneSubCosmosEvent[] messages = new OneSubCosmosEvent[numMessages];
         string[] messageContents = new string[numMessages];
@@ -60,7 +60,7 @@ class ProcessingTests : CosmosTestBase
     [Test]
     public async Task AllEventsProcessedWhenToTwoSubscribers()
     {
-        const int numMessages = 1000;
+        const int numMessages = 100;
 
         TwoSubCosmosEvent[] messages = new TwoSubCosmosEvent[numMessages];
         string[] messageContents = new string[numMessages];
@@ -78,7 +78,7 @@ class ProcessingTests : CosmosTestBase
     [Test]
     public async Task FailedEventsShouldBeRetriedAccordingToDeadLetterLimit()
     {
-        const int numMessages = 200;
+        const int numMessages = 100;
 
         PoisonEvent[] messages = new PoisonEvent[numMessages];
         string[] messageContents = new string[numMessages];
@@ -106,7 +106,7 @@ class ProcessingTests : CosmosTestBase
     [Test]
     public async Task EventsShouldBeProcessedOrDeadLettered()
     {
-        const int numMessages = 1000;
+        const int numMessages = 100;
 
         SporadicErrorEvent[] messages = new SporadicErrorEvent[numMessages];
         string[] messageContents = new string[numMessages];

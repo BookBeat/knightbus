@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Collections.Concurrent;
+using System.Net;
 using KnightBus.Core;
 using KnightBus.Cosmos.Messages;
 using KnightBus.Messages;
@@ -21,37 +22,18 @@ public interface ICosmosBus
         where T : ICosmosEvent;
 }
 
-public class CosmosBus : ICosmosBus
+public class CosmosBus(CosmosClient client, ICosmosConfiguration cosmosConfiguration) : ICosmosBus
 {
-    private readonly CosmosClient _client;
-    private readonly ICosmosConfiguration _cosmosConfiguration;
-
-    //Constructor
-    public CosmosBus(CosmosClient client, ICosmosConfiguration cosmosConfiguration)
-    {
-        _cosmosConfiguration = cosmosConfiguration;
-
-        string? connectionString = cosmosConfiguration.ConnectionString;
-        ArgumentNullException.ThrowIfNull(connectionString);
-        _client = client;
-    }
-
     public void Dispose()
     {
-        _client.Dispose();
-    }
-
-    public async Task RemoveDatabase()
-    {
-        Database database = _client.GetDatabase(_cosmosConfiguration.Database);
-        await database.DeleteAsync();
+        client.Dispose();
     }
 
     //Send a single command
     public Task SendAsync<T>(T message, CancellationToken cancellationToken)
         where T : ICosmosCommand
     {
-        return SendAsync([message], cancellationToken);
+        return InternalInsert([message], cancellationToken);
     }
 
     //Send multiple commands
@@ -65,7 +47,7 @@ public class CosmosBus : ICosmosBus
     public Task PublishAsync<T>(T message, CancellationToken cancellationToken)
         where T : ICosmosEvent
     {
-        return PublishAsync([message], cancellationToken);
+        return InternalInsert([message], cancellationToken);
     }
 
     //Publish multiple events
@@ -83,20 +65,17 @@ public class CosmosBus : ICosmosBus
         where T : IMessage
     {
         // Get container
-        Container container = _client.GetContainer(
-            _cosmosConfiguration.Database,
+        Container container = client.GetContainer(
+            cosmosConfiguration.Database,
             AutoMessageMapper.GetQueueName<T>()
         );
 
-        const int maxClientRetries = 5; //Could be made into configurable setting
-
-        int retryCount = 0;
-
-        while (retryCount <= maxClientRetries)
+        int retries = 0;
+        while (retries <= cosmosConfiguration.MaxPublishRetriesOnRateLimited)
         {
             //Insert messages asynchronously to utilize bulk execution
             List<Task> tasks = new List<Task>();
-            var failedMessages = new List<T>();
+            var failedMessages = new ConcurrentBag<T>();
 
             foreach (var msg in messages)
             {
@@ -119,7 +98,7 @@ public class CosmosBus : ICosmosBus
                                     CosmosException? cosmosException = innerExceptions
                                         ?.InnerExceptions.OfType<CosmosException>()
                                         .FirstOrDefault();
-                                    //Add Rate limited messages to list that will be retried later
+                                    //Add messages that fail due to rate limitations to list that will be retried later
                                     if (
                                         cosmosException is
                                         { StatusCode: HttpStatusCode.TooManyRequests }
@@ -131,14 +110,14 @@ public class CosmosBus : ICosmosBus
                                     else if (cosmosException != null)
                                     {
                                         Console.WriteLine(
-                                            $"CosmosException: {cosmosException.StatusCode} ({cosmosException.ResponseBody})."
+                                            $"CosmosException: {cosmosException.StatusCode} ({cosmosException.ResponseBody})." //TODO throw?
                                         );
                                     }
                                     //Log other exceptions
                                     else
                                     {
                                         Console.WriteLine(
-                                            $"Exception: {innerExceptions?.InnerExceptions.FirstOrDefault()}."
+                                            $"Exception: {innerExceptions?.InnerExceptions.FirstOrDefault()}." //TODO throw?
                                         );
                                     }
                                 }
@@ -149,21 +128,18 @@ public class CosmosBus : ICosmosBus
             }
 
             await Task.WhenAll(tasks);
-            if (failedMessages.Count == 0)
-            {
-                Console.WriteLine("All messages inserted");
+
+            if (failedMessages.IsEmpty)
                 return;
-            }
 
-            retryCount++;
+            retries += 1;
             messages = failedMessages;
-            if (retryCount <= maxClientRetries)
-                Console.WriteLine($"Retrying {failedMessages.Count} messages ...");
 
-            double failRate = failedMessages.Count() / messages.Count();
-            await Task.Delay(TimeSpan.FromSeconds(10 * failRate), cancellationToken);
+            double failRate = (double)failedMessages.Count / messages.Count();
+            //Wait before retrying to publish the events
+            await Task.Delay(TimeSpan.FromSeconds(10 * failRate), cancellationToken); //10 is arbitrary
         }
 
-        Console.WriteLine($"{messages.Count()} messages could not be sent");
+        Console.WriteLine($"{messages.Count()} messages could not be sent"); //TODO throw?
     }
 }

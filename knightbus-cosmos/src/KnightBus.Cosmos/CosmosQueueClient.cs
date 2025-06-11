@@ -10,14 +10,12 @@ public class CosmosQueueClient<T>
     where T : class, IMessage
 {
     private readonly ICosmosConfiguration _cosmosConfiguration;
-    public CosmosClient Client { get; private set; }
-    public Database Database { get; private set; }
+    private Database Database { get; set; }
     public Container TopicQueue { get; private set; }
-    public Container RetryQueue { get; private set; }
+    public Container? RetryQueue { get; private set; }
     public Container Lease { get; private set; }
     private Container DeadLetterQueue { get; set; }
-
-    public IEventSubscription? _subscription { get; private set; }
+    private IEventSubscription? Subscription { get; }
 
     public CosmosQueueClient(
         ICosmosConfiguration cosmosConfiguration,
@@ -25,47 +23,48 @@ public class CosmosQueueClient<T>
     )
     {
         _cosmosConfiguration = cosmosConfiguration;
-        _subscription = subscription;
+        Subscription = subscription;
     }
-
-    // subscription client
 
     public async Task StartAsync(CosmosClient cosmosClient, CancellationToken cancellationToken)
     {
-        //Create cosmos client
-        Client = cosmosClient;
-
         //Get database, create if it does not exist
-        DatabaseResponse databaseResponse = await Client.CreateDatabaseIfNotExistsAsync(
-            _cosmosConfiguration.Database,
-            1000,
-            null,
-            cancellationToken
+        DatabaseResponse databaseResponse = await cosmosClient.CreateDatabaseIfNotExistsAsync(
+            id: _cosmosConfiguration.Database,
+            throughputProperties: ThroughputProperties.CreateAutoscaleThroughput(
+                _cosmosConfiguration.MaxRUs
+            ),
+            cancellationToken: cancellationToken
         );
         CheckHttpResponse(databaseResponse.StatusCode, _cosmosConfiguration.Database);
         Database = databaseResponse.Database;
 
-        Lease = await CreateContainerAsync(_cosmosConfiguration.LeaseContainer, cancellationToken);
-        TopicQueue = await CreateContainerAsync(
+        Lease = await GetOrCreateContainerAsync(
+            _cosmosConfiguration.LeaseContainer,
+            cancellationToken
+        );
+
+        TopicQueue = await GetOrCreateContainerAsync(
             AutoMessageMapper.GetQueueName<T>(),
             cancellationToken
         );
 
-        DeadLetterQueue = await CreateContainerAsync(
+        DeadLetterQueue = await GetOrCreateContainerAsync(
             AutoMessageMapper.GetQueueName<T>() + "_DL",
             cancellationToken,
             "/Subscription",
-            -1
-        ); //Deadlettered items should never expire
+            -1 // TTL = -1 means items never expire
+        );
 
-        if (typeof(ICosmosEvent).IsAssignableFrom(typeof(T)))
-            RetryQueue = await CreateContainerAsync(
-                AutoMessageMapper.GetQueueName<T>() + "_Retry_" + _subscription!.Name,
+        //Only events should have retryQueue
+        if (typeof(ICosmosEvent).IsAssignableFrom(typeof(T))) //TODO check if Subscription == null?
+            RetryQueue = await GetOrCreateContainerAsync(
+                AutoMessageMapper.GetQueueName<T>() + "_Retry_" + Subscription!.Name,
                 cancellationToken
             );
     }
 
-    private async Task<Container> CreateContainerAsync(
+    private async Task<Container> GetOrCreateContainerAsync(
         string id,
         CancellationToken cancellationToken,
         string partitionKeyPath = "/id",
@@ -74,8 +73,9 @@ public class CosmosQueueClient<T>
     {
         TTL ??= (int)_cosmosConfiguration.DefaultTimeToLive.TotalSeconds; //Get default TTL if not specified
 
-        //Get container
+        //Create Container if it does not exist
         //Replace it if it exists and partitionKey or default TTL does not match the specified values
+        //Existing documents in the container are not removed
         try
         {
             Container container = Database.GetContainer(id);
@@ -94,7 +94,6 @@ public class CosmosQueueClient<T>
             properties.PartitionKeyPath = partitionKeyPath;
             properties.DefaultTimeToLive = TTL;
 
-            //Updates metadata, old items are kept
             await container.ReplaceContainerAsync(properties, cancellationToken: cancellationToken);
 
             return container;
@@ -135,24 +134,11 @@ public class CosmosQueueClient<T>
     {
         DeadLetterCosmosMessage<T> deadLetterMessage = message.ToDeadLetterMessage(
             AutoMessageMapper.GetQueueName<T>(),
-            _subscription!.Name
+            Subscription!.Name
         );
         await DeadLetterQueue.CreateItemAsync(
             deadLetterMessage,
             new PartitionKey(deadLetterMessage.Subscription)
-        );
-    }
-
-    public async Task AddItemAsync(InternalCosmosMessage<T> message, Container container)
-    {
-        await container.CreateItemAsync(message, new PartitionKey(message.id));
-    }
-
-    public async Task RemoveItemAsync(InternalCosmosMessage<T> message, Container container)
-    {
-        await container.DeleteItemAsync<InternalCosmosMessage<T>>(
-            message.id,
-            new PartitionKey(message.id)
         );
     }
 }

@@ -34,6 +34,12 @@ class Program
                         configuration.ConnectionString = connectionString;
                         configuration.PollingDelay = TimeSpan.FromSeconds(2);
                         configuration.DefaultTimeToLive = TimeSpan.FromSeconds(120);
+                        configuration.ClientOptions = new CosmosClientOptions()
+                        {
+                            AllowBulkExecution = true,
+                            MaxRetryAttemptsOnRateLimitedRequests = 200,
+                            MaxRetryWaitTimeOnRateLimitedRequests = TimeSpan.FromSeconds(60),
+                        };
                     })
                     .RegisterProcessors(typeof(Program).Assembly) //Can be any class name in this project
                     .UseTransport<CosmosTransport>();
