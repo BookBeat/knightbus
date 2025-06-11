@@ -1,5 +1,4 @@
 ﻿using System.Data;
-using System.Text;
 using KnightBus.Core;
 using KnightBus.Messages;
 using KnightBus.PostgreSql.Messages;
@@ -32,8 +31,7 @@ public class PostgresBus : IPostgresBus
     private readonly IMessageSerializer _serializer;
 
     public PostgresBus(
-        [FromKeyedServices(PostgresConstants.NpgsqlDataSourceContainerKey)]
-            NpgsqlDataSource npgsqlDataSource,
+        [FromKeyedServices(NpgsqlDataSourceContainerKey)] NpgsqlDataSource npgsqlDataSource,
         IPostgresConfiguration postgresConfiguration
     )
     {
@@ -90,42 +88,80 @@ public class PostgresBus : IPostgresBus
         await using var connection = await _npgsqlDataSource
             .OpenConnectionAsync(ct)
             .ConfigureAwait(false);
-        await using var command = new NpgsqlCommand(null, connection);
 
-        /*
-         * Build a cmd text with multirow VALUES syntax and parameter placeholders
-         * INSERT INTO queue (visibility_timeout, message) VALUES
-         * ('now() + optional delay', ($1)),
-         * ('now() + optional delay', ($2)),
-         * ('now() + optional delay', ($3));
-         */
-        var values = new StringBuilder();
-        for (int i = 0; i < messagesList.Count; i++)
+        if (messagesList.Count < 50)
         {
-            var oneBasedIndex = i + 1;
-            var trailingComma = oneBasedIndex == messagesList.Count ? string.Empty : ",";
-            values.AppendFormat(
-                "((now() + interval '{0} seconds'), (${1})){2}",
-                delay?.TotalSeconds ?? 0,
-                oneBasedIndex,
-                trailingComma
-            );
+            await BatchInsert(connection, queueName, messagesList, delay, ct).ConfigureAwait(false);
+            return;
+        }
 
-            var mBody = _serializer.Serialize(messagesList[i]);
-            command.Parameters.Add(
-                new NpgsqlParameter { Value = mBody, NpgsqlDbType = NpgsqlDbType.Jsonb }
+        await BatchCopy(connection, queueName, messagesList, delay, ct).ConfigureAwait(false);
+    }
+
+    private async Task BatchInsert<T>(
+        NpgsqlConnection connection,
+        string queueName,
+        List<T> messages,
+        TimeSpan? delay,
+        CancellationToken ct
+    )
+        where T : IPostgresCommand
+    {
+        var visibilityTimeout = $"now() + INTERVAL '{delay?.TotalSeconds ?? 0} seconds'";
+
+        await using var batch = new NpgsqlBatch(connection);
+        foreach (var messageBody in messages.Select(message => _serializer.Serialize(message)))
+        {
+            batch.BatchCommands.Add(
+                new NpgsqlBatchCommand(
+                    //lang=postgresql
+                    $"INSERT INTO {SchemaName}.{QueuePrefix}_{queueName} (visibility_timeout, message) VALUES ({visibilityTimeout}, $1)"
+                )
+                {
+                    Parameters =
+                    {
+                        new NpgsqlParameter<byte[]>
+                        {
+                            TypedValue = messageBody,
+                            NpgsqlDbType = NpgsqlDbType.Jsonb,
+                        },
+                    },
+                }
             );
         }
 
-        var stringValues = values.ToString();
+        await batch.PrepareAsync(ct).ConfigureAwait(false);
+        await batch.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+    }
 
-        command.CommandText =
-            @$"
-INSERT INTO {SchemaName}.{QueuePrefix}_{queueName} (visibility_timeout, message)
-VALUES {stringValues};
-";
-        await command.PrepareAsync(ct);
-        await command.ExecuteNonQueryAsync(ct);
+    private async Task BatchCopy<T>(
+        NpgsqlConnection connection,
+        string queueName,
+        List<T> messages,
+        TimeSpan? delay,
+        CancellationToken ct
+    )
+        where T : IPostgresCommand
+    {
+        string sql =
+            //lang=postgresql
+            $"COPY {SchemaName}.{QueuePrefix}_{queueName} (visibility_timeout, message) FROM STDIN (FORMAT binary)";
+
+        await using var importer = await connection
+            .BeginBinaryImportAsync(sql, ct)
+            .ConfigureAwait(false);
+
+        var visibilityTimeout = DateTimeOffset.UtcNow.AddSeconds(delay?.TotalSeconds ?? 0);
+        foreach (var messageBody in messages.Select(message => _serializer.Serialize(message)))
+        {
+            await importer.StartRowAsync(ct).ConfigureAwait(false);
+            await importer
+                .WriteAsync(visibilityTimeout, NpgsqlDbType.TimestampTz, ct)
+                .ConfigureAwait(false);
+            await importer.WriteAsync(messageBody, NpgsqlDbType.Jsonb, ct).ConfigureAwait(false);
+        }
+
+        await importer.CompleteAsync(ct).ConfigureAwait(false);
     }
 
     private async Task PublishAsyncInternal<T>(IEnumerable<T> messages, CancellationToken ct)
