@@ -1,8 +1,8 @@
-using KnightBus.Core.Management;
+﻿using KnightBus.Core.Management;
 
 namespace KnightBus.PostgreSql.Management;
 
-public class PostgresTopicManager : IQueueManager
+public class PostgresTopicManager : IQueueManager, IQueueMessageSender
 {
     private readonly PostgresManagementClient _managementClient;
     private readonly IPostgresConfiguration _configuration;
@@ -69,6 +69,11 @@ public class PostgresTopicManager : IQueueManager
     public Task<int> MoveDeadLetters(string path, int count, CancellationToken ct)
     {
         throw new NotImplementedException();
+    }
+
+    public async Task SendMessage(string path, string jsonBody, CancellationToken cancellationToken)
+    {
+        await _managementClient.PublishEvent(path, jsonBody, cancellationToken);
     }
 
     public QueueType QueueType => QueueType.Topic;

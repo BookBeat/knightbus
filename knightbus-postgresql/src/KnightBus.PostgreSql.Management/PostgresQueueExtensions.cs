@@ -1,4 +1,4 @@
-using KnightBus.Core.Management;
+﻿using KnightBus.Core.Management;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace KnightBus.PostgreSql.Management;
@@ -16,6 +16,7 @@ public static class PostgresQueueExtensions
             .AddScoped<IQueueManager, PostgresQueueManager>()
             .AddScoped<IQueueMessageSender, PostgresQueueManager>()
             .AddScoped<IQueueManager, PostgresTopicManager>()
+            .AddScoped<IQueueMessageSender, PostgresTopicManager>()
             .AddScoped<PostgresManagementClient>();
 
         return services.UsePostgres(c =>

@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Data;
+using System.Runtime.CompilerServices;
 using KnightBus.Messages;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
@@ -627,5 +628,30 @@ VALUES (now(), $1);
             new NpgsqlParameter { Value = jsonBody, NpgsqlDbType = NpgsqlDbType.Jsonb }
         );
         await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    public async Task PublishEvent(
+        string topicName,
+        string jsonBody,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var cmd = _npgsqlDataSource.CreateCommand(
+            $"select {SchemaName}.publish_events($1, $2)"
+        );
+
+        cmd.CommandType = CommandType.Text;
+        cmd.Parameters.Add(
+            new NpgsqlParameter { Value = topicName, NpgsqlDbType = NpgsqlDbType.Text }
+        );
+
+        cmd.Parameters.Add(
+            new NpgsqlParameter
+            {
+                Value = new[] { jsonBody },
+                NpgsqlDbType = NpgsqlDbType.Array | NpgsqlDbType.Jsonb,
+            }
+        );
+        await cmd.ExecuteNonQueryAsync(cancellationToken);
     }
 }
