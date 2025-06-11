@@ -5,6 +5,7 @@ using KnightBus.Messages;
 using KnightBus.PostgreSql.Management;
 using KnightBus.PostgreSql.Messages;
 using NUnit.Framework;
+using NUnit.Framework.Internal;
 
 namespace KnightBus.PostgreSql.Tests.Integration;
 
@@ -29,6 +30,11 @@ public class PostgresBusTests
         );
         await QueueInitializer.InitQueue(
             PostgresQueueName.Create(AutoMessageMapper.GetQueueName<TestCommand>()),
+            PostgresSetup.DataSource
+        );
+        await QueueInitializer.InitSubscription(
+            PostgresQueueName.Create(TestEventMessageMapping.TestQueueName),
+            PostgresQueueName.Create(TestSubscription.TestSubscriptiomName),
             PostgresSetup.DataSource
         );
     }
@@ -306,6 +312,30 @@ WHERE message_id = {message[0].Id}"
 
         messages[0].Message.MessageBody.Should().Be(message.MessageBody);
     }
+
+    [Test]
+    public async Task ManagementClient_PublishEvent()
+    {
+        var postgresTopicCLient = new PostgresSubscriptionClient<TestEvent>(
+            PostgresSetup.DataSource,
+            new MicrosoftJsonSerializer(),
+            new TestSubscription()
+        );
+        var message = new { MessageBody = "hello, world!" };
+        var jsonBody = JsonSerializer.Serialize(message);
+        await _postgresManagementClient.PublishEvent(
+            TestEventMessageMapping.TestQueueName,
+            jsonBody,
+            default
+        );
+
+        var messages = postgresTopicCLient
+            .GetMessagesAsync(1, 100, default)
+            .ToBlockingEnumerable()
+            .ToList();
+
+        messages[0].Message.MessageBody.Should().Be(message.MessageBody);
+    }
 }
 
 public class TestCommand : IPostgresCommand
@@ -324,4 +354,29 @@ public class TestMessageSettings : IProcessingSettings
 public class TestCommandMessageMapping : IMessageMapping<TestCommand>
 {
     public string QueueName => "my_queue";
+}
+
+public class TestEvent : IPostgresEvent
+{
+    public string MessageBody { get; set; }
+}
+
+public class TestEventSettings : IProcessingSettings
+{
+    public int MaxConcurrentCalls { get; set; } = 1;
+    public TimeSpan MessageLockTimeout { get; set; } = TimeSpan.FromMinutes(1);
+    public int DeadLetterDeliveryLimit { get; set; } = 1;
+    public int PrefetchCount { get; set; }
+}
+
+public class TestEventMessageMapping : IMessageMapping<TestEvent>
+{
+    public static string TestQueueName = "my_topic";
+    public string QueueName => TestQueueName;
+}
+
+public class TestSubscription : IEventSubscription<TestEvent>
+{
+    public static string TestSubscriptiomName = "test_mysubsciption";
+    public string Name => TestSubscriptiomName;
 }
