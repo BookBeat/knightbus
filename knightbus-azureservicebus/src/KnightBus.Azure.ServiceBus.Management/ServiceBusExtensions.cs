@@ -68,6 +68,7 @@ public static class ServiceBusExtensions
     {
         return services
             .AddScoped<IQueueMessageSender, ServiceBusQueueManager>()
+            .AddScoped<IQueueMessageSender, ServiceBusTopicManager>()
             .AddScoped<IQueueManager, ServiceBusQueueManager>()
             .AddScoped<IQueueManager, ServiceBusTopicManager>()
             .AddScoped<ServiceBusQueueManager>()
