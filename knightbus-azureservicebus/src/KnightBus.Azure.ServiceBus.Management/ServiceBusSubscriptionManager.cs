@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -175,6 +176,16 @@ public class ServiceBusSubscriptionManager : IQueueManager
         var sender = _client.CreateSender(_topic);
 
         return ServiceBusQueueManager.MoveMessages(sender, receiver, count, 10);
+    }
+
+    public Task<int> MoveDeadLetters(
+        string fromPath,
+        string toPath,
+        int count,
+        CancellationToken ct
+    )
+    {
+        throw new NotImplementedException();
     }
 
     public QueueType QueueType => QueueType.Subscription;

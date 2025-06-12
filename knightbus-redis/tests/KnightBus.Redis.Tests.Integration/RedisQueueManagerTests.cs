@@ -72,4 +72,10 @@ public class RedisQueueManagerTests : QueueManagerTests<TestCommand>
             Mock.Of<ILogger>()
         );
     }
+
+    [Test, Ignore("Not supported for redis")]
+    public override Task ShouldMoveDeadLetterMessagesToAnotherQueue()
+    {
+        return Task.CompletedTask;
+    }
 }
