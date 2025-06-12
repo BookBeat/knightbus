@@ -46,6 +46,15 @@ public class PostgresBusTests
             PostgresQueueName.Create(AutoMessageMapper.GetQueueName<TestCommand>()),
             default
         );
+        await _postgresManagementClient.DeleteSubscription(
+            PostgresQueueName.Create(TestEventMessageMapping.TestQueueName).Value,
+            PostgresQueueName.Create(TestSubscription.TestSubscriptiomName),
+            default
+        );
+        await _postgresManagementClient.DeleteTopic(
+            PostgresQueueName.Create(AutoMessageMapper.GetQueueName<TestEvent>()),
+            default
+        );
     }
 
     [SetUp]

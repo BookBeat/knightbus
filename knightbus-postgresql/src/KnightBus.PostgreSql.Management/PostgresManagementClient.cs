@@ -555,6 +555,31 @@ WHERE queue_name = ($1);
         await transaction.CommitAsync(ct);
     }
 
+    public async Task DeleteTopic(PostgresQueueName topicName, CancellationToken ct)
+    {
+        await using var connection = await _npgsqlDataSource
+            .OpenConnectionAsync(ct)
+            .ConfigureAwait(false);
+        await using var transaction = await connection.BeginTransactionAsync(ct);
+
+        await using var truncateTopic = _npgsqlDataSource.CreateCommand(
+            @$"
+DROP TABLE IF EXISTS {SchemaName}.{TopicPrefix}_{topicName};
+"
+        );
+        await using var deleteMetadata = _npgsqlDataSource.CreateCommand(
+            @$"
+DELETE FROM {SchemaName}.metadata
+WHERE queue_name = ($1);
+"
+        );
+        deleteMetadata.Parameters.Add(new NpgsqlParameter<string> { TypedValue = topicName.Value });
+
+        await truncateTopic.ExecuteNonQueryAsync(ct);
+        await deleteMetadata.ExecuteNonQueryAsync(ct);
+        await transaction.CommitAsync(ct);
+    }
+
     public async Task DeleteSubscription(
         string topic,
         PostgresQueueName subscription,
