@@ -25,7 +25,7 @@ public static class ServiceCollectionExtensions
         "https://ossrdbms-aad.database.windows.net/.default",
     ];
 
-    public static IServiceCollection UsePostgresWithManagedIdentity(
+    public static IServiceCollection UsePostgresWithAzureManagedIdentity(
         this IServiceCollection services,
         Action<IPostgresAzureConfiguration>? configuration = null
     )
@@ -41,7 +41,7 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    public static IServiceCollection UsePostgresManagementWithManagedIdentity(
+    public static IServiceCollection UsePostgresManagementWithAzureManagedIdentity(
         this IServiceCollection services,
         Action<IPostgresAzureConfiguration>? configuration = null
     )
