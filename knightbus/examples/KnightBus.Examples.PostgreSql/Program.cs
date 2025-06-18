@@ -23,7 +23,7 @@ class Program
 
         const string connectionString = "";
 
-        var knightBusHost = global::Microsoft
+        var knightBusHost = Microsoft
             .Extensions.Hosting.Host.CreateDefaultBuilder()
             .UseDefaultServiceProvider(options =>
             {
