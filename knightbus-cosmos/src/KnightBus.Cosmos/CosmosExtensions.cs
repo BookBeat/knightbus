@@ -14,7 +14,6 @@ public static class CosmosExtensions
         config?.Invoke(configuration);
         collection.AddSingleton<ICosmosConfiguration>(_ => configuration);
         collection.AddScoped<ICosmosBus, CosmosBus>();
-        collection.AddScoped<CosmosBus>();
 
         collection.AddSingleton<CosmosClient>(
             new CosmosClient(configuration.ConnectionString, configuration.ClientOptions)

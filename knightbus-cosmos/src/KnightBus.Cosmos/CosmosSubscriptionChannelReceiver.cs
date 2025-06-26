@@ -17,6 +17,7 @@ public class CosmosSubscriptionChannelReceiver<T> : IChannelReceiver
     private readonly ICosmosConfiguration _cosmosConfiguration;
     private CosmosClient _cosmosClient;
     private readonly CosmosQueueClient<T> _cosmosQueueClient;
+    public IProcessingSettings Settings { get; set; }
 
     public CosmosSubscriptionChannelReceiver(
         IProcessingSettings processorSettings,
@@ -42,32 +43,37 @@ public class CosmosSubscriptionChannelReceiver<T> : IChannelReceiver
     {
         await _cosmosQueueClient.StartAsync(_cosmosClient, cancellationToken);
 
-        //Process events in Retry queue
-        ChangeFeedProcessor eventProcessor = _cosmosQueueClient
-            .RetryQueue.GetChangeFeedProcessorBuilder<InternalCosmosMessage<T>>(
-                processorName: _subscription.Name,
-                onChangesDelegate: ProcessChangesAsync
-            )
-            .WithInstanceName($"consoleHost") //Must use program variable for parallel processing
-            .WithLeaseContainer(_cosmosQueueClient.Lease)
-            .WithPollInterval(_cosmosConfiguration.PollingDelay)
-            .Build();
-
-        await eventProcessor.StartAsync();
-
         //Process events directly on topic
-        ChangeFeedProcessor eventFetcher = _cosmosQueueClient
+        var eventProcessorBuilder = _cosmosQueueClient
             .TopicQueue.GetChangeFeedProcessorBuilder<InternalCosmosMessage<T>>(
                 processorName: $"{_subscription.Name}-Retry",
                 onChangesDelegate: ProcessChangesAsync
             )
             .WithInstanceName($"consoleHost") //Must use program variable for parallel processing
             .WithLeaseContainer(_cosmosQueueClient.Lease)
-            .WithPollInterval(_cosmosConfiguration.PollingDelay)
-            .WithStartTime(DateTime.Now - _cosmosConfiguration.StartRewind)
-            .Build();
+            .WithStartTime(DateTime.Now - _cosmosConfiguration.StartRewind);
 
-        await eventFetcher.StartAsync();
+        //Process events in Retry queue
+        var retryProcessorBuilder = _cosmosQueueClient
+            .RetryQueue!.GetChangeFeedProcessorBuilder<InternalCosmosMessage<T>>(
+                processorName: _subscription.Name,
+                onChangesDelegate: ProcessChangesAsync
+            )
+            .WithInstanceName($"consoleHost") //Must use program variable for parallel processing
+            .WithLeaseContainer(_cosmosQueueClient.Lease);
+
+        if (_cosmosConfiguration.PollingDelay != null)
+        {
+            eventProcessorBuilder.WithPollInterval(_cosmosConfiguration.PollingDelay.Value);
+            retryProcessorBuilder.WithPollInterval(_cosmosConfiguration.PollingDelay.Value);
+        }
+        var retryProcessor = retryProcessorBuilder.Build();
+        await retryProcessor.StartAsync();
+
+        var eventProcessor = eventProcessorBuilder.Build();
+        await eventProcessor.StartAsync();
+
+        _hostConfiguration.Log.LogInformation("Sub {subscriptionName} started", _subscription.Name);
     }
 
     private async Task ProcessChangesAsync(
@@ -90,6 +96,4 @@ public class CosmosSubscriptionChannelReceiver<T> : IChannelReceiver
 
         await Task.WhenAll(tasks);
     }
-
-    public IProcessingSettings Settings { get; set; }
 }

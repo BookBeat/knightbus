@@ -13,7 +13,7 @@ namespace KnightBus.Cosmos.Tests.Integration;
 
 public abstract class CosmosTestBase
 {
-    public CosmosBus _publisher;
+    public ICosmosBus? Publisher;
     public string? _databaseId;
 
     [OneTimeSetUp]
@@ -21,10 +21,18 @@ public abstract class CosmosTestBase
     {
         Console.WriteLine("Starting CosmosDB example");
 
+        _databaseId = "KnightBus";
+
         //Connection string should be saved as environment variable named "CosmosString"
         var connectionString = Environment.GetEnvironmentVariable("CosmosString");
-        _databaseId = "PubSub";
-        const string leaseContainer = "Leases";
+
+        //Setup database
+        CosmosClient setupClient = new CosmosClient(connectionString);
+        await setupClient.CreateDatabaseIfNotExistsAsync(
+            id: "KnightBus",
+            throughputProperties: ThroughputProperties.CreateAutoscaleThroughput(1000)
+        );
+        setupClient.Dispose();
 
         var knightBusHost = Microsoft
             .Extensions.Hosting.Host.CreateDefaultBuilder()
@@ -39,10 +47,14 @@ public abstract class CosmosTestBase
                     .UseCosmos(configuration =>
                     {
                         configuration.ConnectionString = connectionString;
-                        configuration.Database = _databaseId;
-                        configuration.LeaseContainer = leaseContainer;
                         configuration.PollingDelay = TimeSpan.FromMilliseconds(500);
                         configuration.DefaultTimeToLive = TimeSpan.FromSeconds(120);
+                        configuration.ClientOptions = new CosmosClientOptions()
+                        {
+                            AllowBulkExecution = true,
+                            MaxRetryAttemptsOnRateLimitedRequests = 200,
+                            MaxRetryWaitTimeOnRateLimitedRequests = TimeSpan.FromSeconds(60),
+                        };
                     })
                     .RegisterProcessors(typeof(ProcessingTests).Assembly) //Can be any class name in this project
                     .UseTransport<CosmosTransport>();
@@ -55,14 +67,8 @@ public abstract class CosmosTestBase
         await knightBusHost.StartAsync();
         await Task.Delay(TimeSpan.FromSeconds(5));
 
-        _publisher = knightBusHost
+        Publisher = knightBusHost
             .Services.CreateScope()
-            .ServiceProvider.GetRequiredService<CosmosBus>();
-    }
-
-    [OneTimeTearDown]
-    public void OneTimeTearDown()
-    {
-        _publisher.Dispose();
+            .ServiceProvider.GetRequiredService<ICosmosBus>();
     }
 }

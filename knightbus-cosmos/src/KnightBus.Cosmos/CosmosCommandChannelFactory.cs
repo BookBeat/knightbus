@@ -27,7 +27,7 @@ public class CosmosCommandChannelFactory : ITransportChannelFactory
         Type messageType,
         IEventSubscription subscription,
         IProcessingSettings processingSettings,
-        IMessageSerializer serializer,
+        IMessageSerializer serializer, //TODO not used but required by framework
         IHostConfiguration hostConfiguration,
         IMessageProcessor processor
     )
@@ -38,7 +38,6 @@ public class CosmosCommandChannelFactory : ITransportChannelFactory
             Activator.CreateInstance(
                 queueReaderType,
                 processingSettings,
-                serializer,
                 hostConfiguration,
                 processor,
                 CosmosConfiguration,

@@ -31,7 +31,7 @@ public class StateTests : CosmosTestBase
         string topicContainer = AutoMessageMapper.GetQueueName<OneSubCosmosEvent>();
         var existing = await GetItemsFromContainerAsync<OneSubCosmosEvent>(topicContainer);
 
-        await _publisher.PublishAsync(messages, CancellationToken.None);
+        await Publisher.PublishAsync(messages, CancellationToken.None);
 
         //Filter items existing prior to publishing and convert from internalEvent to Event
         var existingPostPublish = await GetItemsFromContainerAsync<OneSubCosmosEvent>(
@@ -62,7 +62,7 @@ public class StateTests : CosmosTestBase
         string subContainer = $"{AutoMessageMapper.GetQueueName<FailFirstEvent>()}_Retry_FFSub";
         var existing = await GetItemsFromContainerAsync<FailFirstEvent>(subContainer);
 
-        await _publisher.PublishAsync(messages, CancellationToken.None);
+        await Publisher.PublishAsync(messages, CancellationToken.None);
         await Task.Delay(TimeSpan.FromSeconds(1));
         //Filter items existing prior to publishing and convert from internalEvent to Event
         var existingPostPublish = await GetItemsFromContainerAsync<FailFirstEvent>(subContainer);

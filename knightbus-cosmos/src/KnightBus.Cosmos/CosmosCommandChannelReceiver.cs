@@ -11,7 +11,6 @@ public class CosmosCommandChannelReceiver<T> : IChannelReceiver
     where T : class, ICosmosCommand
 {
     private readonly IProcessingSettings _settings;
-    private readonly IMessageSerializer _serializer;
     private readonly IHostConfiguration _hostConfiguration;
     private readonly IMessageProcessor _processor;
     private readonly ICosmosConfiguration _cosmosConfiguration;
@@ -20,7 +19,6 @@ public class CosmosCommandChannelReceiver<T> : IChannelReceiver
 
     public CosmosCommandChannelReceiver(
         IProcessingSettings processorSettings,
-        IMessageSerializer serializer,
         IHostConfiguration config,
         IMessageProcessor processor,
         ICosmosConfiguration cosmosConfiguration,
@@ -28,7 +26,6 @@ public class CosmosCommandChannelReceiver<T> : IChannelReceiver
     )
     {
         _settings = processorSettings;
-        _serializer = serializer;
         _hostConfiguration = config;
         _processor = processor;
         _cosmosConfiguration = cosmosConfiguration;
@@ -41,19 +38,26 @@ public class CosmosCommandChannelReceiver<T> : IChannelReceiver
         await _cosmosQueueClient.StartAsync(_cosmosClient, cancellationToken);
 
         //Process messages in topic queue
-        ChangeFeedProcessor changeFeedProcessor = _cosmosQueueClient
+        var commandProcessorBuilder = _cosmosQueueClient
             .TopicQueue.GetChangeFeedProcessorBuilder<InternalCosmosMessage<T>>(
                 processorName: "Command-" + AutoMessageMapper.GetQueueName<T>(),
                 onChangesDelegate: ProcessChangesAsync
             )
             .WithInstanceName($"consoleHost") //TODO must use unique name for parallel processing
             .WithLeaseContainer(_cosmosQueueClient.Lease)
-            .WithPollInterval(_cosmosConfiguration.PollingDelay)
-            .WithStartTime(DateTime.Now - _cosmosConfiguration.StartRewind)
-            .Build();
+            .WithStartTime(DateTime.Now - _cosmosConfiguration.StartRewind);
 
-        await changeFeedProcessor.StartAsync();
-        Console.WriteLine($"Processor on Command-{AutoMessageMapper.GetQueueName<T>()} started.");
+        if (_cosmosConfiguration.PollingDelay != null)
+        {
+            commandProcessorBuilder.WithPollInterval(_cosmosConfiguration.PollingDelay.Value);
+        }
+        var commandProcessor = commandProcessorBuilder.Build();
+
+        await commandProcessor.StartAsync();
+        _hostConfiguration.Log.LogInformation(
+            "Receiver on {Topic} started",
+            AutoMessageMapper.GetQueueName<T>()
+        );
     }
 
     private async Task ProcessChangesAsync(

@@ -32,7 +32,7 @@ class ProcessingTests : CosmosTestBase
             messages[i] = new SampleCosmosCommand() { MessageBody = $"msg data {i}" };
             messageContents[i] = messages[i].MessageBody;
         }
-        await _publisher.SendAsync(messages, CancellationToken.None);
+        await Publisher.SendAsync(messages, CancellationToken.None);
         await ProcessedTracker.WaitForProcessedMessagesAsync(messageContents, numMessages);
         ProcessedTracker.Processed(messageContents).Should().Be(numMessages);
     }
@@ -51,7 +51,7 @@ class ProcessingTests : CosmosTestBase
             messageContents[i] = messages[i].MessageBody;
         }
 
-        await _publisher.PublishAsync(messages, CancellationToken.None);
+        await Publisher.PublishAsync(messages, CancellationToken.None);
         await ProcessedTracker.WaitForProcessedMessagesAsync(messageContents, numMessages);
         ProcessedTracker.Processed(messageContents).Should().Be(numMessages);
     }
@@ -69,7 +69,7 @@ class ProcessingTests : CosmosTestBase
             messages[i] = new TwoSubCosmosEvent() { MessageBody = $"msg data {i}" };
             messageContents[i] = messages[i].MessageBody;
         }
-        await _publisher.PublishAsync(messages, CancellationToken.None);
+        await Publisher.PublishAsync(messages, CancellationToken.None);
         await ProcessedTracker.WaitForProcessedMessagesAsync(messageContents, numMessages, 2);
         ProcessedTracker.Processed(messageContents, 2).Should().Be(numMessages);
     }
@@ -90,7 +90,7 @@ class ProcessingTests : CosmosTestBase
         var settings = new CosmosProcessingSetting();
         int deadLetterLimit = settings.DeadLetterDeliveryLimit;
 
-        await _publisher.PublishAsync(messages, CancellationToken.None);
+        await Publisher.PublishAsync(messages, CancellationToken.None);
         await ProcessedTracker.WaitForProcessedMessagesAsync(
             messageContents,
             numMessages,
@@ -116,7 +116,7 @@ class ProcessingTests : CosmosTestBase
             messageContents[i] = messages[i].Body;
         }
 
-        await _publisher.PublishAsync(messages, CancellationToken.None);
+        await Publisher.PublishAsync(messages, CancellationToken.None);
         await ProcessedTracker.WaitForProcessedMessagesAsync(messageContents, numMessages);
         //Processed denotes times processing an event has completed
         int processed = ProcessedTracker.Processed(messageContents);
@@ -125,7 +125,7 @@ class ProcessingTests : CosmosTestBase
         var connectionString = Environment.GetEnvironmentVariable("CosmosString");
         CosmosClient cosmosClient = new CosmosClient(connectionString);
         Container container = cosmosClient.GetContainer(
-            "PubSub",
+            _databaseId,
             $"{AutoMessageMapper.GetQueueName<SporadicErrorEvent>()}_DL"
         );
         var query = container.GetItemQueryIterator<SporadicErrorEvent>("SELECT * FROM c");

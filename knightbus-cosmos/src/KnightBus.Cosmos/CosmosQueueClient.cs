@@ -28,16 +28,7 @@ public class CosmosQueueClient<T>
 
     public async Task StartAsync(CosmosClient cosmosClient, CancellationToken cancellationToken)
     {
-        //Get database, create if it does not exist
-        DatabaseResponse databaseResponse = await cosmosClient.CreateDatabaseIfNotExistsAsync(
-            id: _cosmosConfiguration.Database,
-            throughputProperties: ThroughputProperties.CreateAutoscaleThroughput(
-                _cosmosConfiguration.MaxRUs
-            ),
-            cancellationToken: cancellationToken
-        );
-        CheckHttpResponse(databaseResponse.StatusCode, _cosmosConfiguration.Database);
-        Database = databaseResponse.Database;
+        Database = cosmosClient.GetDatabase(_cosmosConfiguration.Database);
 
         Lease = await GetOrCreateContainerAsync(
             _cosmosConfiguration.LeaseContainer,
@@ -50,18 +41,20 @@ public class CosmosQueueClient<T>
         );
 
         DeadLetterQueue = await GetOrCreateContainerAsync(
-            AutoMessageMapper.GetQueueName<T>() + "_DL",
+            $"{AutoMessageMapper.GetQueueName<T>()}_DL",
             cancellationToken,
             "/Subscription",
             -1 // TTL = -1 means items never expire
         );
 
         //Only events should have retryQueue
-        if (typeof(ICosmosEvent).IsAssignableFrom(typeof(T))) //TODO check if Subscription == null?
+        if (Subscription != null)
+        {
             RetryQueue = await GetOrCreateContainerAsync(
                 AutoMessageMapper.GetQueueName<T>() + "_Retry_" + Subscription!.Name,
                 cancellationToken
             );
+        }
     }
 
     private async Task<Container> GetOrCreateContainerAsync(
@@ -105,20 +98,8 @@ public class CosmosQueueClient<T>
                 new ContainerProperties(id, partitionKeyPath) { DefaultTimeToLive = TTL },
                 cancellationToken: cancellationToken
             );
-            CheckHttpResponse(response.StatusCode, id);
             return response.Container;
         }
-    }
-
-    private static void CheckHttpResponse(HttpStatusCode statusCode, string id)
-    {
-        if (statusCode != HttpStatusCode.OK && statusCode != HttpStatusCode.Created)
-            throw new Exception($"Unexpected http response when creating {id} : {statusCode}");
-    }
-
-    public async Task CompleteAsync(InternalCosmosMessage<T> message)
-    {
-        await Task.CompletedTask;
     }
 
     public async Task AbandonByErrorAsync(InternalCosmosMessage<T> message)

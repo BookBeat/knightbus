@@ -19,7 +19,7 @@ public class CosmosMessageStateHandler<T>(
 
     public Task CompleteAsync()
     {
-        return cosmosQueueClient.CompleteAsync(message);
+        return Task.CompletedTask;
     }
 
     public Task AbandonByErrorAsync(Exception e)

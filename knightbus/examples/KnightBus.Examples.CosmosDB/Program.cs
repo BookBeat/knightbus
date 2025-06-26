@@ -19,6 +19,14 @@ class Program
         //Connection string should be saved as environment variable named "CosmosString"
         string? connectionString = Environment.GetEnvironmentVariable("CosmosString");
 
+        //Setup database
+        CosmosClient setupClient = new CosmosClient(connectionString);
+        await setupClient.CreateDatabaseIfNotExistsAsync(
+            id: "KnightBus",
+            throughputProperties: ThroughputProperties.CreateAutoscaleThroughput(1000)
+        );
+        setupClient.Dispose();
+
         var knightBusHost = Microsoft
             .Extensions.Hosting.Host.CreateDefaultBuilder()
             .UseDefaultServiceProvider(options =>
@@ -54,7 +62,7 @@ class Program
 
         var client = knightBusHost
             .Services.CreateScope()
-            .ServiceProvider.GetRequiredService<CosmosBus>();
+            .ServiceProvider.GetRequiredService<ICosmosBus>();
 
         //Send some commands
         SampleCosmosCommand[] messages = new SampleCosmosCommand[1000];
@@ -86,7 +94,6 @@ class Program
         //Clean-up
         Console.WriteLine("End of program, press any key to exit.");
         Console.ReadKey();
-        client.Dispose();
     }
 }
 

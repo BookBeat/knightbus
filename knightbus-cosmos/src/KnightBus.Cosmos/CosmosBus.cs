@@ -24,16 +24,11 @@ public interface ICosmosBus
 
 public class CosmosBus(CosmosClient client, ICosmosConfiguration cosmosConfiguration) : ICosmosBus
 {
-    public void Dispose()
-    {
-        client.Dispose();
-    }
-
     //Send a single command
     public Task SendAsync<T>(T message, CancellationToken cancellationToken)
         where T : ICosmosCommand
     {
-        return InternalInsert([message], cancellationToken);
+        return InternalInsert(message, cancellationToken);
     }
 
     //Send multiple commands
@@ -47,7 +42,7 @@ public class CosmosBus(CosmosClient client, ICosmosConfiguration cosmosConfigura
     public Task PublishAsync<T>(T message, CancellationToken cancellationToken)
         where T : ICosmosEvent
     {
-        return InternalInsert([message], cancellationToken);
+        return InternalInsert(message, cancellationToken);
     }
 
     //Publish multiple events
@@ -57,89 +52,105 @@ public class CosmosBus(CosmosClient client, ICosmosConfiguration cosmosConfigura
         await InternalInsert(messages, cancellationToken);
     }
 
-    //Internal function to insert messages into cosmos
+    //Insert a single message
+    private async Task InternalInsert<T>(T message, CancellationToken cancellationToken)
+        where T : IMessage
+    {
+        Container container = client.GetContainer(
+            cosmosConfiguration.Database,
+            AutoMessageMapper.GetQueueName<T>()
+        );
+
+        var internalMessage = new InternalCosmosMessage<T>(
+            message,
+            cosmosConfiguration.DefaultTimeToLive
+        );
+
+        try
+        {
+            await container.CreateItemAsync(
+                internalMessage,
+                new PartitionKey(internalMessage.id),
+                cancellationToken: cancellationToken
+            );
+        }
+        catch (CosmosException cosmosException)
+        {
+            Console.WriteLine(
+                $"CosmosException: {cosmosException.StatusCode} ({cosmosException.ResponseBody})." //TODO throw?
+            );
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"Exception: {ex}." //TODO throw?
+            );
+        }
+    }
+
+    //Internal function to insert multiple messages into cosmos
     private async Task InternalInsert<T>(
         IEnumerable<T> messages,
         CancellationToken cancellationToken
     )
         where T : IMessage
     {
-        // Get container
         Container container = client.GetContainer(
             cosmosConfiguration.Database,
             AutoMessageMapper.GetQueueName<T>()
         );
 
-        int retries = 0;
-        while (retries <= cosmosConfiguration.MaxPublishRetriesOnRateLimited)
+        //Insert messages asynchronously to utilize bulk execution
+        List<Task> tasks = new List<Task>();
+        var failedMessages = new ConcurrentBag<T>();
+
+        foreach (var msg in messages)
         {
-            //Insert messages asynchronously to utilize bulk execution
-            List<Task> tasks = new List<Task>();
-            var failedMessages = new ConcurrentBag<T>();
-
-            foreach (var msg in messages)
-            {
-                var internalMessage = new InternalCosmosMessage<T>(msg);
-                tasks.Add(
-                    container
-                        .CreateItemAsync(
-                            internalMessage,
-                            new PartitionKey(internalMessage.id),
-                            cancellationToken: cancellationToken
-                        )
-                        .ContinueWith(
-                            itemResponse =>
+            var internalMessage = new InternalCosmosMessage<T>(
+                msg,
+                cosmosConfiguration.DefaultTimeToLive
+            );
+            tasks.Add(
+                container
+                    .CreateItemAsync(
+                        internalMessage,
+                        new PartitionKey(internalMessage.id),
+                        cancellationToken: cancellationToken
+                    )
+                    .ContinueWith(
+                        itemResponse =>
+                        {
+                            //Error handling for failed messages
+                            if (!itemResponse.IsCompletedSuccessfully)
                             {
-                                //Error handling for failed messages
-                                if (!itemResponse.IsCompletedSuccessfully)
+                                AggregateException? innerExceptions =
+                                    itemResponse.Exception?.Flatten();
+                                CosmosException? cosmosException = innerExceptions
+                                    ?.InnerExceptions.OfType<CosmosException>()
+                                    .FirstOrDefault();
+                                //Add messages that fail due to rate limitations to list that will be retried later
+                                if (cosmosException != null)
                                 {
-                                    AggregateException? innerExceptions =
-                                        itemResponse.Exception?.Flatten();
-                                    CosmosException? cosmosException = innerExceptions
-                                        ?.InnerExceptions.OfType<CosmosException>()
-                                        .FirstOrDefault();
-                                    //Add messages that fail due to rate limitations to list that will be retried later
-                                    if (
-                                        cosmosException is
-                                        { StatusCode: HttpStatusCode.TooManyRequests }
-                                    )
-                                    {
-                                        failedMessages.Add(msg);
-                                    }
-                                    //Log cosmosException
-                                    else if (cosmosException != null)
-                                    {
-                                        Console.WriteLine(
-                                            $"CosmosException: {cosmosException.StatusCode} ({cosmosException.ResponseBody})." //TODO throw?
-                                        );
-                                    }
-                                    //Log other exceptions
-                                    else
-                                    {
-                                        Console.WriteLine(
-                                            $"Exception: {innerExceptions?.InnerExceptions.FirstOrDefault()}." //TODO throw?
-                                        );
-                                    }
+                                    Console.WriteLine(
+                                        $"CosmosException: {cosmosException.StatusCode} ({cosmosException.ResponseBody})." //TODO throw?
+                                    );
+                                    //TODO Log exception
                                 }
-                            },
-                            cancellationToken
-                        )
-                );
-            }
-
-            await Task.WhenAll(tasks);
-
-            if (failedMessages.IsEmpty)
-                return;
-
-            retries += 1;
-            messages = failedMessages;
-
-            double failRate = (double)failedMessages.Count / messages.Count();
-            //Wait before retrying to publish the events
-            await Task.Delay(TimeSpan.FromSeconds(10 * failRate), cancellationToken); //10 is arbitrary
+                                //Log other exceptions
+                                else
+                                {
+                                    Console.WriteLine(
+                                        $"Exception: {innerExceptions?.InnerExceptions.FirstOrDefault()}." //TODO throw?
+                                    );
+                                    //TODO Log exception
+                                }
+                            }
+                        },
+                        cancellationToken
+                    )
+            );
         }
 
-        Console.WriteLine($"{messages.Count()} messages could not be sent"); //TODO throw?
+        await Task.WhenAll(tasks);
     }
 }
