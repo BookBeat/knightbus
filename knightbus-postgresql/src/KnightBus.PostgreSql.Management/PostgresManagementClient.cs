@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Data;
+using System.Runtime.CompilerServices;
 using KnightBus.Messages;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
@@ -554,6 +555,31 @@ WHERE queue_name = ($1);
         await transaction.CommitAsync(ct);
     }
 
+    public async Task DeleteTopic(PostgresQueueName topicName, CancellationToken ct)
+    {
+        await using var connection = await _npgsqlDataSource
+            .OpenConnectionAsync(ct)
+            .ConfigureAwait(false);
+        await using var transaction = await connection.BeginTransactionAsync(ct);
+
+        await using var truncateTopic = _npgsqlDataSource.CreateCommand(
+            @$"
+DROP TABLE IF EXISTS {SchemaName}.{TopicPrefix}_{topicName};
+"
+        );
+        await using var deleteMetadata = _npgsqlDataSource.CreateCommand(
+            @$"
+DELETE FROM {SchemaName}.metadata
+WHERE queue_name = ($1);
+"
+        );
+        deleteMetadata.Parameters.Add(new NpgsqlParameter<string> { TypedValue = topicName.Value });
+
+        await truncateTopic.ExecuteNonQueryAsync(ct);
+        await deleteMetadata.ExecuteNonQueryAsync(ct);
+        await transaction.CommitAsync(ct);
+    }
+
     public async Task DeleteSubscription(
         string topic,
         PostgresQueueName subscription,
@@ -627,5 +653,30 @@ VALUES (now(), $1);
             new NpgsqlParameter { Value = jsonBody, NpgsqlDbType = NpgsqlDbType.Jsonb }
         );
         await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    public async Task PublishEvent(
+        string topicName,
+        string jsonBody,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var cmd = _npgsqlDataSource.CreateCommand(
+            $"select {SchemaName}.publish_events($1, $2)"
+        );
+
+        cmd.CommandType = CommandType.Text;
+        cmd.Parameters.Add(
+            new NpgsqlParameter { Value = topicName, NpgsqlDbType = NpgsqlDbType.Text }
+        );
+
+        cmd.Parameters.Add(
+            new NpgsqlParameter
+            {
+                Value = new[] { jsonBody },
+                NpgsqlDbType = NpgsqlDbType.Array | NpgsqlDbType.Jsonb,
+            }
+        );
+        await cmd.ExecuteNonQueryAsync(cancellationToken);
     }
 }

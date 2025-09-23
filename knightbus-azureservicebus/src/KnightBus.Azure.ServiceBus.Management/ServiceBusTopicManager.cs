@@ -9,7 +9,7 @@ using QueueProperties = KnightBus.Core.Management.QueueProperties;
 
 namespace KnightBus.Azure.ServiceBus.Management;
 
-public class ServiceBusTopicManager : IQueueManager
+public class ServiceBusTopicManager : IQueueManager, IQueueMessageSender
 {
     private readonly ServiceBusAdministrationClient _adminClient;
     private readonly ServiceBusClient _client;
@@ -78,4 +78,13 @@ public class ServiceBusTopicManager : IQueueManager
     }
 
     public QueueType QueueType => QueueType.Topic;
+
+    public async Task SendMessage(string path, string jsonBody, CancellationToken cancellationToken)
+    {
+        var sender = _client.CreateSender(path);
+        await sender.SendMessageAsync(
+            new ServiceBusMessage(jsonBody) { ContentType = "application/json" },
+            cancellationToken
+        );
+    }
 }
