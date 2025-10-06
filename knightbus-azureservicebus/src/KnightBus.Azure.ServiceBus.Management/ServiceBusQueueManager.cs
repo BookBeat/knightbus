@@ -11,7 +11,7 @@ using QueueProperties = KnightBus.Core.Management.QueueProperties;
 
 namespace KnightBus.Azure.ServiceBus.Management;
 
-public class ServiceBusQueueManager : IQueueManager, IQueueMessageSender, IDisposable
+public class ServiceBusQueueManager : IQueueManager, IQueueMessageSender, IAsyncDisposable
 {
     private readonly ServiceBusAdministrationClient _adminClient;
     private readonly ServiceBusClient _client;
@@ -232,12 +232,14 @@ public class ServiceBusQueueManager : IQueueManager, IQueueMessageSender, IDispo
         return movedMessages;
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         if (_disposed)
             return;
 
-        _client?.DisposeAsync().AsTask().GetAwaiter().GetResult();
+        if (_client != null)
+            await _client.DisposeAsync().ConfigureAwait(false);
+
         _disposed = true;
     }
 }
