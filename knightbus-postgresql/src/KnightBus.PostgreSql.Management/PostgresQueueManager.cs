@@ -159,5 +159,18 @@ public class PostgresQueueManager : IQueueManager, IQueueMessageSender
         );
     }
 
+    public async Task SendMessages(
+        string path,
+        IEnumerable<string> jsonBodies,
+        CancellationToken cancellationToken
+    )
+    {
+        await _managementClient.SendMessages(
+            PostgresQueueName.Create(path),
+            jsonBodies,
+            cancellationToken
+        );
+    }
+
     public QueueType QueueType => QueueType.Queue;
 }

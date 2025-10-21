@@ -182,6 +182,19 @@ public class ServiceBusQueueManager : IQueueManager, IQueueMessageSender
         );
     }
 
+    public async Task SendMessages(
+        string path,
+        IEnumerable<string> jsonBodies,
+        CancellationToken cancellationToken
+    )
+    {
+        var sender = _client.CreateSender(path);
+        await sender.SendMessagesAsync(
+            jsonBodies.Select(x => new ServiceBusMessage(x) { ContentType = "application/json" }),
+            cancellationToken
+        );
+    }
+
     internal static async Task<int> MoveMessages(
         ServiceBusSender sender,
         ServiceBusReceiver receiver,

@@ -628,4 +628,37 @@ VALUES (now(), $1);
         );
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
+
+    public async Task SendMessages(
+        PostgresQueueName queueName,
+        IEnumerable<string> jsonBodies,
+        CancellationToken cancellationToken
+    )
+    {
+        string sql =
+            //lang=postgresql
+            $"COPY {SchemaName}.{QueuePrefix}_{queueName} (visibility_timeout, message) FROM STDIN (FORMAT binary)";
+
+        await using var connection = await _npgsqlDataSource
+            .OpenConnectionAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        await using var importer = await connection
+            .BeginBinaryImportAsync(sql, cancellationToken)
+            .ConfigureAwait(false);
+
+        var visibilityTimeout = DateTimeOffset.UtcNow;
+        foreach (var jsonBody in jsonBodies)
+        {
+            await importer.StartRowAsync(cancellationToken).ConfigureAwait(false);
+            await importer
+                .WriteAsync(visibilityTimeout, NpgsqlDbType.TimestampTz, cancellationToken)
+                .ConfigureAwait(false);
+            await importer
+                .WriteAsync(jsonBody, NpgsqlDbType.Jsonb, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        await importer.CompleteAsync(cancellationToken).ConfigureAwait(false);
+    }
 }
