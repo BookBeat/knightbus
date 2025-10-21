@@ -19,8 +19,8 @@ public class ServiceBusQueueManager : IQueueManager, IQueueMessageSender, IAsync
 
     public ServiceBusQueueManager(IServiceBusConfiguration configuration)
     {
-        _adminClient = new ServiceBusAdministrationClient(configuration.ConnectionString);
-        _client = new ServiceBusClient(configuration.ConnectionString);
+        _adminClient = configuration.CreateServiceBusAdministrationClient();
+        _client = configuration.CreateServiceBusClient();
     }
 
     public async Task<IEnumerable<QueueProperties>> List(CancellationToken ct)

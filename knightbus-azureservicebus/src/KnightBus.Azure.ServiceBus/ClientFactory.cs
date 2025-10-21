@@ -29,13 +29,10 @@ public class ClientFactory : IClientFactory
     private ConcurrentDictionary<Type, ServiceBusSender> SenderClients { get; } =
         new ConcurrentDictionary<Type, ServiceBusSender>();
 
-    public ClientFactory(string connectionString)
-    {
-        _serviceBusClient = new ServiceBusClient(connectionString);
-    }
-
     public ClientFactory(IServiceBusConfiguration configuration)
-        : this(configuration.ConnectionString) { }
+    {
+        _serviceBusClient = configuration.CreateServiceBusClient();
+    }
 
     private ServiceBusSender CreateQueueClient<T>()
         where T : IMessage

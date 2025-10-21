@@ -1,4 +1,5 @@
-﻿using Azure.Messaging.ServiceBus.Administration;
+﻿using System;
+using Azure.Messaging.ServiceBus.Administration;
 using KnightBus.Core.Management;
 using Microsoft.Extensions.DependencyInjection;
 using QueueProperties = KnightBus.Core.Management.QueueProperties;
@@ -61,17 +62,31 @@ public static class ServiceBusExtensions
         };
     }
 
-    public static IServiceCollection AddServiceBusManagement(
-        this IServiceCollection services,
-        string connectionString
-    )
+    private static IServiceCollection AddServiceBusManagementCore(this IServiceCollection services)
     {
         return services
             .AddScoped<IQueueMessageSender, ServiceBusQueueManager>()
             .AddScoped<IQueueManager, ServiceBusQueueManager>()
             .AddScoped<IQueueManager, ServiceBusTopicManager>()
             .AddScoped<ServiceBusQueueManager>()
-            .AddScoped<ServiceBusTopicManager>()
+            .AddScoped<ServiceBusTopicManager>();
+    }
+
+    public static IServiceCollection AddServiceBusManagement(
+        this IServiceCollection services,
+        string connectionString
+    )
+    {
+        return services
+            .AddServiceBusManagementCore()
             .UseServiceBus(c => c.ConnectionString = connectionString);
+    }
+
+    public static IServiceCollection AddServiceBusManagement(
+        this IServiceCollection services,
+        Action<IServiceBusConfiguration> configure
+    )
+    {
+        return services.AddServiceBusManagementCore().UseServiceBus(configure);
     }
 }

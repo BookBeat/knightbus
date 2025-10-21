@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Azure.ServiceBus;
+using KnightBus.Azure.ServiceBus.Management;
 using KnightBus.Azure.ServiceBus.Messages;
 using KnightBus.Core;
 using KnightBus.Core.DependencyInjection;
@@ -20,7 +21,7 @@ class Program
     {
         var serviceBusConnection = "your-connection-string";
 
-        var knightBus = global::Microsoft
+        var knightBus = Microsoft
             .Extensions.Hosting.Host.CreateDefaultBuilder()
             .UseDefaultServiceProvider(options =>
             {
@@ -30,7 +31,14 @@ class Program
             .ConfigureServices(services =>
             {
                 services
+                    // Connect with connection string
                     .UseServiceBus(config => config.ConnectionString = serviceBusConnection)
+                    // Or connect with managed identity, azure entra id etc
+                    // .UseServiceBus(config =>
+                    // {
+                    //     config.FullyQualifiedNamespace = "example.servicebus.windows.net";
+                    //     config.Credential = new ManagedIdentityCredential();
+                    // })
                     .RegisterProcessors(typeof(SampleServiceBusEventProcessor).Assembly)
                     .UseTransport<ServiceBusTransport>();
             })
@@ -54,7 +62,7 @@ class Program
             new ClientFactory(new ServiceBusConfiguration(serviceBusConnection)),
             Enumerable.Empty<IMessagePreProcessor>()
         );
-        var managementClient = new KnightBus.Azure.ServiceBus.Management.ServiceBusQueueManager(
+        var managementClient = new ServiceBusQueueManager(
             new ServiceBusConfiguration(serviceBusConnection)
         );
 
