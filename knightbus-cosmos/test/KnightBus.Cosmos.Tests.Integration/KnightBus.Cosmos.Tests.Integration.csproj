@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+
+        <IsPackable>false</IsPackable>
+        <IsTestProject>true</IsTestProject>
+        <RootNamespace>KnightBus.Cosmos.Tests.Integration</RootNamespace>
+    </PropertyGroup>
+  
+  <ItemGroup>
+    <PackageReference Include="FluentAssertions" Version="6.12.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />
+    <PackageReference Include="NUnit" Version="4.1.0" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.5.0" />
+  </ItemGroup>
+
+    <ItemGroup>
+        <Using Include="NUnit.Framework"/>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\..\knightbus\src\KnightBus.Core\KnightBus.Core.csproj" />
+      <ProjectReference Include="..\..\..\knightbus\src\KnightBus.Host\KnightBus.Host.csproj" />
+      <ProjectReference Include="..\..\src\KnightBus.Cosmos.Messages\KnightBus.Cosmos.Messages.csproj" />
+      <ProjectReference Include="..\..\src\KnightBus.Cosmos\KnightBus.Cosmos.csproj" />
+    </ItemGroup>
+
+</Project>

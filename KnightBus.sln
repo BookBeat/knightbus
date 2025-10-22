@@ -106,6 +106,16 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.Examples.PostgreS
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.PostgreSql.Management", "knightbus-postgresql\src\KnightBus.PostgreSql.Management\KnightBus.PostgreSql.Management.csproj", "{99549151-DE4A-4380-923B-BF45C536A1A0}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.Examples.CosmosDB", "knightbus\examples\KnightBus.Examples.CosmosDB\KnightBus.Examples.CosmosDB.csproj", "{BF3E77BF-94C8-4F50-B82B-A6268A1CAAED}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Cosmos", "Cosmos", "{08429A53-BCD5-48CA-8C98-F7E9A6DB7E40}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.Cosmos", "knightbus-cosmos\src\KnightBus.Cosmos\KnightBus.Cosmos.csproj", "{5D635AFD-F0E6-4479-89CD-8F221E4C120B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.Cosmos.Messages", "knightbus-cosmos\src\KnightBus.Cosmos.Messages\KnightBus.Cosmos.Messages.csproj", "{8E24C34D-4C81-4558-90FE-D5478920A6C0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.Cosmos.Tests.Integration", "knightbus-cosmos\test\KnightBus.Cosmos.Tests.Integration\KnightBus.Cosmos.Tests.Integration.csproj", "{4A7DED99-6DA9-478C-872D-B2E17359A0EA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -272,6 +282,22 @@ Global
 		{99549151-DE4A-4380-923B-BF45C536A1A0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{99549151-DE4A-4380-923B-BF45C536A1A0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{99549151-DE4A-4380-923B-BF45C536A1A0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BF3E77BF-94C8-4F50-B82B-A6268A1CAAED}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BF3E77BF-94C8-4F50-B82B-A6268A1CAAED}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BF3E77BF-94C8-4F50-B82B-A6268A1CAAED}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BF3E77BF-94C8-4F50-B82B-A6268A1CAAED}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5D635AFD-F0E6-4479-89CD-8F221E4C120B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5D635AFD-F0E6-4479-89CD-8F221E4C120B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5D635AFD-F0E6-4479-89CD-8F221E4C120B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5D635AFD-F0E6-4479-89CD-8F221E4C120B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8E24C34D-4C81-4558-90FE-D5478920A6C0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8E24C34D-4C81-4558-90FE-D5478920A6C0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8E24C34D-4C81-4558-90FE-D5478920A6C0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8E24C34D-4C81-4558-90FE-D5478920A6C0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4A7DED99-6DA9-478C-872D-B2E17359A0EA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4A7DED99-6DA9-478C-872D-B2E17359A0EA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4A7DED99-6DA9-478C-872D-B2E17359A0EA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4A7DED99-6DA9-478C-872D-B2E17359A0EA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -308,6 +334,11 @@ Global
 		{CF38E1C2-9D42-4EEE-8E9A-C92CC7BEE310} = {F4BD90E0-18D9-43A4-B9C1-E8CD2CEDCECA}
 		{09E9604D-DCE1-4A8A-BEE0-3E7526FFABC0} = {1A7A20B2-65E7-4712-B93B-4AA3F73017A8}
 		{99549151-DE4A-4380-923B-BF45C536A1A0} = {F4BD90E0-18D9-43A4-B9C1-E8CD2CEDCECA}
+		{BF3E77BF-94C8-4F50-B82B-A6268A1CAAED} = {1A7A20B2-65E7-4712-B93B-4AA3F73017A8}
+		{08429A53-BCD5-48CA-8C98-F7E9A6DB7E40} = {60DD8989-3730-42B9-BD7B-3B38A6208FFB}
+		{5D635AFD-F0E6-4479-89CD-8F221E4C120B} = {08429A53-BCD5-48CA-8C98-F7E9A6DB7E40}
+		{8E24C34D-4C81-4558-90FE-D5478920A6C0} = {08429A53-BCD5-48CA-8C98-F7E9A6DB7E40}
+		{4A7DED99-6DA9-478C-872D-B2E17359A0EA} = {08429A53-BCD5-48CA-8C98-F7E9A6DB7E40}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {14950A56-4265-429E-AF71-2D98B3B8AC48}

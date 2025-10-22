@@ -52,7 +52,8 @@ class Program
         await knightBusHost.StartAsync(CancellationToken.None);
 
         //Start the saga
-        var client = knightBusHost.Services.GetRequiredService<IRedisBus>();
+        var scope = knightBusHost.Services.CreateScope();
+        var client = scope.ServiceProvider.GetRequiredService<IRedisBus>();
         await client.SendAsync(new SampleRedisSagaStarterCommand());
 
         //Send some Messages and watch them print in the console
