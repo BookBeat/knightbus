@@ -15,7 +15,7 @@ public class BlobSagaStorageTests : SagaStoreTests
 {
     public override void Setup()
     {
-        SagaStore = new BlobSagaStore(StorageSetup.ConnectionString);
+        SagaStore = new BlobSagaStore(new StorageBusConfiguration(StorageSetup.ConnectionString));
     }
 
     [Test]

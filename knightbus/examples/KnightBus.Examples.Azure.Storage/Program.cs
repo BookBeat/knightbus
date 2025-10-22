@@ -33,6 +33,8 @@ internal class Program
             {
                 services
                     .UseBlobStorage(storageConnection)
+                    // Or managed identity
+                    // .UseBlobStorage("storageAccountName", new ManagedIdentityCredential())
                     .RegisterProcessors(typeof(SampleStorageBusMessage).Assembly)
                     //Allow message processors to run in Singleton state using Azure Blob Locks
                     .UseBlobStorageLockManager()
