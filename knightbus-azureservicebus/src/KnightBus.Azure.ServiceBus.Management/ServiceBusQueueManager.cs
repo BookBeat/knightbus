@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -10,10 +11,11 @@ using QueueProperties = KnightBus.Core.Management.QueueProperties;
 
 namespace KnightBus.Azure.ServiceBus.Management;
 
-public class ServiceBusQueueManager : IQueueManager, IQueueMessageSender
+public class ServiceBusQueueManager : IQueueManager, IQueueMessageSender, IAsyncDisposable
 {
     private readonly ServiceBusAdministrationClient _adminClient;
     private readonly ServiceBusClient _client;
+    private bool _disposed;
 
     public ServiceBusQueueManager(IServiceBusConfiguration configuration)
     {
@@ -50,7 +52,7 @@ public class ServiceBusQueueManager : IQueueManager, IQueueMessageSender
         CancellationToken ct
     )
     {
-        var receiver = _client.CreateReceiver(name);
+        await using var receiver = _client.CreateReceiver(name);
         var messages = await receiver
             .PeekMessagesAsync(count, cancellationToken: ct)
             .ConfigureAwait(false);
@@ -77,7 +79,7 @@ public class ServiceBusQueueManager : IQueueManager, IQueueMessageSender
         CancellationToken ct
     )
     {
-        var receiver = _client.CreateReceiver(
+        await using var receiver = _client.CreateReceiver(
             path,
             new ServiceBusReceiverOptions { SubQueue = SubQueue.DeadLetter }
         );
@@ -110,7 +112,7 @@ public class ServiceBusQueueManager : IQueueManager, IQueueMessageSender
     )
     {
         var queueMessages = new List<QueueMessage>();
-        var receiver = _client.CreateReceiver(
+        await using var receiver = _client.CreateReceiver(
             path,
             new ServiceBusReceiverOptions { SubQueue = SubQueue.DeadLetter }
         );
@@ -160,22 +162,22 @@ public class ServiceBusQueueManager : IQueueManager, IQueueMessageSender
         return queueMessages;
     }
 
-    public Task<int> MoveDeadLetters(string path, int count, CancellationToken ct)
+    public async Task<int> MoveDeadLetters(string path, int count, CancellationToken ct)
     {
-        var receiver = _client.CreateReceiver(
+        await using var receiver = _client.CreateReceiver(
             path,
             new ServiceBusReceiverOptions { SubQueue = SubQueue.DeadLetter }
         );
-        var sender = _client.CreateSender(path);
+        await using var sender = _client.CreateSender(path);
 
-        return MoveMessages(sender, receiver, count, 10);
+        return await MoveMessages(sender, receiver, count, 10);
     }
 
     public QueueType QueueType => QueueType.Queue;
 
     public async Task SendMessage(string path, string jsonBody, CancellationToken cancellationToken)
     {
-        var sender = _client.CreateSender(path);
+        await using var sender = _client.CreateSender(path);
         await sender.SendMessageAsync(
             new ServiceBusMessage(jsonBody) { ContentType = "application/json" },
             cancellationToken
@@ -241,5 +243,16 @@ public class ServiceBusQueueManager : IQueueManager, IQueueMessageSender
 
         // Return result
         return movedMessages;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_disposed)
+            return;
+
+        if (_client != null)
+            await _client.DisposeAsync().ConfigureAwait(false);
+
+        _disposed = true;
     }
 }
