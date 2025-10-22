@@ -29,6 +29,9 @@ public class ClientFactory : IClientFactory
     private ConcurrentDictionary<Type, ServiceBusSender> SenderClients { get; } =
         new ConcurrentDictionary<Type, ServiceBusSender>();
 
+    public ClientFactory(string connectionString)
+        : this(new ServiceBusConfiguration(connectionString)) { }
+
     public ClientFactory(IServiceBusConfiguration configuration)
     {
         _serviceBusClient = configuration.CreateServiceBusClient();
