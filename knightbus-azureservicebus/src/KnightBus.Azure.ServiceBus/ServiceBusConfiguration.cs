@@ -1,4 +1,5 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using Azure.Core;
 using Azure.Messaging.ServiceBus;
 using Azure.Messaging.ServiceBus.Administration;
@@ -25,9 +26,13 @@ public class ServiceBusConfiguration : IServiceBusConfiguration
     public ServiceBusConfiguration() { }
 
     public IMessageSerializer MessageSerializer { get; set; } = new NewtonsoftSerializer();
-    public string ConnectionString { get; set; }
-    public string FullyQualifiedNamespace { get; set; }
-    public TokenCredential Credential { get; set; }
+
+    /// <summary>
+    /// <remarks>Should be left blank/null if using managed identity</remarks>
+    /// </summary>
+    public string? ConnectionString { get; set; }
+    public string? FullyQualifiedNamespace { get; set; }
+    public TokenCredential? Credential { get; set; }
     public ServiceBusCreationOptions DefaultCreationOptions { get; set; } =
         new ServiceBusCreationOptions();
 
