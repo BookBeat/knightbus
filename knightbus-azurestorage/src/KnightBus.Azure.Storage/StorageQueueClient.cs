@@ -49,18 +49,11 @@ public class StorageQueueClient(
 ) : IStorageQueueClient
 {
     //QueueMessageEncoding.Base64 required for backwards compability with v11 storage clients
-    private readonly QueueClient _queue = new(
-        configuration.ConnectionString,
-        queueName,
-        new QueueClientOptions { MessageEncoding = configuration.MessageEncoding }
+    private readonly QueueClient _queue = configuration.CreateQueueClient(queueName);
+    private readonly QueueClient _dlQueue = configuration.CreateQueueClient(
+        GetDeadLetterName(queueName)
     );
-    private readonly QueueClient _dlQueue = new(
-        configuration.ConnectionString,
-        GetDeadLetterName(queueName),
-        new QueueClientOptions { MessageEncoding = configuration.MessageEncoding }
-    );
-    private readonly BlobContainerClient _container = new(
-        configuration.ConnectionString,
+    private readonly BlobContainerClient _container = configuration.CreateBlobContainerClient(
         queueName
     );
 
@@ -140,7 +133,7 @@ public class StorageQueueClient(
         try
         {
             var blob = _container.GetBlobClient(storageMessage.BlobMessageId);
-            using (var stream = new MemoryStream(serializer.Serialize(message)))
+            await using (var stream = new MemoryStream(serializer.Serialize(message)))
             {
                 await blob.UploadAsync(stream, cancellationToken).ConfigureAwait(false);
             }
@@ -294,7 +287,7 @@ public class StorageQueueClient(
                     Time = queueMessage.InsertedOn,
                     Properties = TryDeserializeProperties(queueMessage.Body),
                 };
-                using (var stream = new MemoryStream())
+                await using (var stream = new MemoryStream())
                 {
                     await _container
                         .GetBlobClient(message.BlobMessageId)
@@ -340,7 +333,7 @@ public class StorageQueueClient(
                     Properties = TryDeserializeProperties(queueMessage.Body),
                     Time = queueMessage.InsertedOn,
                 };
-                using (var stream = new MemoryStream())
+                await using (var stream = new MemoryStream())
                 {
                     await _container
                         .GetBlobClient(message.BlobMessageId)
