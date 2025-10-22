@@ -108,17 +108,17 @@ public class StorageBusConfiguration : IStorageBusConfiguration
         );
     }
 
-    public BlobContainerClient CreateBlobContainerClient(string queueName)
+    public BlobContainerClient CreateBlobContainerClient(string blobContainerName)
     {
         if (!string.IsNullOrWhiteSpace(ConnectionString))
         {
-            return new BlobContainerClient(ConnectionString, queueName);
+            return new BlobContainerClient(ConnectionString, blobContainerName);
         }
 
         if (!string.IsNullOrWhiteSpace(StorageAccountName) && Credential is not null)
         {
             return new BlobContainerClient(
-                new Uri($"https://{StorageAccountName}.blob.core.windows.net/{queueName}"),
+                new Uri($"https://{StorageAccountName}.blob.core.windows.net/{blobContainerName}"),
                 Credential
             );
         }
