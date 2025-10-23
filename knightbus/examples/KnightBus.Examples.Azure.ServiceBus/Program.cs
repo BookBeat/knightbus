@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Azure.Identity;
 using KnightBus.Azure.ServiceBus;
 using KnightBus.Azure.ServiceBus.Management;
 using KnightBus.Azure.ServiceBus.Messages;
 using KnightBus.Core;
 using KnightBus.Core.DependencyInjection;
-using KnightBus.Core.Management;
 using KnightBus.Host;
 using KnightBus.Messages;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,8 +24,8 @@ class Program
             // ConnectionString = "",
 
             // Entra
-            // Credential = new DefaultAzureCredential(),
-            // FullyQualifiedNamespace = "",
+            Credential = new DefaultAzureCredential(),
+            FullyQualifiedNamespace = "dev-bb-queue-euwest.servicebus.windows.net",
         };
 
         var knightBus = Microsoft
@@ -38,13 +38,8 @@ class Program
             .ConfigureServices(services =>
             {
                 services
-                    .UseServiceBus(config =>
-                    {
-                        config.FullyQualifiedNamespace =
-                            serviceBusConfiguration.FullyQualifiedNamespace;
-                        config.Credential = serviceBusConfiguration.Credential;
-                        config.ConnectionString = serviceBusConfiguration.ConnectionString;
-                    })
+                    .UseServiceBus(serviceBusConfiguration)
+                    .AddServiceBusManagement(serviceBusConfiguration)
                     .RegisterProcessors(typeof(SampleServiceBusEventProcessor).Assembly)
                     .UseTransport<ServiceBusTransport>();
             })
@@ -58,8 +53,9 @@ class Program
         var client = (KnightBus.Azure.ServiceBus.ServiceBus)
             knightBus.Services.CreateScope().ServiceProvider.GetRequiredService<IServiceBus>();
 
-        var managementClient = (ServiceBusQueueManager)
-            knightBus.Services.CreateScope().ServiceProvider.GetRequiredService<IQueueManager>();
+        var managementClient = knightBus
+            .Services.CreateScope()
+            .ServiceProvider.GetRequiredService<ServiceBusQueueManager>();
 
         //Send some Messages and watch them print in the console
         for (var i = 0; i < 10; i++)

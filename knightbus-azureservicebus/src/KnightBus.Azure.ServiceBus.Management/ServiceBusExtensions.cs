@@ -89,4 +89,12 @@ public static class ServiceBusExtensions
     {
         return services.AddServiceBusManagementCore().UseServiceBus(configure);
     }
+
+    public static IServiceCollection AddServiceBusManagement(
+        this IServiceCollection services,
+        IServiceBusConfiguration configuration
+    )
+    {
+        return services.AddServiceBusManagementCore().UseServiceBus(configuration);
+    }
 }

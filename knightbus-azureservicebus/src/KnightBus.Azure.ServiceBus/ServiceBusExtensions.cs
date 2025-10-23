@@ -12,6 +12,14 @@ public static class ServiceBusExtensions
     {
         var configuration = new ServiceBusConfiguration();
         config?.Invoke(configuration);
+        return collection.UseServiceBus(configuration);
+    }
+
+    public static IServiceCollection UseServiceBus(
+        this IServiceCollection collection,
+        IServiceBusConfiguration configuration
+    )
+    {
         collection.AddSingleton<IServiceBusConfiguration>(configuration);
         collection.AddSingleton<IClientFactory, ClientFactory>();
         collection.AddScoped<IServiceBus, ServiceBus>();
