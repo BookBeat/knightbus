@@ -19,11 +19,19 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\knightbus-postgresql\src\KnightBus.PostgreSql\KnightBus.PostgreSql.csproj" />
+      <ProjectReference Include="..\KnightBus.PostgreSql\KnightBus.PostgreSql.csproj" />
     </ItemGroup>
 
     <ItemGroup>
       <PackageReference Include="Azure.Identity" Version="1.17.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Update="knighbus-64.png">
+        <Pack>true</Pack>
+        <Visible>false</Visible>
+        <PackagePath></PackagePath>
+      </None>
     </ItemGroup>
 
 </Project>

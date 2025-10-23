@@ -106,9 +106,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.Examples.PostgreS
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.PostgreSql.Management", "knightbus-postgresql\src\KnightBus.PostgreSql.Management\KnightBus.PostgreSql.Management.csproj", "{99549151-DE4A-4380-923B-BF45C536A1A0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.PostgreSql.Extensions.Azure", "KnightBus.PostgreSql.Extensions.Azure\KnightBus.PostgreSql.Extensions.Azure.csproj", "{F5E2663B-8BD2-4B72-89F4-D0CE7734CB37}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.PostgreSql.Extensions.Azure", "knightbus-postgresql\src\KnightBus.PostgreSql.Extensions.Azure\KnightBus.PostgreSql.Extensions.Azure.csproj", "{F5E2663B-8BD2-4B72-89F4-D0CE7734CB37}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.PostgreSql.Management.Extensions.Azure", "KnightBus.PostgreSql.Management.Extensions.Azure\KnightBus.PostgreSql.Management.Extensions.Azure.csproj", "{E7F2CB03-5652-483E-9D55-82575CAD86C8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KnightBus.PostgreSql.Management.Extensions.Azure", "knightbus-postgresql\src\KnightBus.PostgreSql.Management.Extensions.Azure\KnightBus.PostgreSql.Management.Extensions.Azure.csproj", "{E7F2CB03-5652-483E-9D55-82575CAD86C8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

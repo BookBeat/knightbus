@@ -3,14 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Azure.Identity;
 using KnightBus.Core;
 using KnightBus.Core.DependencyInjection;
 using KnightBus.Core.Sagas;
 using KnightBus.Host;
 using KnightBus.Messages;
 using KnightBus.PostgreSql;
-using KnightBus.PostgreSql.Extensions.Azure;
 using KnightBus.PostgreSql.Messages;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -22,9 +20,7 @@ class Program
     static async Task Main(string[] args)
     {
         Console.WriteLine("Starting PostgreSQL example");
-
-        const string connectionString =
-            "Server=localhost;Port=5432;Username=postgres;Password=password;";
+        const string connectionString = "";
 
         var knightBusHost = Microsoft
             .Extensions.Hosting.Host.CreateDefaultBuilder()
@@ -36,17 +32,16 @@ class Program
             .ConfigureServices(services =>
             {
                 services
-                    // .UsePostgres(configuration =>
-                    // {
-                    //     configuration.ConnectionString = connectionString;
-                    //     configuration.PollingDelay = TimeSpan.FromMilliseconds(250);
-                    // })
-                    .UsePostgresWithAzureManagedIdentity(configuration =>
+                    .UsePostgres(configuration =>
                     {
-                        configuration.TokenCredential = new DefaultAzureCredential();
                         configuration.ConnectionString = connectionString;
+                        configuration.PollingDelay = TimeSpan.FromMilliseconds(250);
                     })
-                    // .UsePostgres(configuration => configuration.ConnectionString = "")
+                    // .UsePostgresWithAzureManagedIdentity(configuration =>
+                    // {
+                    //     configuration.TokenCredential = new DefaultAzureCredential();
+                    //     configuration.ConnectionString = connectionString;
+                    // })
                     .UsePostgresSagaStore()
                     .RegisterProcessors(typeof(SamplePostgresMessage).Assembly)
                     //Enable the postgres Transport
@@ -63,7 +58,7 @@ class Program
             knightBusHost.Services.CreateScope().ServiceProvider.GetRequiredService<IPostgresBus>();
 
         // Start the saga
-        await client.SendAsync(new SamplePostgresSagaStarterCommand(), CancellationToken.None);
+        // await client.SendAsync(new SamplePostgresSagaStarterCommand(), CancellationToken.None);
 
         await client.PublishAsync(
             new SamplePostgresEvent { MessageBody = "Yo" },
