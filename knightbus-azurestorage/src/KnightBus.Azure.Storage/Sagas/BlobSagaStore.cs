@@ -19,13 +19,12 @@ public class BlobSagaStore : ISagaStore
     private const string ExpirationField = "expiration";
 
     public BlobSagaStore(string connectionString)
-    {
-        var blobServiceClient = new BlobServiceClient(connectionString);
-        _container = blobServiceClient.GetBlobContainerClient("knightbus-sagas");
-    }
+        : this(new StorageBusConfiguration(connectionString)) { }
 
     public BlobSagaStore(IStorageBusConfiguration configuration)
-        : this(configuration.ConnectionString) { }
+    {
+        _container = configuration.CreateBlobContainerClient("knightbus-sagas");
+    }
 
     public async Task<SagaData<T>> GetSaga<T>(string partitionKey, string id, CancellationToken ct)
     {
@@ -133,7 +132,7 @@ public class BlobSagaStore : ISagaStore
         var blob = _container.GetBlobClient(Filename(partitionKey, id));
         try
         {
-            using (var stream = GetStream(sagaData.Data))
+            await using (var stream = GetStream(sagaData.Data))
             {
                 var properties = await blob.GetPropertiesAsync(cancellationToken: ct)
                     .ConfigureAwait(false);

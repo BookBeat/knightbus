@@ -27,7 +27,7 @@ public class StorageQueueManager : IQueueManager, IQueueMessageAttachmentProvide
         _configuration = configuration;
         _preProcessors = preProcessors;
         _attachmentProvider = attachmentProvider;
-        _client = new QueueServiceClient(configuration.ConnectionString);
+        _client = configuration.CreateQueueServiceClient();
     }
 
     public async Task<IEnumerable<QueueProperties>> List(CancellationToken ct)

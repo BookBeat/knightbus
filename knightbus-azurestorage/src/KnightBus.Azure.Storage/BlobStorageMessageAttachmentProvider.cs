@@ -5,7 +5,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Azure;
-using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using KnightBus.Core;
 using KnightBus.Messages;
@@ -14,17 +13,17 @@ namespace KnightBus.Azure.Storage;
 
 public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
 {
-    private readonly string _connectionString;
     internal const string FileNameKey = "Filename";
     private static readonly HashSet<string> Keys = [FileNameKey];
+    private readonly IStorageBusConfiguration _configuration;
 
     public BlobStorageMessageAttachmentProvider(string connectionString)
-    {
-        _connectionString = connectionString;
-    }
+        : this(new StorageBusConfiguration(connectionString)) { }
 
     public BlobStorageMessageAttachmentProvider(IStorageBusConfiguration configuration)
-        : this(configuration.ConnectionString) { }
+    {
+        _configuration = configuration;
+    }
 
     public async Task<IMessageAttachment> GetAttachmentAsync(
         string queueName,
@@ -32,7 +31,7 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
         CancellationToken cancellationToken = default(CancellationToken)
     )
     {
-        var blob = new BlobClient(_connectionString, queueName, id);
+        var blob = _configuration.CreateBlobContainerClient(queueName).GetBlobClient(id);
         var properties = await blob.GetPropertiesAsync(cancellationToken: cancellationToken)
             .ConfigureAwait(false);
 
@@ -54,7 +53,8 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
         CancellationToken cancellationToken = default(CancellationToken)
     )
     {
-        var blob = new BlobClient(_connectionString, queueName, id);
+        var blob = _configuration.CreateBlobContainerClient(queueName).GetBlobClient(id);
+
         try
         {
             var requiredMetadata = new Dictionary<string, string>
@@ -76,7 +76,7 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
         }
         catch (RequestFailedException e) when (e.Status == 404)
         {
-            var container = new BlobContainerClient(_connectionString, queueName);
+            var container = _configuration.CreateBlobContainerClient(queueName);
             try
             {
                 await container
@@ -99,7 +99,7 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
         CancellationToken cancellationToken = default(CancellationToken)
     )
     {
-        var blob = new BlobClient(_connectionString, queueName, id);
+        var blob = _configuration.CreateBlobContainerClient(queueName).GetBlobClient(id);
         try
         {
             await blob.DeleteAsync(DeleteSnapshotsOption.None, cancellationToken: cancellationToken)
