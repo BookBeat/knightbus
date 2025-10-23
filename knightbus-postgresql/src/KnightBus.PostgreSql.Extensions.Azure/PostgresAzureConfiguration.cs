@@ -64,10 +64,12 @@ public static class PostgresAzureConfigurationExtensions
                     );
                     cts.CancelAfter(configuration.FailureRefreshInterval);
 
-                    var token = await configuration.TokenCredential.GetTokenAsync(
-                        new TokenRequestContext(configuration.TokenRequestScopes),
-                        cts.Token
-                    );
+                    var token = await configuration
+                        .TokenCredential.GetTokenAsync(
+                            new TokenRequestContext(configuration.TokenRequestScopes),
+                            cts.Token
+                        )
+                        .ConfigureAwait(false);
 
                     return token.Token;
                 },
