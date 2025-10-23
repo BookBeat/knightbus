@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Azure.ServiceBus;
@@ -7,10 +6,10 @@ using KnightBus.Azure.ServiceBus.Management;
 using KnightBus.Azure.ServiceBus.Messages;
 using KnightBus.Core;
 using KnightBus.Core.DependencyInjection;
-using KnightBus.Core.PreProcessors;
+using KnightBus.Core.Management;
 using KnightBus.Host;
 using KnightBus.Messages;
-using KnightBus.Newtonsoft;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 namespace KnightBus.Examples.Azure.ServiceBus;
@@ -19,7 +18,15 @@ class Program
 {
     static async Task Main(string[] args)
     {
-        var serviceBusConnection = "your-connection-string";
+        var serviceBusConfiguration = new ServiceBusConfiguration
+        {
+            // Use connection string or Entra ID
+            // ConnectionString = "",
+
+            // Entra
+            // Credential = new DefaultAzureCredential(),
+            // FullyQualifiedNamespace = "",
+        };
 
         var knightBus = Microsoft
             .Extensions.Hosting.Host.CreateDefaultBuilder()
@@ -31,14 +38,13 @@ class Program
             .ConfigureServices(services =>
             {
                 services
-                    // Connect with connection string
-                    .UseServiceBus(config => config.ConnectionString = serviceBusConnection)
-                    // Or connect with managed identity, azure entra id etc
-                    // .UseServiceBus(config =>
-                    // {
-                    //     config.FullyQualifiedNamespace = "example.servicebus.windows.net";
-                    //     config.Credential = new ManagedIdentityCredential();
-                    // })
+                    .UseServiceBus(config =>
+                    {
+                        config.FullyQualifiedNamespace =
+                            serviceBusConfiguration.FullyQualifiedNamespace;
+                        config.Credential = serviceBusConfiguration.Credential;
+                        config.ConnectionString = serviceBusConfiguration.ConnectionString;
+                    })
                     .RegisterProcessors(typeof(SampleServiceBusEventProcessor).Assembly)
                     .UseTransport<ServiceBusTransport>();
             })
@@ -49,22 +55,11 @@ class Program
         await knightBus.StartAsync(CancellationToken.None);
 
         //Initiate the client
-        var client = new KnightBus.Azure.ServiceBus.ServiceBus(
-            new ServiceBusConfiguration(serviceBusConnection)
-            {
-                MessageSerializer = new NewtonsoftSerializer(),
-            },
-            new ClientFactory(new ServiceBusConfiguration(serviceBusConnection)),
-            Enumerable.Empty<IMessagePreProcessor>()
-        );
-        var jsonClient = new KnightBus.Azure.ServiceBus.ServiceBus(
-            new ServiceBusConfiguration(serviceBusConnection),
-            new ClientFactory(new ServiceBusConfiguration(serviceBusConnection)),
-            Enumerable.Empty<IMessagePreProcessor>()
-        );
-        var managementClient = new ServiceBusQueueManager(
-            new ServiceBusConfiguration(serviceBusConnection)
-        );
+        var client = (KnightBus.Azure.ServiceBus.ServiceBus)
+            knightBus.Services.CreateScope().ServiceProvider.GetRequiredService<IServiceBus>();
+
+        var managementClient = (ServiceBusQueueManager)
+            knightBus.Services.CreateScope().ServiceProvider.GetRequiredService<IQueueManager>();
 
         //Send some Messages and watch them print in the console
         for (var i = 0; i < 10; i++)
@@ -75,7 +70,7 @@ class Program
         }
         for (var i = 0; i < 10; i++)
         {
-            await jsonClient.PublishEventAsync(
+            await client.PublishEventAsync(
                 new SampleServiceBusEvent { Message = $"Hello from event {i}" }
             );
         }
