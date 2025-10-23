@@ -4,7 +4,7 @@
       <TargetFramework>net9.0</TargetFramework>
       <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
       <Authors>BookBeat</Authors>
-      <Description>PostgreSQL Transport for KnightBus</Description>
+      <Description>Extension methods for setting up the KnightBus PostgreSql transport in Azure</Description>
       <Copyright>Copyright © BookBeat 2025</Copyright>
       <PackageLicenseExpression>MIT</PackageLicenseExpression>
       <PackageProjectUrl>https://knightbus.readthedocs.io</PackageProjectUrl>
@@ -19,12 +19,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\knightbus-postgresql\src\KnightBus.PostgreSql.Management\KnightBus.PostgreSql.Management.csproj" />
       <ProjectReference Include="..\knightbus-postgresql\src\KnightBus.PostgreSql\KnightBus.PostgreSql.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Azure.Identity" Version="1.14.0" />
+      <PackageReference Include="Azure.Identity" Version="1.17.0" />
     </ItemGroup>
 
 </Project>

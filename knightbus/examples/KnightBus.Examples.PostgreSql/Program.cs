@@ -3,12 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Azure.Identity;
 using KnightBus.Core;
 using KnightBus.Core.DependencyInjection;
 using KnightBus.Core.Sagas;
 using KnightBus.Host;
 using KnightBus.Messages;
 using KnightBus.PostgreSql;
+using KnightBus.PostgreSql.Extensions.Azure;
 using KnightBus.PostgreSql.Messages;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -21,7 +23,8 @@ class Program
     {
         Console.WriteLine("Starting PostgreSQL example");
 
-        const string connectionString = "";
+        const string connectionString =
+            "Server=localhost;Port=5432;Username=postgres;Password=password;";
 
         var knightBusHost = Microsoft
             .Extensions.Hosting.Host.CreateDefaultBuilder()
@@ -33,11 +36,17 @@ class Program
             .ConfigureServices(services =>
             {
                 services
-                    .UsePostgres(configuration =>
+                    // .UsePostgres(configuration =>
+                    // {
+                    //     configuration.ConnectionString = connectionString;
+                    //     configuration.PollingDelay = TimeSpan.FromMilliseconds(250);
+                    // })
+                    .UsePostgresWithAzureManagedIdentity(configuration =>
                     {
+                        configuration.TokenCredential = new DefaultAzureCredential();
                         configuration.ConnectionString = connectionString;
-                        configuration.PollingDelay = TimeSpan.FromMilliseconds(250);
                     })
+                    // .UsePostgres(configuration => configuration.ConnectionString = "")
                     .UsePostgresSagaStore()
                     .RegisterProcessors(typeof(SamplePostgresMessage).Assembly)
                     //Enable the postgres Transport
