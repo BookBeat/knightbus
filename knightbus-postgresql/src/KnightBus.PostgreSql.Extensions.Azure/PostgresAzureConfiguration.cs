@@ -7,12 +7,20 @@ namespace KnightBus.PostgreSql.Extensions.Azure;
 public class PostgresAzureConfiguration : PostgresConfiguration
 {
     /// <summary>
-    /// The time to wait between successful token refresh operations. Defaults to 55 minutes
+    /// The time to wait between successful token refresh operations.
+    /// <remarks>Defaults to 55 minutes</remarks>
     /// </summary>
     public TimeSpan SuccessRefreshInterval { get; set; } = TimeSpan.FromMinutes(55);
 
     /// <summary>
-    /// The maximum duration to wait for an Azure AD token before cancelling the request. Defaults to 10 seconds
+    /// The maximum duration to wait for an Azure AD token before cancelling the request.
+    /// <remarks>Defaults to 10 seconds</remarks>
+    /// </summary>
+    public TimeSpan RefreshTimeout { get; set; } = TimeSpan.FromSeconds(10);
+
+    /// <summary>
+    /// If a password refresh attempt fails, it will be re-attempted with this interval. This should typically be much lower than <see cref="SuccessRefreshInterval"/>.
+    /// <remarks>Defaults to 10 seconds</remarks>
     /// </summary>
     public TimeSpan FailureRefreshInterval { get; set; } = TimeSpan.FromSeconds(10);
 
@@ -62,7 +70,7 @@ public static class PostgresAzureConfigurationExtensions
                     using var cts = CancellationTokenSource.CreateLinkedTokenSource(
                         cancellationToken
                     );
-                    cts.CancelAfter(configuration.FailureRefreshInterval);
+                    cts.CancelAfter(configuration.RefreshTimeout);
 
                     var token = await configuration
                         .TokenCredential.GetTokenAsync(

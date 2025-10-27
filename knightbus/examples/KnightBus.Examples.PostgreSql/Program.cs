@@ -57,9 +57,6 @@ class Program
         var client = (PostgresBus)
             knightBusHost.Services.CreateScope().ServiceProvider.GetRequiredService<IPostgresBus>();
 
-        // Start the saga
-        // await client.SendAsync(new SamplePostgresSagaStarterCommand(), CancellationToken.None);
-
         await client.PublishAsync(
             new SamplePostgresEvent { MessageBody = "Yo" },
             CancellationToken.None
