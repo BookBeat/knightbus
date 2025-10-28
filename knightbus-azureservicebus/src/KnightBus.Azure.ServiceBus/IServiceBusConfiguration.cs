@@ -1,6 +1,4 @@
 ﻿using Azure.Core;
-using Azure.Messaging.ServiceBus;
-using Azure.Messaging.ServiceBus.Administration;
 using KnightBus.Core;
 
 namespace KnightBus.Azure.ServiceBus;
@@ -18,7 +16,4 @@ public interface IServiceBusConfiguration : ITransportConfiguration
     /// The Azure managed identity credential to use for authorization. Access controls may be specified by the Service Bus namespace.
     /// </summary>
     TokenCredential Credential { get; set; }
-
-    ServiceBusClient CreateServiceBusClient();
-    ServiceBusAdministrationClient CreateServiceBusAdministrationClient();
 }

@@ -35,38 +35,55 @@ public class ServiceBusConfiguration : IServiceBusConfiguration
     public TokenCredential? Credential { get; set; }
     public ServiceBusCreationOptions DefaultCreationOptions { get; set; } =
         new ServiceBusCreationOptions();
+}
 
-    public ServiceBusClient CreateServiceBusClient()
+public static class ServiceBusClientFactory
+{
+    public static ServiceBusClient CreateServiceBusClient(IServiceBusConfiguration configuration)
     {
-        if (!string.IsNullOrWhiteSpace(ConnectionString))
+        if (!string.IsNullOrWhiteSpace(configuration.ConnectionString))
         {
-            return new ServiceBusClient(ConnectionString);
+            return new ServiceBusClient(configuration.ConnectionString);
         }
 
-        if (!string.IsNullOrWhiteSpace(FullyQualifiedNamespace) && Credential is not null)
+        if (
+            !string.IsNullOrWhiteSpace(configuration.FullyQualifiedNamespace)
+            && configuration.Credential is not null
+        )
         {
-            return new ServiceBusClient(FullyQualifiedNamespace, Credential);
+            return new ServiceBusClient(
+                configuration.FullyQualifiedNamespace,
+                configuration.Credential
+            );
         }
 
         throw new InvalidOperationException(
-            $"{nameof(ServiceBusConfiguration)} requires either a {nameof(ConnectionString)} or a {nameof(FullyQualifiedNamespace)} with a {nameof(Credential)}."
+            $"{nameof(ServiceBusConfiguration)} requires either a {nameof(configuration.ConnectionString)} or a {nameof(configuration.FullyQualifiedNamespace)} with a {nameof(configuration.Credential)}."
         );
     }
 
-    public ServiceBusAdministrationClient CreateServiceBusAdministrationClient()
+    public static ServiceBusAdministrationClient CreateServiceBusAdministrationClient(
+        IServiceBusConfiguration configuration
+    )
     {
-        if (!string.IsNullOrWhiteSpace(ConnectionString))
+        if (!string.IsNullOrWhiteSpace(configuration.ConnectionString))
         {
-            return new ServiceBusAdministrationClient(ConnectionString);
+            return new ServiceBusAdministrationClient(configuration.ConnectionString);
         }
 
-        if (!string.IsNullOrWhiteSpace(FullyQualifiedNamespace) && Credential is not null)
+        if (
+            !string.IsNullOrWhiteSpace(configuration.FullyQualifiedNamespace)
+            && configuration.Credential is not null
+        )
         {
-            return new ServiceBusAdministrationClient(FullyQualifiedNamespace, Credential);
+            return new ServiceBusAdministrationClient(
+                configuration.FullyQualifiedNamespace,
+                configuration.Credential
+            );
         }
 
         throw new InvalidOperationException(
-            $"{nameof(ServiceBusConfiguration)} requires either a {nameof(ConnectionString)} or a {nameof(FullyQualifiedNamespace)} with a {nameof(Credential)}."
+            $"{nameof(ServiceBusConfiguration)} requires either a {nameof(configuration.ConnectionString)} or a {nameof(configuration.FullyQualifiedNamespace)} with a {nameof(configuration.Credential)}."
         );
     }
 }

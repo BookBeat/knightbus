@@ -34,7 +34,7 @@ public class ClientFactory : IClientFactory
 
     public ClientFactory(IServiceBusConfiguration configuration)
     {
-        _serviceBusClient = configuration.CreateServiceBusClient();
+        _serviceBusClient = ServiceBusClientFactory.CreateServiceBusClient(configuration);
     }
 
     private ServiceBusSender CreateQueueClient<T>()

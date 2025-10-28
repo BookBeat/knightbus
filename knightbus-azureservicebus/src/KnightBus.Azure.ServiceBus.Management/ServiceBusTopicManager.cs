@@ -9,15 +9,16 @@ using QueueProperties = KnightBus.Core.Management.QueueProperties;
 
 namespace KnightBus.Azure.ServiceBus.Management;
 
-public class ServiceBusTopicManager : IQueueManager
+public class ServiceBusTopicManager : IQueueManager, IAsyncDisposable
 {
     private readonly ServiceBusAdministrationClient _adminClient;
     private readonly ServiceBusClient _client;
+    private bool _disposed;
 
     public ServiceBusTopicManager(IServiceBusConfiguration configuration)
     {
-        _adminClient = configuration.CreateServiceBusAdministrationClient();
-        _client = configuration.CreateServiceBusClient();
+        _adminClient = ServiceBusClientFactory.CreateServiceBusAdministrationClient(configuration);
+        _client = ServiceBusClientFactory.CreateServiceBusClient(configuration);
     }
 
     public async Task<IEnumerable<QueueProperties>> List(CancellationToken ct)
@@ -78,4 +79,19 @@ public class ServiceBusTopicManager : IQueueManager
     }
 
     public QueueType QueueType => QueueType.Topic;
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        if (_client != null)
+        {
+            await _client.DisposeAsync().ConfigureAwait(false);
+        }
+
+        _disposed = true;
+    }
 }

@@ -38,7 +38,9 @@ internal abstract class ServiceBusChannelReceiverBase<T> : IChannelReceiver
         Settings = settings;
         Log = hostConfiguration.Log;
         ClientFactory = _hostConfiguration.DependencyInjection.GetInstance<IClientFactory>();
-        ManagementClient = configuration.CreateServiceBusAdministrationClient();
+        ManagementClient = ServiceBusClientFactory.CreateServiceBusAdministrationClient(
+            configuration
+        );
     }
 
     public IProcessingSettings Settings { get; set; }
