@@ -37,7 +37,10 @@ internal class BlobLockManager : ISingletonLockManager
     {
         if (_client == null)
         {
-            _client = _configuration.CreateBlobContainerClient(_lockScheme.ContainerName);
+            _client = NameMeClientFactory.CreateBlobContainerClient(
+                _configuration,
+                _lockScheme.ContainerName
+            );
         }
 
         return Task.CompletedTask;

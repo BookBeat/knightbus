@@ -26,10 +26,6 @@ public interface IStorageBusConfiguration : ITransportConfiguration
     /// If using managed identity: The Azure managed identity credential to use for authorization.
     /// </summary>
     TokenCredential? Credential { get; set; }
-
-    QueueClient CreateQueueClient(string queueName);
-    BlobContainerClient CreateBlobContainerClient(string queueName);
-    QueueServiceClient CreateQueueServiceClient();
 }
 
 public class StorageBusConfiguration : IStorageBusConfiguration
@@ -62,69 +58,93 @@ public class StorageBusConfiguration : IStorageBusConfiguration
 
     public string? StorageAccountName { get; set; }
     public TokenCredential? Credential { get; set; }
+}
 
-    public QueueClient CreateQueueClient(string queueName)
+public static class NameMeClientFactory
+{
+    public static QueueClient CreateQueueClient(
+        IStorageBusConfiguration configuration,
+        string queueName
+    )
     {
-        if (!string.IsNullOrWhiteSpace(ConnectionString))
+        if (!string.IsNullOrWhiteSpace(configuration.ConnectionString))
         {
             return new QueueClient(
-                ConnectionString,
+                configuration.ConnectionString,
                 queueName,
-                new QueueClientOptions { MessageEncoding = MessageEncoding }
+                new QueueClientOptions { MessageEncoding = configuration.MessageEncoding }
             );
         }
 
-        if (!string.IsNullOrWhiteSpace(StorageAccountName) && Credential is not null)
+        if (
+            !string.IsNullOrWhiteSpace(configuration.StorageAccountName)
+            && configuration.Credential is not null
+        )
         {
             return new QueueClient(
-                new Uri($"https://{StorageAccountName}.queue.core.windows.net/{queueName}"),
-                Credential,
-                new QueueClientOptions { MessageEncoding = MessageEncoding }
+                new Uri(
+                    $"https://{configuration.StorageAccountName}.queue.core.windows.net/{queueName}"
+                ),
+                configuration.Credential,
+                new QueueClientOptions { MessageEncoding = configuration.MessageEncoding }
             );
         }
 
         throw new InvalidOperationException(
-            $"{nameof(StorageBusConfiguration)} requires either a {nameof(ConnectionString)} or a {nameof(StorageAccountName)} with a {nameof(Credential)}."
+            $"{nameof(StorageBusConfiguration)} requires either a {nameof(configuration.ConnectionString)} or a {nameof(configuration.StorageAccountName)} with a {nameof(configuration.Credential)}."
         );
     }
 
-    public QueueServiceClient CreateQueueServiceClient()
+    public static QueueServiceClient CreateQueueServiceClient(
+        IStorageBusConfiguration configuration
+    )
     {
-        if (!string.IsNullOrWhiteSpace(ConnectionString))
+        if (!string.IsNullOrWhiteSpace(configuration.ConnectionString))
         {
-            return new QueueServiceClient(ConnectionString);
+            return new QueueServiceClient(configuration.ConnectionString);
         }
 
-        if (!string.IsNullOrWhiteSpace(StorageAccountName) && Credential is not null)
+        if (
+            !string.IsNullOrWhiteSpace(configuration.StorageAccountName)
+            && configuration.Credential is not null
+        )
         {
             return new QueueServiceClient(
-                new Uri($"https://{StorageAccountName}.queue.core.windows.net/"),
-                Credential
+                new Uri($"https://{configuration.StorageAccountName}.queue.core.windows.net/"),
+                configuration.Credential
             );
         }
 
         throw new InvalidOperationException(
-            $"{nameof(StorageBusConfiguration)} requires either a {nameof(ConnectionString)} or a {nameof(StorageAccountName)} with a {nameof(Credential)}."
+            $"{nameof(StorageBusConfiguration)} requires either a {nameof(configuration.ConnectionString)} or a {nameof(configuration.StorageAccountName)} with a {nameof(configuration.Credential)}."
         );
     }
 
-    public BlobContainerClient CreateBlobContainerClient(string blobContainerName)
+    public static BlobContainerClient CreateBlobContainerClient(
+        IStorageBusConfiguration configuration,
+        string blobContainerName
+    )
     {
-        if (!string.IsNullOrWhiteSpace(ConnectionString))
+        if (!string.IsNullOrWhiteSpace(configuration.ConnectionString))
         {
-            return new BlobContainerClient(ConnectionString, blobContainerName);
+            return new BlobContainerClient(configuration.ConnectionString, blobContainerName);
         }
 
-        if (!string.IsNullOrWhiteSpace(StorageAccountName) && Credential is not null)
+        if (
+            !string.IsNullOrWhiteSpace(configuration.StorageAccountName)
+            && configuration.Credential is not null
+        )
         {
             return new BlobContainerClient(
-                new Uri($"https://{StorageAccountName}.blob.core.windows.net/{blobContainerName}"),
-                Credential
+                new Uri(
+                    $"https://{configuration.StorageAccountName}.blob.core.windows.net/{blobContainerName}"
+                ),
+                configuration.Credential
             );
         }
 
         throw new InvalidOperationException(
-            $"{nameof(StorageBusConfiguration)} requires either a {nameof(ConnectionString)} or a {nameof(StorageAccountName)} with a {nameof(Credential)}."
+            $"{nameof(StorageBusConfiguration)} requires either a {nameof(configuration.ConnectionString)} or a {nameof(configuration.StorageAccountName)} with a {nameof(configuration.Credential)}."
         );
     }
 }

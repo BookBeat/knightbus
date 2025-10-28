@@ -23,7 +23,10 @@ public class BlobSagaStore : ISagaStore
 
     public BlobSagaStore(IStorageBusConfiguration configuration)
     {
-        _container = configuration.CreateBlobContainerClient("knightbus-sagas");
+        _container = NameMeClientFactory.CreateBlobContainerClient(
+            configuration,
+            "knightbus-sagas"
+        );
     }
 
     public async Task<SagaData<T>> GetSaga<T>(string partitionKey, string id, CancellationToken ct)

@@ -49,11 +49,16 @@ public class StorageQueueClient(
 ) : IStorageQueueClient
 {
     //QueueMessageEncoding.Base64 required for backwards compability with v11 storage clients
-    private readonly QueueClient _queue = configuration.CreateQueueClient(queueName);
-    private readonly QueueClient _dlQueue = configuration.CreateQueueClient(
+    private readonly QueueClient _queue = NameMeClientFactory.CreateQueueClient(
+        configuration,
+        queueName
+    );
+    private readonly QueueClient _dlQueue = NameMeClientFactory.CreateQueueClient(
+        configuration,
         GetDeadLetterName(queueName)
     );
-    private readonly BlobContainerClient _container = configuration.CreateBlobContainerClient(
+    private readonly BlobContainerClient _container = NameMeClientFactory.CreateBlobContainerClient(
+        configuration,
         queueName
     );
 
