@@ -67,6 +67,8 @@ public static class AzureStorageClientFactory
         string queueName
     )
     {
+        // QueueMessageEncoding.Base64 required for backwards compability with v11 storage clients
+
         if (!string.IsNullOrWhiteSpace(configuration.ConnectionString))
         {
             return new QueueClient(
@@ -99,6 +101,8 @@ public static class AzureStorageClientFactory
         IStorageBusConfiguration configuration
     )
     {
+        // QueueMessageEncoding.Base64 required for backwards compability with v11 storage clients
+
         if (!string.IsNullOrWhiteSpace(configuration.ConnectionString))
         {
             return new QueueServiceClient(configuration.ConnectionString);
