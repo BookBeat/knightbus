@@ -14,27 +14,33 @@ namespace KnightBus.Azure.Storage.Singleton;
 
 internal class BlobLockManager : ISingletonLockManager
 {
-    private readonly string _connectionString;
+    private readonly IStorageBusConfiguration _configuration;
     private BlobContainerClient _client;
     private readonly IBlobLockScheme _lockScheme;
 
     public BlobLockManager(string connectionString, IBlobLockScheme lockScheme = null)
-    {
-        _connectionString = connectionString;
-        _lockScheme = lockScheme ?? new DefaultBlobLockScheme();
-    }
+        : this(
+            new StorageBusConfiguration(connectionString),
+            lockScheme ?? new DefaultBlobLockScheme()
+        ) { }
 
     public BlobLockManager(
         IStorageBusConfiguration configuration,
         IBlobLockScheme lockScheme = null
     )
-        : this(configuration.ConnectionString, lockScheme) { }
+    {
+        _configuration = configuration;
+        _lockScheme = lockScheme;
+    }
 
     public Task InitializeAsync()
     {
         if (_client == null)
         {
-            _client = new BlobContainerClient(_connectionString, _lockScheme.ContainerName);
+            _client = AzureStorageClientFactory.CreateBlobContainerClient(
+                _configuration,
+                _lockScheme.ContainerName
+            );
         }
 
         return Task.CompletedTask;

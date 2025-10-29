@@ -1,4 +1,5 @@
 ﻿using System;
+using Azure.Core;
 using KnightBus.Azure.Storage.Sagas;
 using KnightBus.Azure.Storage.Singleton;
 using KnightBus.Core;
@@ -40,6 +41,19 @@ public static class StorageExtensions
         return services.UseBlobStorage(configuration =>
         {
             configuration.ConnectionString = connectionString;
+        });
+    }
+
+    public static IServiceCollection UseBlobStorage(
+        this IServiceCollection services,
+        string storageAccountName,
+        TokenCredential credential
+    )
+    {
+        return services.UseBlobStorage(configuration =>
+        {
+            configuration.StorageAccountName = storageAccountName;
+            configuration.Credential = credential;
         });
     }
 

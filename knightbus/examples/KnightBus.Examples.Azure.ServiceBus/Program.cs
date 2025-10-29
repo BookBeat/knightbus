@@ -25,7 +25,7 @@ class Program
 
             // Entra
             Credential = new DefaultAzureCredential(),
-            FullyQualifiedNamespace = "dev-bb-queue-euwest.servicebus.windows.net",
+            FullyQualifiedNamespace = "",
         };
 
         var knightBus = Microsoft

@@ -3,6 +3,7 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Azure.Identity;
 using KnightBus.Azure.Storage;
 using KnightBus.Azure.Storage.Messages;
 using KnightBus.Core;
@@ -33,6 +34,8 @@ internal class Program
             {
                 services
                     .UseBlobStorage(storageConnection)
+                    // Or managed identity
+                    // .UseBlobStorage("storageAccountName", new ManagedIdentityCredential())
                     .RegisterProcessors(typeof(SampleStorageBusMessage).Assembly)
                     //Allow message processors to run in Singleton state using Azure Blob Locks
                     .UseBlobStorageLockManager()
