@@ -38,15 +38,8 @@ class Program
             .ConfigureServices(services =>
             {
                 services
-                    // Connect with connection string
                     .UseServiceBus(serviceBusConfiguration)
                     .AddServiceBusManagement(serviceBusConfiguration)
-                    // Or connect with managed identity, azure entra id etc
-                    // .UseServiceBus(config =>
-                    // {
-                    //     config.FullyQualifiedNamespace = "example.servicebus.windows.net";
-                    //     config.Credential = new ManagedIdentityCredential();
-                    // })
                     .RegisterProcessors(typeof(SampleServiceBusEventProcessor).Assembly)
                     .UseTransport<ServiceBusTransport>();
             })
