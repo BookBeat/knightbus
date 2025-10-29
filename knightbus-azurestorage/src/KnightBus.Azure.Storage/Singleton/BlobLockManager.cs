@@ -37,7 +37,7 @@ internal class BlobLockManager : ISingletonLockManager
     {
         if (_client == null)
         {
-            _client = NameMeClientFactory.CreateBlobContainerClient(
+            _client = AzureStorageClientFactory.CreateBlobContainerClient(
                 _configuration,
                 _lockScheme.ContainerName
             );

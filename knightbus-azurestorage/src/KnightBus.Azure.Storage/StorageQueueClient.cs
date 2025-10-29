@@ -49,18 +49,16 @@ public class StorageQueueClient(
 ) : IStorageQueueClient
 {
     //QueueMessageEncoding.Base64 required for backwards compability with v11 storage clients
-    private readonly QueueClient _queue = NameMeClientFactory.CreateQueueClient(
+    private readonly QueueClient _queue = AzureStorageClientFactory.CreateQueueClient(
         configuration,
         queueName
     );
-    private readonly QueueClient _dlQueue = NameMeClientFactory.CreateQueueClient(
+    private readonly QueueClient _dlQueue = AzureStorageClientFactory.CreateQueueClient(
         configuration,
         GetDeadLetterName(queueName)
     );
-    private readonly BlobContainerClient _container = NameMeClientFactory.CreateBlobContainerClient(
-        configuration,
-        queueName
-    );
+    private readonly BlobContainerClient _container =
+        AzureStorageClientFactory.CreateBlobContainerClient(configuration, queueName);
 
     public static string GetDeadLetterName(string queueName)
     {

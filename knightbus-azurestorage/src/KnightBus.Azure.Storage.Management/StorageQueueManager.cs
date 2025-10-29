@@ -27,7 +27,7 @@ public class StorageQueueManager : IQueueManager, IQueueMessageAttachmentProvide
         _configuration = configuration;
         _preProcessors = preProcessors;
         _attachmentProvider = attachmentProvider;
-        _client = NameMeClientFactory.CreateQueueServiceClient(configuration);
+        _client = AzureStorageClientFactory.CreateQueueServiceClient(configuration);
     }
 
     public async Task<IEnumerable<QueueProperties>> List(CancellationToken ct)

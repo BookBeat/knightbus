@@ -31,7 +31,7 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
         CancellationToken cancellationToken = default(CancellationToken)
     )
     {
-        var blob = NameMeClientFactory
+        var blob = AzureStorageClientFactory
             .CreateBlobContainerClient(_configuration, queueName)
             .GetBlobClient(id);
         var properties = await blob.GetPropertiesAsync(cancellationToken: cancellationToken)
@@ -55,7 +55,7 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
         CancellationToken cancellationToken = default(CancellationToken)
     )
     {
-        var blob = NameMeClientFactory
+        var blob = AzureStorageClientFactory
             .CreateBlobContainerClient(_configuration, queueName)
             .GetBlobClient(id);
 
@@ -80,7 +80,7 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
         }
         catch (RequestFailedException e) when (e.Status == 404)
         {
-            var container = NameMeClientFactory.CreateBlobContainerClient(
+            var container = AzureStorageClientFactory.CreateBlobContainerClient(
                 _configuration,
                 queueName
             );
@@ -106,7 +106,7 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
         CancellationToken cancellationToken = default(CancellationToken)
     )
     {
-        var blob = NameMeClientFactory
+        var blob = AzureStorageClientFactory
             .CreateBlobContainerClient(_configuration, queueName)
             .GetBlobClient(id);
         try

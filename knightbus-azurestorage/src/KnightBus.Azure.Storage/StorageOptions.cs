@@ -60,7 +60,7 @@ public class StorageBusConfiguration : IStorageBusConfiguration
     public TokenCredential? Credential { get; set; }
 }
 
-public static class NameMeClientFactory
+public static class AzureStorageClientFactory
 {
     public static QueueClient CreateQueueClient(
         IStorageBusConfiguration configuration,

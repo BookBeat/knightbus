@@ -23,7 +23,7 @@ public class BlobSagaStore : ISagaStore
 
     public BlobSagaStore(IStorageBusConfiguration configuration)
     {
-        _container = NameMeClientFactory.CreateBlobContainerClient(
+        _container = AzureStorageClientFactory.CreateBlobContainerClient(
             configuration,
             "knightbus-sagas"
         );
