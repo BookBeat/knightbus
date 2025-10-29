@@ -3,6 +3,7 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Azure.Identity;
 using KnightBus.Azure.Storage;
 using KnightBus.Azure.Storage.Messages;
 using KnightBus.Core;
