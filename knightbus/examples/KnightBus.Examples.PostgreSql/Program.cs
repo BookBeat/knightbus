@@ -20,10 +20,9 @@ class Program
     static async Task Main(string[] args)
     {
         Console.WriteLine("Starting PostgreSQL example");
-
         const string connectionString = "";
 
-        var knightBusHost = global::Microsoft
+        var knightBusHost = Microsoft
             .Extensions.Hosting.Host.CreateDefaultBuilder()
             .UseDefaultServiceProvider(options =>
             {
@@ -38,6 +37,11 @@ class Program
                         configuration.ConnectionString = connectionString;
                         configuration.PollingDelay = TimeSpan.FromMilliseconds(250);
                     })
+                    // .UsePostgresWithAzureManagedIdentity(configuration =>
+                    // {
+                    //     configuration.TokenCredential = new DefaultAzureCredential();
+                    //     configuration.ConnectionString = connectionString;
+                    // })
                     .UsePostgresSagaStore()
                     .RegisterProcessors(typeof(SamplePostgresMessage).Assembly)
                     //Enable the postgres Transport
@@ -52,9 +56,6 @@ class Program
 
         var client = (PostgresBus)
             knightBusHost.Services.CreateScope().ServiceProvider.GetRequiredService<IPostgresBus>();
-
-        // Start the saga
-        await client.SendAsync(new SamplePostgresSagaStarterCommand(), CancellationToken.None);
 
         await client.PublishAsync(
             new SamplePostgresEvent { MessageBody = "Yo" },

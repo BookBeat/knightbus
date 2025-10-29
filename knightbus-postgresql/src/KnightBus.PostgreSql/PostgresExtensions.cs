@@ -9,18 +9,18 @@ public static class PostgresExtensions
 {
     public static IServiceCollection UsePostgres(
         this IServiceCollection services,
-        Action<IPostgresConfiguration>? configuration = null
+        Action<IPostgresConfiguration>? configuration = null,
+        Action<NpgsqlDataSourceBuilder>? dataSourceBuilder = null
     )
     {
         var postgresConfiguration = new PostgresConfiguration();
         configuration?.Invoke(postgresConfiguration);
         services.AddSingleton<IPostgresConfiguration>(_ => postgresConfiguration);
-        services.AddKeyedSingleton(
-            PostgresConstants.NpgsqlDataSourceContainerKey,
-            NpgsqlDataSource.Create(
-                postgresConfiguration.ConnectionString
-                    ?? throw new ArgumentException(nameof(postgresConfiguration.ConnectionString))
-            )
+
+        services.AddNpgsqlDataSource(
+            postgresConfiguration.ConnectionString,
+            dataSourceBuilder ?? (_ => { }),
+            serviceKey: PostgresConstants.NpgsqlDataSourceContainerKey
         );
         services.AddScoped<IPostgresBus, PostgresBus>();
         return services;
