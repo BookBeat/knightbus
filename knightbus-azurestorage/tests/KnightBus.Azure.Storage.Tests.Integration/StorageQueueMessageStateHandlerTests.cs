@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using FluentAssertions;
 using KnightBus.Azure.Storage.Management;
 using KnightBus.Core;
 using KnightBus.Core.PreProcessors;
@@ -82,5 +83,24 @@ public class StorageQueueMessageStateHandlerTests : MessageStateHandlerTests<Tes
         );
         var message = await client.GetMessagesAsync<TestCommand>(1, TimeSpan.FromSeconds(5));
         return new StorageQueueMessageStateHandler<TestCommand>(client, message.First(), 5, null);
+    }
+
+    [Test]
+    public async Task AbandonByError_When_Delay_Should_Update_VisibilityTimeout()
+    {
+        // Arrange
+        await SendMessage("Testing Abandon");
+        var stateHandler = await GetMessageStateHandler();
+
+        // Act
+        await stateHandler.AbandonByErrorAsync(new Exception(), TimeSpan.FromSeconds(10));
+
+        var messages = await GetMessages(1);
+        messages.Count.Should().Be(0);
+        await Task.Delay(TimeSpan.FromSeconds(15));
+
+        // Assert
+        messages = await GetMessages(1);
+        messages.Count.Should().Be(1);
     }
 }

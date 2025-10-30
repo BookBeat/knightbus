@@ -34,9 +34,9 @@ public class PostgresMessageStateHandler<T> : IMessageStateHandler<T>
         return _queueClient.CompleteAsync(_message);
     }
 
-    public Task AbandonByErrorAsync(Exception e)
+    public Task AbandonByErrorAsync(Exception e, TimeSpan delay)
     {
-        return _queueClient.AbandonByErrorAsync(_message, e);
+        return _queueClient.AbandonByErrorAsync(_message, e, delay);
     }
 
     public Task DeadLetterAsync(int deadLetterLimit)
