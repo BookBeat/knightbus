@@ -9,6 +9,7 @@ using KnightBus.Core;
 using KnightBus.Core.DependencyInjection;
 using KnightBus.Host;
 using KnightBus.Messages;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -38,7 +39,9 @@ class Program
             .ConfigureServices(services =>
             {
                 services
-                    .UseServiceBus(serviceBusConfiguration)
+                    .UseServiceBus(provider => new ServiceBusConfiguration(
+                        provider.GetRequiredService<IConfiguration>().GetValue<string>("")
+                    ))
                     .AddServiceBusManagement(serviceBusConfiguration)
                     .RegisterProcessors(typeof(SampleServiceBusEventProcessor).Assembly)
                     .UseTransport<ServiceBusTransport>();
