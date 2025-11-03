@@ -13,14 +13,48 @@ public static class PostgresExtensions
         Action<NpgsqlDataSourceBuilder>? dataSourceBuilder = null
     )
     {
-        var postgresConfiguration = new PostgresConfiguration();
-        configuration?.Invoke(postgresConfiguration);
-        services.AddSingleton<IPostgresConfiguration>(_ => postgresConfiguration);
+        ArgumentNullException.ThrowIfNull(services);
 
-        services.AddNpgsqlDataSource(
-            postgresConfiguration.ConnectionString,
-            dataSourceBuilder ?? (_ => { }),
-            serviceKey: PostgresConstants.NpgsqlDataSourceContainerKey
+        return services.UsePostgres(
+            _ =>
+            {
+                var postgresConfiguration = new PostgresConfiguration();
+                configuration?.Invoke(postgresConfiguration);
+                return postgresConfiguration;
+            },
+            dataSourceBuilder is null ? null : (_, builder) => dataSourceBuilder(builder)
+        );
+    }
+
+    public static IServiceCollection UsePostgres(
+        this IServiceCollection services,
+        Func<IServiceProvider, IPostgresConfiguration> configurationFactory,
+        Action<IServiceProvider, NpgsqlDataSourceBuilder>? dataSourceBuilder = null
+    )
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configurationFactory);
+
+        services.AddSingleton<IPostgresConfiguration>(sp =>
+        {
+            var configuration = configurationFactory(sp);
+            return configuration
+                ?? throw new InvalidOperationException(
+                    $"{nameof(configurationFactory)} must not return null."
+                );
+        });
+
+        services.AddKeyedSingleton<NpgsqlDataSource>(
+            PostgresConstants.NpgsqlDataSourceContainerKey,
+            (sp, _) =>
+            {
+                var configuration = sp.GetRequiredService<IPostgresConfiguration>();
+                ArgumentException.ThrowIfNullOrWhiteSpace(configuration.ConnectionString);
+
+                var builder = new NpgsqlDataSourceBuilder(configuration.ConnectionString);
+                dataSourceBuilder?.Invoke(sp, builder);
+                return builder.Build();
+            }
         );
         services.AddScoped<IPostgresBus, PostgresBus>();
         return services;

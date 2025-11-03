@@ -1,3 +1,4 @@
+using System;
 using KnightBus.Core.Management;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
@@ -26,6 +27,23 @@ public static class PostgresQueueExtensions
         Action<NpgsqlDataSourceBuilder>? dataSourceBuilder = null
     )
     {
+        return services.UsePostgresManagement(
+            _ =>
+            {
+                var postgresConfiguration = new PostgresConfiguration();
+                configuration?.Invoke(postgresConfiguration);
+                return postgresConfiguration;
+            },
+            dataSourceBuilder is null ? null : (_, builder) => dataSourceBuilder(builder)
+        );
+    }
+
+    public static IServiceCollection UsePostgresManagement(
+        this IServiceCollection services,
+        Func<IServiceProvider, IPostgresConfiguration> configurationFactory,
+        Action<IServiceProvider, NpgsqlDataSourceBuilder>? dataSourceBuilder = null
+    )
+    {
         services = services
             .AddScoped<PostgresQueueManager>()
             .AddScoped<PostgresTopicManager>()
@@ -34,6 +52,6 @@ public static class PostgresQueueExtensions
             .AddScoped<IQueueManager, PostgresTopicManager>()
             .AddScoped<PostgresManagementClient>();
 
-        return services.UsePostgres(configuration, dataSourceBuilder);
+        return services.UsePostgres(configurationFactory, dataSourceBuilder);
     }
 }

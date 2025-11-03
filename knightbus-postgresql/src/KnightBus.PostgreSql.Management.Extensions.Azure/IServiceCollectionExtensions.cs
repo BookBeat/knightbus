@@ -26,6 +26,45 @@ public static class IServiceCollectionExtensions
     /// Adds a PostgreSQL management data source to the service collection, using Azure Managed Identity to acquire access tokens.
     /// </summary>
     /// <param name="services">The <see cref="IServiceCollection"/> to add the management data source to.</param>
+    /// <param name="configure">A configuration action for <see cref="PostgresAzureConfiguration"/> settings that has access to the current <see cref="IServiceProvider"/>.</param>
+    /// <returns>The updated <see cref="IServiceCollection"/>.</returns>
+    public static IServiceCollection UsePostgresManagementWithAzureManagedIdentity(
+        this IServiceCollection services,
+        Action<IServiceProvider, PostgresAzureConfiguration> configure
+    )
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configure);
+
+        return services.UsePostgresManagement(
+            sp =>
+            {
+                var configuration = new PostgresAzureConfiguration();
+                configure(sp, configuration);
+                configuration.ToPostgresConfiguration()(configuration);
+                return configuration;
+            },
+            (sp, builder) =>
+            {
+                if (
+                    sp.GetRequiredService<IPostgresConfiguration>()
+                    is not PostgresAzureConfiguration azureConfiguration
+                )
+                {
+                    throw new InvalidOperationException(
+                        $"The registered Postgres configuration must be of type {nameof(PostgresAzureConfiguration)}."
+                    );
+                }
+
+                azureConfiguration.WithManagedIdentityPasswordProvider()(builder);
+            }
+        );
+    }
+
+    /// <summary>
+    /// Adds a PostgreSQL management data source to the service collection, using Azure Managed Identity to acquire access tokens.
+    /// </summary>
+    /// <param name="services">The <see cref="IServiceCollection"/> to add the management data source to.</param>
     /// <param name="configuration"></param>
     /// <returns>The updated <see cref="IServiceCollection"/>.</returns>
     public static IServiceCollection UsePostgresManagementWithAzureManagedIdentity(
@@ -33,9 +72,15 @@ public static class IServiceCollectionExtensions
         PostgresAzureConfiguration postgresAzureConfiguration
     )
     {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(postgresAzureConfiguration);
+
+        postgresAzureConfiguration.ToPostgresConfiguration()(postgresAzureConfiguration);
+
         return services.UsePostgresManagement(
-            postgresAzureConfiguration.ToPostgresConfiguration(),
-            postgresAzureConfiguration.WithManagedIdentityPasswordProvider()
+            _ => postgresAzureConfiguration,
+            (_, builder) =>
+                postgresAzureConfiguration.WithManagedIdentityPasswordProvider()(builder)
         );
     }
 }

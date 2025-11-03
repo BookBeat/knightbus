@@ -42,6 +42,12 @@ class Program
                     //     configuration.TokenCredential = new DefaultAzureCredential();
                     //     configuration.ConnectionString = connectionString;
                     // })
+                    // .AddSingleton<TokenCredential>(new DefaultAzureCredential())
+                    // .UsePostgresWithAzureManagedIdentity(provider => new PostgresAzureConfiguration
+                    // {
+                    //     ConnectionString = connectionString,
+                    //     TokenCredential = provider.GetRequiredService<TokenCredential>(),
+                    // })
                     .UsePostgresSagaStore()
                     .RegisterProcessors(typeof(SamplePostgresMessage).Assembly)
                     //Enable the postgres Transport

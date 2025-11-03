@@ -76,6 +76,25 @@ Using a hosted service will allow graceful(ish) shutdown of running instance and
         }
     }
 
+If the configuration depends on other services, use the overload that exposes the ``IServiceProvider``:
+
+.. code-block:: c#
+
+    services.UseServiceBus(provider => new ServiceBusConfiguration(
+        provider.GetRequiredService<IConfiguration>().GetValue<string>("ServiceBus:ConnectionString")
+    ));
+
+PostgreSQL and Azure Storage Bus registration overloads follow the same pattern.
+
+.. code-block:: c#
+
+    services.UsePostgresWithAzureManagedIdentity(provider => new PostgresAzureConfiguration
+    {
+        ConnectionString = provider.GetRequiredService<IConfiguration>().GetValue<string>("PostgresBus:ConnectionString"),
+        TokenCredential = provider.GetRequiredService<TokenCredential>()
+    })
+    .UseBlobStorage(provider => new StorageBusConfiguration("storageAccountName", provider.GetRequiredService<TokenCredential>()));
+
 
 Sending Messages
 ----------------
