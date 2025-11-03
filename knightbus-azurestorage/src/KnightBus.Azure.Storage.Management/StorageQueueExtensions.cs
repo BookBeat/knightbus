@@ -22,12 +22,25 @@ public static class StorageQueueExtensions
         Action<IStorageBusConfiguration> config
     )
     {
+        return services.UseBlobStorageManagement(_ =>
+        {
+            var storageBusConfiguration = new StorageBusConfiguration();
+            config.Invoke(storageBusConfiguration);
+            return storageBusConfiguration;
+        });
+    }
+
+    public static IServiceCollection UseBlobStorageManagement(
+        this IServiceCollection services,
+        Func<IServiceProvider, IStorageBusConfiguration> configFactory
+    )
+    {
         services = services
             .AddScoped<StorageQueueManager>()
             .AddScoped<IQueueManager, StorageQueueManager>()
             .AddScoped<IQueueMessageAttachmentProvider, StorageQueueManager>()
             .AddSingleton<BlobStorageMessageAttachmentProvider>();
 
-        return StorageExtensions.UseBlobStorage(services, config);
+        return services.UseBlobStorage(configFactory);
     }
 }

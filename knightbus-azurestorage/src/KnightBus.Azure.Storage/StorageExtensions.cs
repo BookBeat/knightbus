@@ -23,14 +23,22 @@ public static class StorageExtensions
 
     public static IServiceCollection UseBlobStorage(
         this IServiceCollection services,
+        Func<IServiceProvider, IStorageBusConfiguration> configFactory
+    )
+    {
+        services.AddSingleton<IStorageBusConfiguration>(configFactory.Invoke);
+        services.AddScoped<IStorageBus, StorageBus>();
+        return services;
+    }
+
+    public static IServiceCollection UseBlobStorage(
+        this IServiceCollection services,
         Action<IStorageBusConfiguration> config = null
     )
     {
         var storageConfig = new StorageBusConfiguration();
         config?.Invoke(storageConfig);
-        services.AddSingleton<IStorageBusConfiguration>(storageConfig);
-        services.AddScoped<IStorageBus, StorageBus>();
-        return services;
+        return services.UseBlobStorage(_ => storageConfig);
     }
 
     public static IServiceCollection UseBlobStorage(
