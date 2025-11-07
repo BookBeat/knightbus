@@ -64,7 +64,7 @@ internal class TransportStarterFactory
             _configuration,
             pipeline.GetPipeline(processorInstance)
         );
-        return WrapSingletonReceiver(starter, processor);
+        return WrapSingletonReceiver(starter, processor, eventSubscription);
     }
 
     private IMessageSerializer GetSerializer(
@@ -79,17 +79,27 @@ internal class TransportStarterFactory
         return channelFactory.Configuration.MessageSerializer;
     }
 
-    private IChannelReceiver WrapSingletonReceiver(IChannelReceiver channelReceiver, Type type)
+    private IChannelReceiver WrapSingletonReceiver(
+        IChannelReceiver channelReceiver,
+        Type type,
+        IEventSubscription subscription
+    )
     {
         if (typeof(ISingletonProcessor).IsAssignableFrom(type))
         {
             var lockManager =
                 _configuration.DependencyInjection.GetInstance<ISingletonLockManager>();
             _configuration.Log.LogInformation("Setting {SettingName} in Singleton mode", type.Name);
+            var lockId = channelReceiver.GetType().FullName;
+            if (!string.IsNullOrWhiteSpace(subscription?.Name))
+            {
+                lockId = $"{lockId}:{subscription.Name}";
+            }
             var singletonStarter = new SingletonChannelReceiver(
                 channelReceiver,
                 lockManager,
-                _configuration.Log
+                _configuration.Log,
+                lockId
             );
             return singletonStarter;
         }

@@ -138,6 +138,59 @@ public class SingletonChannelReceiverTests
         starter.Settings.DeadLetterDeliveryLimit.Should().Be(1);
     }
 
+    [Test]
+    public async Task Should_use_custom_lock_id_when_provided()
+    {
+        // arrange
+        var lockManager = new Mock<ISingletonLockManager>();
+        lockManager.Setup(x => x.InitializeAsync()).Returns(Task.CompletedTask);
+        var handle = new Mock<ISingletonLockHandle>();
+        handle
+            .Setup(x => x.RenewAsync(It.IsAny<ILogger>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        handle
+            .Setup(x => x.ReleaseAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        lockManager
+            .Setup(x =>
+                x.TryLockAsync(
+                    "custom-lock",
+                    TimeSpan.FromSeconds(60),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(handle.Object);
+        var underlyingReceiver = new Mock<IChannelReceiver>();
+        underlyingReceiver.Setup(x => x.Settings).Returns(new TestTopicSettings());
+        underlyingReceiver
+            .Setup(x => x.StartAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        var singletonChannelReceiver = new SingletonChannelReceiver(
+            underlyingReceiver.Object,
+            lockManager.Object,
+            Mock.Of<ILogger>(),
+            "custom-lock"
+        )
+        {
+            TimerInterval = TimeSpan.FromMilliseconds(10),
+            LockRefreshInterval = TimeSpan.FromMilliseconds(10),
+        };
+
+        using var cts = new CancellationTokenSource();
+        await singletonChannelReceiver.StartAsync(cts.Token);
+        cts.Cancel();
+
+        lockManager.Verify(
+            x =>
+                x.TryLockAsync(
+                    "custom-lock",
+                    TimeSpan.FromSeconds(60),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.AtLeastOnce
+        );
+    }
+
     public class SingletonHorrificSettings : IProcessingSettings
     {
         public int MaxConcurrentCalls => 200;
