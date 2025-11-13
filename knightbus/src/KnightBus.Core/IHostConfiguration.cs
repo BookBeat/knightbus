@@ -11,4 +11,5 @@ public interface IHostConfiguration
     IDependencyInjection DependencyInjection { get; set; }
     ILogger Log { get; set; }
     TimeSpan ShutdownGracePeriod { get; set; }
+    TimeSpan ConsumerGracePeriod { get; set; }
 }

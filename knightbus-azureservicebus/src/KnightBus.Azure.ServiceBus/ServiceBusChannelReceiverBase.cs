@@ -113,7 +113,19 @@ internal abstract class ServiceBusChannelReceiverBase<T> : IChannelReceiver
                 _cancellationToken,
                 arg.CancellationToken
             );
-            await _processor.ProcessAsync(stateHandler, cts.Token).ConfigureAwait(false);
+
+            var gracePeriod = _hostConfiguration.ConsumerGracePeriod;
+            using var delayedCts = new CancellationTokenSource();
+            await using var registration = cts.Token.Register(
+                static state =>
+                {
+                    var (cts, delay) = ((CancellationTokenSource cts, TimeSpan delay))state!;
+                    cts.CancelAfter(delay);
+                },
+                (delayedCts, gracePeriod)
+            );
+
+            await _processor.ProcessAsync(stateHandler, delayedCts.Token).ConfigureAwait(false);
         }
         catch (Exception e)
         {
