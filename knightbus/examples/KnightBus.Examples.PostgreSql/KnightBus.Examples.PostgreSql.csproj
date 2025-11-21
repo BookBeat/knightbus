@@ -1,15 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
 
-    <PropertyGroup>
-        <OutputType>Exe</OutputType>
-        <TargetFramework>net10.0</TargetFramework>
-        <Nullable>enable</Nullable>
-    </PropertyGroup>
-
-    <ItemGroup>
-      <ProjectReference Include="..\..\..\knightbus-postgresql\src\KnightBus.PostgreSql\KnightBus.PostgreSql.csproj" />
-      <ProjectReference Include="..\..\..\knightbus-postgresql\src\KnightBus.PostgreSql.Extensions.Azure\KnightBus.PostgreSql.Extensions.Azure.csproj" />
-      <ProjectReference Include="..\..\src\KnightBus.Host\KnightBus.Host.csproj" />
-    </ItemGroup>
-
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\knightbus-postgresql\src\KnightBus.PostgreSql\KnightBus.PostgreSql.csproj" />
+    <ProjectReference Include="..\..\..\knightbus-postgresql\src\KnightBus.PostgreSql.Extensions.Azure\KnightBus.PostgreSql.Extensions.Azure.csproj" />
+    <ProjectReference Include="..\..\src\KnightBus.Host\KnightBus.Host.csproj" />
+  </ItemGroup>
 </Project>

@@ -33,7 +33,7 @@ public class PostgresAzureConfiguration : PostgresConfiguration
     /// The set of scopes to request when acquiring an Azure AD token.
     /// </summary>
     public string[] TokenRequestScopes { get; set; } =
-        ["https://ossrdbms-aad.database.windows.net/.default"];
+    ["https://ossrdbms-aad.database.windows.net/.default"];
 }
 
 public static class PostgresAzureConfigurationExtensions

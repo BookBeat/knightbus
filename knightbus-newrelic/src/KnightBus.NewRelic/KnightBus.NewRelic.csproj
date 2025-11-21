@@ -24,5 +24,4 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\knightbus\src\KnightBus.Core\KnightBus.Core.csproj" />
   </ItemGroup>
-
 </Project>

@@ -1,5 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <TargetFrameworks>net9.0;net10.0</TargetFrameworks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -14,13 +13,12 @@
     <Version>6.1.0</Version>
     <PackageTags>knightbus;redis;queues;messaging</PackageTags>
   </PropertyGroup>
-  
+
   <ItemGroup>
     <None Include="knighbus-64.png" Pack="true" Visible="false" PackagePath="" />
   </ItemGroup>
-  
+
   <ItemGroup>
     <ProjectReference Include="..\..\..\knightbus\src\KnightBus.Messages\KnightBus.Messages.csproj" />
   </ItemGroup>
-
 </Project>

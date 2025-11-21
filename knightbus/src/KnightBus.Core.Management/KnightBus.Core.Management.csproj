@@ -1,21 +1,20 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
-    <PropertyGroup>
-        <TargetFrameworks>net9.0;net10.0</TargetFrameworks>
-        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <Authors>BookBeat</Authors>
-        <Description>Shared core management functionallity for the KnightBus framework</Description>
-        <Copyright>Copyright © BookBeat 2021</Copyright>
-        <PackageLicenseExpression>MIT</PackageLicenseExpression>
-        <PackageProjectUrl>https://knightbus.readthedocs.io</PackageProjectUrl>
-        <PackageIconUrl>https://raw.githubusercontent.com/BookBeat/knightbus/master/documentation/media/images/knighbus-64.png</PackageIconUrl>
-        <PackageIcon>knighbus-64.png</PackageIcon>
-        <RepositoryUrl>https://github.com/BookBeat/knightbus</RepositoryUrl>
-        <Version>17.2.0</Version>
-        <PackageTags>knightbus;servicebus;esb;queues;messaging</PackageTags>
-        <LangVersion>latest</LangVersion>
-    </PropertyGroup>
-    <ItemGroup>
-        <None Include="knighbus-64.png" Pack="true" Visible="false" PackagePath="" />
-    </ItemGroup>
+  <PropertyGroup>
+    <TargetFrameworks>net9.0;net10.0</TargetFrameworks>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Authors>BookBeat</Authors>
+    <Description>Shared core management functionallity for the KnightBus framework</Description>
+    <Copyright>Copyright © BookBeat 2021</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://knightbus.readthedocs.io</PackageProjectUrl>
+    <PackageIconUrl>https://raw.githubusercontent.com/BookBeat/knightbus/master/documentation/media/images/knighbus-64.png</PackageIconUrl>
+    <PackageIcon>knighbus-64.png</PackageIcon>
+    <RepositoryUrl>https://github.com/BookBeat/knightbus</RepositoryUrl>
+    <Version>17.3.0</Version>
+    <PackageTags>knightbus;servicebus;esb;queues;messaging</PackageTags>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="knighbus-64.png" Pack="true" Visible="false" PackagePath="" />
+  </ItemGroup>
 </Project>

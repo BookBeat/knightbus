@@ -1,5 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <TargetFrameworks>net9.0;net10.0</TargetFrameworks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -27,5 +26,4 @@
     <ProjectReference Include="..\..\..\knightbus\src\KnightBus.Core\KnightBus.Core.csproj" />
     <ProjectReference Include="..\KnightBus.Redis.Messages\KnightBus.Redis.Messages.csproj" />
   </ItemGroup>
-
 </Project>

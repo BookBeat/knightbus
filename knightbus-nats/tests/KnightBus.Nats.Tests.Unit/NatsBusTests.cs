@@ -65,8 +65,8 @@ public class NatsBusTests
             .Setup(x =>
                 x.RequestAsync("requestName", It.IsAny<byte[]>(), It.IsAny<CancellationToken>())
             )
-            .ReturnsAsync(
-                () => new Msg("reply", config.MessageSerializer.Serialize(new TestNatsResponse()))
+            .ReturnsAsync(() =>
+                new Msg("reply", config.MessageSerializer.Serialize(new TestNatsResponse()))
             );
         var bus = new NatsBus(_factory.Object, config, Enumerable.Empty<IMessagePreProcessor>());
         //act

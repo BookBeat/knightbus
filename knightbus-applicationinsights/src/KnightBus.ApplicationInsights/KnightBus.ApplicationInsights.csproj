@@ -1,5 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <TargetFrameworks>net9.0;net10.0</TargetFrameworks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -19,12 +18,17 @@
     <None Include="knighbus-64.png" Pack="true" Visible="false" PackagePath="" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.ApplicationInsights.DependencyCollector" Version="2.23.0" />
-    <PackageReference Include="Microsoft.ApplicationInsights.PerfCounterCollector" Version="2.23.0" />
+    <PackageReference
+      Include="Microsoft.ApplicationInsights.DependencyCollector"
+      Version="2.23.0"
+    />
+    <PackageReference
+      Include="Microsoft.ApplicationInsights.PerfCounterCollector"
+      Version="2.23.0"
+    />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\knightbus\src\KnightBus.Core\KnightBus.Core.csproj" />
   </ItemGroup>
-
 </Project>
