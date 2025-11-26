@@ -1,7 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFrameworks>net9.0;net10.0</TargetFrameworks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Authors>BookBeat</Authors>
     <Description>PostgreSQL Messages for KnightBus</Description>
@@ -11,7 +10,7 @@
     <PackageIconUrl>https://raw.githubusercontent.com/BookBeat/knightbus/master/documentation/media/images/knighbus-64.png</PackageIconUrl>
     <PackageIcon>knighbus-64.png</PackageIcon>
     <RepositoryUrl>https://github.com/BookBeat/knightbus</RepositoryUrl>
-    <Version>2.0.0</Version>
+    <Version>2.1.0</Version>
     <PackageTags>knightbus;postgresql;queues;messaging</PackageTags>
     <LangVersion>latest</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -19,11 +18,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\knightbus\src\KnightBus.Messages\KnightBus.Messages.csproj"/>
+    <ProjectReference Include="..\..\..\knightbus\src\KnightBus.Messages\KnightBus.Messages.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="knighbus-64.png" Pack="true" Visible="false" PackagePath=""/>
+    <None Include="knighbus-64.png" Pack="true" Visible="false" PackagePath="" />
   </ItemGroup>
-
 </Project>

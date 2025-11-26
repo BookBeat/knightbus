@@ -1,0 +1,37 @@
+{
+  "dotnet.projectName": "Knightbus", // Set this to the project's name. Make sure the project follows the project naming pattern.
+  "dotnet.configuration": "Debug", // Set this to the desired build configuration (Debug or Release).
+  "dotnet.targetFramework": "10.0",
+  "csharp.format.enable": true,
+  "csharp.semanticHighlighting.enabled": true,
+  "csharp.suppressHiddenDiagnostics": true,
+  "dotnet.codeLens.enableReferencesCodeLens": true,
+  "dotnet.codeLens.enableTestsCodeLens": true,
+  "dotnet.defaultSolution": "${config:dotnet.projectName}.sln",
+  "dotnet.preferVisualStudioCodeFileSystemWatcher": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "always",
+    "source.organizeImports": "always"
+  },
+  "editor.codeLens": true,
+  "editor.defaultFormatter": "csharpier.csharpier-vscode",
+  "editor.formatOnSave": true,
+  "files.exclude": {
+    "**/bin": true,
+    "**/obj": true,
+    ".idea": true,
+  },
+  "files.watcherExclude": {
+    "**/bin/**": true,
+    "**/obj/**": true,
+    ".idea": true,
+  },
+  "search.exclude": {
+    "**/bin": true,
+    "**/obj": true,
+    ".idea": true,
+  },
+  "terminal.integrated.env.osx": {
+    "PATH": "$PATH:/usr/local/share/dotnet"
+  }
+}
