@@ -24,13 +24,14 @@ internal class SingletonChannelReceiver : IChannelReceiver
     public SingletonChannelReceiver(
         IChannelReceiver channelReceiver,
         ISingletonLockManager lockManager,
-        ILogger log
+        ILogger log,
+        string lockId = null
     )
     {
         _channelReceiver = channelReceiver;
         _lockManager = lockManager;
         _log = log;
-        _lockId = channelReceiver.GetType().FullName;
+        _lockId = lockId ?? channelReceiver.GetType().FullName;
         //MaxConcurrent and Prefetch must have specific  values to work with a singleton implementation.
         //Override those and let the other values be set from the specific implementation
         Settings = new SingletonProcessingSettings

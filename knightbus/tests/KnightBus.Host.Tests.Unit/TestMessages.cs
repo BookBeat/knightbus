@@ -85,3 +85,8 @@ public class TestSubscription : IEventSubscription<TestEvent>
 {
     public string Name => "test-sub";
 }
+
+public class TestSubscriptionTwo : IEventSubscription<TestEvent>
+{
+    public string Name => "test-sub-two";
+}
