@@ -19,10 +19,7 @@ internal class BlobLockManager : ISingletonLockManager
     private readonly IBlobLockScheme _lockScheme;
 
     public BlobLockManager(string connectionString, IBlobLockScheme lockScheme = null)
-        : this(
-            new StorageBusConfiguration(connectionString),
-            lockScheme ?? new DefaultBlobLockScheme()
-        ) { }
+        : this(new StorageBusConfiguration(connectionString), lockScheme) { }
 
     public BlobLockManager(
         IStorageBusConfiguration configuration,
@@ -30,7 +27,7 @@ internal class BlobLockManager : ISingletonLockManager
     )
     {
         _configuration = configuration;
-        _lockScheme = lockScheme;
+        _lockScheme = lockScheme ?? new DefaultBlobLockScheme();
     }
 
     public Task InitializeAsync()
