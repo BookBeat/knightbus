@@ -1,0 +1,72 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/Examples/">
+    <Project Path="knightbus/examples/KnightBus.Examples.Azure.ServiceBus/KnightBus.Examples.Azure.ServiceBus.csproj" />
+    <Project Path="knightbus/examples/KnightBus.Examples.Azure.Storage/KnightBus.Examples.Azure.Storage.csproj" />
+    <Project Path="knightbus/examples/KnightBus.Examples.Nats/KnightBus.Examples.Nats.csproj" />
+    <Project Path="knightbus/examples/KnightBus.Examples.PostgreSql/KnightBus.Examples.PostgreSql.csproj" />
+    <Project Path="knightbus/examples/KnightBus.Examples.Redis/KnightBus.Examples.Redis.csproj" />
+    <Project Path="knightbus/examples/KnightBus.Examples.Schedule/KnightBus.Examples.Schedule.csproj" />
+  </Folder>
+
+  <Project Path="knightbus-opentelemetry/src/KnightBus.OpenTelemetry/KnightBus.OpenTelemetry.csproj" />
+  <Folder Name="/knightbus/" />
+  <Folder Name="/Solution Items/">
+    <File Path=".config/dotnet-tools.json" />
+    <File Path=".editorconfig" />
+    <File Path="CHANGELOG.md" />
+    <File Path="dotnet.yaml" />
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/Transports/" />
+  <Folder Name="/Transports/AzureServiceBus/">
+    <Project Path="knightbus-azureservicebus/src/KnightBus.Azure.ServiceBus.Management/KnightBus.Azure.ServiceBus.Management.csproj" />
+    <Project Path="knightbus-azureservicebus/src/KnightBus.Azure.ServiceBus.Messages/KnightBus.Azure.ServiceBus.Messages.csproj" />
+    <Project Path="knightbus-azureservicebus/src/KnightBus.Azure.ServiceBus/KnightBus.Azure.ServiceBus.csproj" />
+  </Folder>
+  <Folder Name="/Transports/AzureStorage/">
+    <Project Path="knightbus-azurestorage/src/KnightBus.Azure.Storage.Management/KnightBus.Azure.Storage.Management.csproj" />
+    <Project Path="knightbus-azurestorage/src/KnightBus.Azure.Storage.Messages/KnightBus.Azure.Storage.Messages.csproj" />
+    <Project Path="knightbus-azurestorage/src/KnightBus.Azure.Storage/KnightBus.Azure.Storage.csproj" />
+    <Project Path="knightbus-azurestorage/tests/KnightBus.Azure.Storage.Tests.Integration/KnightBus.Azure.Storage.Tests.Integration.csproj" />
+    <Project Path="knightbus-azurestorage/tests/KnightBus.Azure.Storage.Tests.Unit/KnightBus.Azure.Storage.Tests.Unit.csproj" />
+  </Folder>
+  <Folder Name="/Transports/Nats/">
+    <Project Path="knightbus-nats/src/KnightBus.Nats.Messages/KnightBus.Nats.Messages.csproj" />
+    <Project Path="knightbus-nats/src/KnightBus.Nats/KnightBus.Nats.csproj" />
+    <Project Path="knightbus-nats/tests/KnightBus.Nats.Tests.Unit/KnightBus.Nats.Tests.Unit.csproj" />
+  </Folder>
+  <Folder Name="/Transports/PostgreSql/">
+    <Project Path="knightbus-postgresql/src/KnightBus.PostgreSql.Extensions.Azure/KnightBus.PostgreSql.Extensions.Azure.csproj" />
+    <Project Path="knightbus-postgresql/src/KnightBus.PostgreSql.Management.Extensions.Azure/KnightBus.PostgreSql.Management.Extensions.Azure.csproj" />
+    <Project Path="knightbus-postgresql/src/KnightBus.PostgreSql.Management/KnightBus.PostgreSql.Management.csproj" />
+    <Project Path="knightbus-postgresql/src/KnightBus.PostgreSql.Messages/KnightBus.PostgreSql.Messages.csproj" />
+    <Project Path="knightbus-postgresql/src/KnightBus.PostgreSql/KnightBus.PostgreSql.csproj" />
+    <Project Path="knightbus-postgresql/tests/KnightBus.PostgreSql.Tests.Integration/KnightBus.PostgreSql.Tests.Integration.csproj" />
+  </Folder>
+  <Folder Name="/Transports/Redis/">
+    <Project Path="knightbus-redis/src/KnightBus.Redis.Management/KnightBus.Redis.Management.csproj" />
+    <Project Path="knightbus-redis/src/KnightBus.Redis.Messages/KnightBus.Redis.Messages.csproj" />
+    <Project Path="knightbus-redis/src/KnightBus.Redis/KnightBus.Redis.csproj" />
+    <Project Path="knightbus-redis/tests/KnightBus.Redis.Tests.Integration/KnightBus.Redis.Tests.Integration.csproj" />
+    <Project Path="knightbus-redis/tests/KnightBus.Redis.Tests.Unit/KnightBus.Redis.Tests.Unit.csproj" />
+  </Folder>
+  <Project Path="knightbus-applicationinsights/src/KnightBus.ApplicationInsights/KnightBus.ApplicationInsights.csproj" />
+  <Project Path="knightbus-newrelic/src/KnightBus.NewRelic/KnightBus.NewRelic.csproj" />
+  <Project Path="knightbus-newtonsoft/src/KnightBus.Newtonsoft/KnightBus.Newtonsoft.csproj" />
+  <Project Path="knightbus-schedule/src/KnightBus.Schedule/KnightBus.Schedule.csproj" />
+  <Project Path="knightbus-schedule/tests/KnightBus.Schedule.Tests.Unit/KnightBus.Schedule.Tests.Unit.csproj" />
+  <Project Path="knightbus-sqlserver/src/KnightBus.SqlServer/KnightBus.SqlServer.csproj" />
+  <Project Path="knightbus-sqlserver/tests/KnightBus.SqlServer.Tests.Integration/KnightBus.SqlServer.Tests.Integration.csproj" />
+  <Project Path="knightbus/src/KnightBus.Core.Management/KnightBus.Core.Management.csproj" />
+  <Project Path="knightbus/src/KnightBus.Core/KnightBus.Core.csproj" />
+  <Project Path="knightbus/src/KnightBus.Host/KnightBus.Host.csproj" />
+  <Project Path="knightbus/src/KnightBus.Messages/KnightBus.Messages.csproj" />
+  <Project Path="knightbus/tests/KnightBus.Core.Tests.Unit/KnightBus.Core.Tests.Unit.csproj" />
+  <Project Path="knightbus/tests/KnightBus.Host.Tests.Unit/KnightBus.Host.Tests.Unit.csproj" />
+  <Project Path="knightbus/tests/KnightBus.Shared.Tests.Integration/KnightBus.Shared.Tests.Integration.csproj" />
+</Solution>

@@ -33,6 +33,7 @@
 |------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | [KnightBus.ApplicationInsights](https://www.nuget.org/packages/KnightBus.ApplicationInsights/)             | [![KnightBus.ApplicationInsights](https://img.shields.io/nuget/v/KnightBus.ApplicationInsights.svg)](https://www.nuget.org/packages/KnightBus.ApplicationInsights/)                   |
 | [KnightBus.NewRelic](https://www.nuget.org/packages/KnightBus.NewRelic/)                                   | [![KnightBus.NewRelic](https://img.shields.io/nuget/v/KnightBus.NewRelic.svg)](https://www.nuget.org/packages/KnightBus.NewRelic/)                                                    |
+| [KnightBus.OpenTelemetry](knightbus-opentelemetry/README.md)                                               | [![KnightBus.OpenTelemetry](https://img.shields.io/nuget/v/KnightBus.OpenTelemetry.svg)](https://www.nuget.org/packages/KnightBus.OpenTelemetry/)                                     |
 
 ## Serialization
 | Package                                                                                                    | NuGet                                                                                                                                                                                 |
