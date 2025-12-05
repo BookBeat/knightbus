@@ -17,9 +17,12 @@ jobs:
         with:
           fetch-depth: 0
       - name: Setup .NET
-        uses: actions/setup-dotnet@v2
+        uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: 10.0.x
+          dotnet-version: |
+            9.0.x
+            10.0.x
+
       - name: Run csharpier format
         run: |
           dotnet tool restore
@@ -27,7 +30,7 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore
       - name: Build
-        run: dotnet build KnightBus.sln --no-restore --configuration Release
+        run: dotnet build KnightBus.slnx --no-restore --configuration Release
       - name: Pack
         run: dotnet pack --no-build --configuration Release --output ${{ env.NuGetDirectory }}
 
