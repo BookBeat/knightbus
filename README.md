@@ -156,3 +156,16 @@ $ python3 -m pip install sphinx-rtd-theme
 $ make html source build
 $ sensible-browser build/html/index.html
 ```
+
+
+## Examples
+Several examples of KnightBus usage can be found in the `knightbus/examples` folder.
+
+## Azure Service Bus Aspire Host OpenTelemetry Example
+An example of an Aspire Host using KnightBus with Azure Service Bus can be found in the `knightbus/examples/KnightBus.Examples.Azure.AspireHost` folder.
+
+You can run the example Service Bus Aspire Host locally by executing the following command in the `knightbus/examples/KnightBus.Examples.Azure.AspireHost` folder:
+
+```console
+dotnet run 
+```

@@ -5,6 +5,8 @@
     <Platform Name="x86" />
   </Configurations>
   <Folder Name="/Examples/">
+    <Project Path="knightbus/examples/KnightBus.Examples.Azure.AspireHost/KnightBus.Examples.Azure.AspireHost.csproj" />
+    <Project Path="knightbus/examples/KnightBus.Examples.Azure.ServiceBus.Producer/KnightBus.Examples.Azure.ServiceBus.Producer.csproj" />
     <Project Path="knightbus/examples/KnightBus.Examples.Azure.ServiceBus/KnightBus.Examples.Azure.ServiceBus.csproj" />
     <Project Path="knightbus/examples/KnightBus.Examples.Azure.Storage/KnightBus.Examples.Azure.Storage.csproj" />
     <Project Path="knightbus/examples/KnightBus.Examples.Nats/KnightBus.Examples.Nats.csproj" />
@@ -14,7 +16,6 @@
   </Folder>
 
   <Project Path="knightbus-opentelemetry/src/KnightBus.OpenTelemetry/KnightBus.OpenTelemetry.csproj" />
-  <Folder Name="/knightbus/" />
   <Folder Name="/Solution Items/">
     <File Path=".config/dotnet-tools.json" />
     <File Path=".editorconfig" />
