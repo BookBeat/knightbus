@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "Sample": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": false,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "OTEL_SERVICE_NAME": "KnightBus.Examples.Azure.ServiceBus",
+        "OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT": "4095",
+        "OTEL_EXPORTER_OTLP_COMPRESSION": "gzip",
+        "OTEL_EXPORTER_OTLP_PROTOCOL": "http/protobuf",
+        "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE": "delta",
+        "AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE": "true"
+      }
+    }
+  }
+}

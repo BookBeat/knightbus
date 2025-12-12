@@ -5,21 +5,21 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\knightbus-azureservicebus\src\KnightBus.Azure.ServiceBus.Management\KnightBus.Azure.ServiceBus.Management.csproj" />
     <ProjectReference Include="..\..\..\knightbus-azureservicebus\src\KnightBus.Azure.ServiceBus\KnightBus.Azure.ServiceBus.csproj" />
-    <ProjectReference Include="..\..\src\KnightBus.Host\KnightBus.Host.csproj" />
     <ProjectReference Include="..\..\..\knightbus-opentelemetry\src\KnightBus.OpenTelemetry\KnightBus.OpenTelemetry.csproj" />
-    <ProjectReference Include="..\..\..\knightbus-newrelic\src\KnightBus.NewRelic\KnightBus.NewRelic.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="OpenTelemetry" Version="1.14.0" />
+    <Compile Include="..\KnightBus.Examples.Azure.ServiceBus\Messages.cs" Link="Messages.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.0" />
     <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.14.0" />
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.14.0" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.14.0" />
     <PackageReference Include="OpenTelemetry.Instrumentation.Process" Version="1.14.0-beta.2" />
     <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.14.0" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.14.0" />
     <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.14.0" />
   </ItemGroup>
 </Project>
