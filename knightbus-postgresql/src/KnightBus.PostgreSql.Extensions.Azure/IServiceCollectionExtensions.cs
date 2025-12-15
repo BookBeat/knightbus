@@ -36,12 +36,7 @@ public static class IServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(configure);
 
         return services.UsePostgres(
-            sp =>
-            {
-                var configuration = configure(sp);
-                configuration.ToPostgresConfiguration()(configuration);
-                return configuration;
-            },
+            sp => configure(sp).RemovePasswordFromConnectionString(),
             (sp, builder) =>
             {
                 if (
@@ -54,7 +49,7 @@ public static class IServiceCollectionExtensions
                     );
                 }
 
-                azureConfiguration.WithManagedIdentityPasswordProvider()(builder);
+                azureConfiguration.WithManagedIdentityPasswordProvider(builder);
             }
         );
     }
@@ -63,21 +58,19 @@ public static class IServiceCollectionExtensions
     /// Adds a PostgreSQL data source to the service collection, using Azure Managed Identity to acquire access tokens.
     /// </summary>
     /// <param name="services">The <see cref="IServiceCollection"/> to add the PostgreSQL data source to.</param>
-    /// <param name="configuration"></param>
+    /// <param name="azureConfiguration"></param>
     /// <returns>The updated <see cref="IServiceCollection"/>.</returns>
     public static IServiceCollection UsePostgresWithAzureManagedIdentity(
         this IServiceCollection services,
-        PostgresAzureConfiguration configuration
+        PostgresAzureConfiguration azureConfiguration
     )
     {
         ArgumentNullException.ThrowIfNull(services);
-        ArgumentNullException.ThrowIfNull(configuration);
-
-        configuration.ToPostgresConfiguration()(configuration);
+        ArgumentNullException.ThrowIfNull(azureConfiguration);
 
         return services.UsePostgres(
-            _ => configuration,
-            (_, builder) => configuration.WithManagedIdentityPasswordProvider()(builder)
+            _ => azureConfiguration.RemovePasswordFromConnectionString(),
+            (_, builder) => azureConfiguration.WithManagedIdentityPasswordProvider(builder)
         );
     }
 }

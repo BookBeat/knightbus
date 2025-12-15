@@ -30,7 +30,7 @@ public static class IServiceCollectionExtensions
     /// <returns>The updated <see cref="IServiceCollection"/>.</returns>
     public static IServiceCollection UsePostgresManagementWithAzureManagedIdentity(
         this IServiceCollection services,
-        Action<IServiceProvider, PostgresAzureConfiguration> configure
+        Func<IServiceProvider, PostgresAzureConfiguration> configure
     )
     {
         ArgumentNullException.ThrowIfNull(services);
@@ -39,10 +39,7 @@ public static class IServiceCollectionExtensions
         return services.UsePostgresManagement(
             sp =>
             {
-                var configuration = new PostgresAzureConfiguration();
-                configure(sp, configuration);
-                configuration.ToPostgresConfiguration()(configuration);
-                return configuration;
+                return configure(sp).RemovePasswordFromConnectionString();
             },
             (sp, builder) =>
             {
@@ -56,7 +53,7 @@ public static class IServiceCollectionExtensions
                     );
                 }
 
-                azureConfiguration.WithManagedIdentityPasswordProvider()(builder);
+                azureConfiguration.WithManagedIdentityPasswordProvider(builder);
             }
         );
     }
@@ -69,18 +66,15 @@ public static class IServiceCollectionExtensions
     /// <returns>The updated <see cref="IServiceCollection"/>.</returns>
     public static IServiceCollection UsePostgresManagementWithAzureManagedIdentity(
         this IServiceCollection services,
-        PostgresAzureConfiguration postgresAzureConfiguration
+        PostgresAzureConfiguration azureConfiguration
     )
     {
         ArgumentNullException.ThrowIfNull(services);
-        ArgumentNullException.ThrowIfNull(postgresAzureConfiguration);
-
-        postgresAzureConfiguration.ToPostgresConfiguration()(postgresAzureConfiguration);
+        ArgumentNullException.ThrowIfNull(azureConfiguration);
 
         return services.UsePostgresManagement(
-            _ => postgresAzureConfiguration,
-            (_, builder) =>
-                postgresAzureConfiguration.WithManagedIdentityPasswordProvider()(builder)
+            _ => azureConfiguration.RemovePasswordFromConnectionString(),
+            (_, builder) => azureConfiguration.WithManagedIdentityPasswordProvider(builder)
         );
     }
 }

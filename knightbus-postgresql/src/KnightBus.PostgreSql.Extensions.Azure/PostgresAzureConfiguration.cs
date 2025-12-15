@@ -38,52 +38,45 @@ public class PostgresAzureConfiguration : PostgresConfiguration
 
 public static class PostgresAzureConfigurationExtensions
 {
-    public static Action<IPostgresConfiguration> ToPostgresConfiguration(
-        this PostgresAzureConfiguration configuration
+    public static PostgresAzureConfiguration RemovePasswordFromConnectionString(
+        this PostgresAzureConfiguration postgresAzureConfiguration
     )
     {
         var connectionStringBuilder = new NpgsqlConnectionStringBuilder(
-            configuration.ConnectionString
+            postgresAzureConfiguration.ConnectionString
         )
         {
             Password = null, // overwrite password if present in connectionString, otherwise Npgsql will throw
         };
 
-        return c =>
-        {
-            c.PollingDelay = configuration.PollingDelay;
-            c.ConnectionString = connectionStringBuilder.ToString();
-            c.MessageSerializer = configuration.MessageSerializer;
-        };
+        postgresAzureConfiguration.ConnectionString = connectionStringBuilder.ToString();
+
+        return postgresAzureConfiguration;
     }
 
-    public static Action<NpgsqlDataSourceBuilder> WithManagedIdentityPasswordProvider(
-        this PostgresAzureConfiguration configuration
+    public static NpgsqlDataSourceBuilder WithManagedIdentityPasswordProvider(
+        this PostgresAzureConfiguration configuration,
+        NpgsqlDataSourceBuilder builder
     )
     {
-        return builder =>
-        {
-            builder.UsePeriodicPasswordProvider(
-                // The cancellation token passed in as second arg in this delegate is only cancelled when the entire data source is disposed
-                async (_, cancellationToken) =>
-                {
-                    using var cts = CancellationTokenSource.CreateLinkedTokenSource(
-                        cancellationToken
-                    );
-                    cts.CancelAfter(configuration.RefreshTimeout);
+        return builder.UsePeriodicPasswordProvider(
+            // The cancellation token passed in as second arg in this delegate is only cancelled when the entire data source is disposed
+            async (_, cancellationToken) =>
+            {
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                cts.CancelAfter(configuration.RefreshTimeout);
 
-                    var token = await configuration
-                        .TokenCredential.GetTokenAsync(
-                            new TokenRequestContext(configuration.TokenRequestScopes),
-                            cts.Token
-                        )
-                        .ConfigureAwait(false);
+                var token = await configuration
+                    .TokenCredential.GetTokenAsync(
+                        new TokenRequestContext(configuration.TokenRequestScopes),
+                        cts.Token
+                    )
+                    .ConfigureAwait(false);
 
-                    return token.Token;
-                },
-                configuration.SuccessRefreshInterval,
-                configuration.FailureRefreshInterval
-            );
-        };
+                return token.Token;
+            },
+            configuration.SuccessRefreshInterval,
+            configuration.FailureRefreshInterval
+        );
     }
 }
