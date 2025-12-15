@@ -11,7 +11,7 @@ public class IServiceCollectionExtensionsTests
 {
     private const string Password = "password";
     private static readonly PostgreSqlContainer PostgresContainer = new PostgreSqlBuilder()
-        .WithPortBinding(5432, false)
+        .WithPortBinding(5432, true)
         .WithPassword(Password)
         .Build();
 
@@ -21,7 +21,12 @@ public class IServiceCollectionExtensionsTests
     public async Task OneTimeSetup()
     {
         await PostgresContainer.StartAsync();
-        _connectionString = PostgresContainer.GetConnectionString();
+        _connectionString = new NpgsqlConnectionStringBuilder(
+            PostgresContainer.GetConnectionString()
+        )
+        {
+            Password = null,
+        }.ToString();
     }
 
     [OneTimeTearDown]
