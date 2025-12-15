@@ -1,5 +1,8 @@
 # CHANGELOG
 
+# 2025-10-29
+Add support for Azure Managed Identity
+
 # 2025-04-08
 Add support for metadata on message attachments
 

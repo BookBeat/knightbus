@@ -24,6 +24,13 @@ Azure Storage Bus
 
 https://azure.microsoft.com/en-us/services/storage/queues/
 
+PostgreSQL
+-----------------
+
+* commands
+* events
+* saga store
+
 Redis
 -----------------
 

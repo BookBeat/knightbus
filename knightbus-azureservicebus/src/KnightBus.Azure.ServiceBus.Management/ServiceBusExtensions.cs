@@ -92,6 +92,14 @@ public static class ServiceBusExtensions
 
     public static IServiceCollection AddServiceBusManagement(
         this IServiceCollection services,
+        Func<IServiceProvider, IServiceBusConfiguration> configurationFactory
+    )
+    {
+        return services.AddServiceBusManagementCore().UseServiceBus(configurationFactory);
+    }
+
+    public static IServiceCollection AddServiceBusManagement(
+        this IServiceCollection services,
         IServiceBusConfiguration configuration
     )
     {
