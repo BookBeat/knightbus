@@ -10,7 +10,7 @@
     <PackageIconUrl>https://raw.githubusercontent.com/BookBeat/knightbus/master/documentation/media/images/knighbus-64.png</PackageIconUrl>
     <PackageIcon>knighbus-64.png</PackageIcon>
     <RepositoryUrl>https://github.com/BookBeat/knightbus</RepositoryUrl>
-    <Version>14.1.0</Version>
+    <Version>14.2.0-alpha-1</Version>
     <PackageTags>knightbus;quartz;schedule;trigger</PackageTags>
   </PropertyGroup>
   <ItemGroup>
@@ -22,5 +22,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\knightbus\src\KnightBus.Core\KnightBus.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="KnightBus.Schedule.Tests.Integration" />
+    <InternalsVisibleTo Include="KnightBus.Schedule.Tests.Unit" />
   </ItemGroup>
 </Project>
