@@ -60,7 +60,7 @@ public class SchedulingPlugin : IPlugin
 
                 CronExpression.ValidateExpression(settings.CronExpression);
 
-                var jobType = typeof(JobExecutor<>).MakeGenericType(scheduleType);
+                var jobType = typeof(JobExecutor<,>).MakeGenericType(scheduleType, processor);
                 var job = JobBuilder
                     .Create(jobType)
                     .WithIdentity(Guid.NewGuid().ToString())
@@ -77,7 +77,13 @@ public class SchedulingPlugin : IPlugin
                     .StartNow()
                     .Build();
 
-                jobFactory.AddJob(scheduleType, dependencyInjection, _logger, lockManager);
+                jobFactory.AddJob(
+                    scheduleType,
+                    processor,
+                    dependencyInjection,
+                    _logger,
+                    lockManager
+                );
                 await _scheduler.ScheduleJob(job, trigger, cancellationToken).ConfigureAwait(false);
             }
         }

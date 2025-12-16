@@ -22,6 +22,16 @@ public static class ScheduleExtensions
         return collection;
     }
 
+    internal static IServiceCollection RegisterSchedule<TProcessor, TSchedule>(
+        this IServiceCollection collection
+    )
+        where TProcessor : class, IProcessSchedule<TSchedule>
+        where TSchedule : class, ISchedule, new()
+    {
+        collection.RegisterGenericProcessor(typeof(TProcessor), typeof(IProcessSchedule<>));
+        return collection;
+    }
+
     public static IServiceCollection RegisterSchedules(this IServiceCollection collection)
     {
         collection.RegisterGenericProcessor(
