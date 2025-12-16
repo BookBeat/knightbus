@@ -1,14 +1,11 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Runtime.CompilerServices;
 using KnightBus.Core;
 using KnightBus.Core.Singleton;
 using Microsoft.Extensions.Logging;
 using Quartz;
 using Quartz.Simpl;
 using Quartz.Spi;
-
-[assembly: InternalsVisibleTo("KnightBus.Schedule.Tests.Unit")]
 
 namespace KnightBus.Schedule;
 
@@ -19,12 +16,13 @@ public class CustomJobFactory : SimpleJobFactory
 
     internal void AddJob(
         Type settingsType,
+        Type processorType,
         IDependencyInjection dependencyInjection,
         ILogger log,
         ISingletonLockManager singletonLockManager
     )
     {
-        var jobType = typeof(JobExecutor<>).MakeGenericType(settingsType);
+        var jobType = typeof(JobExecutor<,>).MakeGenericType(settingsType, processorType);
         var jobExecutor = (IJob)
             Activator.CreateInstance(jobType, log, singletonLockManager, dependencyInjection);
         _jobs.TryAdd(jobExecutor.GetType(), jobExecutor);
