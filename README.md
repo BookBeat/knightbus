@@ -33,6 +33,7 @@
 |------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | [KnightBus.ApplicationInsights](https://www.nuget.org/packages/KnightBus.ApplicationInsights/)             | [![KnightBus.ApplicationInsights](https://img.shields.io/nuget/v/KnightBus.ApplicationInsights.svg)](https://www.nuget.org/packages/KnightBus.ApplicationInsights/)                   |
 | [KnightBus.NewRelic](https://www.nuget.org/packages/KnightBus.NewRelic/)                                   | [![KnightBus.NewRelic](https://img.shields.io/nuget/v/KnightBus.NewRelic.svg)](https://www.nuget.org/packages/KnightBus.NewRelic/)                                                    |
+| [KnightBus.OpenTelemetry](knightbus-opentelemetry/README.md)                                               | [![KnightBus.OpenTelemetry](https://img.shields.io/nuget/v/KnightBus.OpenTelemetry.svg)](https://www.nuget.org/packages/KnightBus.OpenTelemetry/)                                     |
 
 ## Serialization
 | Package                                                                                                    | NuGet                                                                                                                                                                                 |
@@ -154,4 +155,17 @@ $ sudo apt install python3 python3-sphinx python3-pip
 $ python3 -m pip install sphinx-rtd-theme
 $ make html source build
 $ sensible-browser build/html/index.html
+```
+
+
+## Examples
+Several examples of KnightBus usage can be found in the `knightbus/examples` folder.
+
+## Azure Service Bus Aspire Host OpenTelemetry Example
+An example of an Aspire Host using KnightBus with Azure Service Bus can be found in the `knightbus/examples/KnightBus.Examples.Azure.AspireHost` folder.
+
+You can run the example Service Bus Aspire Host locally by executing the following command in the `knightbus/examples/KnightBus.Examples.Azure.AspireHost` folder:
+
+```console
+dotnet run 
 ```

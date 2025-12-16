@@ -1,16 +1,22 @@
 ﻿using System;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using Azure.Identity;
 using KnightBus.Azure.ServiceBus;
 using KnightBus.Azure.ServiceBus.Management;
-using KnightBus.Azure.ServiceBus.Messages;
 using KnightBus.Core;
 using KnightBus.Core.DependencyInjection;
+using KnightBus.Core.DistributedTracing;
 using KnightBus.Host;
-using KnightBus.Messages;
+using KnightBus.OpenTelemetry;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using OpenTelemetry;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 
 namespace KnightBus.Examples.Azure.ServiceBus;
 
@@ -18,36 +24,71 @@ class Program
 {
     static async Task Main(string[] args)
     {
-        var serviceBusConfiguration = new ServiceBusConfiguration
-        {
-            // Use connection string or Entra ID
-            // ConnectionString = "",
-
-            // Entra
-            Credential = new DefaultAzureCredential(),
-            FullyQualifiedNamespace = "",
-        };
-
         var knightBus = Microsoft
-            .Extensions.Hosting.Host.CreateDefaultBuilder()
+            .Extensions.Hosting.Host.CreateDefaultBuilder(args)
             .UseDefaultServiceProvider(options =>
             {
                 options.ValidateScopes = true;
                 options.ValidateOnBuild = true;
             })
-            .ConfigureServices(services =>
+            .ConfigureLogging(logging =>
             {
-                services
-                    .UseServiceBus(serviceBusConfiguration)
-                    .AddServiceBusManagement(serviceBusConfiguration)
-                    .RegisterProcessors(typeof(SampleServiceBusEventProcessor).Assembly)
-                    .UseTransport<ServiceBusTransport>();
+                logging.AddOpenTelemetry(options =>
+                {
+                    options.IncludeFormattedMessage = true;
+                    options.IncludeScopes = true;
+                    options.ParseStateValues = true;
+                });
             })
+            .ConfigureServices(
+                (context, services) =>
+                {
+                    // Get connection string from Aspire configuration
+                    var connectionString = context.Configuration.GetConnectionString("servicebus");
+
+                    var serviceBusConfiguration = new ServiceBusConfiguration
+                    {
+                        ConnectionString = connectionString,
+                    };
+
+                    // Configure OpenTelemetry tracing
+                    // This sets up the OpenTelemetry SDK with console exporter for demo purposes
+                    services
+                        .AddOpenTelemetry()
+                        .ConfigureResource(resourceBuilder =>
+                        {
+                            resourceBuilder.AddService("KnightBus.Examples.Azure.ServiceBus");
+                        })
+                        .UseOtlpExporter()
+                        .WithTracing(builder =>
+                        {
+                            builder.SetSampler(new AlwaysOnSampler());
+                            builder
+                                .AddAspNetCoreInstrumentation()
+                                .AddHttpClientInstrumentation()
+                                .AddConsoleExporter()
+                                // Register KnightBus ActivitySource for tracing
+                                .AddKnightBusInstrumentation();
+                        })
+                        .WithMetrics(meterProviderBuilder =>
+                        {
+                            meterProviderBuilder
+                                .AddHttpClientInstrumentation()
+                                .AddProcessInstrumentation()
+                                .AddRuntimeInstrumentation();
+                        });
+
+                    services
+                        .UseDistributedTracing()
+                        .UseServiceBus(serviceBusConfiguration)
+                        .AddServiceBusManagement(serviceBusConfiguration)
+                        .RegisterProcessors(typeof(SampleServiceBusEventProcessor).Assembly)
+                        .UseOpenTelemetry()
+                        .UseTransport<ServiceBusTransport>();
+                }
+            )
             .UseKnightBus()
             .Build();
-
-        //Start the KnightBus Host, it will now connect to the ServiceBus and listen to the SampleServiceBusMessageMapping.QueueName
-        await knightBus.StartAsync(CancellationToken.None);
 
         //Initiate the client
         var client = (KnightBus.Azure.ServiceBus.ServiceBus)
@@ -57,102 +98,47 @@ class Program
             .Services.CreateScope()
             .ServiceProvider.GetRequiredService<ServiceBusQueueManager>();
 
-        //Send some Messages and watch them print in the console
-        for (var i = 0; i < 10; i++)
-        {
-            await client.SendAsync(
-                new SampleServiceBusMessage { Message = $"Hello from command {i}" }
-            );
-        }
-        for (var i = 0; i < 10; i++)
-        {
-            await client.PublishEventAsync(
-                new SampleServiceBusEvent { Message = $"Hello from event {i}" }
-            );
-        }
-
-        // Send a message with management client
-        await managementClient.SendMessage(
-            "other-queue",
-            "{\"SomeProperty\": \"hello, world!\"}",
-            default
-        );
-
-        Console.ReadKey();
+        //Start the KnightBus Host, it will now connect to the ServiceBus and listen to the SampleServiceBusMessageMapping.QueueName
+        await knightBus.RunAsync();
     }
 
-    class SampleServiceBusMessage : IServiceBusCommand
-    {
-        public string Message { get; set; }
-    }
-
-    class SampleServiceBusEvent : IServiceBusEvent
-    {
-        public string Message { get; set; }
-    }
-
-    class OtherSampleServiceBusMessage : IServiceBusCommand
-    {
-        public string SomeProperty { get; set; }
-    }
-
-    class OtherSampleServiceBusMessageMapping : IMessageMapping<OtherSampleServiceBusMessage>
-    {
-        public string QueueName => "other-queue";
-    }
-
-    class SampleServiceBusMessageMapping
-        : IMessageMapping<SampleServiceBusMessage>,
-            IServiceBusCreationOptions
-    {
-        public string QueueName => "your-queue";
-        public bool EnablePartitioning => true;
-        public bool SupportOrdering => false;
-        public bool EnableBatchedOperations => true;
-    }
-
-    class SampleServiceBusEventMapping : IMessageMapping<SampleServiceBusEvent>
-    {
-        public string QueueName => "your-topic";
-    }
-
-    class SampleServiceBusMessageProcessor
+    class SampleServiceBusMessageProcessor(ILogger<SampleServiceBusMessageProcessor> logger)
         : IProcessCommand<SampleServiceBusMessage, SomeProcessingSetting>,
             IProcessCommand<OtherSampleServiceBusMessage, SomeProcessingSetting>,
             IProcessEvent<SampleServiceBusEvent, EventSubscriptionOne, SomeProcessingSetting>
     {
-        public Task ProcessAsync(
+        public async Task ProcessAsync(
             SampleServiceBusMessage message,
             CancellationToken cancellationToken
         )
         {
-            Console.WriteLine($"Received command: '{message.Message}'");
-            return Task.CompletedTask;
+            var response = await new HttpClient().GetStringAsync("https://www.google.com");
+            logger.LogInformation($"Received command: '{message.Message}'");
         }
 
         public Task ProcessAsync(SampleServiceBusEvent message, CancellationToken cancellationToken)
         {
-            Console.WriteLine($"Received event: '{message.Message}'");
+            logger.LogInformation($"Received event: '{message.Message}'");
             return Task.CompletedTask;
         }
 
-        public Task ProcessAsync(
+        public async Task ProcessAsync(
             OtherSampleServiceBusMessage message,
             CancellationToken cancellationToken
         )
         {
-            Console.WriteLine($"Received command: '{message.SomeProperty}'");
-            return Task.CompletedTask;
+            var response = await new HttpClient().GetStringAsync("https://www.google.com");
+            logger.LogInformation($"Received command: '{message.SomeProperty}'");
         }
     }
 
-    class SampleServiceBusEventProcessor
+    class SampleServiceBusEventProcessor(ILogger<SampleServiceBusEventProcessor> logger)
         : IProcessEvent<SampleServiceBusEvent, EventSubscriptionTwo, SomeProcessingSetting>,
             IProcessBeforeDeadLetter<SampleServiceBusEvent>
     {
         public Task ProcessAsync(SampleServiceBusEvent message, CancellationToken cancellationToken)
         {
-            Console.WriteLine($"Also received event: '{message.Message}'");
+            logger.LogInformation($"Also received event: '{message.Message}'");
             throw new Exception("Trigger retry");
         }
 
@@ -161,19 +147,9 @@ class Program
             CancellationToken cancellationToken
         )
         {
-            Console.WriteLine($"Dead lettering event: '{message.Message}'");
+            logger.LogInformation($"Dead lettering event: '{message.Message}'");
             return Task.CompletedTask;
         }
-    }
-
-    class EventSubscriptionOne : IEventSubscription<SampleServiceBusEvent>
-    {
-        public string Name => "subscription-1";
-    }
-
-    class EventSubscriptionTwo : IEventSubscription<SampleServiceBusEvent>
-    {
-        public string Name => "subscription-2";
     }
 
     class SomeProcessingSetting : IProcessingSettings
