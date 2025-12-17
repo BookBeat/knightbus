@@ -1,5 +1,11 @@
 # CHANGELOG
 
+# 2025-12-17
+Replace ScheduleAsync methods with ones that also returns corresponding sequence number(s)
+
+### KnightBus.Azure.ServiceBus 23.0.0
+### KnightBus.Azure.ServiceBus.Management 3.0.0
+
 # 2025-04-08
 Add support for metadata on message attachments
 
