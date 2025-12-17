@@ -14,15 +14,32 @@ namespace KnightBus.Azure.ServiceBus;
 public interface IServiceBus
 {
     /// <summary>
-    /// Schedules a queue message for delivery a certain time into the future
+    /// Schedules a queue message for delivery a certain time into the future and returns a sequence number for the scheduled message.
     /// </summary>
-    Task ScheduleAsync<T>(T message, TimeSpan span, CancellationToken cancellationToken = default)
+    /// <remarks>
+    /// Although the message will not be available to be received until the scheduled enqueue time, it can still be peeked before that time.
+    /// </remarks>
+    ///
+    /// <returns>The sequence number of the message that was scheduled.</returns>
+    Task<long> ScheduleAsync<T>(
+        T message,
+        TimeSpan span,
+        CancellationToken cancellationToken = default
+    )
         where T : IServiceBusCommand;
 
     /// <summary>
-    /// Schedules a batch of queue message for delivery a certain time into the future using the batch send method
+    /// Schedules a batch of queue messages for delivery a certain time into the future and returns sequence numbers for the scheduled messages.
     /// </summary>
-    Task ScheduleAsync<T>(
+    /// <remarks>
+    /// Although the messages will not be available to be received until the scheduled enqueue time, they can still be peeked before that time.
+    /// The sequence numbers are returned in the same order as the input messages, enabling positional correlation.
+    /// When scheduling, the result is atomic; either all messages succeed or all fail. Partial success is not possible.
+    /// </remarks>
+    /// <returns>
+    /// A read-only list of sequence numbers for the scheduled messages, ordered to match the input messages.
+    /// </returns>
+    Task<IReadOnlyList<long>> ScheduleAsync<T>(
         IEnumerable<T> messages,
         TimeSpan span,
         CancellationToken cancellationToken = default
@@ -103,7 +120,7 @@ public class ServiceBus : IServiceBus
         await SendAsync(client, sbMessages, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task ScheduleAsync<T>(
+    public async Task<long> ScheduleAsync<T>(
         T message,
         TimeSpan span,
         CancellationToken cancellationToken = default
@@ -112,12 +129,14 @@ public class ServiceBus : IServiceBus
     {
         var client = await _clientFactory.GetSenderClient<T>().ConfigureAwait(false);
         var sbMessage = await CreateMessageAsync(message, cancellationToken).ConfigureAwait(false);
-        sbMessage.ScheduledEnqueueTime = DateTime.UtcNow.Add(span);
+        var scheduledEnqueueTime = DateTime.UtcNow.Add(span);
 
-        await SendAsync(client, sbMessage, cancellationToken).ConfigureAwait(false);
+        return await client
+            .ScheduleMessageAsync(sbMessage, scheduledEnqueueTime, cancellationToken)
+            .ConfigureAwait(false);
     }
 
-    public async Task ScheduleAsync<T>(
+    public async Task<IReadOnlyList<long>> ScheduleAsync<T>(
         IEnumerable<T> messages,
         TimeSpan span,
         CancellationToken cancellationToken = default
@@ -125,15 +144,23 @@ public class ServiceBus : IServiceBus
         where T : IServiceBusCommand
     {
         var client = await _clientFactory.GetSenderClient<T>().ConfigureAwait(false);
-        var sbMessages = new Queue<ServiceBusMessage>();
+        var scheduledEnqueueTime = DateTime.UtcNow.Add(span);
+        var sbMessages = new List<ServiceBusMessage>();
+
         foreach (var message in messages)
         {
             var msg = await CreateMessageAsync(message, cancellationToken).ConfigureAwait(false);
-            msg.ScheduledEnqueueTime = DateTime.UtcNow.Add(span);
-            sbMessages.Enqueue(msg);
+            sbMessages.Add(msg);
         }
 
-        await SendAsync(client, sbMessages, cancellationToken).ConfigureAwait(false);
+        if (sbMessages.Count == 0)
+        {
+            return [];
+        }
+
+        return await client
+            .ScheduleMessagesAsync(sbMessages, scheduledEnqueueTime, cancellationToken)
+            .ConfigureAwait(false);
     }
 
     public async Task PublishEventAsync<T>(T message, CancellationToken cancellationToken = default)
