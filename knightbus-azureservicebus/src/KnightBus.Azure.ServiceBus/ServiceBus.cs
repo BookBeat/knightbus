@@ -72,6 +72,12 @@ public interface IServiceBus
         CancellationToken cancellationToken = default
     )
         where T : IServiceBusEvent;
+
+    /// <summary>
+    /// Cancels a scheduled message using the sequence number returned when the message was scheduled.
+    /// </summary>
+    Task CancelScheduledAsync<T>(long sequenceNumber, CancellationToken cancellationToken = default)
+        where T : IServiceBusCommand;
 }
 
 public class ServiceBus : IServiceBus
@@ -197,6 +203,19 @@ public class ServiceBus : IServiceBus
         }
 
         await SendAsync(client, sbMessages, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task CancelScheduledAsync<T>(
+        long sequenceNumber,
+        CancellationToken cancellationToken = default
+    )
+        where T : IServiceBusCommand
+    {
+        var client = await _clientFactory.GetSenderClient<T>().ConfigureAwait(false);
+
+        await client
+            .CancelScheduledMessageAsync(sequenceNumber, cancellationToken)
+            .ConfigureAwait(false);
     }
 
     private async Task SendAsync(
