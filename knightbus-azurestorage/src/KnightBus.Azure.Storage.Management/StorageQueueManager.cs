@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -123,6 +124,15 @@ public class StorageQueueManager : IQueueManager, IQueueMessageAttachmentProvide
                 );
             })
             .ToList();
+    }
+
+    public Task<IReadOnlyList<QueueMessage>> PeekScheduled(
+        string name,
+        int count,
+        CancellationToken ct
+    )
+    {
+        throw new NotSupportedException();
     }
 
     public async Task<IReadOnlyList<QueueMessage>> PeekDeadLetter(

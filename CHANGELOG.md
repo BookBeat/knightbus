@@ -1,10 +1,22 @@
 # CHANGELOG
 
 # 2025-12-17
-Replace ScheduleAsync methods with ones that also returns corresponding sequence number(s)
+Added better support for scheduled messages, including ability to peek scheduled messages and cancel them by sequence number.
 
+**Note:** Only ServiceBus supports cancelling scheduled messages
+
+### KnightBus.Core.Management 3.0.0
+* Added PeekScheduled method to IQueueManager
+* Added optional property SequenceNumber to QueueMessage
 ### KnightBus.Azure.ServiceBus 23.0.0
+* ScheduleAsync methods now returns corresponding sequence number(s)
+* Added CancelScheduledAsync method to cancel scheduled messages by sequence number(s)
 ### KnightBus.Azure.ServiceBus.Management 3.0.0
+### KnightBus.Azure.Storage.Management 3.0.0
+### KnightBus.PostgeSql.Management 3.0.0
+### KnightBus.PostgeSql.Management.Extensions 2.0.0
+### KnightBus.Redis.Management 2.0.0
+* Bump packages and implement PeekScheduled where applicable
 
 # 2025-04-08
 Add support for metadata on message attachments

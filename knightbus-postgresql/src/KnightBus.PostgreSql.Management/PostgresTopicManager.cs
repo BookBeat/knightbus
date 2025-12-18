@@ -1,4 +1,4 @@
-using KnightBus.Core.Management;
+﻿using KnightBus.Core.Management;
 
 namespace KnightBus.PostgreSql.Management;
 
@@ -46,6 +46,15 @@ public class PostgresTopicManager : IQueueManager
     public Task<IReadOnlyList<QueueMessage>> Peek(string name, int count, CancellationToken ct)
     {
         throw new NotImplementedException();
+    }
+
+    public Task<IReadOnlyList<QueueMessage>> PeekScheduled(
+        string name,
+        int count,
+        CancellationToken ct
+    )
+    {
+        throw new NotSupportedException();
     }
 
     public Task<IReadOnlyList<QueueMessage>> PeekDeadLetter(
