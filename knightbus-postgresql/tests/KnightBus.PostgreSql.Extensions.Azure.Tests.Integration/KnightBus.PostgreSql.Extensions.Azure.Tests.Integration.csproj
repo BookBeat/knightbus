@@ -24,5 +24,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\knightbus\src\KnightBus.Host\KnightBus.Host.csproj" />
     <ProjectReference Include="..\..\src\KnightBus.PostgreSql.Extensions.Azure\KnightBus.PostgreSql.Extensions.Azure.csproj" />
+    <ProjectReference Include="..\..\src\KnightBus.PostgreSql.Management.Extensions.Azure\KnightBus.PostgreSql.Management.Extensions.Azure.csproj" />
   </ItemGroup>
 </Project>

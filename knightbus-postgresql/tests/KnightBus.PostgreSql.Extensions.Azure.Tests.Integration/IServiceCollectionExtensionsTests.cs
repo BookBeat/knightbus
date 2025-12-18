@@ -1,6 +1,8 @@
 using System.Data;
 using AwesomeAssertions;
 using Azure.Core;
+using KnightBus.PostgreSql.Management;
+using KnightBus.PostgreSql.Management.Extensions.Azure;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using Testcontainers.PostgreSql;
@@ -88,6 +90,81 @@ public class IServiceCollectionExtensionsTests
 
         // Act
         target.UsePostgresWithAzureManagedIdentity(
+            new PostgresAzureConfiguration
+            {
+                TokenCredential = new MockCredential(),
+                ConnectionString = _connectionString,
+            }
+        );
+        var serviceProvider = target.BuildServiceProvider();
+
+        // Assert
+        var result = serviceProvider.GetRequiredKeyedService<NpgsqlDataSource>(
+            PostgresConstants.NpgsqlDataSourceContainerKey
+        );
+        await using var connection = await result.OpenConnectionAsync();
+        connection.State.Should().Be(ConnectionState.Open);
+    }
+
+    [Test]
+    public async Task UsePostgresManagementWithAzureManagedIdentity_WithFunc_RegistersCorrectly()
+    {
+        // Arrange
+        var target = new ServiceCollection();
+        target.AddSingleton<TokenCredential>(new MockCredential());
+
+        // Act
+        target.UsePostgresManagementWithAzureManagedIdentity(
+            provider => new PostgresAzureConfiguration
+            {
+                TokenCredential = provider.GetRequiredService<TokenCredential>(),
+                ConnectionString = _connectionString,
+            }
+        );
+        var serviceProvider = target.BuildServiceProvider();
+
+        // Assert
+        var result = serviceProvider.GetRequiredKeyedService<NpgsqlDataSource>(
+            PostgresConstants.NpgsqlDataSourceContainerKey
+        );
+        await using var connection = await result.OpenConnectionAsync();
+        connection.State.Should().Be(ConnectionState.Open);
+        serviceProvider
+            .Invoking(x => x.GetRequiredService<PostgresQueueManager>())
+            .Should()
+            .NotThrow();
+    }
+
+    [Test]
+    public async Task UsePostgresManagementWithAzureManagedIdentity_WithAction_RegistersCorrectly()
+    {
+        // Arrange
+        var target = new ServiceCollection();
+
+        // Act
+        target.UsePostgresManagementWithAzureManagedIdentity(x =>
+        {
+            x.TokenCredential = new MockCredential();
+            x.ConnectionString = _connectionString;
+        });
+        var serviceProvider = target.BuildServiceProvider();
+
+        // Assert
+        var result = serviceProvider.GetRequiredKeyedService<NpgsqlDataSource>(
+            PostgresConstants.NpgsqlDataSourceContainerKey
+        );
+        await using var connection = await result.OpenConnectionAsync();
+        connection.State.Should().Be(ConnectionState.Open);
+    }
+
+    [Test]
+    public async Task UsePostgresManagementWithAzureManagedIdentity_WithConfiguration_RegistersCorrectly()
+    {
+        // Arrange
+        var target = new ServiceCollection();
+
+        // Act
+        target.UsePostgresManagementWithAzureManagedIdentity(
             new PostgresAzureConfiguration
             {
                 TokenCredential = new MockCredential(),
