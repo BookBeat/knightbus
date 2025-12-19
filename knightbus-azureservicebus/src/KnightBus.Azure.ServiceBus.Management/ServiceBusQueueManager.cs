@@ -57,18 +57,45 @@ public class ServiceBusQueueManager : IQueueManager, IQueueMessageSender, IAsync
             .PeekMessagesAsync(count, cancellationToken: ct)
             .ConfigureAwait(false);
         return messages
+            .Where(m => m.State != ServiceBusMessageState.Scheduled)
             .Select(m =>
             {
                 m.ApplicationProperties.TryGetValue("Exception", out var error);
-                return new QueueMessage(
-                    Encoding.UTF8.GetString(m.Body),
-                    error?.ToString() ?? string.Empty,
-                    m.EnqueuedTime,
-                    m.ScheduledEnqueueTime != default ? m.ScheduledEnqueueTime : null,
-                    m.DeliveryCount,
-                    m.MessageId,
-                    m.ApplicationProperties
-                );
+                return MapToQueueMessage(m, error);
+            })
+            .ToList();
+    }
+
+    private static QueueMessage MapToQueueMessage(ServiceBusReceivedMessage m, object error)
+    {
+        return new QueueMessage(
+            Encoding.UTF8.GetString(m.Body),
+            error?.ToString() ?? string.Empty,
+            m.EnqueuedTime,
+            m.ScheduledEnqueueTime != default ? m.ScheduledEnqueueTime : null,
+            m.DeliveryCount,
+            m.MessageId,
+            m.ApplicationProperties,
+            m.SequenceNumber
+        );
+    }
+
+    public async Task<IReadOnlyList<QueueMessage>> PeekScheduled(
+        string name,
+        int count,
+        CancellationToken ct
+    )
+    {
+        await using var receiver = _client.CreateReceiver(name);
+        var messages = await receiver
+            .PeekMessagesAsync(count, cancellationToken: ct)
+            .ConfigureAwait(false);
+        return messages
+            .Where(m => m.State == ServiceBusMessageState.Scheduled)
+            .Select(m =>
+            {
+                m.ApplicationProperties.TryGetValue("Exception", out var error);
+                return MapToQueueMessage(m, error);
             })
             .ToList();
     }
@@ -90,15 +117,7 @@ public class ServiceBusQueueManager : IQueueManager, IQueueMessageSender, IAsync
             .Select(m =>
             {
                 m.ApplicationProperties.TryGetValue("Exception", out var error);
-                return new QueueMessage(
-                    Encoding.UTF8.GetString(m.Body),
-                    error?.ToString() ?? string.Empty,
-                    m.EnqueuedTime,
-                    m.ScheduledEnqueueTime != default ? m.ScheduledEnqueueTime : null,
-                    m.DeliveryCount,
-                    m.MessageId,
-                    m.ApplicationProperties
-                );
+                return MapToQueueMessage(m, error);
             })
             .ToList();
 
@@ -134,15 +153,7 @@ public class ServiceBusQueueManager : IQueueManager, IQueueMessageSender, IAsync
                 messages.Select(m =>
                 {
                     m.ApplicationProperties.TryGetValue("Exception", out var error);
-                    return new QueueMessage(
-                        Encoding.UTF8.GetString(m.Body),
-                        error?.ToString() ?? string.Empty,
-                        m.EnqueuedTime,
-                        m.ScheduledEnqueueTime != default ? m.ScheduledEnqueueTime : null,
-                        m.DeliveryCount,
-                        m.MessageId,
-                        m.ApplicationProperties
-                    );
+                    return MapToQueueMessage(m, error);
                 })
             );
             if (messages.Count == 0)
