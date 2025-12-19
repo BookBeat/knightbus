@@ -181,5 +181,14 @@ public class PostgresQueueManager : IQueueManager, IQueueMessageSender
         );
     }
 
+    public Task CancelScheduledMessage(
+        string path,
+        long sequenceNumber,
+        CancellationToken cancellationToken
+    )
+    {
+        throw new NotSupportedException();
+    }
+
     public QueueType QueueType => QueueType.Queue;
 }
