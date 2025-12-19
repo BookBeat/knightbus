@@ -1,11 +1,22 @@
 # CHANGELOG
 
-# 2025-12-17
+# 2025-12-19
+
+### KnightBus.Core.Management 18.1.0
+* Added CancelScheduledMessage to IQueueMessageSender
+### KnightBus.Azure.ServiceBus.Management 3.1.0
+### KnightBus.Azure.Storage.Management 3.1.0
+### KnightBus.PostgeSql.Management 3.1.0
+### KnightBus.PostgeSql.Management.Extensions 2.1.0
+### KnightBus.Redis.Management 2.1.0
+* Bump version and implement CancelScheduledMessage where applicable
+
+# 2025-12-19
 Added better support for scheduled messages, including ability to peek scheduled messages and cancel them by sequence number.
 
 **Note:** Only ServiceBus supports cancelling scheduled messages
 
-### KnightBus.Core.Management 3.0.0
+### KnightBus.Core.Management 18.0.0
 * Added PeekScheduled method to IQueueManager
 * Added optional property SequenceNumber to QueueMessage
 ### KnightBus.Azure.ServiceBus 23.0.0
@@ -16,7 +27,7 @@ Added better support for scheduled messages, including ability to peek scheduled
 ### KnightBus.PostgeSql.Management 3.0.0
 ### KnightBus.PostgeSql.Management.Extensions 2.0.0
 ### KnightBus.Redis.Management 2.0.0
-* Bump packages and implement PeekScheduled where applicable
+* Bump version and implement PeekScheduled where applicable
 
 # 2025-04-08
 Add support for metadata on message attachments

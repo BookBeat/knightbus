@@ -208,6 +208,16 @@ public class ServiceBusQueueManager : IQueueManager, IQueueMessageSender, IAsync
         );
     }
 
+    public async Task CancelScheduledMessage(
+        string path,
+        long sequenceNumber,
+        CancellationToken cancellationToken
+    )
+    {
+        var sender = _client.CreateSender(path);
+        await sender.CancelScheduledMessageAsync(sequenceNumber, cancellationToken);
+    }
+
     internal static async Task<int> MoveMessages(
         ServiceBusSender sender,
         ServiceBusReceiver receiver,
