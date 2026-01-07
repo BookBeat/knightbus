@@ -8,8 +8,9 @@ using Quartz;
 
 namespace KnightBus.Schedule;
 
-internal class JobExecutor<T> : IJob
+internal class JobExecutor<T, TProcessor> : IJob
     where T : class, ISchedule, new()
+    where TProcessor : class, IProcessSchedule<T>
 {
     private readonly IDependencyInjection _dependencyInjection;
     private readonly ISingletonLockManager _lockManager;
@@ -32,15 +33,21 @@ internal class JobExecutor<T> : IJob
         try
         {
             var schedule = typeof(T).FullName;
+            var scheduleProcessor = typeof(TProcessor).FullName;
+            var lockId = $"{schedule}:{scheduleProcessor}";
             var lockHandle = await _lockManager
-                .TryLockAsync(schedule, TimeSpan.FromSeconds(60), CancellationToken.None)
+                .TryLockAsync(lockId, TimeSpan.FromSeconds(60), CancellationToken.None)
                 .ConfigureAwait(false);
 
             if (lockHandle == null)
                 //someone else has locked this instance, do nothing
                 return;
 
-            _logger.LogInformation("Executing schedule {Schedule}", schedule);
+            _logger.LogInformation(
+                "Executing schedule {Schedule} {Processor}",
+                schedule,
+                scheduleProcessor
+            );
 
             using (
                 var linkedTokenSource = CancellationTokenSource.CreateLinkedTokenSource(

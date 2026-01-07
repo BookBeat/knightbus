@@ -62,11 +62,9 @@ public static class MicrosoftDependencyInjectionExtensions
         foreach (var @interface in interfaces)
         {
             services.AddScoped(@interface, implementingType);
-            services.AddScoped(
-                typeof(IGenericProcessor),
-                provider => provider.GetRequiredService(@interface)
-            );
         }
+
+        services.AddScoped(typeof(IGenericProcessor), implementingType);
     }
 
     public static void RegisterGenericProcessor(
@@ -75,13 +73,13 @@ public static class MicrosoftDependencyInjectionExtensions
         Assembly assembly
     )
     {
-        var interfaces = ReflectionHelper.GetAllTypesImplementingOpenGenericInterface(
+        var implementingTypes = ReflectionHelper.GetAllTypesImplementingOpenGenericInterface(
             openGenericType,
             assembly
         );
-        foreach (var @interface in interfaces)
+        foreach (var implementingType in implementingTypes)
         {
-            RegisterGenericProcessor(services, @interface, openGenericType);
+            RegisterGenericProcessor(services, implementingType, openGenericType);
         }
     }
 }
