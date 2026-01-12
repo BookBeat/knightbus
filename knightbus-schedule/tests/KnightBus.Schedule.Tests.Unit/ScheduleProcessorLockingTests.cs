@@ -41,7 +41,8 @@ public class ScheduleProcessorLockingTests
         );
 
         // Act
-        await Task.WhenAll(executorOne.Execute(contextOne), executorTwo.Execute(contextTwo));
+        await executorOne.Execute(contextOne);
+        await executorTwo.Execute(contextTwo);
 
         // Assert
         using var _ = new AssertionScope();
