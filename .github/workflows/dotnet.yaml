@@ -32,8 +32,8 @@ jobs:
         shell: bash
         run: |
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            # NuGet prerelease label (no leading '-')
-            echo "suffix=pr.${{ github.event.pull_request.number }}.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+            # NuGet prerelease label
+            echo "suffix=-pr.${{ github.event.pull_request.number }}.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
           else
             echo "suffix=" >> "$GITHUB_OUTPUT"
           fi
