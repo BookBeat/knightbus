@@ -1,0 +1,137 @@
+name: Publish Pre-Release Packages
+
+on:
+    workflow_dispatch:
+        inputs:
+            suffix:
+                description: "Version suffix to use (no leading dash), e.g. pr.123.1 / alpha.5 / rc.1"
+                required: true
+                type: string
+            base_ref:
+                description: "Base ref to diff against for version bump detection (default: origin/master)"
+                required: false
+                default: "origin/master"
+                type: string
+
+env:
+    NuGetDirectory: ${{ github.workspace }}/nuget
+
+permissions:
+    contents: read
+    packages: write
+
+jobs:
+    PackAndPublishPreRelease:
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Setup .NET
+              uses: actions/setup-dotnet@v5
+              with:
+                  dotnet-version: |
+                      9.0.x
+                      10.0.x
+
+            - name: Validate suffix
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  s="${{ inputs.suffix }}"
+                  if [[ "$s" == -* ]]; then
+                    echo "Input suffix must NOT start with '-'. Provide e.g. 'pr.123.1' not '-pr.123.1'."
+                    exit 1
+                  fi
+                  # Very basic safety check (NuGet prerelease labels are fairly permissive)
+                  if [[ ! "$s" =~ ^[0-9A-Za-z][0-9A-Za-z\.\-]*$ ]]; then
+                    echo "Suffix contains invalid characters. Use only letters, numbers, '.', '-'."
+                    exit 1
+                  fi
+
+            - name: Restore dependencies
+              run: dotnet restore
+
+            - name: Build (with suffix)
+              run: dotnet build KnightBus.slnx --no-restore --configuration Release --version-suffix "${{ inputs.suffix }}"
+
+            - name: Detect version-bumped packages
+              id: packages
+              shell: bash
+              run: |
+                  set -euo pipefail
+
+                  BASE="${{ inputs.base_ref }}"
+                  # Ensure base ref exists locally
+                  git fetch --no-tags --prune origin +refs/heads/*:refs/remotes/origin/*
+
+                  echo "Diffing against base: $BASE"
+                  # Changed csprojs (exclude obj/)
+                  mapfile -t CSPROJS < <(git diff --name-only "$BASE"...HEAD -- '**/*.csproj' | grep -v '/obj/' || true)
+
+                  if [[ ${#CSPROJS[@]} -eq 0 ]]; then
+                    echo "No csproj changes vs $BASE."
+                    echo "hasPackages=false" >> "$GITHUB_OUTPUT"
+                    echo "packProjects=" >> "$GITHUB_OUTPUT"
+                    exit 0
+                  fi
+
+                  PACK_PROJECTS=()
+
+                  for f in "${CSPROJS[@]}"; do
+                    DIFF="$(git diff -U0 "$BASE"...HEAD -- "$f" || true)"
+                    if echo "$DIFF" | grep -E '^[+-].*<(Version|VersionPrefix|PackageVersion)>' >/dev/null; then
+                      echo "Version change detected in: $f"
+                      PACK_PROJECTS+=("$f")
+                    fi
+                  done
+
+                  if [[ ${#PACK_PROJECTS[@]} -eq 0 ]]; then
+                    echo "No version bumps detected."
+                    echo "hasPackages=false" >> "$GITHUB_OUTPUT"
+                    echo "packProjects=" >> "$GITHUB_OUTPUT"
+                    exit 0
+                  fi
+
+                  {
+                    echo "hasPackages=true"
+                    echo "packProjects<<EOF"
+                    printf "%s\n" "${PACK_PROJECTS[@]}"
+                    echo "EOF"
+                  } >> "$GITHUB_OUTPUT"
+
+            - name: Pack bumped packages (with suffix)
+              if: steps.packages.outputs.hasPackages == 'true'
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  mkdir -p "${{ env.NuGetDirectory }}"
+
+                  while IFS= read -r proj; do
+                    [[ -z "$proj" ]] && continue
+                    echo "Packing $proj"
+                    dotnet pack "$proj" \
+                      --no-build \
+                      --configuration Release \
+                      --output "${{ env.NuGetDirectory }}" \
+                      --version-suffix "${{ inputs.suffix }}"
+                  done <<< "${{ steps.packages.outputs.packProjects }}"
+
+            - name: Upload packages artifact
+              if: steps.packages.outputs.hasPackages == 'true'
+              uses: actions/upload-artifact@v4
+              with:
+                  name: nuget-prerelease
+                  if-no-files-found: error
+                  retention-days: 7
+                  path: ${{ env.NuGetDirectory }}/*.nupkg
+
+            - name: Push prerelease packages to GitHub Packages
+              if: steps.packages.outputs.hasPackages == 'true'
+              shell: pwsh
+              run: |
+                  foreach($file in (Get-ChildItem "${{ env.NuGetDirectory }}" -Recurse -Include *.nupkg)) {
+                    dotnet nuget push $file --api-key "${{ secrets.NUGET_APIKEY }}" --source "https://api.nuget.org/v3/index.json" --skip-duplicate
+                  }
