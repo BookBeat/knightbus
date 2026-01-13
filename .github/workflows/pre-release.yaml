@@ -118,7 +118,9 @@ jobs:
             - name: Push prerelease packages to GitHub Packages
               if: steps.packages.outputs.hasPackages == 'true'
               shell: pwsh
+              env:
+                  NUGET_APIKEY: ${{ secrets.NUGET_APIKEY }}
               run: |
                   foreach($file in (Get-ChildItem "${{ env.NuGetDirectory }}" -Recurse -Include *.nupkg)) {
-                    dotnet nuget push $file --api-key ${{ secrets.NUGET_APIKEY }} --source "https://api.nuget.org/v3/index.json" --skip-duplicate
+                    dotnet nuget push $file --api-key "$NUGET_APIKEY" --source "https://api.nuget.org/v3/index.json" --skip-duplicate
                   }
