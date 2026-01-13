@@ -131,7 +131,7 @@ jobs:
         run: docker run -d -p 4222:4222 nats:latest
 
       - name: Test
-        run: dotnet test --no-build --configuration Release --verbosity normal --logger "trx;LogFileName=test-results.trx" --version-suffix "${{ steps.version.outputs.suffix }}" || true
+        run: dotnet test --no-build --configuration Release --verbosity normal --logger "trx;LogFileName=test-results.trx" || true
 
       - name: Test Report
         uses: dorny/test-reporter@v1
