@@ -1,15 +1,11 @@
 name: Publish Pre-Release Packages (Manual)
 
 on:
-    workflow_dispatch:
-        inputs:
-            alpha_number:
-                description: "Numeric part for prerelease suffix alpha-<number> (digits only)"
-                required: true
-                type: string
+    workflow_dispatch: {}
 
 env:
     NuGetDirectory: ${{ github.workspace }}/nuget
+    BASE_REF: origin/master # change to origin/main if needed
 
 permissions:
     contents: read
@@ -31,29 +27,16 @@ jobs:
                       9.0.x
                       10.0.x
 
-            # Validate input strictly and derive a safe suffix.
-            # No user-controlled content is used in other run blocks.
-            - name: Compute safe prerelease suffix
+            # Create suffix from the checked-out commit SHA (i.e., the target branch/ref you ran this on)
+            - name: Compute prerelease suffix from git sha + run number
               id: suffix
               shell: bash
               run: |
                   set -euo pipefail
-
-                  n='${{ inputs.alpha_number }}'
-
-                  # digits only
-                  if [[ ! "$n" =~ ^[0-9]+$ ]]; then
-                    echo "alpha_number must be digits only."
-                    exit 1
-                  fi
-
-                  # optional sanity limit (prevents absurdly long strings)
-                  if [[ ${#n} -gt 9 ]]; then
-                    echo "alpha_number too long (max 9 digits)."
-                    exit 1
-                  fi
-
-                  echo "value=alpha-$n" >> "$GITHUB_OUTPUT"
+                  SHA8="$(git rev-parse --short=8 HEAD)"
+                  RUN="${GITHUB_RUN_NUMBER}"
+                  echo "value=alpha-${SHA8}.${RUN}" >> "$GITHUB_OUTPUT"
+                  echo "Using version suffix: alpha-${SHA8}.${RUN}"
 
             - name: Restore dependencies
               run: dotnet restore
@@ -61,16 +44,15 @@ jobs:
             - name: Build (with prerelease suffix)
               run: dotnet build KnightBus.slnx --no-restore --configuration Release --version-suffix "${{ steps.suffix.outputs.value }}"
 
-            - name: Detect version-bumped packages vs origin/master
+            - name: Detect version-bumped packages vs base
               id: packages
               shell: bash
               run: |
                   set -euo pipefail
 
-                  # Always compare against the protected base branch, not user input
                   git fetch --no-tags --prune origin +refs/heads/*:refs/remotes/origin/*
 
-                  BASE="origin/master"
+                  BASE="${{ env.BASE_REF }}"
                   echo "Diffing against base: $BASE"
 
                   # Changed csprojs (exclude obj/)
@@ -87,7 +69,6 @@ jobs:
 
                   for f in "${CSPROJS[@]}"; do
                     DIFF="$(git diff -U0 "$BASE"...HEAD -- "$f" || true)"
-
                     if echo "$DIFF" | grep -E '^[+-].*<(Version|VersionPrefix|PackageVersion)>' >/dev/null; then
                       echo "Version change detected in: $f"
                       PACK_PROJECTS+=("$f")
