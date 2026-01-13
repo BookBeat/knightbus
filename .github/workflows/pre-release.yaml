@@ -1,16 +1,11 @@
-name: Publish Pre-Release Packages
+name: Publish Pre-Release Packages (Manual)
 
 on:
     workflow_dispatch:
         inputs:
-            suffix:
-                description: "Version suffix to use (no leading dash), e.g. pr.123.1 / alpha.5 / rc.1"
+            alpha_number:
+                description: "Numeric part for prerelease suffix alpha-<number> (digits only)"
                 required: true
-                type: string
-            base_ref:
-                description: "Base ref to diff against for version bump detection (default: origin/master)"
-                required: false
-                default: "origin/master"
                 type: string
 
 env:
@@ -36,38 +31,48 @@ jobs:
                       9.0.x
                       10.0.x
 
-            - name: Validate suffix
+            # Validate input strictly and derive a safe suffix.
+            # No user-controlled content is used in other run blocks.
+            - name: Compute safe prerelease suffix
+              id: suffix
               shell: bash
               run: |
                   set -euo pipefail
-                  s="${{ inputs.suffix }}"
-                  if [[ "$s" == -* ]]; then
-                    echo "Input suffix must NOT start with '-'. Provide e.g. 'pr.123.1' not '-pr.123.1'."
+
+                  n='${{ inputs.alpha_number }}'
+
+                  # digits only
+                  if [[ ! "$n" =~ ^[0-9]+$ ]]; then
+                    echo "alpha_number must be digits only."
                     exit 1
                   fi
-                  # Very basic safety check (NuGet prerelease labels are fairly permissive)
-                  if [[ ! "$s" =~ ^[0-9A-Za-z][0-9A-Za-z\.\-]*$ ]]; then
-                    echo "Suffix contains invalid characters. Use only letters, numbers, '.', '-'."
+
+                  # optional sanity limit (prevents absurdly long strings)
+                  if [[ ${#n} -gt 9 ]]; then
+                    echo "alpha_number too long (max 9 digits)."
                     exit 1
                   fi
+
+                  echo "value=alpha-$n" >> "$GITHUB_OUTPUT"
 
             - name: Restore dependencies
               run: dotnet restore
 
-            - name: Build (with suffix)
-              run: dotnet build KnightBus.slnx --no-restore --configuration Release --version-suffix "${{ inputs.suffix }}"
+            - name: Build (with prerelease suffix)
+              run: dotnet build KnightBus.slnx --no-restore --configuration Release --version-suffix "${{ steps.suffix.outputs.value }}"
 
-            - name: Detect version-bumped packages
+            - name: Detect version-bumped packages vs origin/master
               id: packages
               shell: bash
               run: |
                   set -euo pipefail
 
-                  BASE="${{ inputs.base_ref }}"
-                  # Ensure base ref exists locally
+                  # Always compare against the protected base branch, not user input
                   git fetch --no-tags --prune origin +refs/heads/*:refs/remotes/origin/*
 
+                  BASE="origin/master"
                   echo "Diffing against base: $BASE"
+
                   # Changed csprojs (exclude obj/)
                   mapfile -t CSPROJS < <(git diff --name-only "$BASE"...HEAD -- '**/*.csproj' | grep -v '/obj/' || true)
 
@@ -82,6 +87,7 @@ jobs:
 
                   for f in "${CSPROJS[@]}"; do
                     DIFF="$(git diff -U0 "$BASE"...HEAD -- "$f" || true)"
+
                     if echo "$DIFF" | grep -E '^[+-].*<(Version|VersionPrefix|PackageVersion)>' >/dev/null; then
                       echo "Version change detected in: $f"
                       PACK_PROJECTS+=("$f")
@@ -102,7 +108,7 @@ jobs:
                     echo "EOF"
                   } >> "$GITHUB_OUTPUT"
 
-            - name: Pack bumped packages (with suffix)
+            - name: Pack bumped packages (with prerelease suffix)
               if: steps.packages.outputs.hasPackages == 'true'
               shell: bash
               run: |
@@ -116,7 +122,7 @@ jobs:
                       --no-build \
                       --configuration Release \
                       --output "${{ env.NuGetDirectory }}" \
-                      --version-suffix "${{ inputs.suffix }}"
+                      --version-suffix "${{ steps.suffix.outputs.value }}"
                   done <<< "${{ steps.packages.outputs.packProjects }}"
 
             - name: Upload packages artifact
