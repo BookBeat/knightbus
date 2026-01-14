@@ -76,6 +76,15 @@ public class PostgresQueueManager : IQueueManager, IQueueMessageSender
         return result;
     }
 
+    public Task<IReadOnlyList<QueueMessage>> PeekScheduled(
+        string name,
+        int count,
+        CancellationToken ct
+    )
+    {
+        throw new NotSupportedException();
+    }
+
     public async Task<IReadOnlyList<QueueMessage>> PeekDeadLetter(
         string path,
         int count,
@@ -170,6 +179,15 @@ public class PostgresQueueManager : IQueueManager, IQueueMessageSender
             jsonBodies,
             cancellationToken
         );
+    }
+
+    public Task CancelScheduledMessage(
+        string path,
+        long sequenceNumber,
+        CancellationToken cancellationToken
+    )
+    {
+        throw new NotSupportedException();
     }
 
     public QueueType QueueType => QueueType.Queue;

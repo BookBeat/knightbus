@@ -55,6 +55,15 @@ public class ServiceBusTopicManager : IQueueManager, IAsyncDisposable
         throw new NotImplementedException();
     }
 
+    public Task<IReadOnlyList<QueueMessage>> PeekScheduled(
+        string name,
+        int count,
+        CancellationToken ct
+    )
+    {
+        throw new NotImplementedException();
+    }
+
     public Task<IReadOnlyList<QueueMessage>> PeekDeadLetter(
         string path,
         int count,

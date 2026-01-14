@@ -77,6 +77,15 @@ public class ServiceBusSubscriptionManager : IQueueManager
             .ToList();
     }
 
+    public Task<IReadOnlyList<QueueMessage>> PeekScheduled(
+        string name,
+        int count,
+        CancellationToken ct
+    )
+    {
+        throw new System.NotImplementedException();
+    }
+
     public async Task<IReadOnlyList<QueueMessage>> PeekDeadLetter(
         string path,
         int count,

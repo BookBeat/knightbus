@@ -27,6 +27,11 @@ public interface IQueueManager
     Task<IReadOnlyList<QueueMessage>> Peek(string name, int count, CancellationToken ct);
 
     /// <summary>
+    /// Peeks scheduled messages with starting point from specific sequence number without removing them from the queue
+    /// </summary>
+    Task<IReadOnlyList<QueueMessage>> PeekScheduled(string name, int count, CancellationToken ct);
+
+    /// <summary>
     /// Peeks dead letter messages without removing them from the queue
     /// </summary>
     Task<IReadOnlyList<QueueMessage>> PeekDeadLetter(string path, int count, CancellationToken ct);

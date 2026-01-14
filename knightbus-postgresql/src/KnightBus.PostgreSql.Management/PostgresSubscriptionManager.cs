@@ -84,6 +84,15 @@ public class PostgresSubscriptionManager : IQueueManager
         return result;
     }
 
+    public Task<IReadOnlyList<QueueMessage>> PeekScheduled(
+        string name,
+        int count,
+        CancellationToken ct
+    )
+    {
+        throw new NotSupportedException();
+    }
+
     public async Task<IReadOnlyList<QueueMessage>> PeekDeadLetter(
         string path,
         int count,
