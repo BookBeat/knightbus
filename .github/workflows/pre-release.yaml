@@ -35,7 +35,7 @@ jobs:
                   set -euo pipefail
                   SHA8="$(git rev-parse --short=8 HEAD)"
                   RUN="${GITHUB_RUN_NUMBER}"
-                  echo "value=alpha-${SHA8}.${RUN}" >> "$GITHUB_OUTPUT"
+                  echo "value=-alpha-${SHA8}.${RUN}" >> "$GITHUB_OUTPUT"
                   echo "Using version suffix: alpha-${SHA8}.${RUN}"
 
             - name: Restore dependencies
