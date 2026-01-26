@@ -60,6 +60,33 @@ public class BlobStorageMessageAttachmentProviderTests
     }
 
     [Test]
+    [TestCase(true)]
+    [TestCase(false)]
+    public async Task GetAttachmentAsync_StreamShouldNotBeDisposed(bool useCompression)
+    {
+        // Arrange
+        var options = new BlobStorageAttachmentOptions { EnableCompression = useCompression };
+        var provider = new BlobStorageMessageAttachmentProvider(
+            new StorageBusConfiguration(StorageSetup.ConnectionString),
+            options
+        );
+
+        var id = Guid.NewGuid().ToString("N");
+        using (var ms = new MemoryStream(Encoding.UTF8.GetBytes("Message")))
+        {
+            var attachment = new MessageAttachment("dispose.txt", MediaTypeNames.Text.Plain, ms);
+            await provider.UploadAttachmentAsync("dispose-test", id, attachment);
+        }
+
+        // Act
+        var result = await provider.GetAttachmentAsync("dispose-test", id);
+
+        // Assert
+        result.Stream.CanRead.Should().NotBe(false);
+        result.Stream.CanSeek.Should().NotBe(false);
+    }
+
+    [Test]
     public async Task Compression_UploadAndDownload_RoundTripsCorrectly()
     {
         // Arrange
@@ -69,7 +96,8 @@ public class BlobStorageMessageAttachmentProviderTests
             options
         );
 
-        var originalContent = "This is test content that should be compressed and decompressed correctly.";
+        var originalContent =
+            "This is test content that should be compressed and decompressed correctly.";
         using var ms = new MemoryStream(Encoding.UTF8.GetBytes(originalContent));
         var attachment = new MessageAttachment("test.txt", MediaTypeNames.Text.Plain, ms);
         var id = Guid.NewGuid().ToString("N");
@@ -90,7 +118,9 @@ public class BlobStorageMessageAttachmentProviderTests
     public async Task Compression_UncompressedBlobReadableWithCompressionEnabled()
     {
         // Arrange - Upload without compression
-        var providerNoCompression = new BlobStorageMessageAttachmentProvider(StorageSetup.ConnectionString);
+        var providerNoCompression = new BlobStorageMessageAttachmentProvider(
+            StorageSetup.ConnectionString
+        );
 
         var originalContent = "Uncompressed content for backwards compatibility test.";
         using var ms = new MemoryStream(Encoding.UTF8.GetBytes(originalContent));
@@ -121,7 +151,8 @@ public class BlobStorageMessageAttachmentProviderTests
             new BlobStorageAttachmentOptions { EnableCompression = true }
         );
 
-        var originalContent = "Compressed content that should be readable by non-compression provider.";
+        var originalContent =
+            "Compressed content that should be readable by non-compression provider.";
         using var ms = new MemoryStream(Encoding.UTF8.GetBytes(originalContent));
         var attachment = new MessageAttachment("compressed.txt", MediaTypeNames.Text.Plain, ms);
         var id = Guid.NewGuid().ToString("N");
@@ -129,7 +160,9 @@ public class BlobStorageMessageAttachmentProviderTests
         await providerWithCompression.UploadAttachmentAsync("compat-test-2", id, attachment);
 
         // Act - Read with compression-disabled provider (should still decompress based on metadata)
-        var providerNoCompression = new BlobStorageMessageAttachmentProvider(StorageSetup.ConnectionString);
+        var providerNoCompression = new BlobStorageMessageAttachmentProvider(
+            StorageSetup.ConnectionString
+        );
         var result = await providerNoCompression.GetAttachmentAsync("compat-test-2", id);
 
         // Assert
@@ -149,7 +182,10 @@ public class BlobStorageMessageAttachmentProviderTests
         );
 
         // Create highly compressible content (repeated text)
-        var originalContent = string.Join("", Enumerable.Repeat("This is repeated text for compression. ", 100));
+        var originalContent = string.Join(
+            "",
+            Enumerable.Repeat("This is repeated text for compression. ", 100)
+        );
         var originalSize = Encoding.UTF8.GetByteCount(originalContent);
         using var ms = new MemoryStream(Encoding.UTF8.GetBytes(originalContent));
         var attachment = new MessageAttachment("compressible.txt", MediaTypeNames.Text.Plain, ms);
@@ -190,8 +226,15 @@ public class BlobStorageMessageAttachmentProviderTests
         // Assert
         result.Metadata.Should().Contain("custom-key", "custom-value");
         result.Metadata.Should().Contain("another-key", "another-value");
-        result.Metadata.Should().Contain(BlobStorageMessageAttachmentProvider.FileNameKey, "meta.txt");
-        result.Metadata.Should().Contain(BlobStorageMessageAttachmentProvider.CompressionKey, BlobStorageMessageAttachmentProvider.CompressionValueGzip);
+        result
+            .Metadata.Should()
+            .Contain(BlobStorageMessageAttachmentProvider.FileNameKey, "meta.txt");
+        result
+            .Metadata.Should()
+            .Contain(
+                BlobStorageMessageAttachmentProvider.CompressionKey,
+                BlobStorageMessageAttachmentProvider.CompressionValueGzip
+            );
     }
 
     [Test]
@@ -201,14 +244,17 @@ public class BlobStorageMessageAttachmentProviderTests
         var optionsFastest = new BlobStorageAttachmentOptions
         {
             EnableCompression = true,
-            CompressionLevel = CompressionLevel.Fastest
+            CompressionLevel = CompressionLevel.Fastest,
         };
         var provider = new BlobStorageMessageAttachmentProvider(
             new StorageBusConfiguration(StorageSetup.ConnectionString),
             optionsFastest
         );
 
-        var originalContent = string.Join("", Enumerable.Repeat("Test content for fastest compression. ", 50));
+        var originalContent = string.Join(
+            "",
+            Enumerable.Repeat("Test content for fastest compression. ", 50)
+        );
         using var ms = new MemoryStream(Encoding.UTF8.GetBytes(originalContent));
         var attachment = new MessageAttachment("fastest.txt", MediaTypeNames.Text.Plain, ms);
         var id = Guid.NewGuid().ToString("N");

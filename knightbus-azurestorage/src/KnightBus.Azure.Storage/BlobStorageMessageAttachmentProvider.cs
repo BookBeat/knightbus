@@ -30,7 +30,8 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
 
     public BlobStorageMessageAttachmentProvider(
         IStorageBusConfiguration configuration,
-        BlobStorageAttachmentOptions options)
+        BlobStorageAttachmentOptions options
+    )
     {
         _configuration = configuration;
         _options = options ?? new BlobStorageAttachmentOptions();
@@ -48,9 +49,11 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
         var properties = await blob.GetPropertiesAsync(cancellationToken: cancellationToken)
             .ConfigureAwait(false);
 
-        var blobStream = await blob.OpenReadAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+        var blobStream = await blob.OpenReadAsync(cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
 
-        var isCompressed = properties.Value.Metadata.TryGetValue(CompressionKey, out var compressionValue)
+        var isCompressed =
+            properties.Value.Metadata.TryGetValue(CompressionKey, out var compressionValue)
             && compressionValue == CompressionValueGzip;
 
         Stream resultStream;
@@ -98,7 +101,14 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
             metadata[CompressionKey] = CompressionValueGzip;
         }
 
-        await UploadBlobAsync(queueName, id, uploadStream, attachment.ContentType, metadata, cancellationToken)
+        await UploadBlobAsync(
+                queueName,
+                id,
+                uploadStream,
+                attachment.ContentType,
+                metadata,
+                cancellationToken
+            )
             .ConfigureAwait(false);
     }
 
@@ -108,7 +118,8 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
         Stream uploadStream,
         string contentType,
         Dictionary<string, string> metadata,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var blob = AzureStorageClientFactory
             .CreateBlobContainerClient(_configuration, queueName)
@@ -143,7 +154,14 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
 
             // Reset stream position for retry
             uploadStream.Position = 0;
-            await UploadBlobAsync(queueName, id, uploadStream, contentType, metadata, cancellationToken)
+            await UploadBlobAsync(
+                    queueName,
+                    id,
+                    uploadStream,
+                    contentType,
+                    metadata,
+                    cancellationToken
+                )
                 .ConfigureAwait(false);
         }
     }
@@ -175,10 +193,15 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
     private static string FromBase64(string str) =>
         Encoding.UTF8.GetString(Convert.FromBase64String(str));
 
-    private static async Task<MemoryStream> CompressStreamAsync(Stream source, CompressionLevel compressionLevel)
+    private static async Task<MemoryStream> CompressStreamAsync(
+        Stream source,
+        CompressionLevel compressionLevel
+    )
     {
         var compressedStream = new MemoryStream();
-        await using (var gzipStream = new GZipStream(compressedStream, compressionLevel, leaveOpen: true))
+        await using (
+            var gzipStream = new GZipStream(compressedStream, compressionLevel, leaveOpen: true)
+        )
         {
             await source.CopyToAsync(gzipStream).ConfigureAwait(false);
         }

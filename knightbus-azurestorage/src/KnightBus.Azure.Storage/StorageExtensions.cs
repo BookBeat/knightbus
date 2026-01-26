@@ -20,7 +20,8 @@ public static class StorageExtensions
 
     public static IServiceCollection UseBlobStorageAttachments(
         this IServiceCollection services,
-        Action<BlobStorageAttachmentOptions> configureOptions)
+        Action<BlobStorageAttachmentOptions> configureOptions
+    )
     {
         var options = new BlobStorageAttachmentOptions();
         configureOptions(options);
