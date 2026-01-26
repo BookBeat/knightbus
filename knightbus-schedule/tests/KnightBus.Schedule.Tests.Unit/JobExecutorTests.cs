@@ -22,7 +22,7 @@ public class JobExecutorTests
         lockManager
             .Setup(x =>
                 x.TryLockAsync(
-                    typeof(DummySchedule).FullName,
+                    It.IsAny<string>(),
                     TimeSpan.FromSeconds(60),
                     It.IsAny<CancellationToken>()
                 )
@@ -32,7 +32,7 @@ public class JobExecutorTests
         var di = new Mock<IDependencyInjection>();
         di.Setup(x => x.GetScope()).Returns(di.Object);
         di.Setup(x => x.GetInstance<IProcessSchedule<DummySchedule>>()).Returns(processor.Object);
-        var executor = new JobExecutor<DummySchedule>(
+        var executor = new JobExecutor<DummySchedule, IProcessSchedule<DummySchedule>>(
             Mock.Of<ILogger>(),
             lockManager.Object,
             di.Object
@@ -51,7 +51,7 @@ public class JobExecutorTests
         lockManager
             .Setup(x =>
                 x.TryLockAsync(
-                    typeof(DummySchedule).FullName,
+                    It.IsAny<string>(),
                     TimeSpan.FromSeconds(60),
                     It.IsAny<CancellationToken>()
                 )
@@ -61,7 +61,7 @@ public class JobExecutorTests
         var di = new Mock<IDependencyInjection>();
         di.Setup(x => x.GetScope()).Returns(di.Object);
         di.Setup(x => x.GetInstance<IProcessSchedule<DummySchedule>>()).Returns(processor.Object);
-        var executor = new JobExecutor<DummySchedule>(
+        var executor = new JobExecutor<DummySchedule, IProcessSchedule<DummySchedule>>(
             Mock.Of<ILogger>(),
             lockManager.Object,
             di.Object
@@ -79,7 +79,7 @@ public class JobExecutorTests
         lockManager
             .Setup(x =>
                 x.TryLockAsync(
-                    typeof(DummySchedule).FullName,
+                    It.IsAny<string>(),
                     TimeSpan.FromSeconds(60),
                     It.IsAny<CancellationToken>()
                 )
@@ -90,7 +90,7 @@ public class JobExecutorTests
         var di = new Mock<IDependencyInjection>();
         di.Setup(x => x.GetScope()).Returns(di.Object);
         di.Setup(x => x.GetInstance<IProcessSchedule<DummySchedule>>()).Returns(processor.Object);
-        var executor = new JobExecutor<DummySchedule>(
+        var executor = new JobExecutor<DummySchedule, IProcessSchedule<DummySchedule>>(
             Mock.Of<ILogger>(),
             lockManager.Object,
             di.Object
@@ -109,7 +109,7 @@ public class JobExecutorTests
         lockManager
             .Setup(x =>
                 x.TryLockAsync(
-                    typeof(DummySchedule).FullName,
+                    It.IsAny<string>(),
                     TimeSpan.FromSeconds(60),
                     It.IsAny<CancellationToken>()
                 )
@@ -119,7 +119,7 @@ public class JobExecutorTests
         var di = new Mock<IDependencyInjection>();
         di.Setup(x => x.GetScope()).Returns(di.Object);
         di.Setup(x => x.GetInstance<IProcessSchedule<DummySchedule>>()).Returns(processor.Object);
-        var executor = new JobExecutor<DummySchedule>(
+        var executor = new JobExecutor<DummySchedule, IProcessSchedule<DummySchedule>>(
             Mock.Of<ILogger>(),
             lockManager.Object,
             di.Object
