@@ -16,7 +16,7 @@ namespace KnightBus.Azure.Storage;
 public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
 {
     internal const string FileNameKey = "Filename";
-    internal const string CompressionKey = "kb-compression";
+    internal const string CompressionKey = "kb_compression";
     internal const string CompressionValueGzip = "gzip";
     private static readonly HashSet<string> Keys = [FileNameKey, CompressionKey];
     private readonly IStorageBusConfiguration _configuration;
