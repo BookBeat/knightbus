@@ -14,9 +14,8 @@ public interface IMessageAttachmentProvider
         string id,
         CancellationToken cancellationToken = default(CancellationToken)
     );
-    Task UploadAttachmentAsync(
+    Task<string> UploadAttachmentAsync(
         string queueName,
-        string id,
         IMessageAttachment attachment,
         CancellationToken cancellationToken = default(CancellationToken)
     );

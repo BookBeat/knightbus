@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Net.Mime;
 using System.Threading.Tasks;
@@ -40,10 +39,9 @@ public class RedisAttachmentProviderTests
             ms,
             metadata
         );
-        var id = Guid.NewGuid().ToString("N");
 
         // Act
-        await _target.UploadAttachmentAsync("queue", id, attachment);
+        var id = await _target.UploadAttachmentAsync("queue", attachment);
 
         // Assert
         var result = await _target.GetAttachmentAsync("queue", id);

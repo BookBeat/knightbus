@@ -16,11 +16,11 @@ namespace KnightBus.Azure.Storage;
 public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
 {
     internal const string FileNameKey = "Filename";
-    internal const string CompressionKey = "kb_compression";
-    internal const string CompressionValueGzip = "gzip";
-    private static readonly HashSet<string> Keys = [FileNameKey, CompressionKey];
+    private static readonly HashSet<string> Keys = [FileNameKey];
     private readonly IStorageBusConfiguration _configuration;
     private readonly BlobStorageAttachmentOptions _options;
+
+    private const string CompressedFileExtension = ".brotli";
 
     public BlobStorageMessageAttachmentProvider(string connectionString)
         : this(new StorageBusConfiguration(connectionString)) { }
@@ -52,9 +52,7 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
         var blobStream = await blob.OpenReadAsync(cancellationToken: cancellationToken)
             .ConfigureAwait(false);
 
-        var isCompressed =
-            properties.Value.Metadata.TryGetValue(CompressionKey, out var compressionValue)
-            && compressionValue == CompressionValueGzip;
+        var isCompressed = blob.Name.EndsWith(CompressedFileExtension);
 
         Stream resultStream;
         if (isCompressed)
@@ -77,9 +75,8 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
         );
     }
 
-    public async Task UploadAttachmentAsync(
+    public async Task<string> UploadAttachmentAsync(
         string queueName,
-        string id,
         IMessageAttachment attachment,
         CancellationToken cancellationToken = default(CancellationToken)
     )
@@ -93,30 +90,41 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
         var metadata = new Dictionary<string, string>(userMetadata);
         requiredMetadata.ToList().ForEach(x => metadata[x.Key] = x.Value); // Merge the dictionaries, on collisions, override keys in user's metadata with requiredMetadata
 
+        var id = Guid.NewGuid().ToString("N");
+        string contentEncoding = null;
         Stream uploadStream = attachment.Stream;
         if (_options.EnableCompression)
         {
             uploadStream = await CompressStreamAsync(attachment.Stream, _options.CompressionLevel)
                 .ConfigureAwait(false);
-            metadata[CompressionKey] = CompressionValueGzip;
+            id = $"{id}{CompressedFileExtension}";
+            contentEncoding = "br";
         }
+
+        var blobHttpHeaders = new BlobHttpHeaders
+        {
+            ContentType = attachment.ContentType,
+            ContentEncoding = contentEncoding,
+        };
 
         await UploadBlobAsync(
                 queueName,
                 id,
                 uploadStream,
-                attachment.ContentType,
+                blobHttpHeaders,
                 metadata,
                 cancellationToken
             )
             .ConfigureAwait(false);
+
+        return id;
     }
 
     private async Task UploadBlobAsync(
         string queueName,
         string id,
         Stream uploadStream,
-        string contentType,
+        BlobHttpHeaders blobHttpHeaders,
         Dictionary<string, string> metadata,
         CancellationToken cancellationToken
     )
@@ -129,7 +137,7 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
         {
             await blob.UploadAsync(
                     uploadStream,
-                    new BlobHttpHeaders { ContentType = contentType },
+                    blobHttpHeaders,
                     metadata,
                     cancellationToken: cancellationToken
                 )
@@ -158,7 +166,7 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
                     queueName,
                     id,
                     uploadStream,
-                    contentType,
+                    blobHttpHeaders,
                     metadata,
                     cancellationToken
                 )
@@ -200,7 +208,7 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
     {
         var compressedStream = new MemoryStream();
         await using (
-            var gzipStream = new GZipStream(compressedStream, compressionLevel, leaveOpen: true)
+            var gzipStream = new BrotliStream(compressedStream, compressionLevel, leaveOpen: true)
         )
         {
             await source.CopyToAsync(gzipStream).ConfigureAwait(false);
@@ -212,7 +220,7 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
     private static async Task<MemoryStream> DecompressStreamAsync(Stream source)
     {
         var decompressedStream = new MemoryStream();
-        await using (var gzipStream = new GZipStream(source, CompressionMode.Decompress))
+        await using (var gzipStream = new BrotliStream(source, CompressionMode.Decompress))
         {
             await gzipStream.CopyToAsync(decompressedStream).ConfigureAwait(false);
         }

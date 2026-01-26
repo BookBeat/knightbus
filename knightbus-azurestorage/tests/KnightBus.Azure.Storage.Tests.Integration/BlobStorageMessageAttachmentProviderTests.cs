@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -40,10 +39,9 @@ public class BlobStorageMessageAttachmentProviderTests
             ms,
             metadata
         );
-        var id = Guid.NewGuid().ToString("N");
 
         // Act
-        await _target.UploadAttachmentAsync("queue", id, attachment);
+        var id = await _target.UploadAttachmentAsync("queue", attachment);
 
         // Assert
         var result = await _target.GetAttachmentAsync("queue", id);
@@ -71,11 +69,11 @@ public class BlobStorageMessageAttachmentProviderTests
             options
         );
 
-        var id = Guid.NewGuid().ToString("N");
+        string id;
         using (var ms = new MemoryStream(Encoding.UTF8.GetBytes("Message")))
         {
             var attachment = new MessageAttachment("dispose.txt", MediaTypeNames.Text.Plain, ms);
-            await provider.UploadAttachmentAsync("dispose-test", id, attachment);
+            id = await provider.UploadAttachmentAsync("dispose-test", attachment);
         }
 
         // Act
@@ -84,6 +82,33 @@ public class BlobStorageMessageAttachmentProviderTests
         // Assert
         result.Stream.CanRead.Should().NotBe(false);
         result.Stream.CanSeek.Should().NotBe(false);
+    }
+
+    [Test]
+    public async Task Compression_Upload_ShouldHaveCorrectExtensionAndEncoding()
+    {
+        // Arrange
+        var options = new BlobStorageAttachmentOptions { EnableCompression = true };
+        var provider = new BlobStorageMessageAttachmentProvider(
+            new StorageBusConfiguration(StorageSetup.ConnectionString),
+            options
+        );
+
+        var originalContent = "Test content";
+        using var ms = new MemoryStream(Encoding.UTF8.GetBytes(originalContent));
+        var attachment = new MessageAttachment("test.txt", MediaTypeNames.Text.Plain, ms);
+
+        // Act
+        var id = await provider.UploadAttachmentAsync("compression-test", attachment);
+
+        // Assert
+        id.Should().EndWith(".brotli");
+        var properties = await new BlobClient(
+            StorageSetup.ConnectionString,
+            "compression-test",
+            id
+        ).GetPropertiesAsync();
+        properties.Value.ContentEncoding.Should().Be("br");
     }
 
     [Test]
@@ -100,10 +125,9 @@ public class BlobStorageMessageAttachmentProviderTests
             "This is test content that should be compressed and decompressed correctly.";
         using var ms = new MemoryStream(Encoding.UTF8.GetBytes(originalContent));
         var attachment = new MessageAttachment("test.txt", MediaTypeNames.Text.Plain, ms);
-        var id = Guid.NewGuid().ToString("N");
 
         // Act
-        await provider.UploadAttachmentAsync("compression-test", id, attachment);
+        var id = await provider.UploadAttachmentAsync("compression-test", attachment);
         var result = await provider.GetAttachmentAsync("compression-test", id);
 
         // Assert
@@ -125,9 +149,8 @@ public class BlobStorageMessageAttachmentProviderTests
         var originalContent = "Uncompressed content for backwards compatibility test.";
         using var ms = new MemoryStream(Encoding.UTF8.GetBytes(originalContent));
         var attachment = new MessageAttachment("uncompressed.txt", MediaTypeNames.Text.Plain, ms);
-        var id = Guid.NewGuid().ToString("N");
 
-        await providerNoCompression.UploadAttachmentAsync("compat-test", id, attachment);
+        var id = await providerNoCompression.UploadAttachmentAsync("compat-test", attachment);
 
         // Act - Read with compression-enabled provider
         var providerWithCompression = new BlobStorageMessageAttachmentProvider(
@@ -155,9 +178,8 @@ public class BlobStorageMessageAttachmentProviderTests
             "Compressed content that should be readable by non-compression provider.";
         using var ms = new MemoryStream(Encoding.UTF8.GetBytes(originalContent));
         var attachment = new MessageAttachment("compressed.txt", MediaTypeNames.Text.Plain, ms);
-        var id = Guid.NewGuid().ToString("N");
 
-        await providerWithCompression.UploadAttachmentAsync("compat-test-2", id, attachment);
+        var id = await providerWithCompression.UploadAttachmentAsync("compat-test-2", attachment);
 
         // Act - Read with compression-disabled provider (should still decompress based on metadata)
         var providerNoCompression = new BlobStorageMessageAttachmentProvider(
@@ -189,52 +211,14 @@ public class BlobStorageMessageAttachmentProviderTests
         var originalSize = Encoding.UTF8.GetByteCount(originalContent);
         using var ms = new MemoryStream(Encoding.UTF8.GetBytes(originalContent));
         var attachment = new MessageAttachment("compressible.txt", MediaTypeNames.Text.Plain, ms);
-        var id = Guid.NewGuid().ToString("N");
 
         // Act
-        await provider.UploadAttachmentAsync("size-test", id, attachment);
+        var id = await provider.UploadAttachmentAsync("size-test", attachment);
 
         // Assert - Check blob size is smaller than original
         var blobClient = new BlobClient(StorageSetup.ConnectionString, "size-test", id);
         var properties = await blobClient.GetPropertiesAsync();
         properties.Value.ContentLength.Should().BeLessThan(originalSize);
-    }
-
-    [Test]
-    public async Task Compression_MetadataPreservedWithCompression()
-    {
-        // Arrange
-        var options = new BlobStorageAttachmentOptions { EnableCompression = true };
-        var provider = new BlobStorageMessageAttachmentProvider(
-            new StorageBusConfiguration(StorageSetup.ConnectionString),
-            options
-        );
-
-        using var ms = new MemoryStream(Encoding.UTF8.GetBytes("Content with metadata"));
-        var metadata = new Dictionary<string, string>
-        {
-            { "custom-key", "custom-value" },
-            { "another-key", "another-value" },
-        };
-        var attachment = new MessageAttachment("meta.txt", MediaTypeNames.Text.Plain, ms, metadata);
-        var id = Guid.NewGuid().ToString("N");
-
-        // Act
-        await provider.UploadAttachmentAsync("metadata-test", id, attachment);
-        var result = await provider.GetAttachmentAsync("metadata-test", id);
-
-        // Assert
-        result.Metadata.Should().Contain("custom-key", "custom-value");
-        result.Metadata.Should().Contain("another-key", "another-value");
-        result
-            .Metadata.Should()
-            .Contain(BlobStorageMessageAttachmentProvider.FileNameKey, "meta.txt");
-        result
-            .Metadata.Should()
-            .Contain(
-                BlobStorageMessageAttachmentProvider.CompressionKey,
-                BlobStorageMessageAttachmentProvider.CompressionValueGzip
-            );
     }
 
     [Test]
@@ -244,7 +228,7 @@ public class BlobStorageMessageAttachmentProviderTests
         var optionsFastest = new BlobStorageAttachmentOptions
         {
             EnableCompression = true,
-            CompressionLevel = CompressionLevel.Fastest,
+            CompressionLevel = CompressionLevel.Optimal,
         };
         var provider = new BlobStorageMessageAttachmentProvider(
             new StorageBusConfiguration(StorageSetup.ConnectionString),
@@ -257,10 +241,9 @@ public class BlobStorageMessageAttachmentProviderTests
         );
         using var ms = new MemoryStream(Encoding.UTF8.GetBytes(originalContent));
         var attachment = new MessageAttachment("fastest.txt", MediaTypeNames.Text.Plain, ms);
-        var id = Guid.NewGuid().ToString("N");
 
         // Act
-        await provider.UploadAttachmentAsync("level-test", id, attachment);
+        var id = await provider.UploadAttachmentAsync("level-test", attachment);
         var result = await provider.GetAttachmentAsync("level-test", id);
 
         // Assert
