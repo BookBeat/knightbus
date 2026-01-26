@@ -15,6 +15,16 @@ public static class StorageExtensions
 {
     public static IServiceCollection UseBlobStorageAttachments(this IServiceCollection services)
     {
+        return services.UseBlobStorageAttachments(_ => { });
+    }
+
+    public static IServiceCollection UseBlobStorageAttachments(
+        this IServiceCollection services,
+        Action<BlobStorageAttachmentOptions> configureOptions)
+    {
+        var options = new BlobStorageAttachmentOptions();
+        configureOptions(options);
+        services.AddSingleton(options);
         services.AddSingleton<IMessageAttachmentProvider, BlobStorageMessageAttachmentProvider>();
         services.AddMiddleware<AttachmentMiddleware>();
         services.AddSingleton<IMessagePreProcessor, AttachmentPreProcessor>();
