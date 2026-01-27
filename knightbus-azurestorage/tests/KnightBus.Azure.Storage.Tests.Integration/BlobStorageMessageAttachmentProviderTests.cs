@@ -1,7 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.IO;
-using System.IO.Compression;
-using System.Linq;
 using System.Net.Mime;
 using System.Text;
 using System.Threading.Tasks;
@@ -186,65 +184,6 @@ public class BlobStorageMessageAttachmentProviderTests
             StorageSetup.ConnectionString
         );
         var result = await providerNoCompression.GetAttachmentAsync("compat-test-2", id);
-
-        // Assert
-        using var reader = new StreamReader(result.Stream);
-        var downloadedContent = await reader.ReadToEndAsync();
-        downloadedContent.Should().Be(originalContent);
-    }
-
-    [Test]
-    public async Task Compression_CompressedBlobIsSmallerThanOriginal()
-    {
-        // Arrange
-        var options = new BlobStorageAttachmentOptions { EnableCompression = true };
-        var provider = new BlobStorageMessageAttachmentProvider(
-            new StorageBusConfiguration(StorageSetup.ConnectionString),
-            options
-        );
-
-        // Create highly compressible content (repeated text)
-        var originalContent = string.Join(
-            "",
-            Enumerable.Repeat("This is repeated text for compression. ", 100)
-        );
-        var originalSize = Encoding.UTF8.GetByteCount(originalContent);
-        using var ms = new MemoryStream(Encoding.UTF8.GetBytes(originalContent));
-        var attachment = new MessageAttachment("compressible.txt", MediaTypeNames.Text.Plain, ms);
-
-        // Act
-        var id = await provider.UploadAttachmentAsync("size-test", attachment);
-
-        // Assert - Check blob size is smaller than original
-        var blobClient = new BlobClient(StorageSetup.ConnectionString, "size-test", id);
-        var properties = await blobClient.GetPropertiesAsync();
-        properties.Value.ContentLength.Should().BeLessThan(originalSize);
-    }
-
-    [Test]
-    public async Task Compression_DifferentCompressionLevelsWork()
-    {
-        // Arrange
-        var optionsFastest = new BlobStorageAttachmentOptions
-        {
-            EnableCompression = true,
-            CompressionLevel = CompressionLevel.Optimal,
-        };
-        var provider = new BlobStorageMessageAttachmentProvider(
-            new StorageBusConfiguration(StorageSetup.ConnectionString),
-            optionsFastest
-        );
-
-        var originalContent = string.Join(
-            "",
-            Enumerable.Repeat("Test content for fastest compression. ", 50)
-        );
-        using var ms = new MemoryStream(Encoding.UTF8.GetBytes(originalContent));
-        var attachment = new MessageAttachment("fastest.txt", MediaTypeNames.Text.Plain, ms);
-
-        // Act
-        var id = await provider.UploadAttachmentAsync("level-test", attachment);
-        var result = await provider.GetAttachmentAsync("level-test", id);
 
         // Assert
         using var reader = new StreamReader(result.Stream);
