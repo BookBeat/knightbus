@@ -138,6 +138,80 @@ public class SingletonChannelReceiverTests
         starter.Settings.DeadLetterDeliveryLimit.Should().Be(1);
     }
 
+    [Test]
+    public void Should_use_channel_receiver_type_as_lock_id_when_no_lock_id_provided()
+    {
+        //arrange
+        var lockManager = new Mock<ISingletonLockManager>();
+        var underlyingReceiver = new Mock<IChannelReceiver>();
+        underlyingReceiver.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);
+
+        //act
+        var starter = new SingletonChannelReceiver(
+            underlyingReceiver.Object,
+            lockManager.Object,
+            Mock.Of<ILogger>()
+        );
+
+        //assert
+        starter.LockId.Should().Be(underlyingReceiver.Object.GetType().FullName);
+    }
+
+    [Test]
+    public void Should_use_provided_lock_id_when_specified()
+    {
+        //arrange
+        var lockManager = new Mock<ISingletonLockManager>();
+        var underlyingReceiver = new Mock<IChannelReceiver>();
+        underlyingReceiver.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);
+        var customLockId = "CustomChannelReceiver:MySubscription";
+
+        //act
+        var starter = new SingletonChannelReceiver(
+            underlyingReceiver.Object,
+            lockManager.Object,
+            Mock.Of<ILogger>(),
+            customLockId
+        );
+
+        //assert
+        starter.LockId.Should().Be(customLockId);
+    }
+
+    [Test]
+    public void Should_allow_different_subscriptions_to_have_different_lock_ids()
+    {
+        //arrange
+        var lockManager = new Mock<ISingletonLockManager>();
+        var underlyingReceiver1 = new Mock<IChannelReceiver>();
+        var underlyingReceiver2 = new Mock<IChannelReceiver>();
+        underlyingReceiver1.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);
+        underlyingReceiver2.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);
+
+        var baseLockId = "OrderCreatedEventReceiver";
+        var subscription1LockId = $"{baseLockId}:EmailNotification";
+        var subscription2LockId = $"{baseLockId}:InventoryUpdate";
+
+        //act
+        var starter1 = new SingletonChannelReceiver(
+            underlyingReceiver1.Object,
+            lockManager.Object,
+            Mock.Of<ILogger>(),
+            subscription1LockId
+        );
+        var starter2 = new SingletonChannelReceiver(
+            underlyingReceiver2.Object,
+            lockManager.Object,
+            Mock.Of<ILogger>(),
+            subscription2LockId
+        );
+
+        //assert
+        starter1.LockId.Should().NotBe(starter2.LockId);
+        starter1.LockId.Should().Contain("EmailNotification");
+        starter2.LockId.Should().Contain("InventoryUpdate");
+    }
+
     public class SingletonHorrificSettings : IProcessingSettings
     {
         public int MaxConcurrentCalls => 200;
