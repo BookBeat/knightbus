@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Linq;
+using KnightBus.Core;
 using KnightBus.Core.Management;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -25,8 +27,15 @@ public static class StorageQueueExtensions
         services = services
             .AddScoped<StorageQueueManager>()
             .AddScoped<IQueueManager, StorageQueueManager>()
-            .AddScoped<IQueueMessageAttachmentProvider, StorageQueueManager>()
-            .AddSingleton<BlobStorageMessageAttachmentProvider>();
+            .AddScoped<IQueueMessageAttachmentProvider, StorageQueueManager>();
+
+        if (services.All(x => x.ServiceType != typeof(IMessageAttachmentProvider)))
+        {
+            services.AddSingleton<
+                IMessageAttachmentProvider,
+                BlobStorageMessageAttachmentProvider
+            >();
+        }
 
         return StorageExtensions.UseBlobStorage(services, config);
     }

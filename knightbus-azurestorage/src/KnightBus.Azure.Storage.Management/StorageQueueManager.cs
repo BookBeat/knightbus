@@ -17,12 +17,12 @@ public class StorageQueueManager : IQueueManager, IQueueMessageAttachmentProvide
     private readonly IStorageBusConfiguration _configuration;
     private readonly IEnumerable<IMessagePreProcessor> _preProcessors;
     private readonly QueueServiceClient _client;
-    private readonly BlobStorageMessageAttachmentProvider _attachmentProvider;
+    private readonly IMessageAttachmentProvider _attachmentProvider;
 
     public StorageQueueManager(
         IStorageBusConfiguration configuration,
         IEnumerable<IMessagePreProcessor> preProcessors,
-        BlobStorageMessageAttachmentProvider attachmentProvider
+        IMessageAttachmentProvider attachmentProvider
     )
     {
         _configuration = configuration;

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Messages;
@@ -27,11 +26,9 @@ public class AttachmentPreProcessor : IMessagePreProcessor
             if (attachmentMessage.Attachment != null)
             {
                 var attachmentIds = new List<string>();
-                var attachmentId = Guid.NewGuid().ToString("N");
-                await _messageAttachmentProvider
+                var attachmentId = await _messageAttachmentProvider
                     .UploadAttachmentAsync(
                         AutoMessageMapper.GetQueueName<T>(),
-                        attachmentId,
                         attachmentMessage.Attachment,
                         cancellationToken
                     )

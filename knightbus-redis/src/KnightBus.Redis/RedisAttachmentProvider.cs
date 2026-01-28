@@ -53,9 +53,8 @@ public class RedisAttachmentProvider : IMessageAttachmentProvider
         );
     }
 
-    public async Task UploadAttachmentAsync(
+    public async Task<string> UploadAttachmentAsync(
         string queueName,
-        string id,
         IMessageAttachment attachment,
         CancellationToken cancellationToken = default(CancellationToken)
     )
@@ -73,6 +72,7 @@ public class RedisAttachmentProvider : IMessageAttachmentProvider
             hash.Add(new HashEntry(metadata.Key, metadata.Value));
         }
 
+        var id = Guid.NewGuid().ToString("N");
         using (var memoryStream = new MemoryStream())
         {
             await attachment.Stream.CopyToAsync(memoryStream).ConfigureAwait(false);
@@ -88,6 +88,8 @@ public class RedisAttachmentProvider : IMessageAttachmentProvider
                 )
                 .ConfigureAwait(false);
         }
+
+        return id;
     }
 
     public async Task<bool> DeleteAttachmentAsync(

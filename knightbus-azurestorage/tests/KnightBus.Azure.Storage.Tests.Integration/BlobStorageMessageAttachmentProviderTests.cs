@@ -1,8 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Net.Mime;
+using System.Text;
 using System.Threading.Tasks;
+using Azure.Storage.Blobs;
 using FluentAssertions;
 using KnightBus.Core;
 using NUnit.Framework;
@@ -36,10 +37,9 @@ public class BlobStorageMessageAttachmentProviderTests
             ms,
             metadata
         );
-        var id = Guid.NewGuid().ToString("N");
 
         // Act
-        await _target.UploadAttachmentAsync("queue", id, attachment);
+        var id = await _target.UploadAttachmentAsync("queue", attachment);
 
         // Assert
         var result = await _target.GetAttachmentAsync("queue", id);
@@ -53,5 +53,141 @@ public class BlobStorageMessageAttachmentProviderTests
                     { BlobStorageMessageAttachmentProvider.FileNameKey, "filename.csv" },
                 }
             );
+    }
+
+    [Test]
+    [TestCase(true)]
+    [TestCase(false)]
+    public async Task GetAttachmentAsync_StreamShouldNotBeDisposed(bool useCompression)
+    {
+        // Arrange
+        var options = new BlobStorageAttachmentOptions { EnableCompression = useCompression };
+        var provider = new BlobStorageMessageAttachmentProvider(
+            new StorageBusConfiguration(StorageSetup.ConnectionString),
+            options
+        );
+
+        string id;
+        using (var ms = new MemoryStream(Encoding.UTF8.GetBytes("Message")))
+        {
+            var attachment = new MessageAttachment("dispose.txt", MediaTypeNames.Text.Plain, ms);
+            id = await provider.UploadAttachmentAsync("dispose-test", attachment);
+        }
+
+        // Act
+        var result = await provider.GetAttachmentAsync("dispose-test", id);
+
+        // Assert
+        result.Stream.CanRead.Should().NotBe(false);
+        result.Stream.CanSeek.Should().NotBe(false);
+    }
+
+    [Test]
+    public async Task Compression_Upload_ShouldHaveCorrectExtensionAndEncoding()
+    {
+        // Arrange
+        var options = new BlobStorageAttachmentOptions { EnableCompression = true };
+        var provider = new BlobStorageMessageAttachmentProvider(
+            new StorageBusConfiguration(StorageSetup.ConnectionString),
+            options
+        );
+
+        var originalContent = "Test content";
+        using var ms = new MemoryStream(Encoding.UTF8.GetBytes(originalContent));
+        var attachment = new MessageAttachment("test.txt", MediaTypeNames.Text.Plain, ms);
+
+        // Act
+        var id = await provider.UploadAttachmentAsync("compression-test", attachment);
+
+        // Assert
+        id.Should().EndWith(".brotli");
+        var properties = await new BlobClient(
+            StorageSetup.ConnectionString,
+            "compression-test",
+            id
+        ).GetPropertiesAsync();
+        properties.Value.ContentEncoding.Should().Be("br");
+    }
+
+    [Test]
+    public async Task Compression_UploadAndDownload_RoundTripsCorrectly()
+    {
+        // Arrange
+        var options = new BlobStorageAttachmentOptions { EnableCompression = true };
+        var provider = new BlobStorageMessageAttachmentProvider(
+            new StorageBusConfiguration(StorageSetup.ConnectionString),
+            options
+        );
+
+        var originalContent =
+            "This is test content that should be compressed and decompressed correctly.";
+        using var ms = new MemoryStream(Encoding.UTF8.GetBytes(originalContent));
+        var attachment = new MessageAttachment("test.txt", MediaTypeNames.Text.Plain, ms);
+
+        // Act
+        var id = await provider.UploadAttachmentAsync("compression-test", attachment);
+        var result = await provider.GetAttachmentAsync("compression-test", id);
+
+        // Assert
+        using var reader = new StreamReader(result.Stream);
+        var downloadedContent = await reader.ReadToEndAsync();
+        downloadedContent.Should().Be(originalContent);
+        result.Filename.Should().Be("test.txt");
+        result.ContentType.Should().Be(MediaTypeNames.Text.Plain);
+    }
+
+    [Test]
+    public async Task Compression_UncompressedBlobReadableWithCompressionEnabled()
+    {
+        // Arrange - Upload without compression
+        var providerNoCompression = new BlobStorageMessageAttachmentProvider(
+            StorageSetup.ConnectionString
+        );
+
+        var originalContent = "Uncompressed content for backwards compatibility test.";
+        using var ms = new MemoryStream(Encoding.UTF8.GetBytes(originalContent));
+        var attachment = new MessageAttachment("uncompressed.txt", MediaTypeNames.Text.Plain, ms);
+
+        var id = await providerNoCompression.UploadAttachmentAsync("compat-test", attachment);
+
+        // Act - Read with compression-enabled provider
+        var providerWithCompression = new BlobStorageMessageAttachmentProvider(
+            new StorageBusConfiguration(StorageSetup.ConnectionString),
+            new BlobStorageAttachmentOptions { EnableCompression = true }
+        );
+        var result = await providerWithCompression.GetAttachmentAsync("compat-test", id);
+
+        // Assert
+        using var reader = new StreamReader(result.Stream);
+        var downloadedContent = await reader.ReadToEndAsync();
+        downloadedContent.Should().Be(originalContent);
+    }
+
+    [Test]
+    public async Task Compression_CompressedBlobReadableWithCompressionDisabled()
+    {
+        // Arrange - Upload with compression
+        var providerWithCompression = new BlobStorageMessageAttachmentProvider(
+            new StorageBusConfiguration(StorageSetup.ConnectionString),
+            new BlobStorageAttachmentOptions { EnableCompression = true }
+        );
+
+        var originalContent =
+            "Compressed content that should be readable by non-compression provider.";
+        using var ms = new MemoryStream(Encoding.UTF8.GetBytes(originalContent));
+        var attachment = new MessageAttachment("compressed.txt", MediaTypeNames.Text.Plain, ms);
+
+        var id = await providerWithCompression.UploadAttachmentAsync("compat-test-2", attachment);
+
+        // Act - Read with compression-disabled provider (should still decompress based on metadata)
+        var providerNoCompression = new BlobStorageMessageAttachmentProvider(
+            StorageSetup.ConnectionString
+        );
+        var result = await providerNoCompression.GetAttachmentAsync("compat-test-2", id);
+
+        // Assert
+        using var reader = new StreamReader(result.Stream);
+        var downloadedContent = await reader.ReadToEndAsync();
+        downloadedContent.Should().Be(originalContent);
     }
 }
