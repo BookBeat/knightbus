@@ -71,11 +71,13 @@ public class TransportStarterFactoryTests
         var underlyingReceiver = new Mock<IChannelReceiver>();
         underlyingReceiver
             .Setup(x => x.Settings)
-            .Returns(new SingletonProcessingSettings
-            {
-                MessageLockTimeout = TimeSpan.FromMinutes(1),
-                DeadLetterDeliveryLimit = 1,
-            });
+            .Returns(
+                new SingletonProcessingSettings
+                {
+                    MessageLockTimeout = TimeSpan.FromMinutes(1),
+                    DeadLetterDeliveryLimit = 1,
+                }
+            );
 
         channel
             .Setup(x =>
