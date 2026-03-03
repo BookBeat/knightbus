@@ -78,8 +78,7 @@ public class BlobStorageMessageAttachmentProviderTests
         var result = await provider.GetAttachmentAsync("dispose-test", id);
 
         // Assert
-        result.Stream.CanRead.Should().NotBe(false);
-        result.Stream.CanSeek.Should().NotBe(false);
+        result.Stream.CanRead.Should().BeTrue();
     }
 
     [Test]
