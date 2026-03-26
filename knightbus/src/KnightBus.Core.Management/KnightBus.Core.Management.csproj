@@ -10,11 +10,14 @@
     <PackageIconUrl>https://raw.githubusercontent.com/BookBeat/knightbus/master/documentation/media/images/knighbus-64.png</PackageIconUrl>
     <PackageIcon>knighbus-64.png</PackageIcon>
     <RepositoryUrl>https://github.com/BookBeat/knightbus</RepositoryUrl>
-    <Version>18.1.0$(VersionSuffix)</Version>
+    <Version>18.2.0$(VersionSuffix)</Version>
     <PackageTags>knightbus;servicebus;esb;queues;messaging</PackageTags>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
   <ItemGroup>
     <None Include="knighbus-64.png" Pack="true" Visible="false" PackagePath="" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\KnightBus.Core\KnightBus.Core.csproj" />
   </ItemGroup>
 </Project>

@@ -10,7 +10,8 @@ public static class ServiceBusExtensions
 {
     internal static QueueProperties ToQueueProperties(
         this QueueRuntimeProperties properties,
-        IQueueManager manager
+        IQueueManager manager,
+        long? maxSizeInMegabytes = null
     )
     {
         return new QueueProperties(properties.Name, manager, true)
@@ -18,6 +19,7 @@ public static class ServiceBusExtensions
             ActiveMessageCount = properties.ActiveMessageCount,
             TotalMessageCount = properties.TotalMessageCount,
             SizeInBytes = properties.SizeInBytes,
+            MaxSizeInMegabytes = maxSizeInMegabytes,
             TransferMessageCount = properties.TransferMessageCount,
             DeadLetterMessageCount = properties.DeadLetterMessageCount,
             TransferDeadLetterMessageCount = properties.TransferDeadLetterMessageCount,

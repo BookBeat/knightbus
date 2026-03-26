@@ -35,10 +35,13 @@ public class ServiceBusQueueManager : IQueueManager, IQueueMessageSender, IAsync
 
     public async Task<QueueProperties> Get(string path, CancellationToken ct)
     {
-        var props = await _adminClient
-            .GetQueueRuntimePropertiesAsync(path, ct)
-            .ConfigureAwait(false);
-        return props.Value.ToQueueProperties(this);
+        var runtimePropsTask = _adminClient.GetQueueRuntimePropertiesAsync(path, ct);
+        var queuePropsTask = _adminClient.GetQueueAsync(path, ct);
+        await Task.WhenAll(runtimePropsTask, queuePropsTask).ConfigureAwait(false);
+        var runtimeProps = await runtimePropsTask;
+        var queueProps = await queuePropsTask;
+
+        return runtimeProps.Value.ToQueueProperties(this, queueProps.Value.MaxSizeInMegabytes);
     }
 
     public Task Delete(string path, CancellationToken ct)

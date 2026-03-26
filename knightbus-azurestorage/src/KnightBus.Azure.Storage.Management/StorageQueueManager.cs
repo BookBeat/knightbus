@@ -12,22 +12,19 @@ using KnightBus.Core.PreProcessors;
 
 namespace KnightBus.Azure.Storage.Management;
 
-public class StorageQueueManager : IQueueManager, IQueueMessageAttachmentProvider
+public class StorageQueueManager : IQueueManager
 {
     private readonly IStorageBusConfiguration _configuration;
     private readonly IEnumerable<IMessagePreProcessor> _preProcessors;
     private readonly QueueServiceClient _client;
-    private readonly IMessageAttachmentProvider _attachmentProvider;
 
     public StorageQueueManager(
         IStorageBusConfiguration configuration,
-        IEnumerable<IMessagePreProcessor> preProcessors,
-        IMessageAttachmentProvider attachmentProvider
+        IEnumerable<IMessagePreProcessor> preProcessors
     )
     {
         _configuration = configuration;
         _preProcessors = preProcessors;
-        _attachmentProvider = attachmentProvider;
         _client = AzureStorageClientFactory.CreateQueueServiceClient(configuration);
     }
 
@@ -219,38 +216,4 @@ public class StorageQueueManager : IQueueManager, IQueueMessageAttachmentProvide
     }
 
     public QueueType QueueType => QueueType.Queue;
-
-    public async Task<QueueMessageAttachment> GetAttachment(
-        string queue,
-        Dictionary<string, string> messageProperties,
-        CancellationToken cancellationToken
-    )
-    {
-        var attachmentId = AttachmentUtility.GetAttachmentIds(messageProperties).FirstOrDefault();
-        if (string.IsNullOrEmpty(attachmentId))
-            return null;
-
-        var attachment = await _attachmentProvider.GetAttachmentAsync(
-            queue,
-            attachmentId,
-            cancellationToken
-        );
-
-        if (attachment is null)
-            return null;
-
-        return new QueueMessageAttachment(
-            attachment.Stream,
-            attachment.ContentType,
-            attachment.Filename,
-            attachment.Length
-        );
-    }
-
-    public bool HasAttachment(Dictionary<string, string> messageProperties)
-    {
-        return !string.IsNullOrEmpty(
-            AttachmentUtility.GetAttachmentIds(messageProperties).FirstOrDefault()
-        );
-    }
 }
