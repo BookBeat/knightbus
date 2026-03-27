@@ -2,11 +2,11 @@
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
+using System.IO.Pipelines;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Azure;
 using Azure.Storage.Blobs.Models;
 using KnightBus.Core;
 using KnightBus.Messages;
@@ -54,15 +54,9 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
 
         var isCompressed = blob.Name.EndsWith(CompressedFileExtension);
 
-        Stream resultStream;
-        if (isCompressed)
-        {
-            resultStream = await DecompressStreamAsync(blobStream).ConfigureAwait(false);
-        }
-        else
-        {
-            resultStream = blobStream;
-        }
+        Stream resultStream = isCompressed
+            ? new BrotliStream(blobStream, CompressionMode.Decompress, leaveOpen: false)
+            : blobStream;
 
         return new MessageAttachment(
             properties.Value.Metadata[FileNameKey],
@@ -95,8 +89,7 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
         Stream uploadStream = attachment.Stream;
         if (_options.EnableCompression)
         {
-            uploadStream = await CompressStreamAsync(attachment.Stream, _options.CompressionLevel)
-                .ConfigureAwait(false);
+            uploadStream = CreateCompressingStream(attachment.Stream, _options.CompressionLevel);
             id = $"{id}{CompressedFileExtension}";
             contentEncoding = "br";
         }
@@ -129,49 +122,22 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
         CancellationToken cancellationToken
     )
     {
-        var blob = AzureStorageClientFactory
-            .CreateBlobContainerClient(_configuration, queueName)
-            .GetBlobClient(id);
+        var container = AzureStorageClientFactory.CreateBlobContainerClient(
+            _configuration,
+            queueName
+        );
+        await container
+            .CreateIfNotExistsAsync(cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
 
-        try
-        {
-            await blob.UploadAsync(
-                    uploadStream,
-                    blobHttpHeaders,
-                    metadata,
-                    cancellationToken: cancellationToken
-                )
-                .ConfigureAwait(false);
-        }
-        catch (RequestFailedException e) when (e.Status == 404)
-        {
-            var container = AzureStorageClientFactory.CreateBlobContainerClient(
-                _configuration,
-                queueName
-            );
-            try
-            {
-                await container
-                    .CreateAsync(cancellationToken: cancellationToken)
-                    .ConfigureAwait(false);
-            }
-            catch (RequestFailedException ee) when (ee.Status == 409)
-            {
-                //Already created
-            }
-
-            // Reset stream position for retry
-            uploadStream.Position = 0;
-            await UploadBlobAsync(
-                    queueName,
-                    id,
-                    uploadStream,
-                    blobHttpHeaders,
-                    metadata,
-                    cancellationToken
-                )
-                .ConfigureAwait(false);
-        }
+        var blob = container.GetBlobClient(id);
+        await blob.UploadAsync(
+                uploadStream,
+                blobHttpHeaders,
+                metadata,
+                cancellationToken: cancellationToken
+            )
+            .ConfigureAwait(false);
     }
 
     public async Task<bool> DeleteAttachmentAsync(
@@ -201,30 +167,27 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
     private static string FromBase64(string str) =>
         Encoding.UTF8.GetString(Convert.FromBase64String(str));
 
-    private static async Task<MemoryStream> CompressStreamAsync(
-        Stream source,
-        CompressionLevel compressionLevel
-    )
+    private static Stream CreateCompressingStream(Stream source, CompressionLevel compressionLevel)
     {
-        var compressedStream = new MemoryStream();
-        await using (
-            var gzipStream = new BrotliStream(compressedStream, compressionLevel, leaveOpen: true)
-        )
+        var pipe = new Pipe();
+        _ = Task.Run(async () =>
         {
-            await source.CopyToAsync(gzipStream).ConfigureAwait(false);
-        }
-        compressedStream.Position = 0;
-        return compressedStream;
-    }
-
-    private static async Task<MemoryStream> DecompressStreamAsync(Stream source)
-    {
-        var decompressedStream = new MemoryStream();
-        await using (var gzipStream = new BrotliStream(source, CompressionMode.Decompress))
-        {
-            await gzipStream.CopyToAsync(decompressedStream).ConfigureAwait(false);
-        }
-        decompressedStream.Position = 0;
-        return decompressedStream;
+            try
+            {
+                await using var brotliStream = new BrotliStream(
+                    pipe.Writer.AsStream(),
+                    compressionLevel,
+                    leaveOpen: true
+                );
+                await source.CopyToAsync(brotliStream).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                await pipe.Writer.CompleteAsync(ex).ConfigureAwait(false);
+                return;
+            }
+            await pipe.Writer.CompleteAsync().ConfigureAwait(false);
+        });
+        return pipe.Reader.AsStream();
     }
 }
