@@ -126,8 +126,10 @@ public class StorageQueueClient(
 
         foreach (var preProcessor in messagePreProcessors)
         {
-            var properties = await preProcessor.PreProcess(message, cancellationToken);
-            foreach (var property in properties)
+            var result = await preProcessor.PreProcess(message, cancellationToken);
+            if (result.ShouldAbort)
+                return;
+            foreach (var property in result.Properties)
             {
                 storageMessage.Properties[property.Key] = property.Value.ToString();
             }

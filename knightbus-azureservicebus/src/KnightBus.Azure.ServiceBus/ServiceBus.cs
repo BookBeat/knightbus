@@ -104,6 +104,8 @@ public class ServiceBus : IServiceBus
     {
         var client = await _clientFactory.GetSenderClient<T>().ConfigureAwait(false);
         var sbMessage = await CreateMessageAsync(message, cancellationToken).ConfigureAwait(false);
+        if (sbMessage is null)
+            return;
 
         await SendAsync(client, sbMessage, cancellationToken).ConfigureAwait(false);
     }
@@ -118,9 +120,10 @@ public class ServiceBus : IServiceBus
         var sbMessages = new Queue<ServiceBusMessage>();
         foreach (var message in messages)
         {
-            sbMessages.Enqueue(
-                await CreateMessageAsync(message, cancellationToken).ConfigureAwait(false)
-            );
+            var sbMessage = await CreateMessageAsync(message, cancellationToken)
+                .ConfigureAwait(false);
+            if (sbMessage is not null)
+                sbMessages.Enqueue(sbMessage);
         }
 
         await SendAsync(client, sbMessages, cancellationToken).ConfigureAwait(false);
@@ -135,6 +138,8 @@ public class ServiceBus : IServiceBus
     {
         var client = await _clientFactory.GetSenderClient<T>().ConfigureAwait(false);
         var sbMessage = await CreateMessageAsync(message, cancellationToken).ConfigureAwait(false);
+        if (sbMessage is null)
+            return 0;
         var scheduledEnqueueTime = DateTime.UtcNow.Add(span);
 
         return await client
@@ -164,7 +169,8 @@ public class ServiceBus : IServiceBus
         foreach (var message in messages)
         {
             var msg = await CreateMessageAsync(message, cancellationToken).ConfigureAwait(false);
-            sbMessages.Add(msg);
+            if (msg is not null)
+                sbMessages.Add(msg);
         }
 
         if (sbMessages.Count == 0)
@@ -183,6 +189,8 @@ public class ServiceBus : IServiceBus
         var client = await _clientFactory.GetSenderClient<T>().ConfigureAwait(false);
         var brokeredMessage = await CreateMessageAsync(message, cancellationToken)
             .ConfigureAwait(false);
+        if (brokeredMessage is null)
+            return;
 
         await SendAsync(client, brokeredMessage, cancellationToken).ConfigureAwait(false);
     }
@@ -197,9 +205,10 @@ public class ServiceBus : IServiceBus
         var sbMessages = new Queue<ServiceBusMessage>();
         foreach (var message in messages)
         {
-            sbMessages.Enqueue(
-                await CreateMessageAsync(message, cancellationToken).ConfigureAwait(false)
-            );
+            var sbMessage = await CreateMessageAsync(message, cancellationToken)
+                .ConfigureAwait(false);
+            if (sbMessage is not null)
+                sbMessages.Enqueue(sbMessage);
         }
 
         await SendAsync(client, sbMessages, cancellationToken).ConfigureAwait(false);
@@ -273,8 +282,10 @@ public class ServiceBus : IServiceBus
 
         foreach (var preProcessor in _messagePreProcessors)
         {
-            var properties = await preProcessor.PreProcess(body, cancellationToken);
-            foreach (var property in properties)
+            var result = await preProcessor.PreProcess(body, cancellationToken);
+            if (result.ShouldAbort)
+                return null;
+            foreach (var property in result.Properties)
             {
                 message.ApplicationProperties[property.Key] = property.Value;
             }

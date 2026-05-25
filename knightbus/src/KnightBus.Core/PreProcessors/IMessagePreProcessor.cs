@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Messages;
 
@@ -10,7 +9,7 @@ public interface IMessagePreProcessor
     /// <summary>
     /// Runs before a message is sent for preprocessing of a message.
     /// </summary>
-    /// <returns>A dictionary containing properties to be sent with the message. In most cases this will be string, string.</returns>
-    Task<IDictionary<string, object>> PreProcess<T>(T message, CancellationToken cancellationToken)
+    /// <returns>A result containing optional properties to attach to the message, or an abort signal to cancel the send.</returns>
+    Task<MessagePreProcessorResult> PreProcess<T>(T message, CancellationToken cancellationToken)
         where T : IMessage;
 }

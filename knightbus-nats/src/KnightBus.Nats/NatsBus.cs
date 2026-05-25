@@ -64,8 +64,10 @@ public class NatsBus : INatsBus
 
         foreach (var preProcessor in _messagePreProcessors)
         {
-            var properties = await preProcessor.PreProcess(message, cancellationToken);
-            foreach (var property in properties)
+            var result = await preProcessor.PreProcess(message, cancellationToken);
+            if (result.ShouldAbort)
+                return;
+            foreach (var property in result.Properties)
             {
                 msg.Header.Add(property.Key, property.Value.ToString());
             }

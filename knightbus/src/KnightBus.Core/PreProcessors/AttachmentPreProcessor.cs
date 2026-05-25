@@ -14,7 +14,7 @@ public class AttachmentPreProcessor : IMessagePreProcessor
         _messageAttachmentProvider = messageAttachmentProvider;
     }
 
-    public async Task<IDictionary<string, object>> PreProcess<T>(
+    public async Task<MessagePreProcessorResult> PreProcess<T>(
         T message,
         CancellationToken cancellationToken
     )
@@ -34,12 +34,14 @@ public class AttachmentPreProcessor : IMessagePreProcessor
                     )
                     .ConfigureAwait(false);
                 attachmentIds.Add(attachmentId);
-                return new Dictionary<string, object>
-                {
-                    { AttachmentUtility.AttachmentKey, string.Join(",", attachmentIds) },
-                };
+                return MessagePreProcessorResult.WithProperties(
+                    new Dictionary<string, object>
+                    {
+                        { AttachmentUtility.AttachmentKey, string.Join(",", attachmentIds) },
+                    }
+                );
             }
         }
-        return new Dictionary<string, object>();
+        return MessagePreProcessorResult.Continue;
     }
 }

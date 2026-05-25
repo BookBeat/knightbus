@@ -71,19 +71,21 @@ public class RedisBus : IRedisBus
         where T : IMessage
     {
         var db = _multiplexer.GetDatabase(_configuration.DatabaseId);
-        var listItems = messages
-            .Select(m => new RedisListItem<T>(Guid.NewGuid().ToString("N"), m))
-            .ToList();
-        var serialized = listItems
-            .Select(m => (RedisValue)GetSerializer<T>().Serialize(m))
-            .ToArray();
-        foreach (var item in listItems)
+        var serialized = new List<RedisValue>(messages.Count);
+        foreach (var m in messages)
         {
-            await RunPreProcessors(item, db, queueName);
+            var item = new RedisListItem<T>(Guid.NewGuid().ToString("N"), m);
+            var shouldSend = await RunPreProcessors(item, db, queueName);
+            if (!shouldSend)
+                continue;
+            serialized.Add(GetSerializer<T>().Serialize(item));
         }
 
+        if (serialized.Count == 0)
+            return;
+
         await Task.WhenAll(
-            db.ListLeftPushAsync(queueName, serialized),
+            db.ListLeftPushAsync(queueName, serialized.ToArray()),
             db.PublishAsync(
                 new RedisChannel(queueName, RedisChannel.PatternMode.Literal),
                 0,
@@ -97,7 +99,9 @@ public class RedisBus : IRedisBus
     {
         var db = _multiplexer.GetDatabase(_configuration.DatabaseId);
         var redisListItem = new RedisListItem<T>(Guid.NewGuid().ToString("N"), message);
-        await RunPreProcessors(redisListItem, db, queueName);
+        var shouldSend = await RunPreProcessors(redisListItem, db, queueName);
+        if (!shouldSend)
+            return;
         await Task.WhenAll(
             db.ListLeftPushAsync(queueName, GetSerializer<T>().Serialize(redisListItem)),
             db.PublishAsync(
@@ -149,13 +153,19 @@ public class RedisBus : IRedisBus
             .ConfigureAwait(false);
     }
 
-    private async Task RunPreProcessors<T>(RedisListItem<T> item, IDatabase db, string queueName)
+    private async Task<bool> RunPreProcessors<T>(
+        RedisListItem<T> item,
+        IDatabase db,
+        string queueName
+    )
         where T : IMessage
     {
         foreach (var preProcessor in _messagePreProcessors)
         {
-            var properties = await preProcessor.PreProcess(item.Body, CancellationToken.None);
-            foreach (var property in properties)
+            var result = await preProcessor.PreProcess(item.Body, CancellationToken.None);
+            if (result.ShouldAbort)
+                return false;
+            foreach (var property in result.Properties)
             {
                 await db.HashSetAsync(
                     RedisQueueConventions.GetMessageHashKey(queueName, item.Id),
@@ -164,6 +174,7 @@ public class RedisBus : IRedisBus
                 );
             }
         }
+        return true;
     }
 
     private IMessageSerializer GetSerializer<T>()

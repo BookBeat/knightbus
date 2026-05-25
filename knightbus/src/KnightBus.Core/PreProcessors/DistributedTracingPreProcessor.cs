@@ -15,7 +15,7 @@ public class DistributedTracingPreProcessor : IMessagePreProcessor
         _distributedTracingProvider = distributedTracingProvider;
     }
 
-    public Task<IDictionary<string, object>> PreProcess<T>(
+    public Task<MessagePreProcessorResult> PreProcess<T>(
         T message,
         CancellationToken cancellationToken
     )
@@ -29,6 +29,6 @@ public class DistributedTracingPreProcessor : IMessagePreProcessor
             dictionary.Add(property.Key, property.Value);
         }
 
-        return Task.FromResult(dictionary);
+        return Task.FromResult(MessagePreProcessorResult.WithProperties(dictionary));
     }
 }
