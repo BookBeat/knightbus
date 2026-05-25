@@ -57,6 +57,7 @@
     <Project Path="knightbus-redis/tests/KnightBus.Redis.Tests.Unit/KnightBus.Redis.Tests.Unit.csproj" />
   </Folder>
   <Project Path="knightbus-deduplication/src/KnightBus.Deduplication.Redis/KnightBus.Deduplication.Redis.csproj" />
+  <Project Path="knightbus-deduplication/tests/KnightBus.Deduplication.Redis.Tests.Unit/KnightBus.Deduplication.Redis.Tests.Unit.csproj" />
   <Project Path="knightbus-applicationinsights/src/KnightBus.ApplicationInsights/KnightBus.ApplicationInsights.csproj" />
   <Project Path="knightbus-newrelic/src/KnightBus.NewRelic/KnightBus.NewRelic.csproj" />
   <Project Path="knightbus-newtonsoft/src/KnightBus.Newtonsoft/KnightBus.Newtonsoft.csproj" />
