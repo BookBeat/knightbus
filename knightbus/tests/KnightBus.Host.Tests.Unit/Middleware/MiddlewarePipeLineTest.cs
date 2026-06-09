@@ -101,6 +101,72 @@ public class MiddlewarePipelineTest
         );
     }
 
+    [Test]
+    public async Task Should_replace_default_error_handling_middleware_with_a_registered_one()
+    {
+        //arrange
+        var customErrorHandler = new TestErrorHandlingMiddleware();
+        var middlewares = new List<IMessageProcessorMiddleware>
+        {
+            customErrorHandler,
+            new MessageScopeTestMiddleware(new List<int>(), 0),
+        };
+
+        var thrown = new InvalidOperationException();
+        var throwingProcessor = new Mock<IMessageProcessor>();
+        throwingProcessor
+            .Setup(x =>
+                x.ProcessAsync(
+                    It.IsAny<IMessageStateHandler<TestCommand>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ThrowsAsync(thrown);
+
+        var pipeline = new MiddlewarePipeline(
+            middlewares,
+            Mock.Of<IPipelineInformation>(),
+            Mock.Of<ILogger>()
+        );
+
+        //act & assert
+        var chain = pipeline.GetPipeline(throwingProcessor.Object);
+        await chain
+            .Invoking(async c =>
+                await c.ProcessAsync(
+                    Mock.Of<IMessageStateHandler<TestCommand>>(),
+                    CancellationToken.None
+                )
+            )
+            .Should()
+            .ThrowAsync<InvalidOperationException>();
+        customErrorHandler.Caught.Should().BeSameAs(thrown);
+    }
+
+    private class TestErrorHandlingMiddleware : IErrorHandlingMiddleware
+    {
+        public Exception Caught { get; private set; }
+
+        public async Task ProcessAsync<T>(
+            IMessageStateHandler<T> messageStateHandler,
+            IPipelineInformation pipelineInformation,
+            IMessageProcessor next,
+            CancellationToken cancellationToken
+        )
+            where T : class, IMessage
+        {
+            try
+            {
+                await next.ProcessAsync(messageStateHandler, cancellationToken);
+            }
+            catch (Exception e)
+            {
+                Caught = e;
+                throw;
+            }
+        }
+    }
+
     private class TestMiddleware : IMessageProcessorMiddleware
     {
         public readonly List<int> _list;

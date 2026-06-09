@@ -8,7 +8,7 @@ public static class NewRelicExtensions
 {
     public static IServiceCollection UseNewRelic(this IServiceCollection services)
     {
-        services.AddMiddleware<NewRelicMessageMiddleware>();
+        services.AddMiddleware<NewRelicErrorHandlingMiddleware>();
         services.UseDistributedTracing<NewRelicDistributedTracingProvider>();
         return services;
     }

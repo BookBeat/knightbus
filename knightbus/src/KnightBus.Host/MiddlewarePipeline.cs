@@ -21,27 +21,29 @@ internal class MiddlewarePipeline
     {
         _pipelineInformation = pipelineInformation;
 
-        //Add default outlying middlewares
-        _middlewares.Add(new ErrorHandlingMiddleware(log));
-
-        //See if there is a IMessageScopeProviderMiddleware that needs to be placed before the other middlewares
         var processorMiddlewares = new List<IMessageProcessorMiddleware>(hostMiddlewares);
-        var scopeProvider = processorMiddlewares.SingleOrDefault(scopeMiddleware =>
-            scopeMiddleware is IMessageScopeProviderMiddleware
-        );
-        if (scopeProvider != null)
-        {
-            _middlewares.Add(scopeProvider);
-            processorMiddlewares.Remove(scopeProvider);
-        }
-        else
-        {
-            _middlewares.Add(new MicrosoftDependencyInjectionScopedLifeStyleMiddleware());
-        }
 
+        var errorHandling = Extract<IErrorHandlingMiddleware>(processorMiddlewares);
+        var scopeProvider = Extract<IMessageScopeProviderMiddleware>(processorMiddlewares);
+
+        _middlewares.Add(errorHandling ?? new ErrorHandlingMiddleware(log));
+        _middlewares.Add(
+            scopeProvider ?? new MicrosoftDependencyInjectionScopedLifeStyleMiddleware()
+        );
         _middlewares.Add(new DeadLetterMiddleware());
-        //Add host-global middlewares
         _middlewares.AddRange(processorMiddlewares);
+    }
+
+    private static IMessageProcessorMiddleware Extract<TMiddleware>(
+        List<IMessageProcessorMiddleware> middlewares
+    )
+        where TMiddleware : IMessageProcessorMiddleware
+    {
+        var middleware = middlewares.SingleOrDefault(m => m is TMiddleware);
+        if (middleware != null)
+            middlewares.Remove(middleware);
+
+        return middleware;
     }
 
     public IMessageProcessor GetPipeline(IMessageProcessor baseProcessor)

@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace KnightBus.Core.DefaultMiddlewares;
 
-public class ErrorHandlingMiddleware : IMessageProcessorMiddleware
+public class ErrorHandlingMiddleware : IErrorHandlingMiddleware
 {
     private readonly ILogger _log;
 
@@ -15,7 +15,7 @@ public class ErrorHandlingMiddleware : IMessageProcessorMiddleware
         _log = log;
     }
 
-    public async Task ProcessAsync<T>(
+    public virtual async Task ProcessAsync<T>(
         IMessageStateHandler<T> messageStateHandler,
         IPipelineInformation pipelineInformation,
         IMessageProcessor next,
@@ -31,6 +31,7 @@ public class ErrorHandlingMiddleware : IMessageProcessorMiddleware
         }
         catch (Exception e)
         {
+            await OnProcessingError(e);
             _log.LogError(e, "Error processing message {@" + typeof(T).Name + "}", message);
             try
             {
@@ -45,5 +46,14 @@ public class ErrorHandlingMiddleware : IMessageProcessorMiddleware
                 );
             }
         }
+    }
+
+    /// <summary>
+    /// Invoked when message processing throws, before the error is logged and the message is
+    /// abandoned.
+    /// </summary>
+    protected virtual Task OnProcessingError(Exception e)
+    {
+        return Task.CompletedTask;
     }
 }

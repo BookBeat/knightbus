@@ -1,5 +1,16 @@
 # CHANGELOG
 
+# 2026-06-09
+Logs for unhandled exceptions now include trace.id and span.id when using New Relic middleware
+
+### KnightBus.Core 18.1.0
+* Added IErrorHandlingMiddleware
+* Made ErrorHandlingMiddleware.ProcessAsync virtual with an OnProcessingError hook
+### KnightBus.Host 18.1.0
+* A registered IErrorHandlingMiddleware now replaces the default error handling middleware
+### KnightBus.NewRelic 14.0.0
+* Replaced NewRelicMessageMiddleware with NewRelicErrorHandlingMiddleware
+
 # 2025-12-19
 
 ### KnightBus.Core.Management 18.1.0
