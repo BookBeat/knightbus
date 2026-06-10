@@ -10,6 +10,8 @@ env:
 permissions:
   contents: read
   packages: write
+  id-token: write       # required for OIDC trusted publishing
+
 
 jobs:
   PackAndPublishPreRelease:
@@ -114,10 +116,17 @@ jobs:
           retention-days: 7
           path: ${{ env.NuGetDirectory }}/*.nupkg
 
-      - name: Push prerelease packages to GitHub Packages
+      - name: NuGet login (OIDC → temp API key)
+        if: steps.packages.outputs.hasPackages == 'true'
+        uses: NuGet/login@v1
+        id: login
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      - name: Push prerelease packages to NuGet.org
         if: steps.packages.outputs.hasPackages == 'true'
         shell: pwsh
         run: |
           foreach($file in (Get-ChildItem "${{ env.NuGetDirectory }}" -Recurse -Include *.nupkg)) {
-              dotnet nuget push $file --api-key "${{ secrets.NUGET_APIKEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+              dotnet nuget push $file --api-key "${{ steps.login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
           }
