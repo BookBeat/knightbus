@@ -7,7 +7,7 @@
   "csharp.suppressHiddenDiagnostics": true,
   "dotnet.codeLens.enableReferencesCodeLens": true,
   "dotnet.codeLens.enableTestsCodeLens": true,
-  "dotnet.defaultSolution": "${config:dotnet.projectName}.sln",
+  "dotnet.defaultSolution": "${config:dotnet.projectName}.slnx",
   "dotnet.preferVisualStudioCodeFileSystemWatcher": true,
   "editor.codeActionsOnSave": {
     "source.fixAll": "always",

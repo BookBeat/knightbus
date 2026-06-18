@@ -9,6 +9,7 @@
     <Project Path="knightbus/examples/KnightBus.Examples.Azure.ServiceBus.Producer/KnightBus.Examples.Azure.ServiceBus.Producer.csproj" />
     <Project Path="knightbus/examples/KnightBus.Examples.Azure.ServiceBus/KnightBus.Examples.Azure.ServiceBus.csproj" />
     <Project Path="knightbus/examples/KnightBus.Examples.Azure.Storage/KnightBus.Examples.Azure.Storage.csproj" />
+    <Project Path="knightbus/examples/KnightBus.Examples.LavinMQ/KnightBus.Examples.LavinMQ.csproj" />
     <Project Path="knightbus/examples/KnightBus.Examples.Nats/KnightBus.Examples.Nats.csproj" />
     <Project Path="knightbus/examples/KnightBus.Examples.PostgreSql/KnightBus.Examples.PostgreSql.csproj" />
     <Project Path="knightbus/examples/KnightBus.Examples.Redis/KnightBus.Examples.Redis.csproj" />
@@ -35,6 +36,13 @@
     <Project Path="knightbus-azurestorage/src/KnightBus.Azure.Storage/KnightBus.Azure.Storage.csproj" />
     <Project Path="knightbus-azurestorage/tests/KnightBus.Azure.Storage.Tests.Integration/KnightBus.Azure.Storage.Tests.Integration.csproj" />
     <Project Path="knightbus-azurestorage/tests/KnightBus.Azure.Storage.Tests.Unit/KnightBus.Azure.Storage.Tests.Unit.csproj" />
+  </Folder>
+  <Folder Name="/Transports/LavinMQ/">
+    <Project Path="knightbus-lavinmq/src/KnightBus.LavinMQ.Management/KnightBus.LavinMQ.Management.csproj" />
+    <Project Path="knightbus-lavinmq/src/KnightBus.LavinMQ.Messages/KnightBus.LavinMQ.Messages.csproj" />
+    <Project Path="knightbus-lavinmq/src/KnightBus.LavinMQ/KnightBus.LavinMQ.csproj" />
+    <Project Path="knightbus-lavinmq/tests/KnightBus.LavinMQ.Tests.Integration/KnightBus.LavinMQ.Tests.Integration.csproj" />
+    <Project Path="knightbus-lavinmq/tests/KnightBus.LavinMQ.Tests.Unit/KnightBus.LavinMQ.Tests.Unit.csproj" />
   </Folder>
   <Folder Name="/Transports/Nats/">
     <Project Path="knightbus-nats/src/KnightBus.Nats.Messages/KnightBus.Nats.Messages.csproj" />
