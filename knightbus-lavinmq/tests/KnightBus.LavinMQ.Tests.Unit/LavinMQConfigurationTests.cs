@@ -35,4 +35,36 @@ public class LavinMQConfigurationTests
             .Should()
             .Be("orders.billing");
     }
+
+    [Test]
+    public void Should_enable_connection_and_topology_recovery_by_default()
+    {
+        var configuration = new LavinMQConfiguration("amqp://guest:guest@localhost:5672");
+
+        var factory = LavinMQExtensions.BuildConnectionFactory(configuration);
+
+        factory.AutomaticRecoveryEnabled.Should().BeTrue();
+        factory.TopologyRecoveryEnabled.Should().BeTrue();
+    }
+
+    [Test]
+    public void Should_apply_the_connection_factory_hook_after_the_defaults()
+    {
+        var invoked = false;
+        var configuration = new LavinMQConfiguration("amqp://guest:guest@localhost:5672")
+        {
+            ConfigureConnectionFactory = factory =>
+            {
+                invoked = true;
+                factory.AutomaticRecoveryEnabled = false;
+            },
+        };
+
+        var result = LavinMQExtensions.BuildConnectionFactory(configuration);
+
+        invoked.Should().BeTrue();
+        result
+            .AutomaticRecoveryEnabled.Should()
+            .BeFalse("the hook runs after the defaults and can override them");
+    }
 }
