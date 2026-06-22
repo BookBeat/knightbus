@@ -159,6 +159,9 @@ public static class LavinMQTopology
         {
             [LavinMQQueueConventions.DeadLetterExchangeArgument] =
                 LavinMQQueueConventions.DeadLetterExchangeName(queueName),
-            [LavinMQQueueConventions.DeliveryLimitArgument] = deadLetterDeliveryLimit,
+            // The broker-side limit is one higher than the KnightBus limit so the DeadLetterMiddleware
+            // (which fires at DeliveryCount > DeadLetterDeliveryLimit) gets a chance to run the
+            // IProcessBeforeDeadLetter hook first; the broker x-delivery-limit is only the backstop.
+            [LavinMQQueueConventions.DeliveryLimitArgument] = deadLetterDeliveryLimit + 1,
         };
 }

@@ -124,17 +124,48 @@ public class LavinMQChannelReceiver<T> : IChannelReceiver
         await _maxConcurrent.WaitAsync(_cancellationToken).ConfigureAwait(false);
         try
         {
-            var stateHandler = new LavinMQMessageStateHandler<T>(
-                _channel,
-                eventArgs.DeliveryTag,
-                eventArgs.Redelivered,
-                eventArgs.Body,
-                eventArgs.BasicProperties,
-                _serializer,
-                Settings.DeadLetterDeliveryLimit,
-                _hostConfiguration.DependencyInjection
+            LavinMQMessageStateHandler<T> stateHandler;
+            try
+            {
+                stateHandler = new LavinMQMessageStateHandler<T>(
+                    _channel,
+                    eventArgs.DeliveryTag,
+                    eventArgs.Redelivered,
+                    eventArgs.Body,
+                    eventArgs.BasicProperties,
+                    _serializer,
+                    Settings.DeadLetterDeliveryLimit,
+                    _hostConfiguration.DependencyInjection
+                );
+            }
+            catch (Exception e)
+            {
+                // The message could not even be built (e.g. deserialization failure). The processing
+                // pipeline never runs, so nothing would ack/nack it and the delivery would occupy a
+                // prefetch slot forever. Reject it (requeue:false) so it is dead-lettered instead of
+                // stalling the consumer.
+                _log.LogError(
+                    e,
+                    "LavinMQ failed to deserialize message for {MessageType}, dead-lettering",
+                    typeof(T).Name
+                );
+                await _channel
+                    .BasicRejectAsync(eventArgs.DeliveryTag, requeue: false)
+                    .ConfigureAwait(false);
+                return;
+            }
+
+            // Bound processing by the message lock timeout so a hung handler cannot hold its slot forever.
+            using var lockTimeout = new CancellationTokenSource(Settings.MessageLockTimeout);
+            using var linked = CancellationTokenSource.CreateLinkedTokenSource(
+                lockTimeout.Token,
+                _cancellationToken
             );
-            await _processor.ProcessAsync(stateHandler, _cancellationToken).ConfigureAwait(false);
+            await _processor.ProcessAsync(stateHandler, linked.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // Shutdown or lock timeout - not a processing error.
         }
         catch (Exception e)
         {
@@ -151,6 +182,11 @@ public class LavinMQChannelReceiver<T> : IChannelReceiver
         try
         {
             _log.LogInformation("Closing LavinMQ consumer for {MessageType}", typeof(T).Name);
+            // Wait for in-flight handlers to finish acking before tearing down the channel, so a
+            // successfully processed message is not left unacked (and reprocessed after restart).
+            for (var i = 0; i < Settings.MaxConcurrentCalls; i++)
+                await _maxConcurrent.WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+
             await _channel.CloseAsync().ConfigureAwait(false);
             await _channel.DisposeAsync().ConfigureAwait(false);
         }

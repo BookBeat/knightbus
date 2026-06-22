@@ -49,8 +49,10 @@ public class LavinMQMessageStateHandler<T> : IMessageStateHandler<T>
     public Task DeadLetterAsync(int deadLetterLimit) =>
         _channel.BasicRejectAsync(_deliveryTag, requeue: false).AsTask();
 
-    // Request/reply is not supported by the LavinMQ transport yet.
-    public Task ReplyAsync<TReply>(TReply reply) => Task.CompletedTask;
+    // Request/reply is not supported by the LavinMQ transport yet. Fail loudly rather than silently
+    // dropping the reply and leaving the caller to block until timeout.
+    public Task ReplyAsync<TReply>(TReply reply) =>
+        throw new NotSupportedException("Request/reply is not supported by the LavinMQ transport.");
 
     public T GetMessage() => _message;
 

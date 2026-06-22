@@ -42,8 +42,9 @@ public class LavinMQQueueManager : IQueueManager, IDisposable
                 : Uri.UnescapeDataString(uri.AbsolutePath.TrimStart('/'));
         _vhostSegment = Uri.EscapeDataString(vhost);
 
+        var useTls = string.Equals(uri.Scheme, "amqps", StringComparison.OrdinalIgnoreCase);
         var managementBaseAddress = string.IsNullOrEmpty(configuration.ManagementApiUrl)
-            ? new UriBuilder("http", uri.Host, 15672).Uri
+            ? new UriBuilder(useTls ? "https" : "http", uri.Host, useTls ? 15671 : 15672).Uri
             : new Uri(configuration.ManagementApiUrl);
         _httpClient = new HttpClient { BaseAddress = managementBaseAddress };
         var userInfo = string.IsNullOrEmpty(uri.UserInfo)
@@ -122,20 +123,26 @@ public class LavinMQQueueManager : IQueueManager, IDisposable
     )
     {
         var deadLetterQueue = LavinMQQueueConventions.DeadLetterQueueName(path);
-        await using var channel = await _connection
-            .CreateChannelAsync(cancellationToken: ct)
-            .ConfigureAwait(false);
-
         var messages = new List<QueueMessage>();
-        for (var i = 0; i < count; i++)
+        try
         {
-            // autoAck removes the message from the dead-letter queue
-            var result = await channel
-                .BasicGetAsync(deadLetterQueue, autoAck: true, ct)
+            await using var channel = await _connection
+                .CreateChannelAsync(cancellationToken: ct)
                 .ConfigureAwait(false);
-            if (result is null)
-                break;
-            messages.Add(ToQueueMessage(result));
+            for (var i = 0; i < count; i++)
+            {
+                // autoAck removes the message from the dead-letter queue
+                var result = await channel
+                    .BasicGetAsync(deadLetterQueue, autoAck: true, ct)
+                    .ConfigureAwait(false);
+                if (result is null)
+                    break;
+                messages.Add(ToQueueMessage(result));
+            }
+        }
+        catch (OperationInterruptedException)
+        {
+            // Dead-letter queue does not exist - treat as empty.
         }
 
         return messages;
@@ -144,35 +151,74 @@ public class LavinMQQueueManager : IQueueManager, IDisposable
     public async Task<int> MoveDeadLetters(string path, int count, CancellationToken ct)
     {
         var deadLetterQueue = LavinMQQueueConventions.DeadLetterQueueName(path);
+        // Publisher confirms so BasicPublishAsync only completes once the broker has accepted the
+        // republished message; only then do we ack (remove) the dead letter, so a lost publish cannot
+        // silently drop the message.
         await using var channel = await _connection
-            .CreateChannelAsync(cancellationToken: ct)
+            .CreateChannelAsync(
+                new CreateChannelOptions(
+                    publisherConfirmationsEnabled: true,
+                    publisherConfirmationTrackingEnabled: true
+                ),
+                ct
+            )
             .ConfigureAwait(false);
 
-        var moved = 0;
-        for (var i = 0; i < count; i++)
+        // If the original queue no longer exists, a republish would be unroutable and silently dropped,
+        // and the subsequent ack would lose the dead letter. Bail out (a failed passive declare also
+        // closes the channel, so check before consuming anything).
+        try
         {
-            var result = await channel
-                .BasicGetAsync(deadLetterQueue, autoAck: false, ct)
-                .ConfigureAwait(false);
-            if (result is null)
-                break;
+            await channel.QueueDeclarePassiveAsync(path, ct).ConfigureAwait(false);
+        }
+        catch (OperationInterruptedException)
+        {
+            return 0;
+        }
 
-            // Republish to the original queue via the default exchange, then ack the dead letter.
-            var properties = new BasicProperties(result.BasicProperties);
-            await channel
-                .BasicPublishAsync(
-                    exchange: string.Empty,
-                    routingKey: path,
-                    mandatory: false,
-                    basicProperties: properties,
-                    body: result.Body,
-                    cancellationToken: ct
-                )
-                .ConfigureAwait(false);
-            await channel
-                .BasicAckAsync(result.DeliveryTag, multiple: false, ct)
-                .ConfigureAwait(false);
-            moved++;
+        var moved = 0;
+        try
+        {
+            for (var i = 0; i < count; i++)
+            {
+                var result = await channel
+                    .BasicGetAsync(deadLetterQueue, autoAck: false, ct)
+                    .ConfigureAwait(false);
+                if (result is null)
+                    break;
+
+                // Strip the broker's dead-letter/scheduling history so the replayed message starts fresh
+                // (otherwise the carried x-death/x-delay can get it re-dead-lettered almost immediately).
+                var properties = new BasicProperties(result.BasicProperties);
+                if (properties.Headers is { } headers)
+                {
+                    properties.Headers = headers
+                        .Where(h =>
+                            h.Key != LavinMQQueueConventions.DeathHeader
+                            && h.Key != LavinMQQueueConventions.DelayHeader
+                        )
+                        .ToDictionary(h => h.Key, h => h.Value);
+                }
+
+                await channel
+                    .BasicPublishAsync(
+                        exchange: string.Empty,
+                        routingKey: path,
+                        mandatory: false,
+                        basicProperties: properties,
+                        body: result.Body,
+                        cancellationToken: ct
+                    )
+                    .ConfigureAwait(false);
+                await channel
+                    .BasicAckAsync(result.DeliveryTag, multiple: false, ct)
+                    .ConfigureAwait(false);
+                moved++;
+            }
+        }
+        catch (OperationInterruptedException)
+        {
+            // Dead-letter queue does not exist - nothing to move.
         }
 
         return moved;
@@ -190,20 +236,26 @@ public class LavinMQQueueManager : IQueueManager, IDisposable
         CancellationToken ct
     )
     {
-        await using var channel = await _connection
-            .CreateChannelAsync(cancellationToken: ct)
-            .ConfigureAwait(false);
-
         var messages = new List<QueueMessage>();
-        for (var i = 0; i < count; i++)
+        try
         {
-            // autoAck:false and never acking -> closing the channel requeues the messages (non-destructive peek)
-            var result = await channel
-                .BasicGetAsync(queue, autoAck: false, ct)
+            await using var channel = await _connection
+                .CreateChannelAsync(cancellationToken: ct)
                 .ConfigureAwait(false);
-            if (result is null)
-                break;
-            messages.Add(ToQueueMessage(result));
+            for (var i = 0; i < count; i++)
+            {
+                // autoAck:false and never acking -> closing the channel requeues the messages (non-destructive peek)
+                var result = await channel
+                    .BasicGetAsync(queue, autoAck: false, ct)
+                    .ConfigureAwait(false);
+                if (result is null)
+                    break;
+                messages.Add(ToQueueMessage(result));
+            }
+        }
+        catch (OperationInterruptedException)
+        {
+            // Queue does not exist - treat as empty.
         }
 
         return messages;
@@ -236,7 +288,7 @@ public class LavinMQQueueManager : IQueueManager, IDisposable
 
         return new QueueMessage(
             body,
-            null,
+            string.Empty,
             time,
             null,
             result.Redelivered ? 2 : 1,
@@ -268,7 +320,7 @@ public class LavinMQQueueManager : IQueueManager, IDisposable
 
     private static bool IsPrimaryQueue(string name) =>
         !string.IsNullOrEmpty(name)
-        && !name.EndsWith(".dl", StringComparison.Ordinal)
+        && !name.EndsWith(LavinMQQueueConventions.DeadLetterQueueSuffix, StringComparison.Ordinal)
         && !name.StartsWith("amq.", StringComparison.Ordinal);
 
     public void Dispose() => _httpClient.Dispose();

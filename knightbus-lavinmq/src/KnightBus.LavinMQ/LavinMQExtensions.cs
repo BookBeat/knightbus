@@ -1,5 +1,6 @@
 using System;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using RabbitMQ.Client;
 
 namespace KnightBus.LavinMQ;
@@ -19,9 +20,13 @@ public static class LavinMQExtensions
         var lavinConfiguration = new LavinMQConfiguration();
         configuration?.Invoke(lavinConfiguration);
 
-        services.AddSingleton<ILavinMQConfiguration>(lavinConfiguration);
-        services.AddSingleton<IConnection>(_ => CreateConnection(lavinConfiguration));
-        services.AddScoped<ILavinMQBus, LavinMQBus>();
+        // TryAdd so calling this more than once (e.g. UseLavinMQ + UseLavinMQManagement) keeps the
+        // first registration's configuration/connection instead of clobbering it with a later empty one.
+        services.TryAddSingleton<ILavinMQConfiguration>(lavinConfiguration);
+        services.TryAddSingleton<IConnection>(provider =>
+            CreateConnection(provider.GetRequiredService<ILavinMQConfiguration>())
+        );
+        services.TryAddScoped<ILavinMQBus, LavinMQBus>();
         return services;
     }
 

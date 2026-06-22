@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -116,6 +117,32 @@ public class LavinMQEndToEndTests
             deadLettered!.Body.Span
         );
         message.Message.Should().Be("boom");
+    }
+
+    [Test]
+    public async Task Should_dead_letter_a_message_that_fails_to_deserialize()
+    {
+        var queue = AutoMessageMapper.GetQueueName<E2ECommand>();
+        var deadLetterQueue = LavinMQQueueConventions.DeadLetterQueueName(queue);
+
+        // Publish a body that cannot be deserialized into E2ECommand. Deserialization happens while
+        // building the message state handler, before the processor runs, so the message must still be
+        // dead-lettered rather than left unacked and stalling the consumer.
+        await using (var channel = await LavinMQSetup.Connection.CreateChannelAsync())
+        {
+            await channel.BasicPublishAsync(
+                exchange: string.Empty,
+                routingKey: queue,
+                mandatory: false,
+                basicProperties: new BasicProperties { Persistent = true },
+                body: Encoding.UTF8.GetBytes("this is not valid json for E2ECommand")
+            );
+        }
+
+        var deadLettered = await WaitForDeadLetterAsync(deadLetterQueue, TimeSpan.FromSeconds(30));
+        deadLettered
+            .Should()
+            .NotBeNull("an undeserializable message must be dead-lettered, not stall the consumer");
     }
 
     private static async Task<BasicGetResult?> WaitForDeadLetterAsync(
