@@ -38,3 +38,17 @@ KnightBus implements the Circular list pattern where all messages sent are store
 
 Pub/Sub is enabled by that the clients will find out what subscribers exists and publish to specific queue. An event that has three listeners will be published to three separed queues.
 
+LavinMQ
+-----------------
+
+* commands
+* events
+* dead-lettering
+* scheduling
+
+https://lavinmq.com/
+
+The LavinMQ transport speaks AMQP 0-9-1 (via ``RabbitMQ.Client``) and therefore also works against RabbitMQ and CloudAMQP; LavinMQ is the tested target. Tag a message with ``ILavinMQCommand`` or ``ILavinMQEvent`` and enable it with ``UseLavinMQ()`` + ``UseTransport<LavinMQTransport>()``.
+
+Commands map to a durable queue (published via the default exchange). Events map to a fanout exchange with one bound queue per ``IEventSubscription``. Dead-lettering uses LavinMQ's native ``x-dead-letter-exchange`` and ``x-delivery-limit`` queue arguments, and scheduling uses the built-in ``x-delayed-message`` exchange.
+
