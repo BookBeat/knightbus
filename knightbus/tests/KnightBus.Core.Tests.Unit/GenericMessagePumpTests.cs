@@ -234,6 +234,10 @@ public class GenericMessagePumpTests
         private readonly TimeSpan _fetchDelay;
         private readonly int _messagesPerFetch;
 
+        //Tracked so the test can drain the burst, orphaned work items starve the thread
+        //pool queue for tests running after this one on machines with few cores
+        public readonly List<Task> NoiseTasks = new();
+
         public ExpiringLockMessagePump(
             IProcessingSettings settings,
             TimeSpan fetchDelay,
@@ -259,7 +263,7 @@ public class GenericMessagePumpTests
             //letting the lock timeout win the race against the processing task starting
             for (var i = 0; i < 512; i++)
             {
-                _ = Task.Run(() => Thread.SpinWait(20_000), CancellationToken.None);
+                NoiseTasks.Add(Task.Run(() => Thread.SpinWait(20_000), CancellationToken.None));
             }
 
             for (var i = 0; i < _messagesPerFetch; i++)
@@ -312,6 +316,10 @@ public class GenericMessagePumpTests
                     "a message whose lock expired before processing started must still release "
                         + $"its concurrency slot (round {round})"
                 );
+
+            //Drain the noise burst before the next round so it cannot pile up and starve
+            //the thread pool for tests that run after this one
+            await Task.WhenAll(pump.NoiseTasks);
         }
     }
 }
