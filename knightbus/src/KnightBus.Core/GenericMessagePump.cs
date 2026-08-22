@@ -71,6 +71,20 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
                         await DelayPolling().ConfigureAwait(false);
                     }
                 }
+
+                try
+                {
+                    await CleanupResources().ConfigureAwait(false);
+                }
+                catch (Exception e)
+                {
+                    //The pump task is never awaited, so an escaping exception would be unobserved
+                    Log.LogError(
+                        e,
+                        "Failed to cleanup resources in message pump for {MessageType}",
+                        typeof(TMessage)
+                    );
+                }
             },
             CancellationToken.None
         );
@@ -218,7 +232,10 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
     protected abstract bool ShouldCreateChannel(Exception e);
 
     /// <summary>
-    /// Cleanup any expensive resources when shutting down
+    /// Cleanup any expensive resources owned by this pump instance.
+    /// Called once when the pump loop has stopped after its cancellation token was cancelled.
+    /// Do not release resources shared with other components, since the pump can be stopped
+    /// while the rest of the host keeps running.
     /// </summary>
     protected abstract Task CleanupResources();
 

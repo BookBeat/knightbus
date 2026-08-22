@@ -65,9 +65,11 @@ public class PostgresMessagePump<T> : GenericMessagePump<PostgresMessage<T>, IMe
         return e is PostgresException { SqlState: PostgresErrorCodes.UndefinedTable };
     }
 
-    protected override async Task CleanupResources()
+    protected override Task CleanupResources()
     {
-        await _npgsqlDataSource.DisposeAsync();
+        //The NpgsqlDataSource is a DI-owned singleton shared with other receivers, senders and
+        //the saga store, so it must not be disposed when a single pump stops
+        return Task.CompletedTask;
     }
 
     protected override TimeSpan PollingDelay => _postgresConfiguration.PollingDelay;

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -50,17 +51,25 @@ public class GenericMessagePumpTests
     private class TestMessagePump : GenericMessagePump<TestCommand, ICommand>
     {
         private readonly Func<Task> _createChannel;
+        private readonly Func<Task> _cleanupResources;
         private int _getMessagesInvocations;
         private int _createChannelInvocations;
+        private int _cleanupResourcesInvocations;
         private volatile bool _channelCreated;
 
         public int CreateChannelInvocations => _createChannelInvocations;
         public int GetMessagesInvocations => _getMessagesInvocations;
+        public int CleanupResourcesInvocations => _cleanupResourcesInvocations;
 
-        public TestMessagePump(ILogger log, Func<Task> createChannel = null)
+        public TestMessagePump(
+            ILogger log,
+            Func<Task> createChannel = null,
+            Func<Task> cleanupResources = null
+        )
             : base(new TestPumpSettings(), log)
         {
             _createChannel = createChannel;
+            _cleanupResources = cleanupResources;
         }
 
         protected override async IAsyncEnumerable<TestCommand> GetMessagesAsync<TMessage>(
@@ -85,7 +94,12 @@ public class GenericMessagePumpTests
 
         protected override bool ShouldCreateChannel(Exception e) => e is ChannelMissingException;
 
-        protected override Task CleanupResources() => Task.CompletedTask;
+        protected override async Task CleanupResources()
+        {
+            Interlocked.Increment(ref _cleanupResourcesInvocations);
+            if (_cleanupResources != null)
+                await _cleanupResources();
+        }
 
         protected override TimeSpan PollingDelay => TimeSpan.FromMilliseconds(10);
 
@@ -151,6 +165,60 @@ public class GenericMessagePumpTests
             .Task.IsCompletedSuccessfully.Should()
             .BeTrue("the pump loop must not die when CreateChannel throws");
         pump.CreateChannelInvocations.Should().Be(2);
+    }
+
+    [Test]
+    public async Task Should_cleanup_resources_when_the_pump_stops()
+    {
+        //arrange
+        var pump = new TestMessagePump(new RecordingLogger());
+        using var cts = new CancellationTokenSource();
+        await pump.StartAsync<TestCommand>((_, _) => Task.CompletedTask, cts.Token);
+
+        //act
+        cts.Cancel();
+
+        //assert
+        var deadline = DateTime.UtcNow.AddSeconds(5);
+        while (pump.CleanupResourcesInvocations == 0 && DateTime.UtcNow < deadline)
+        {
+            await Task.Delay(10, CancellationToken.None);
+        }
+
+        pump.CleanupResourcesInvocations.Should()
+            .Be(1, "the pump must clean up its resources when it stops");
+    }
+
+    [Test]
+    public async Task Should_log_and_not_throw_when_cleanup_resources_fails()
+    {
+        //arrange
+        var log = new RecordingLogger();
+        var pump = new TestMessagePump(
+            log,
+            cleanupResources: () => throw new InvalidOperationException("cleanup failed")
+        );
+        using var cts = new CancellationTokenSource();
+        await pump.StartAsync<TestCommand>((_, _) => Task.CompletedTask, cts.Token);
+
+        //act
+        cts.Cancel();
+
+        //assert
+        var deadline = DateTime.UtcNow.AddSeconds(5);
+        while (
+            !log.Entries.Any(e => e.Exception is InvalidOperationException)
+            && DateTime.UtcNow < deadline
+        )
+        {
+            await Task.Delay(10, CancellationToken.None);
+        }
+
+        log.Entries.Should()
+            .Contain(
+                e => e.Level == LogLevel.Error && e.Exception is InvalidOperationException,
+                "a failed resource cleanup must be logged, not thrown unobserved"
+            );
     }
 
     private class ExpiringLockPumpSettings : IProcessingSettings
