@@ -13,6 +13,7 @@ public class SingletonTimerScope : IDisposable
     private readonly TimeSpan _renewalInterval;
     private readonly CancellationTokenSource _cts;
     private Task _runningTask;
+    private int _lockReleased;
 
     public SingletonTimerScope(
         ILogger log,
@@ -28,24 +29,67 @@ public class SingletonTimerScope : IDisposable
         _renewalInterval = renewalInterval;
         _cts = cancellationTokenSource;
 
-        _runningTask = Task.Run(async () => await TimerLoop(_cts.Token), _cts.Token);
+        //No scheduling token: the loop must always run so the lock is released even when
+        //cancellation was requested before the task started
+        _runningTask = Task.Run(async () => await TimerLoop(_cts.Token), CancellationToken.None);
     }
 
     private async Task TimerLoop(CancellationToken cancellationToken)
     {
-        while (!cancellationToken.IsCancellationRequested)
+        try
         {
-            try
+            while (!cancellationToken.IsCancellationRequested)
             {
-                await RenewLock(cancellationToken).ConfigureAwait(false);
-                await Task.Delay(_renewalInterval, cancellationToken);
+                try
+                {
+                    await RenewLock(cancellationToken).ConfigureAwait(false);
+                    await Task.Delay(_renewalInterval, cancellationToken);
+                }
+                catch (Exception)
+                {
+                    //Stop execution
+                    TryCancel();
+                    break;
+                }
             }
-            catch (Exception)
-            {
-                //Stop execution
+        }
+        finally
+        {
+            //Release the lock when the loop stops, so another instance can take over
+            //immediately instead of waiting for the lock to expire
+            await ReleaseLock().ConfigureAwait(false);
+        }
+    }
+
+    private void TryCancel()
+    {
+        try
+        {
+            if (!_cts.IsCancellationRequested)
                 _cts.Cancel();
-                break;
-            }
+        }
+        catch (ObjectDisposedException)
+        {
+            //The owner of the CancellationTokenSource has already disposed it
+        }
+    }
+
+    private async Task ReleaseLock()
+    {
+        if (_lockHandle == null || !_autoRelease)
+            return;
+        //Only release once, the loop and Dispose can race here
+        if (Interlocked.Exchange(ref _lockReleased, 1) == 1)
+            return;
+        try
+        {
+            _log.LogInformation("Releasing lock {LockHandle}", _lockHandle);
+            await _lockHandle.ReleaseAsync(CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception e)
+        {
+            //The lock will expire by itself when it cannot be released
+            _log.LogWarning(e, "Failed to release lock {LockHandle}", _lockHandle);
         }
     }
 
@@ -69,20 +113,7 @@ public class SingletonTimerScope : IDisposable
 
     public void Dispose()
     {
-        try
-        {
-            if (!_cts.IsCancellationRequested)
-                _cts.Cancel();
-        }
-        catch (Exception)
-        {
-            //Swallow
-        }
-        ;
-        if (_lockHandle != null && _autoRelease)
-        {
-            _log.LogInformation("Releasing lock {LockHandle}", _lockHandle);
-            _lockHandle.ReleaseAsync(CancellationToken.None).GetAwaiter().GetResult();
-        }
+        TryCancel();
+        ReleaseLock().GetAwaiter().GetResult();
     }
 }
