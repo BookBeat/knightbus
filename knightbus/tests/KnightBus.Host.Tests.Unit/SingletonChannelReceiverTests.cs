@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -112,6 +113,54 @@ public class SingletonChannelReceiverTests
         underlyingReceiver.Verify(
             x => x.StartAsync(It.IsAny<CancellationToken>()),
             Times.Exactly(2)
+        );
+    }
+
+    [Test]
+    public async Task Should_release_lock_when_shutting_down()
+    {
+        //arrange
+        var handle = new Mock<ISingletonLockHandle>();
+        handle
+            .Setup(x => x.RenewAsync(It.IsAny<ILogger>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var lockManager = new Mock<ISingletonLockManager>();
+        lockManager
+            .Setup(x =>
+                x.TryLockAsync(
+                    It.IsAny<string>(),
+                    TimeSpan.FromSeconds(60),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(handle.Object);
+        var underlyingReceiver = new Mock<IChannelReceiver>();
+        underlyingReceiver.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);
+        var singletonChannelReceiver = new SingletonChannelReceiver(
+            underlyingReceiver.Object,
+            lockManager.Object,
+            Mock.Of<ILogger>()
+        );
+        using var cts = new CancellationTokenSource();
+        await singletonChannelReceiver.StartAsync(cts.Token);
+
+        //act
+        cts.Cancel();
+
+        //assert
+        var deadline = DateTime.UtcNow.AddSeconds(5);
+        while (
+            !handle.Invocations.Any(i => i.Method.Name == nameof(ISingletonLockHandle.ReleaseAsync))
+            && DateTime.UtcNow < deadline
+        )
+        {
+            await Task.Delay(10, CancellationToken.None);
+        }
+
+        handle.Verify(
+            x => x.ReleaseAsync(It.IsAny<CancellationToken>()),
+            Times.Once,
+            "the singleton lock must be released on shutdown so another instance can take over immediately instead of waiting for the lease to expire"
         );
     }
 
