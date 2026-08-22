@@ -152,4 +152,98 @@ public class GenericMessagePumpTests
             .BeTrue("the pump loop must not die when CreateChannel throws");
         pump.CreateChannelInvocations.Should().Be(2);
     }
+
+    private class ExpiringLockPumpSettings : IProcessingSettings
+    {
+        public int MaxConcurrentCalls { get; init; } = 4;
+        public int PrefetchCount => 0;
+        public TimeSpan MessageLockTimeout { get; init; }
+        public int DeadLetterDeliveryLimit => 1;
+    }
+
+    private class ExpiringLockMessagePump : GenericMessagePump<TestCommand, ICommand>
+    {
+        private readonly TimeSpan _fetchDelay;
+        private readonly int _messagesPerFetch;
+
+        public ExpiringLockMessagePump(
+            IProcessingSettings settings,
+            TimeSpan fetchDelay,
+            int messagesPerFetch
+        )
+            : base(settings, new RecordingLogger())
+        {
+            _fetchDelay = fetchDelay;
+            _messagesPerFetch = messagesPerFetch;
+        }
+
+        protected override async IAsyncEnumerable<TestCommand> GetMessagesAsync<TMessage>(
+            int count,
+            TimeSpan? lockDuration
+        )
+        {
+            //Burn almost the entire message lock before yielding, so every message is
+            //dispatched with only a sliver of its lock duration remaining
+            await Task.Delay(_fetchDelay, CancellationToken.None);
+
+            //Flood the thread pool queue right before yielding so the dispatched
+            //processing tasks queue up behind the burst and don't start instantly,
+            //letting the lock timeout win the race against the processing task starting
+            for (var i = 0; i < 512; i++)
+            {
+                _ = Task.Run(() => Thread.SpinWait(20_000), CancellationToken.None);
+            }
+
+            for (var i = 0; i < _messagesPerFetch; i++)
+            {
+                yield return new TestCommand();
+            }
+        }
+
+        protected override Task CreateChannel(Type messageType) => Task.CompletedTask;
+
+        protected override bool ShouldCreateChannel(Exception e) => false;
+
+        protected override Task CleanupResources() => Task.CompletedTask;
+
+        protected override TimeSpan PollingDelay => TimeSpan.FromMilliseconds(1);
+
+        protected override int MaxFetch => 10;
+    }
+
+    [Test]
+    public async Task Should_not_leak_concurrency_slots_when_lock_expires_before_processing_starts()
+    {
+        const int maxConcurrent = 4;
+        const int rounds = 100;
+
+        for (var round = 0; round < rounds; round++)
+        {
+            var pump = new ExpiringLockMessagePump(
+                new ExpiringLockPumpSettings
+                {
+                    MaxConcurrentCalls = maxConcurrent,
+                    MessageLockTimeout = TimeSpan.FromMilliseconds(12),
+                },
+                fetchDelay: TimeSpan.FromMilliseconds(10),
+                messagesPerFetch: maxConcurrent
+            );
+
+            await pump.PumpAsync<TestCommand>((_, _) => Task.CompletedTask, CancellationToken.None);
+
+            //All slots must eventually come back, no matter how the lock-timeout race played out
+            var deadline = DateTime.UtcNow.AddSeconds(2);
+            while (pump.AvailableThreads < maxConcurrent && DateTime.UtcNow < deadline)
+            {
+                await Task.Delay(10, CancellationToken.None);
+            }
+
+            pump.AvailableThreads.Should()
+                .Be(
+                    maxConcurrent,
+                    "a message whose lock expired before processing started must still release "
+                        + $"its concurrency slot (round {round})"
+                );
+        }
+    }
 }
