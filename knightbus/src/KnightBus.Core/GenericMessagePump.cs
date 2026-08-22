@@ -52,8 +52,24 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
             {
                 while (!cancellationToken.IsCancellationRequested)
                 {
-                    if (!await PumpAsync<TMessage>(action, cancellationToken).ConfigureAwait(false))
+                    try
+                    {
+                        if (
+                            !await PumpAsync<TMessage>(action, cancellationToken)
+                                .ConfigureAwait(false)
+                        )
+                            await DelayPolling().ConfigureAwait(false);
+                    }
+                    catch (Exception e)
+                    {
+                        //The pump task is never awaited, so an escaping exception would kill the pump silently
+                        Log.LogError(
+                            e,
+                            "Unhandled error in message pump for {MessageType}",
+                            typeof(TMessage)
+                        );
                         await DelayPolling().ConfigureAwait(false);
+                    }
                 }
             },
             CancellationToken.None
@@ -154,7 +170,18 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
             if (ShouldCreateChannel(e))
             {
                 Log.LogInformation("{MessageType} not found. Creating.", typeof(TMessage).Name);
-                await CreateChannel(typeof(TMessage));
+                try
+                {
+                    await CreateChannel(typeof(TMessage)).ConfigureAwait(false);
+                }
+                catch (Exception createException)
+                {
+                    Log.LogError(
+                        createException,
+                        "Failed to create channel for {MessageType}",
+                        typeof(TMessage)
+                    );
+                }
                 return false;
             }
 
