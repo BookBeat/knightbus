@@ -52,6 +52,7 @@ public class GenericMessagePumpTests
     {
         private readonly Func<Task> _createChannel;
         private readonly Func<Task> _cleanupResources;
+        private readonly TimeSpan? _pollingDelay;
         private int _getMessagesInvocations;
         private int _createChannelInvocations;
         private int _cleanupResourcesInvocations;
@@ -64,12 +65,14 @@ public class GenericMessagePumpTests
         public TestMessagePump(
             ILogger log,
             Func<Task> createChannel = null,
-            Func<Task> cleanupResources = null
+            Func<Task> cleanupResources = null,
+            TimeSpan? pollingDelay = null
         )
             : base(new TestPumpSettings(), log)
         {
             _createChannel = createChannel;
             _cleanupResources = cleanupResources;
+            _pollingDelay = pollingDelay;
         }
 
         protected override async IAsyncEnumerable<TestCommand> GetMessagesAsync<TMessage>(
@@ -101,9 +104,36 @@ public class GenericMessagePumpTests
                 await _cleanupResources();
         }
 
-        protected override TimeSpan PollingDelay => TimeSpan.FromMilliseconds(10);
+        protected override TimeSpan PollingDelay => _pollingDelay ?? TimeSpan.FromMilliseconds(10);
 
         protected override int MaxFetch => 10;
+    }
+
+    [Test]
+    public async Task Should_exit_polling_delay_and_cleanup_promptly_on_shutdown()
+    {
+        //arrange: a pump with a long polling delay that will be sleeping when shutdown hits
+        var pump = new TestMessagePump(
+            new RecordingLogger(),
+            pollingDelay: TimeSpan.FromSeconds(10)
+        );
+        using var cts = new CancellationTokenSource();
+        await pump.StartAsync<TestCommand>((_, _) => Task.CompletedTask, cts.Token);
+        //the first pump iteration creates the channel, returns false and enters the delay
+        await Task.Delay(200, CancellationToken.None);
+
+        //act
+        cts.Cancel();
+
+        //assert: the pump must not wait out the full polling delay before cleaning up
+        var deadline = DateTime.UtcNow.AddSeconds(3);
+        while (pump.CleanupResourcesInvocations == 0 && DateTime.UtcNow < deadline)
+        {
+            await Task.Delay(10, CancellationToken.None);
+        }
+
+        pump.CleanupResourcesInvocations.Should()
+            .Be(1, "a pump sleeping in its polling delay must exit promptly on shutdown");
     }
 
     [Test]

@@ -21,6 +21,7 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
     private readonly SemaphoreSlim _maxConcurrent;
     private Task _runningTask;
     private CancellationTokenSource _pumpDelayCancellationTokenSource = new();
+    private CancellationToken _pumpCancellationToken = CancellationToken.None;
     private string _queueName;
 
     protected GenericMessagePump(IProcessingSettings settings, ILogger log)
@@ -47,6 +48,12 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
         where TMessage : TMessageInterface
     {
         _queueName = AutoMessageMapper.GetQueueName<TMessage>();
+        //Link the polling delay to the shutdown token so a sleeping pump exits promptly
+        //instead of waiting out its full polling delay
+        _pumpCancellationToken = cancellationToken;
+        _pumpDelayCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken
+        );
         _runningTask = Task.Run(
             async () =>
             {
@@ -272,8 +279,10 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
         }
         catch (TaskCanceledException)
         {
-            //reset the delay
-            _pumpDelayCancellationTokenSource = new CancellationTokenSource();
+            //reset the delay, keeping it linked to the shutdown token
+            _pumpDelayCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(
+                _pumpCancellationToken
+            );
         }
     }
 }

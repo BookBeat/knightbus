@@ -17,13 +17,15 @@ internal class MessageProcessorLocator
 
     public MessageProcessorLocator(
         IHostConfiguration configuration,
-        ITransportChannelFactory[] transportChannelFactories
+        ITransportChannelFactory[] transportChannelFactories,
+        InFlightMessageTracker inFlightTracker = null
     )
     {
         _configuration = configuration;
         _transportStarterFactory = new TransportStarterFactory(
             transportChannelFactories,
-            configuration
+            configuration,
+            inFlightTracker
         );
     }
 

@@ -16,7 +16,10 @@ public static class KnightBusHostExtensions
         configuration?.Invoke(conf);
         builder
             .UseConsoleLifetime()
-            //.ConfigureHostOptions(host => host.ShutdownTimeout = conf.ShutdownGracePeriod.Add(TimeSpan.FromSeconds(10)))
+            //Give KnightBus room to drain in-flight messages before the runtime host aborts the shutdown
+            .ConfigureHostOptions(host =>
+                host.ShutdownTimeout = conf.ShutdownGracePeriod.Add(TimeSpan.FromSeconds(10))
+            )
             .ConfigureServices(collection =>
             {
                 collection.AddSingleton(conf);

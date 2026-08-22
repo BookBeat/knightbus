@@ -16,10 +16,17 @@ internal class MiddlewarePipeline
     public MiddlewarePipeline(
         IEnumerable<IMessageProcessorMiddleware> hostMiddlewares,
         IPipelineInformation pipelineInformation,
-        ILogger log
+        ILogger log,
+        InFlightMessageTracker inFlightTracker = null
     )
     {
         _pipelineInformation = pipelineInformation;
+
+        //The tracker must be outermost so the count covers error handling and dead lettering
+        if (inFlightTracker != null)
+        {
+            _middlewares.Add(inFlightTracker);
+        }
 
         //Add default outlying middlewares
         _middlewares.Add(new ErrorHandlingMiddleware(log));

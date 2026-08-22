@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,6 +16,8 @@ public class KnightBusHost : IHostedService
     private IHostConfiguration _configuration;
     private MessageProcessorLocator _locator;
     private readonly CancellationTokenSource _shutdownToken = new CancellationTokenSource();
+    private static readonly TimeSpan DrainPollingInterval = TimeSpan.FromMilliseconds(100);
+    internal InFlightMessageTracker InFlightTracker { get; } = new();
 
     public KnightBusHost(
         IHostConfiguration configuration,
@@ -51,7 +54,8 @@ public class KnightBusHost : IHostedService
         {
             _locator = new MessageProcessorLocator(
                 _configuration,
-                transports.SelectMany(transport => transport.TransportChannelFactories).ToArray()
+                transports.SelectMany(transport => transport.TransportChannelFactories).ToArray(),
+                InFlightTracker
             );
             var channelReceivers = _locator.CreateReceivers().ToList();
             _configuration.Log.LogInformation("Starting receivers");
@@ -84,14 +88,31 @@ public class KnightBusHost : IHostedService
             "KnightBus received stop signal, initiating shutdown... "
         );
         _shutdownToken.Cancel();
-        try
+
+        //Wait for in-flight messages to drain instead of always waiting the full grace period.
+        //Always wait at least one interval so just-dispatched messages get counted.
+        var stopWatch = Stopwatch.StartNew();
+        do
         {
-            await Task.Delay(_configuration.ShutdownGracePeriod, cancellationToken)
-                .ConfigureAwait(false);
-        }
-        catch (TaskCanceledException)
+            try
+            {
+                await Task.Delay(DrainPollingInterval, cancellationToken).ConfigureAwait(false);
+            }
+            catch (TaskCanceledException)
+            {
+                //The runtime host gave up waiting for the shutdown
+                break;
+            }
+        } while (
+            InFlightTracker.Count > 0 && stopWatch.Elapsed < _configuration.ShutdownGracePeriod
+        );
+
+        if (InFlightTracker.Count > 0)
         {
-            //Swallow
+            _configuration.Log.LogWarning(
+                "KnightBus shutdown proceeding with {MessageCount} messages still processing",
+                InFlightTracker.Count
+            );
         }
         _configuration.Log.LogInformation("KnightBus shutdown completed");
         _shutdownToken.Dispose();
