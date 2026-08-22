@@ -12,8 +12,9 @@ public class SingletonTimerScope : IDisposable
     private readonly bool _autoRelease; //clock drift makes triggers unstable for singleton use if the function is fast
     private readonly TimeSpan _renewalInterval;
     private readonly CancellationTokenSource _cts;
+    private readonly object _releaseLockObject = new();
     private Task _runningTask;
-    private int _lockReleased;
+    private Task _releaseTask;
 
     public SingletonTimerScope(
         ILogger log,
@@ -29,9 +30,14 @@ public class SingletonTimerScope : IDisposable
         _renewalInterval = renewalInterval;
         _cts = cancellationTokenSource;
 
-        //No scheduling token: the loop must always run so the lock is released even when
-        //cancellation was requested before the task started
-        _runningTask = Task.Run(async () => await TimerLoop(_cts.Token), CancellationToken.None);
+        //Capture the token before scheduling and use no scheduling token: the owner can
+        //cancel and dispose the source before the task starts, and reading _cts.Token after
+        //disposal throws, which would keep the loop from ever running or releasing the lock
+        var cancellationToken = _cts.Token;
+        _runningTask = Task.Run(
+            async () => await TimerLoop(cancellationToken),
+            CancellationToken.None
+        );
     }
 
     private async Task TimerLoop(CancellationToken cancellationToken)
@@ -68,18 +74,26 @@ public class SingletonTimerScope : IDisposable
             if (!_cts.IsCancellationRequested)
                 _cts.Cancel();
         }
-        catch (ObjectDisposedException)
+        catch (Exception)
         {
-            //The owner of the CancellationTokenSource has already disposed it
+            //The owner of the CancellationTokenSource can already have disposed it, and
+            //cancellation callbacks registered by consumers can throw
         }
     }
 
-    private async Task ReleaseLock()
+    private Task ReleaseLock()
+    {
+        //The loop and Dispose can race here, both must wait for the same single release
+        lock (_releaseLockObject)
+        {
+            _releaseTask ??= ReleaseLockInternal();
+        }
+        return _releaseTask;
+    }
+
+    private async Task ReleaseLockInternal()
     {
         if (_lockHandle == null || !_autoRelease)
-            return;
-        //Only release once, the loop and Dispose can race here
-        if (Interlocked.Exchange(ref _lockReleased, 1) == 1)
             return;
         try
         {
