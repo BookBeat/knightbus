@@ -48,12 +48,8 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
         where TMessage : TMessageInterface
     {
         _queueName = AutoMessageMapper.GetQueueName<TMessage>();
-        //Link the polling delay to the shutdown token so a sleeping pump exits promptly
-        //instead of waiting out its full polling delay
+        //The polling delay observes this token so a sleeping pump exits promptly on shutdown
         _pumpCancellationToken = cancellationToken;
-        _pumpDelayCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(
-            cancellationToken
-        );
         _runningTask = Task.Run(
             async () =>
             {
@@ -272,16 +268,30 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
     /// </summary>
     protected virtual async Task DelayPolling()
     {
+        if (_pumpCancellationToken.IsCancellationRequested)
+            return;
+
+        var delayCancellation = _pumpDelayCancellationTokenSource;
+        //A scoped linked source that is disposed on every path, a long-lived linked source
+        //would pin one registration on the shutdown token per CancelPollingDelay call
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(
+            delayCancellation.Token,
+            _pumpCancellationToken
+        );
         try
         {
-            await Task.Delay(PollingDelay, _pumpDelayCancellationTokenSource.Token)
-                .ConfigureAwait(false);
+            await Task.Delay(PollingDelay, linked.Token).ConfigureAwait(false);
         }
         catch (TaskCanceledException)
         {
-            //reset the delay, keeping it linked to the shutdown token
-            _pumpDelayCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(
-                _pumpCancellationToken
+            if (_pumpCancellationToken.IsCancellationRequested)
+                return;
+            //Only replace the source we waited on, so a concurrent CancelPollingDelay
+            //signal is never silently dropped
+            Interlocked.CompareExchange(
+                ref _pumpDelayCancellationTokenSource,
+                new CancellationTokenSource(),
+                delayCancellation
             );
         }
     }

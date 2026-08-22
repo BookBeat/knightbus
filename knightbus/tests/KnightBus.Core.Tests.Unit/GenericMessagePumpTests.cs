@@ -107,6 +107,37 @@ public class GenericMessagePumpTests
         protected override TimeSpan PollingDelay => _pollingDelay ?? TimeSpan.FromMilliseconds(10);
 
         protected override int MaxFetch => 10;
+
+        public void TriggerPoll() => CancelPollingDelay();
+    }
+
+    [Test]
+    public async Task Should_honor_poll_signal_sent_before_the_pump_starts()
+    {
+        //arrange: transports can signal new messages before the pump has started
+        var pump = new TestMessagePump(
+            new RecordingLogger(),
+            pollingDelay: TimeSpan.FromSeconds(10)
+        );
+        pump.TriggerPoll();
+        using var cts = new CancellationTokenSource();
+
+        //act
+        await pump.StartAsync<TestCommand>((_, _) => Task.CompletedTask, cts.Token);
+
+        //assert: the pump must skip its first polling delay instead of discarding the signal
+        var deadline = DateTime.UtcNow.AddSeconds(3);
+        while (pump.GetMessagesInvocations < 2 && DateTime.UtcNow < deadline)
+        {
+            await Task.Delay(10, CancellationToken.None);
+        }
+        cts.Cancel();
+
+        pump.GetMessagesInvocations.Should()
+            .BeGreaterThanOrEqualTo(
+                2,
+                "a poll signal sent before the pump starts must cancel the first polling delay"
+            );
     }
 
     [Test]
