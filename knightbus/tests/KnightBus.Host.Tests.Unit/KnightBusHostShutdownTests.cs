@@ -131,6 +131,89 @@ public class KnightBusHostShutdownTests
     }
 
     [Test]
+    public async Task Should_release_singleton_locks_after_the_pipeline_drains()
+    {
+        //arrange: a singleton receiver holding a lock whose release takes a network round-trip
+        var host = CreateHost(new HostConfiguration());
+        var stopWatch = Stopwatch.StartNew();
+        long messageDoneAt = 0;
+        long releaseStartedAt = 0;
+
+        var handle = new Mock<KnightBus.Core.Singleton.ISingletonLockHandle>();
+        handle
+            .Setup(x => x.RenewAsync(It.IsAny<ILogger>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        handle
+            .Setup(x => x.ReleaseAsync(It.IsAny<CancellationToken>()))
+            .Returns(async () =>
+            {
+                Interlocked.Exchange(ref releaseStartedAt, stopWatch.ElapsedMilliseconds);
+                await Task.Delay(200);
+            });
+        var lockManager = new Mock<KnightBus.Core.Singleton.ISingletonLockManager>();
+        lockManager
+            .Setup(x =>
+                x.TryLockAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<TimeSpan>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(handle.Object);
+        var underlyingReceiver = new Mock<IChannelReceiver>();
+        underlyingReceiver.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);
+        var singletonReceiver = new Singleton.SingletonChannelReceiver(
+            underlyingReceiver.Object,
+            lockManager.Object,
+            Mock.Of<ILogger>(),
+            teardownToken: host.TeardownToken
+        );
+        await singletonReceiver.StartAsync(CancellationToken.None);
+        host.Receivers.Add(singletonReceiver);
+
+        //one in-flight message that finishes after 500ms
+        var nextProcessor = new Mock<IMessageProcessor>();
+        nextProcessor
+            .Setup(x =>
+                x.ProcessAsync(
+                    It.IsAny<IMessageStateHandler<TestCommand>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(async () =>
+            {
+                await Task.Delay(500);
+                Interlocked.Exchange(ref messageDoneAt, stopWatch.ElapsedMilliseconds);
+            });
+        var processing = host.InFlightTracker.ProcessAsync(
+            Mock.Of<IMessageStateHandler<TestCommand>>(),
+            Mock.Of<IPipelineInformation>(),
+            nextProcessor.Object,
+            CancellationToken.None
+        );
+
+        //act
+        await host.StopAsync(CancellationToken.None);
+        await processing;
+
+        //assert
+        Interlocked
+            .Read(ref releaseStartedAt)
+            .Should()
+            .BeGreaterThan(0, "the singleton lock must be released during shutdown");
+        Interlocked
+            .Read(ref releaseStartedAt)
+            .Should()
+            .BeGreaterThanOrEqualTo(
+                Interlocked.Read(ref messageDoneAt),
+                "the lock must not be released while messages are still processing"
+            );
+        singletonReceiver
+            .TeardownCompletion.IsCompleted.Should()
+            .BeTrue("shutdown must wait for the lock release to finish");
+    }
+
+    [Test]
     public async Task Should_count_in_flight_messages_and_release_on_failure()
     {
         //arrange

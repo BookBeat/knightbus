@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Threading;
 using KnightBus.Core;
 using KnightBus.Core.Singleton;
 using KnightBus.Host.MessageProcessing.Factories;
@@ -14,16 +15,19 @@ internal class TransportStarterFactory
     private readonly ITransportChannelFactory[] _transportChannelFactories;
     private readonly IHostConfiguration _configuration;
     private readonly InFlightMessageTracker _inFlightTracker;
+    private readonly CancellationToken? _teardownToken;
 
     public TransportStarterFactory(
         ITransportChannelFactory[] transportChannelFactories,
         IHostConfiguration configuration,
-        InFlightMessageTracker inFlightTracker = null
+        InFlightMessageTracker inFlightTracker = null,
+        CancellationToken? teardownToken = null
     )
     {
         _transportChannelFactories = transportChannelFactories;
         _configuration = configuration;
         _inFlightTracker = inFlightTracker;
+        _teardownToken = teardownToken;
     }
 
     internal IChannelReceiver CreateChannelReceiver(
@@ -109,7 +113,8 @@ internal class TransportStarterFactory
                 channelReceiver,
                 lockManager,
                 _configuration.Log,
-                lockId
+                lockId,
+                _teardownToken
             );
             return singletonStarter;
         }

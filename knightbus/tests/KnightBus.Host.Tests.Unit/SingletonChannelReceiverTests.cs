@@ -165,6 +165,63 @@ public class SingletonChannelReceiverTests
     }
 
     [Test]
+    public async Task Should_hold_lock_until_teardown_when_teardown_token_is_provided()
+    {
+        //arrange
+        var handle = new Mock<ISingletonLockHandle>();
+        handle
+            .Setup(x => x.RenewAsync(It.IsAny<ILogger>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var lockManager = new Mock<ISingletonLockManager>();
+        lockManager
+            .Setup(x =>
+                x.TryLockAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<TimeSpan>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(handle.Object);
+        var underlyingReceiver = new Mock<IChannelReceiver>();
+        underlyingReceiver.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);
+        CancellationToken receiverToken = default;
+        underlyingReceiver
+            .Setup(x => x.StartAsync(It.IsAny<CancellationToken>()))
+            .Callback<CancellationToken>(t => receiverToken = t)
+            .Returns(Task.CompletedTask);
+        using var shutdown = new CancellationTokenSource();
+        using var teardown = new CancellationTokenSource();
+        var singletonChannelReceiver = new SingletonChannelReceiver(
+            underlyingReceiver.Object,
+            lockManager.Object,
+            Mock.Of<ILogger>(),
+            teardownToken: teardown.Token
+        );
+        await singletonChannelReceiver.StartAsync(shutdown.Token);
+
+        //act: phase one stops the wrapped receiver but must keep the lock
+        shutdown.Cancel();
+        await Task.Delay(700);
+
+        //assert
+        receiverToken
+            .IsCancellationRequested.Should()
+            .BeTrue("the wrapped receiver must stop on the shutdown token");
+        handle.Verify(
+            x => x.ReleaseAsync(It.IsAny<CancellationToken>()),
+            Times.Never,
+            "the lock must be held through the drain so no other instance starts processing"
+        );
+
+        //act: phase two releases the lock
+        teardown.Cancel();
+        await singletonChannelReceiver.TeardownCompletion.WaitAsync(TimeSpan.FromSeconds(5));
+
+        //assert
+        handle.Verify(x => x.ReleaseAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
     public void Should_override_singleton_impacted_settings()
     {
         //arrange

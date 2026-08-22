@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
@@ -6,6 +7,7 @@ using System.Threading.Tasks;
 using KnightBus.Core;
 using KnightBus.Core.DependencyInjection;
 using KnightBus.Host.MessageProcessing;
+using KnightBus.Host.Singleton;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -16,8 +18,12 @@ public class KnightBusHost : IHostedService
     private IHostConfiguration _configuration;
     private MessageProcessorLocator _locator;
     private readonly CancellationTokenSource _shutdownToken = new CancellationTokenSource();
+    private readonly CancellationTokenSource _teardownToken = new CancellationTokenSource();
     private static readonly TimeSpan DrainPollingInterval = TimeSpan.FromMilliseconds(100);
+    private static readonly TimeSpan MinimumTeardownBudget = TimeSpan.FromSeconds(5);
     internal InFlightMessageTracker InFlightTracker { get; } = new();
+    internal List<IChannelReceiver> Receivers { get; } = new();
+    internal CancellationToken TeardownToken => _teardownToken.Token;
 
     public KnightBusHost(
         IHostConfiguration configuration,
@@ -55,11 +61,12 @@ public class KnightBusHost : IHostedService
             _locator = new MessageProcessorLocator(
                 _configuration,
                 transports.SelectMany(transport => transport.TransportChannelFactories).ToArray(),
-                InFlightTracker
+                InFlightTracker,
+                _teardownToken.Token
             );
-            var channelReceivers = _locator.CreateReceivers().ToList();
+            Receivers.AddRange(_locator.CreateReceivers());
             _configuration.Log.LogInformation("Starting receivers");
-            foreach (var receiver in channelReceivers)
+            foreach (var receiver in Receivers)
             {
                 _configuration.Log.LogInformation(
                     "Starting receiver {ReceiverType}",
@@ -114,8 +121,40 @@ public class KnightBusHost : IHostedService
                 InFlightTracker.Count
             );
         }
+
+        //Phase two: the pipeline is idle, release the singleton locks and wait for the
+        //releases so the next instance can take over immediately without overlapping this one
+        _teardownToken.Cancel();
+        var teardowns = Receivers
+            .OfType<SingletonChannelReceiver>()
+            .Select(receiver => receiver.TeardownCompletion)
+            .ToArray();
+        if (teardowns.Length > 0)
+        {
+            var teardownBudget = _configuration.ShutdownGracePeriod - stopWatch.Elapsed;
+            if (teardownBudget < MinimumTeardownBudget)
+                teardownBudget = MinimumTeardownBudget;
+            try
+            {
+                await Task.WhenAll(teardowns)
+                    .WaitAsync(teardownBudget, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            catch (TimeoutException)
+            {
+                _configuration.Log.LogWarning(
+                    "KnightBus shutdown proceeding before all singleton locks were released"
+                );
+            }
+            catch (OperationCanceledException)
+            {
+                //The runtime host gave up waiting for the shutdown
+            }
+        }
+
         _configuration.Log.LogInformation("KnightBus shutdown completed");
         _shutdownToken.Dispose();
+        _teardownToken.Dispose();
     }
 
     public async Task StartAndBlockAsync(CancellationToken cancellationToken)
