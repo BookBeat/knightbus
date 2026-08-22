@@ -138,19 +138,24 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
 #pragma warning disable 4014 //No need to await the result, let's keep the pump going
                 //No scheduling token here: if the lock timeout fired before the task started,
                 //the delegate would be skipped and the finally would never release the slot
-                Task.Run(async () =>
-                    {
-                        try
+                Task.Run(
+                        async () =>
                         {
-                            await action.Invoke(message, linkedToken.Token).ConfigureAwait(false);
-                        }
-                        finally
-                        {
-                            _maxConcurrent.Release();
-                            timeoutToken.Dispose();
-                            linkedToken.Dispose();
-                        }
-                    })
+                            try
+                            {
+                                await action
+                                    .Invoke(message, linkedToken.Token)
+                                    .ConfigureAwait(false);
+                            }
+                            finally
+                            {
+                                _maxConcurrent.Release();
+                                timeoutToken.Dispose();
+                                linkedToken.Dispose();
+                            }
+                        },
+                        CancellationToken.None
+                    )
                     .ConfigureAwait(false);
 #pragma warning restore 4014
             }

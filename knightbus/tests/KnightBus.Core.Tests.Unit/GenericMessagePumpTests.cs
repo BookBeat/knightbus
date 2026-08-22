@@ -184,12 +184,20 @@ public class GenericMessagePumpTests
         {
             //Burn almost the entire message lock before yielding, so every message is
             //dispatched with only a sliver of its lock duration remaining
-            Thread.Sleep(_fetchDelay);
+            await Task.Delay(_fetchDelay, CancellationToken.None);
+
+            //Flood the thread pool queue right before yielding so the dispatched
+            //processing tasks queue up behind the burst and don't start instantly,
+            //letting the lock timeout win the race against the processing task starting
+            for (var i = 0; i < 512; i++)
+            {
+                _ = Task.Run(() => Thread.SpinWait(20_000), CancellationToken.None);
+            }
+
             for (var i = 0; i < _messagesPerFetch; i++)
             {
                 yield return new TestCommand();
             }
-            await Task.CompletedTask;
         }
 
         protected override Task CreateChannel(Type messageType) => Task.CompletedTask;
@@ -221,30 +229,13 @@ public class GenericMessagePumpTests
                 messagesPerFetch: maxConcurrent
             );
 
-            //Keep the thread pool queue busy so dispatched messages don't start instantly,
-            //letting the lock timeout win the race against the processing task starting
-            using var noiseCts = new CancellationTokenSource();
-            var noise = Task.Run(() =>
-            {
-                while (!noiseCts.IsCancellationRequested)
-                {
-                    for (var i = 0; i < 32; i++)
-                    {
-                        Task.Run(() => Thread.SpinWait(50_000));
-                    }
-                    Thread.Sleep(1);
-                }
-            });
-
             await pump.PumpAsync<TestCommand>((_, _) => Task.CompletedTask, CancellationToken.None);
-            noiseCts.Cancel();
-            await noise;
 
             //All slots must eventually come back, no matter how the lock-timeout race played out
             var deadline = DateTime.UtcNow.AddSeconds(2);
             while (pump.AvailableThreads < maxConcurrent && DateTime.UtcNow < deadline)
             {
-                await Task.Delay(10);
+                await Task.Delay(10, CancellationToken.None);
             }
 
             pump.AvailableThreads.Should()
