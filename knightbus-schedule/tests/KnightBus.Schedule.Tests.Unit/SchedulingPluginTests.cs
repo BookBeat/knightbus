@@ -13,7 +13,7 @@ namespace KnightBus.Schedule.Tests.Unit;
 public class SchedulingPluginTests
 {
     [Test]
-    public async Task Should_allow_stop_before_start()
+    public void Should_allow_stop_before_start()
     {
         //arrange
         var plugin = new SchedulingPlugin(
@@ -23,7 +23,6 @@ public class SchedulingPluginTests
 
         //act & assert
         Assert.DoesNotThrowAsync(() => plugin.StopAsync(CancellationToken.None));
-        await Task.CompletedTask;
     }
 
     [Test]
@@ -47,9 +46,8 @@ public class SchedulingPluginTests
         await plugin.StartAsync(CancellationToken.None);
 
         //act & assert: stopping must complete promptly when no schedules are running
-        await plugin
-            .StopAsync(CancellationToken.None)
-            .WaitAsync(TimeSpan.FromSeconds(10))
-            .ConfigureAwait(false);
+        Assert.DoesNotThrowAsync(() =>
+            plugin.StopAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(10))
+        );
     }
 }

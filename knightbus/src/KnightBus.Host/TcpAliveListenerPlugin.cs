@@ -8,11 +8,12 @@ using Microsoft.Extensions.Logging;
 
 namespace KnightBus.Host;
 
-public class TcpAliveListenerPlugin : IStoppablePlugin
+public class TcpAliveListenerPlugin : IStoppablePlugin, IDisposable
 {
     private readonly ILogger _log;
     private readonly int _port;
     private readonly CancellationTokenSource _stopTokenSource = new();
+    private CancellationTokenSource _listenerTokenSource;
     private Task _listenerTask = Task.CompletedTask;
 
     public TcpAliveListenerPlugin(
@@ -29,9 +30,11 @@ public class TcpAliveListenerPlugin : IStoppablePlugin
         if (cancellationToken.IsCancellationRequested)
             return Task.CompletedTask;
 
-        var stopToken = CancellationTokenSource
-            .CreateLinkedTokenSource(cancellationToken, _stopTokenSource.Token)
-            .Token;
+        _listenerTokenSource = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken,
+            _stopTokenSource.Token
+        );
+        var stopToken = _listenerTokenSource.Token;
         _listenerTask = Task.Run(() => ListenAsync(stopToken), CancellationToken.None);
         return Task.CompletedTask;
     }
@@ -83,7 +86,14 @@ public class TcpAliveListenerPlugin : IStoppablePlugin
     public async Task StopAsync(CancellationToken cancellationToken)
     {
         //Stop answering liveness probes as early in the shutdown as possible
-        _stopTokenSource.Cancel();
+        await _stopTokenSource.CancelAsync().ConfigureAwait(false);
         await _listenerTask.WaitAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    public void Dispose()
+    {
+        _stopTokenSource.Dispose();
+        _listenerTokenSource?.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

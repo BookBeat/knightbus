@@ -134,7 +134,7 @@ public class KnightBusHost : IHostedService
         //Phase two: the pipeline is idle, release the singleton locks and wait for the
         //releases so the next instance can take over immediately without overlapping this
         //one, and wait for the stopping plugins to finish their in-flight work
-        _teardownToken.Cancel();
+        await _teardownToken.CancelAsync().ConfigureAwait(false);
         var teardowns = Receivers
             .OfType<SingletonChannelReceiver>()
             .Select(receiver => receiver.TeardownCompletion)
@@ -151,9 +151,10 @@ public class KnightBusHost : IHostedService
                     .WaitAsync(teardownBudget, cancellationToken)
                     .ConfigureAwait(false);
             }
-            catch (TimeoutException)
+            catch (TimeoutException e)
             {
                 _configuration.Log.LogWarning(
+                    e,
                     "KnightBus shutdown proceeding before all singleton locks were released"
                 );
             }
