@@ -23,6 +23,7 @@ public class KnightBusHost : IHostedService
     private static readonly TimeSpan MinimumTeardownBudget = TimeSpan.FromSeconds(5);
     internal InFlightMessageTracker InFlightTracker { get; } = new();
     internal List<IChannelReceiver> Receivers { get; } = new();
+    internal List<IPlugin> Plugins { get; } = new();
     internal CancellationToken TeardownToken => _teardownToken.Token;
 
     public KnightBusHost(
@@ -85,6 +86,7 @@ public class KnightBusHost : IHostedService
         foreach (var plugin in _configuration.DependencyInjection.GetInstances<IPlugin>())
         {
             await plugin.StartAsync(combinedToken.Token).ConfigureAwait(false);
+            Plugins.Add(plugin);
         }
         _configuration.Log.LogInformation("KnightBus started");
     }
@@ -95,6 +97,13 @@ public class KnightBusHost : IHostedService
             "KnightBus received stop signal, initiating shutdown... "
         );
         _shutdownToken.Cancel();
+
+        //Signal stoppable plugins right away so they stop accepting new work while the
+        //pipeline drains, their completion is awaited after the drain
+        var pluginStops = Plugins
+            .OfType<IStoppablePlugin>()
+            .Select(plugin => StopPluginAsync(plugin, cancellationToken))
+            .ToArray();
 
         //Wait for in-flight messages to drain instead of always waiting the full grace period.
         //Always wait at least one interval so just-dispatched messages get counted.
@@ -123,11 +132,13 @@ public class KnightBusHost : IHostedService
         }
 
         //Phase two: the pipeline is idle, release the singleton locks and wait for the
-        //releases so the next instance can take over immediately without overlapping this one
+        //releases so the next instance can take over immediately without overlapping this
+        //one, and wait for the stopping plugins to finish their in-flight work
         _teardownToken.Cancel();
         var teardowns = Receivers
             .OfType<SingletonChannelReceiver>()
             .Select(receiver => receiver.TeardownCompletion)
+            .Concat(pluginStops)
             .ToArray();
         if (teardowns.Length > 0)
         {
@@ -155,6 +166,23 @@ public class KnightBusHost : IHostedService
         _configuration.Log.LogInformation("KnightBus shutdown completed");
         _shutdownToken.Dispose();
         _teardownToken.Dispose();
+    }
+
+    private async Task StopPluginAsync(IStoppablePlugin plugin, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await plugin.StopAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception e)
+        {
+            //A plugin failing to stop must not fail the shutdown of everything else
+            _configuration.Log.LogWarning(
+                e,
+                "Failed to stop plugin {PluginType}",
+                plugin.GetType()
+            );
+        }
     }
 
     public async Task StartAndBlockAsync(CancellationToken cancellationToken)

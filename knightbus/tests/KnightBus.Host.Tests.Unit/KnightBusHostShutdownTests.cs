@@ -214,6 +214,82 @@ public class KnightBusHostShutdownTests
     }
 
     [Test]
+    public async Task Should_signal_stoppable_plugins_early_and_wait_for_their_completion()
+    {
+        //arrange: a plugin whose stop takes longer than the message drain
+        var host = CreateHost(new HostConfiguration());
+        var stopWatch = Stopwatch.StartNew();
+        long stopSignaledAt = 0;
+        long messageDoneAt = 0;
+        var stopGate = new TaskCompletionSource();
+        var plugin = new Mock<IStoppablePlugin>();
+        plugin
+            .Setup(x => x.StopAsync(It.IsAny<CancellationToken>()))
+            .Returns(() =>
+            {
+                Interlocked.Exchange(ref stopSignaledAt, stopWatch.ElapsedMilliseconds);
+                return stopGate.Task;
+            });
+        host.Plugins.Add(plugin.Object);
+
+        //one in-flight message that finishes after 500ms
+        var nextProcessor = new Mock<IMessageProcessor>();
+        nextProcessor
+            .Setup(x =>
+                x.ProcessAsync(
+                    It.IsAny<IMessageStateHandler<TestCommand>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(async () =>
+            {
+                await Task.Delay(500);
+                Interlocked.Exchange(ref messageDoneAt, stopWatch.ElapsedMilliseconds);
+            });
+        var processing = host.InFlightTracker.ProcessAsync(
+            Mock.Of<IMessageStateHandler<TestCommand>>(),
+            Mock.Of<IPipelineInformation>(),
+            nextProcessor.Object,
+            CancellationToken.None
+        );
+
+        //act
+        var stopTask = host.StopAsync(CancellationToken.None);
+        await processing;
+        var winner = await Task.WhenAny(stopTask, Task.Delay(300));
+
+        //assert
+        winner
+            .Should()
+            .NotBe(stopTask, "shutdown must wait for stopping plugins to finish their work");
+        stopGate.TrySetResult();
+        await stopTask.WaitAsync(TimeSpan.FromSeconds(5));
+        Interlocked
+            .Read(ref stopSignaledAt)
+            .Should()
+            .BeLessThan(
+                Interlocked.Read(ref messageDoneAt),
+                "plugins must be told to stop while the pipeline is still draining"
+            );
+    }
+
+    [Test]
+    public async Task Should_complete_shutdown_when_a_plugin_fails_to_stop()
+    {
+        //arrange
+        var host = CreateHost(new HostConfiguration());
+        var plugin = new Mock<IStoppablePlugin>();
+        plugin
+            .Setup(x => x.StopAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("stop failed"));
+        host.Plugins.Add(plugin.Object);
+
+        //act & assert
+        await host.Awaiting(x => x.StopAsync(CancellationToken.None)).Should().NotThrowAsync();
+        plugin.Verify(x => x.StopAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
     public async Task Should_count_in_flight_messages_and_release_on_failure()
     {
         //arrange

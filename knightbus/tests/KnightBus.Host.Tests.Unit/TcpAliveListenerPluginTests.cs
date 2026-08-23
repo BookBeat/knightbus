@@ -29,6 +29,26 @@ public class TcpAliveListenerPluginTests
         //Assert
         result.Should().NotBeNullOrEmpty();
     }
+
+    [Test]
+    public async Task Should_stop_answering_when_stopped()
+    {
+        //Arrange
+        var target = new TcpAliveListenerPlugin(
+            new TcpAliveListenerConfiguration(13001),
+            Mock.Of<ILogger<TcpAliveListenerPlugin>>()
+        );
+        await target.StartAsync(CancellationToken.None);
+        await Task.Delay(TimeSpan.FromSeconds(1));
+        TestTcpClient.Ping("127.0.0.1", 13001).Should().NotBeNullOrEmpty();
+
+        //Act
+        await target.StopAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(5));
+
+        //Assert
+        var ping = () => TestTcpClient.Ping("127.0.0.1", 13001);
+        ping.Should().Throw<SocketException>("the listener must go dark as soon as it is stopped");
+    }
 }
 
 public static class TestTcpClient

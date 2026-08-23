@@ -10,7 +10,7 @@ using Quartz.Impl;
 
 namespace KnightBus.Schedule;
 
-public class SchedulingPlugin : IPlugin
+public class SchedulingPlugin : IStoppablePlugin
 {
     private readonly IHostConfiguration _configuration;
     private readonly ILogger<SchedulingPlugin> _logger;
@@ -87,5 +87,20 @@ public class SchedulingPlugin : IPlugin
                 await _scheduler.ScheduleJob(job, trigger, cancellationToken).ConfigureAwait(false);
             }
         }
+    }
+
+    public async Task StopAsync(CancellationToken cancellationToken)
+    {
+        if (_scheduler == null)
+            return;
+
+        _configuration.Log.LogInformation(
+            "Stopping {SchedulePluginType}, waiting for running schedules to complete",
+            nameof(SchedulingPlugin)
+        );
+        //Stop firing new triggers immediately and wait for running jobs to finish
+        await _scheduler
+            .Shutdown(waitForJobsToComplete: true, cancellationToken)
+            .ConfigureAwait(false);
     }
 }
