@@ -1,7 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net.Mime;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Azure.Storage.Blobs;
 using FluentAssertions;
@@ -188,5 +190,162 @@ public class BlobStorageMessageAttachmentProviderTests
         using var reader = new StreamReader(result.Stream);
         var downloadedContent = await reader.ReadToEndAsync();
         downloadedContent.Should().Be(originalContent);
+    }
+
+    [Test]
+    public async Task Compression_LargeIncompressibleAttachment_RoundTripsCorrectly()
+    {
+        // Arrange - incompressible data larger than any single internal buffer,
+        // so both the compressing upload and the decompressing download actually stream
+        var provider = new BlobStorageMessageAttachmentProvider(
+            new StorageBusConfiguration(StorageSetup.ConnectionString),
+            new BlobStorageAttachmentOptions { EnableCompression = true }
+        );
+
+        var originalContent = new byte[8 * 1024 * 1024];
+        new Random(42).NextBytes(originalContent);
+        using var ms = new MemoryStream(originalContent);
+        var attachment = new MessageAttachment("large.bin", MediaTypeNames.Application.Octet, ms);
+
+        // Act
+        var id = await provider.UploadAttachmentAsync("large-test", attachment);
+        var result = await provider.GetAttachmentAsync("large-test", id);
+
+        // Assert
+        using var downloaded = new MemoryStream();
+        await result.Stream.CopyToAsync(downloaded);
+        downloaded.ToArray().Should().Equal(originalContent);
+    }
+
+    [Test]
+    public async Task Compression_PreservesUncompressedLength()
+    {
+        // Arrange
+        var provider = new BlobStorageMessageAttachmentProvider(
+            new StorageBusConfiguration(StorageSetup.ConnectionString),
+            new BlobStorageAttachmentOptions { EnableCompression = true }
+        );
+
+        var originalContent = Encoding.UTF8.GetBytes("Content whose length must survive the trip");
+        using var ms = new MemoryStream(originalContent);
+        var attachment = new MessageAttachment("length.txt", MediaTypeNames.Text.Plain, ms);
+
+        // Act
+        var id = await provider.UploadAttachmentAsync("length-test", attachment);
+        var result = await provider.GetAttachmentAsync("length-test", id);
+
+        // Assert - the decompressing stream cannot report a length, so it comes from metadata
+        result.Length.Should().Be(originalContent.Length);
+    }
+
+    [Test]
+    public async Task Compression_UploadPreservesUserMetadata()
+    {
+        // Arrange
+        var provider = new BlobStorageMessageAttachmentProvider(
+            new StorageBusConfiguration(StorageSetup.ConnectionString),
+            new BlobStorageAttachmentOptions { EnableCompression = true }
+        );
+
+        using var ms = new MemoryStream(Encoding.UTF8.GetBytes("Message"));
+        var attachment = new MessageAttachment(
+            "meta.txt",
+            MediaTypeNames.Text.Plain,
+            ms,
+            new Dictionary<string, string>
+            {
+                { "key", "value" },
+                { "supports-uf8-values", "åäö ÅÄÖ hej" },
+            }
+        );
+
+        // Act
+        var id = await provider.UploadAttachmentAsync("meta-test", attachment);
+        var result = await provider.GetAttachmentAsync("meta-test", id);
+
+        // Assert
+        result.Metadata.Should().Contain("key", "value");
+        result.Metadata.Should().Contain("supports-uf8-values", "åäö ÅÄÖ hej");
+    }
+
+    [Test]
+    public async Task Compression_CancelledMidUpload_ThrowsWithoutHanging()
+    {
+        // Arrange - the source cancels the token partway through being read, so the
+        // upload must observe the cancellation and unwind instead of parking forever
+        var provider = new BlobStorageMessageAttachmentProvider(
+            new StorageBusConfiguration(StorageSetup.ConnectionString),
+            new BlobStorageAttachmentOptions { EnableCompression = true }
+        );
+
+        using var cts = new CancellationTokenSource();
+        await using var source = new CancellingRandomStream(
+            length: 64 * 1024 * 1024,
+            cancelAfterBytes: 1024 * 1024,
+            cts
+        );
+        var attachment = new MessageAttachment(
+            "cancel.bin",
+            MediaTypeNames.Application.Octet,
+            source
+        );
+
+        // Act
+        var uploadTask = provider.UploadAttachmentAsync("cancel-test", attachment, cts.Token);
+
+        // Assert
+        var completed = await Task.WhenAny(uploadTask, Task.Delay(TimeSpan.FromSeconds(30)));
+        completed.Should().Be(uploadTask, "a cancelled upload must fail, not hang");
+        var awaitUpload = () => uploadTask;
+        await awaitUpload.Should().ThrowAsync<OperationCanceledException>();
+        source.BytesRead.Should().BeLessThan(source.Length);
+    }
+
+    /// <summary>
+    /// Incompressible (random) stream that cancels the given token once
+    /// <paramref name="cancelAfterBytes"/> bytes have been read from it.
+    /// </summary>
+    private sealed class CancellingRandomStream(
+        long length,
+        long cancelAfterBytes,
+        CancellationTokenSource cts
+    ) : Stream
+    {
+        private readonly Random _random = new(42);
+        private long _position;
+
+        public long BytesRead => _position;
+
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => length;
+        public override long Position
+        {
+            get => _position;
+            set => throw new NotSupportedException();
+        }
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            var read = (int)Math.Min(count, length - _position);
+            if (read <= 0)
+                return 0;
+            _random.NextBytes(buffer.AsSpan(offset, read));
+            _position += read;
+            if (_position >= cancelAfterBytes)
+                cts.Cancel();
+            return read;
+        }
+
+        public override void Flush() { }
+
+        public override long Seek(long offset, SeekOrigin origin) =>
+            throw new NotSupportedException();
+
+        public override void SetLength(long value) => throw new NotSupportedException();
+
+        public override void Write(byte[] buffer, int offset, int count) =>
+            throw new NotSupportedException();
     }
 }
