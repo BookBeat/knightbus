@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
@@ -28,6 +29,31 @@ public class TcpAliveListenerPluginTests
 
         //Assert
         result.Should().NotBeNullOrEmpty();
+    }
+
+    [Test]
+    public async Task Should_fail_to_start_when_the_port_cannot_be_bound()
+    {
+        //Arrange: something else already holds the port
+        var blocker = new TcpListener(IPAddress.Any, 13002);
+        blocker.Start();
+        try
+        {
+            var target = new TcpAliveListenerPlugin(
+                new TcpAliveListenerConfiguration(13002),
+                Mock.Of<ILogger<TcpAliveListenerPlugin>>()
+            );
+
+            //Act & assert: starting must fail loudly rather than leave nothing listening
+            await target
+                .Awaiting(x => x.StartAsync(CancellationToken.None))
+                .Should()
+                .ThrowAsync<SocketException>();
+        }
+        finally
+        {
+            blocker.Stop();
+        }
     }
 
     [Test]

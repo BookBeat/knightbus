@@ -29,24 +29,40 @@ public class TcpAliveListenerPlugin : IStoppablePlugin, IDisposable
     {
         if (cancellationToken.IsCancellationRequested)
             return Task.CompletedTask;
+        if (_listenerTokenSource != null)
+            throw new InvalidOperationException("The tcp alive listener is already started");
 
-        _listenerTokenSource = CancellationTokenSource.CreateLinkedTokenSource(
+        var listenerTokenSource = CancellationTokenSource.CreateLinkedTokenSource(
             cancellationToken,
             _stopTokenSource.Token
         );
-        var stopToken = _listenerTokenSource.Token;
-        _listenerTask = Task.Run(() => ListenAsync(stopToken), CancellationToken.None);
+
+        //Bind here rather than on the listener task, so that a port that cannot be bound
+        //fails the host startup instead of silently leaving nothing listening
+        var listener = new TcpListener(IPAddress.Any, _port);
+        _log.LogInformation("Starting tcp listener on port {Port}", _port);
+        try
+        {
+            listener.Start();
+        }
+        catch
+        {
+            //Leave the plugin unstarted so it can be started again
+            listenerTokenSource.Dispose();
+            throw;
+        }
+        _log.LogInformation("Tcp listener started");
+
+        _listenerTokenSource = listenerTokenSource;
+        _listenerTask = Task.Run(
+            () => ListenAsync(listener, listenerTokenSource.Token),
+            CancellationToken.None
+        );
         return Task.CompletedTask;
     }
 
-    private async Task ListenAsync(CancellationToken cancellationToken)
+    private async Task ListenAsync(TcpListener listener, CancellationToken cancellationToken)
     {
-        var listener = new TcpListener(IPAddress.Any, _port);
-
-        _log.LogInformation("Starting tcp listener on port {Port}", _port);
-        listener.Start();
-        _log.LogInformation("Tcp listener started");
-
         try
         {
             while (!cancellationToken.IsCancellationRequested)

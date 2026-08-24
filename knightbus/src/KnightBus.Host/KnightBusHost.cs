@@ -155,7 +155,7 @@ public class KnightBusHost : IHostedService
             {
                 _configuration.Log.LogWarning(
                     e,
-                    "KnightBus shutdown proceeding before all singleton locks were released"
+                    "KnightBus shutdown proceeding before all singleton locks were released and plugins stopped"
                 );
             }
             catch (OperationCanceledException)
@@ -174,6 +174,10 @@ public class KnightBusHost : IHostedService
         try
         {
             await plugin.StopAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            //The runtime host gave up waiting for the shutdown
         }
         catch (Exception e)
         {
