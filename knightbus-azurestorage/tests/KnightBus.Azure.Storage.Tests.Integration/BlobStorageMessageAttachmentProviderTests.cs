@@ -195,8 +195,7 @@ public class BlobStorageMessageAttachmentProviderTests
     [Test]
     public async Task Compression_LargeIncompressibleAttachment_RoundTripsCorrectly()
     {
-        // Arrange - incompressible data larger than any single internal buffer,
-        // so both the compressing upload and the decompressing download actually stream
+        // Arrange - incompressible data large enough that upload and download actually stream
         var provider = new BlobStorageMessageAttachmentProvider(
             new StorageBusConfiguration(StorageSetup.ConnectionString),
             new BlobStorageAttachmentOptions { EnableCompression = true }
@@ -271,8 +270,7 @@ public class BlobStorageMessageAttachmentProviderTests
     [Test]
     public async Task Compression_CancelledMidUpload_ThrowsWithoutHanging()
     {
-        // Arrange - the source cancels the token partway through being read, so the
-        // upload must observe the cancellation and unwind instead of parking forever
+        // Arrange - the source cancels the token partway through being read
         var provider = new BlobStorageMessageAttachmentProvider(
             new StorageBusConfiguration(StorageSetup.ConnectionString),
             new BlobStorageAttachmentOptions { EnableCompression = true }
@@ -301,10 +299,6 @@ public class BlobStorageMessageAttachmentProviderTests
         source.BytesRead.Should().BeLessThan(source.Length);
     }
 
-    /// <summary>
-    /// Incompressible (random) stream that cancels the given token once
-    /// <paramref name="cancelAfterBytes"/> bytes have been read from it.
-    /// </summary>
     private sealed class CancellingRandomStream(
         long length,
         long cancelAfterBytes,

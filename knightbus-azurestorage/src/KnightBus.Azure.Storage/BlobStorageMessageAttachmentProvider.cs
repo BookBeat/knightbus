@@ -24,8 +24,6 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
     private readonly IStorageBusConfiguration _configuration;
     private readonly BlobStorageAttachmentOptions _options;
 
-    // Containers this instance has already created or confirmed exist, so the
-    // existence check is paid once per container instead of on every upload.
     private readonly ConcurrentDictionary<string, byte> _knownContainers = new();
 
     private const string CompressedFileExtension = ".brotli";
@@ -66,9 +64,7 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
             ? new BrotliStream(blobStream, CompressionMode.Decompress, leaveOpen: false)
             : blobStream;
 
-        // A decompressing stream cannot report its length; the original size is
-        // kept in blob metadata instead. Compressed blobs uploaded before the key
-        // existed report 0, matching MessageAttachment's non-seekable behaviour.
+        // A decompressing stream cannot report its length, so it is kept in blob metadata
         var length = properties.Value.ContentLength;
         if (isCompressed)
         {
@@ -214,13 +210,9 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
             Metadata = metadata,
         };
 
-        // Compresses straight into the blob write stream, so neither the source
-        // nor the compressed result is ever buffered in full. On failure the
-        // streams are deliberately left undisposed: disposing the blob write
-        // stream commits the partially staged block list as a truncated blob,
-        // whereas uncommitted blocks are garbage collected by the service. A
-        // failed upload can leave the zero-byte placeholder OpenWrite creates,
-        // but its id is never returned so nothing references it.
+        // On failure the streams are deliberately not disposed: disposing the blob
+        // write stream would commit the partially staged blocks as a truncated blob,
+        // while uncommitted blocks are garbage collected by the service
         var blobStream = await blob.OpenWriteAsync(
                 overwrite: true,
                 options: options,
@@ -233,7 +225,6 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
             leaveOpen: true
         );
         await uploadStream.CopyToAsync(compressionStream, cancellationToken).ConfigureAwait(false);
-        // Flush the final compressed block, then commit the blob
         await compressionStream.DisposeAsync().ConfigureAwait(false);
         await blobStream.DisposeAsync().ConfigureAwait(false);
     }
