@@ -1,8 +1,10 @@
 # Azure Storage Queues
 
 Cheap, durable and simple. Commands only — no pub/sub — but it is the transport with the best support
-for long-running work, and the package also supplies the attachment provider, saga store and
-singleton lock manager that other transports borrow.
+for long-running work, and the package supplies the attachment provider, saga store and singleton
+lock manager that the rest of KnightBus builds on. Those three are host-wide features and work with
+any transport; they need `UseBlobStorage(...)` for the storage account, not
+`UseTransport<StorageTransport>()`.
 
 ```bash
 dotnet add package KnightBus.Azure.Storage
@@ -104,6 +106,13 @@ The benefit over one enormous `MessageLockTimeout` is recovery time: if the host
 becomes visible again after `ExtensionDuration` rather than after the full four hours. See
 [extending the lock](../concepts/processors.md#long-running-work-extending-the-lock).
 
+The middleware itself is a `KnightBus.Core` type rather than a Storage Queues one: it is registered
+per host and runs on every listener. What it cannot do elsewhere is *renew* — that needs the message
+state handler to implement `IMessageLockHandler<T>`, which today is this transport alone. On other
+transports it passes messages through untouched, with one exception: on PostgreSQL, implementing
+`IExtendMessageLockTimeout` shortens the fetch lock with nothing able to renew it, which causes
+duplicate processing.
+
 ## Attachments
 
 The Blob Storage attachment provider is the one most applications use, whatever transport carries the
@@ -136,8 +145,9 @@ services.UseBlobStorageSagas();
 ```
 
 State is stored in the `knightbus-sagas` container with the blob ETag providing optimistic
-concurrency. Expiry is evaluated on read, so expired blobs are reported as not found but are not
-deleted for you. See [sagas](../features/sagas.md).
+concurrency — the only shipped store that detects concurrent writes, which is reason enough to choose
+it whatever transport carries the saga's messages. Expiry is evaluated on read, so expired blobs are
+reported as not found but are not deleted for you. See [sagas](../features/sagas.md).
 
 ## Singleton lock manager
 

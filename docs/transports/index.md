@@ -18,6 +18,8 @@ with no routing configuration anywhere.
 
 ## Feature matrix
 
+What the transport itself can do:
+
 | | [Service Bus](azure-service-bus.md) | [Storage Queues](azure-storage-queues.md) | [PostgreSQL](postgresql.md) | [Redis](redis.md) | [NATS](nats.md) |
 | --- | :--: | :--: | :--: | :--: | :--: |
 | Commands | ✅ | ✅ | ✅ | ✅ | ✅ |
@@ -26,30 +28,57 @@ with no routing configuration anywhere.
 | Streaming responses | — | — | — | — | ✅ |
 | Deferred delivery | ✅ | ✅ | ✅ | — | — |
 | Cancel deferred message | ✅ | — | — | — | — |
-| Attachments | ✅ | ✅ | — | ✅ | ✅ |
-| Saga store | — | ✅ | ✅ | ✅ | — |
-| Singleton lock manager | — | ✅ | — | — | — |
 | Dead letter queue | ✅ | ✅ | ✅ | ✅ | — |
 | Management API | ✅ | ✅ | ✅ | ✅ | — |
 | Message lock extension | — | ✅ | — | — | — |
+| Carries attachments | ✅ | ✅ | — | ✅ | ✅ |
 | Default serializer | Newtonsoft | Newtonsoft | System.Text.Json | Newtonsoft | Newtonsoft |
 
-Two rows need explanation, and they mean different things.
+What each package *ships* — a different question, answered by a different table:
 
-**Attachments** ✅ means "attachments work on this transport", not "this package provides the
-storage". Only two packages ship an `IMessageAttachmentProvider` — `KnightBus.Azure.Storage` (Blob,
-the usual choice) and `KnightBus.Redis` — and either can back attachments on any transport. So a
-message travelling over NATS with its payload in Blob Storage is a normal arrangement. The PostgreSQL
-✗ is genuine, though: that transport does not run the pre-processor that uploads attachments, so they
-never get stored.
+| | Service Bus | Storage Queues | PostgreSQL | Redis | NATS | [SQL Server](../features/sagas.md) |
+| --- | :--: | :--: | :--: | :--: | :--: | :--: |
+| Attachment provider | — | ✅ Blob | — | ✅ | — | — |
+| Saga store | — | ✅ Blob | ✅ | ✅ | — | ✅ |
+| Singleton lock manager | — | ✅ Blob lease | — | — | — | — |
 
-**Saga store** ✅ means the package ships an `ISagaStore` implementation. Saga state is likewise
-independent of the transport carrying the messages — see [sagas](../features/sagas.md) for the
-important differences between the stores, particularly that only the Blob store detects concurrent
-writes.
+### The second table is not a restriction
 
-**SQL Server** appears nowhere above because `KnightBus.SqlServer` is a
-[saga store](../features/sagas.md) only, not a transport.
+Nothing in the second table belongs to the transport it ships beside. Attachments, sagas and
+singleton locks are host-wide features whose middleware lives in `KnightBus.Core`, and they are
+configured **once per host, not per transport**. A `UseXxxAttachments()` or `UseXxxSagaStore()` call
+names the *storage* backing the feature; it says nothing about which transport your messages travel
+over. `KnightBus.SqlServer` is the case that makes this obvious — a saga store with no transport at
+all.
+
+So all of these are ordinary arrangements, not workarounds:
+
+- messages over NATS, attachments in Blob Storage, saga state in PostgreSQL;
+- messages over Service Bus with singleton processors, coordinated by Blob leases — the only lock
+  implementation KnightBus ships, and the reason `KnightBus.Azure.Storage` appears in applications
+  that use no Azure queue at all;
+- messages over Redis with attachments in Blob Storage, because Redis keeps its own in memory.
+
+Pick each row of the second table on its own merits — cost, durability, what you already operate —
+and mix freely. The differences that matter are between the *implementations*, not the transports:
+see [sagas](../features/sagas.md#concurrency) for the important one, that only the Blob store detects
+concurrent writes.
+
+### Where the transport does constrain you
+
+Two rows in the first table are the real couplings, and they fail in opposite directions.
+
+**Carries attachments** is about the send side. An attachment is uploaded by an
+[`IMessagePreProcessor`](../concepts/messages.md#pre-processing-messages-on-send), and `PostgresBus`
+does not run pre-processors — so a message sent over PostgreSQL never gets its attachment stored,
+whichever provider is registered. Every other transport carries attachments from either provider.
+
+**Message lock extension** is about the receive side. `ExtendMessageLockDurationMiddleware` is a core
+middleware you may register on any host, but it can only renew a lock the transport lets it renew:
+the message state handler has to implement `IMessageLockHandler<T>`, which today only Storage Queues
+does. Elsewhere the middleware is inert — and on PostgreSQL, implementing `IExtendMessageLockTimeout`
+is worse than inert, see
+[extending the lock](../concepts/processors.md#long-running-work-extending-the-lock).
 
 ## Choosing one
 

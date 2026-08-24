@@ -240,6 +240,11 @@ searching for an interface to make one of these happen, there isn't one:
 | Telemetry | `UseOpenTelemetry()` / `UseApplicationInsights(...)` / `UseNewRelic()` |
 | Queue management | `AddServiceBusManagement(...)` and friends |
 
+Where a row lists several calls, they are alternative *stores*, not one call per transport:
+`UseRedisAttachments()` and `UsePostgresSagaStore()` are as valid in a Service Bus application as
+anywhere else. Only queue management is transport-specific. See the
+[transport matrix](../transports/index.md#feature-matrix).
+
 ## Quick diagnosis
 
 | Symptom | Likely cause |

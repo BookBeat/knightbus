@@ -10,7 +10,8 @@ state table and concurrency control.
 
 ## Enabling sagas
 
-Register a saga store. Each transport that has one ships a registration extension:
+Register a saga store. Four packages ship one, each with its own registration extension. The package
+a store ships in does not tie it to that transport — pick whichever store suits the workload:
 
 === "Azure Blob Storage"
 

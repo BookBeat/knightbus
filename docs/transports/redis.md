@@ -1,7 +1,9 @@
 # Redis
 
-The highest-throughput KnightBus transport. Commands, events and attachments, with a saga store, built
-on Redis lists.
+The highest-throughput KnightBus transport: commands and events built on Redis lists. The package
+also ships an attachment provider and a saga store, which are host-wide features rather than Redis
+transport features — any transport can use them, and this transport can equally use the ones shipped
+by other packages.
 
 ```bash
 dotnet add package KnightBus.Redis
@@ -86,10 +88,14 @@ services
     .UseRedisAttachments();
 ```
 
-Attachments are stored in Redis itself, uncompressed — there is no options overload. For large or
-long-lived attachments, prefer the
-[Blob Storage provider](azure-storage-queues.md#attachments) even on this transport, since Redis keeps
-everything in memory.
+Attachments are stored in Redis itself, uncompressed — there is no options overload.
+
+This registers a *provider*, not a Redis-transport feature. `UseRedisAttachments()` backs
+[attachments](../features/attachments.md) for every transport in the host — a Service Bus or NATS
+message can carry its payload in Redis — and it needs `UseRedis(...)` for the connection, not
+`UseTransport<RedisTransport>()`. The reverse holds too: messages travelling over Redis can use the
+[Blob Storage provider](azure-storage-queues.md#attachments) instead, which is the better choice for
+large or long-lived attachments since Redis keeps everything in memory.
 
 ## Saga store
 
@@ -97,7 +103,9 @@ everything in memory.
 services.UseRedisSagaStore();
 ```
 
-State is stored under `sagas:{partitionKey}:{id}`.
+State is stored under `sagas:{partitionKey}:{id}`. Like the attachment provider, this is independent
+of the transport: it stores [saga](../features/sagas.md) state for messages arriving on any
+transport, and sagas over Redis can just as well use the Blob, PostgreSQL or SQL Server store.
 
 !!! warning "No concurrent-write detection, and updated sagas never expire"
     Two independent problems with this store:
