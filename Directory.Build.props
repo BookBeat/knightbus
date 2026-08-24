@@ -1,0 +1,31 @@
+<Project>
+  <!--
+    Shared package metadata for every KnightBus package.
+    Per-project values (Version, Description, PackageTags, TargetFrameworks,
+    GeneratePackageOnBuild) intentionally stay in the individual csproj files:
+    the pre-release workflow detects publishable projects by diffing <Version>
+    in csproj files, and GeneratePackageOnBuild must not leak to tests/examples.
+  -->
+  <PropertyGroup>
+    <Authors>BookBeat</Authors>
+    <Copyright>Copyright © BookBeat</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://bookbeat.github.io/knightbus/</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/BookBeat/knightbus</RepositoryUrl>
+    <PackageIcon>knighbus-64.png</PackageIcon>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Brand assets live in the docs site's asset folder, which is the only copy. Deleting or
+      renaming this file fails the pack with NU5046 for every package.
+    -->
+    <None
+      Include="$(MSBuildThisFileDirectory)docs/assets/images/knighbus-64.png"
+      Pack="true"
+      PackagePath=""
+      Visible="false"
+    />
+  </ItemGroup>
+</Project>

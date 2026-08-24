@@ -33,6 +33,7 @@ public class QueueProperties
     public long TransferMessageCount { get; init; }
     public long TransferDeadLetterMessageCount { get; init; }
     public long SizeInBytes { get; init; }
+    public long? MaxSizeInMegabytes { get; init; }
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset UpdatedAt { get; init; }
     public DateTimeOffset AccessedAt { get; init; }

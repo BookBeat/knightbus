@@ -1,0 +1,127 @@
+site_name: KnightBus
+site_description: A fast, lightweight and extensible messaging framework for .NET
+site_url: https://bookbeat.github.io/knightbus/
+site_author: BookBeat
+copyright: Copyright &copy; BookBeat &mdash; released under the MIT licence
+
+repo_url: https://github.com/BookBeat/knightbus
+repo_name: BookBeat/knightbus
+edit_uri: edit/master/docs/
+
+theme:
+  name: material
+  logo: assets/images/knightbus-logo.svg
+  favicon: assets/images/knighbus-64.png
+  icon:
+    repo: fontawesome/brands/github
+  palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.tracking
+    - toc.follow
+    - content.code.copy
+    - content.tabs.link
+    - content.action.edit
+    - search.suggest
+    - search.highlight
+    - search.share
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.smartsymbols
+
+# The toolchain pin lives next to the docs it builds, but is not part of the site.
+exclude_docs: |
+  requirements.txt
+
+# Turn broken internal links and orphaned pages into build failures under --strict.
+validation:
+  nav:
+    omitted_files: warn
+    not_found: warn
+    absolute_links: warn
+  links:
+    not_found: warn
+    anchors: warn
+    absolute_links: warn
+    unrecognized_links: warn
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/BookBeat/knightbus
+      name: KnightBus on GitHub
+    - icon: simple/nuget
+      link: https://www.nuget.org/profiles/BookBeat
+      name: KnightBus packages on NuGet
+
+nav:
+  - Home: index.md
+  - Getting started: getting-started.md
+  - Core concepts:
+      - Messages and mappings: concepts/messages.md
+      - Message processors: concepts/processors.md
+      - Host and configuration: concepts/host.md
+      - Middleware pipeline: concepts/middleware.md
+      - Serialization: concepts/serialization.md
+  - Transports:
+      - transports/index.md
+      - Azure Service Bus: transports/azure-service-bus.md
+      - Azure Storage Queues: transports/azure-storage-queues.md
+      - PostgreSQL: transports/postgresql.md
+      - Redis: transports/redis.md
+      - NATS: transports/nats.md
+  - Features:
+      - Sagas: features/sagas.md
+      - Attachments: features/attachments.md
+      - Scheduling: features/scheduling.md
+      - Singleton processing: features/singleton-processing.md
+      - Errors and dead-lettering: features/error-handling.md
+      - Management API: features/management.md
+  - Monitoring: monitoring.md
+  - Reference:
+      - Marker interfaces: reference/marker-interfaces.md
+      - Contributing: contributing.md

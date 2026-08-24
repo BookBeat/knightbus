@@ -27,7 +27,7 @@ public static class StorageQueueExtensions
         services = services
             .AddScoped<StorageQueueManager>()
             .AddScoped<IQueueManager, StorageQueueManager>()
-            .AddScoped<IQueueMessageAttachmentProvider, StorageQueueManager>();
+            .AddScoped<IQueueMessageAttachmentProvider, QueueMessageAttachmentProvider>();
 
         if (services.All(x => x.ServiceType != typeof(IMessageAttachmentProvider)))
         {

@@ -291,7 +291,7 @@ LIMIT ($1);
     {
         var propertiesOrdinal = reader.GetOrdinal("properties");
         var messageIdOrdinal = reader.GetOrdinal("message_id");
-        var readCountOrdinal = !isDeadLetter ? reader.GetOrdinal("read_count") : 0;
+        var readCountOrdinal = isDeadLetter ? -1 : reader.GetOrdinal("read_count");
         var messageOrdinal = reader.GetOrdinal("message");
         var enqueuedAtOrdinal = reader.GetOrdinal("enqueued_at");
 
@@ -302,7 +302,7 @@ LIMIT ($1);
             var postgresMessage = new PostgresMessage<DictionaryMessage>
             {
                 Id = reader.GetInt64(messageIdOrdinal),
-                ReadCount = reader.GetInt32(readCountOrdinal),
+                ReadCount = isDeadLetter ? 0 : reader.GetInt32(readCountOrdinal),
                 Message = _serializer.Deserialize<DictionaryMessage>(
                     reader.GetFieldValue<byte[]>(messageOrdinal).AsMemory()
                 ),

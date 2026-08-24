@@ -21,6 +21,7 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
     private readonly SemaphoreSlim _maxConcurrent;
     private Task _runningTask;
     private CancellationTokenSource _pumpDelayCancellationTokenSource = new();
+    private CancellationToken _pumpCancellationToken = CancellationToken.None;
     private string _queueName;
 
     protected GenericMessagePump(IProcessingSettings settings, ILogger log)
@@ -47,13 +48,45 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
         where TMessage : TMessageInterface
     {
         _queueName = AutoMessageMapper.GetQueueName<TMessage>();
+        //The polling delay observes this token so a sleeping pump exits promptly on shutdown
+        _pumpCancellationToken = cancellationToken;
         _runningTask = Task.Run(
             async () =>
             {
                 while (!cancellationToken.IsCancellationRequested)
                 {
-                    if (!await PumpAsync<TMessage>(action, cancellationToken).ConfigureAwait(false))
+                    try
+                    {
+                        if (
+                            !await PumpAsync<TMessage>(action, cancellationToken)
+                                .ConfigureAwait(false)
+                        )
+                            await DelayPolling().ConfigureAwait(false);
+                    }
+                    catch (Exception e)
+                    {
+                        //The pump task is never awaited, so an escaping exception would kill the pump silently
+                        Log.LogError(
+                            e,
+                            "Unhandled error in message pump for {MessageType}",
+                            typeof(TMessage)
+                        );
                         await DelayPolling().ConfigureAwait(false);
+                    }
+                }
+
+                try
+                {
+                    await CleanupResources().ConfigureAwait(false);
+                }
+                catch (Exception e)
+                {
+                    //The pump task is never awaited, so an escaping exception would be unobserved
+                    Log.LogError(
+                        e,
+                        "Failed to cleanup resources in message pump for {MessageType}",
+                        typeof(TMessage)
+                    );
                 }
             },
             CancellationToken.None
@@ -120,6 +153,8 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
 
                 messageCount++;
 #pragma warning disable 4014 //No need to await the result, let's keep the pump going
+                //No scheduling token here: if the lock timeout fired before the task started,
+                //the delegate would be skipped and the finally would never release the slot
                 Task.Run(
                         async () =>
                         {
@@ -136,7 +171,7 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
                                 linkedToken.Dispose();
                             }
                         },
-                        timeoutToken.Token
+                        CancellationToken.None
                     )
                     .ConfigureAwait(false);
 #pragma warning restore 4014
@@ -154,7 +189,18 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
             if (ShouldCreateChannel(e))
             {
                 Log.LogInformation("{MessageType} not found. Creating.", typeof(TMessage).Name);
-                await CreateChannel(typeof(TMessage));
+                try
+                {
+                    await CreateChannel(typeof(TMessage)).ConfigureAwait(false);
+                }
+                catch (Exception createException)
+                {
+                    Log.LogError(
+                        createException,
+                        "Failed to create channel for {MessageType}",
+                        typeof(TMessage)
+                    );
+                }
                 return false;
             }
 
@@ -189,7 +235,10 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
     protected abstract bool ShouldCreateChannel(Exception e);
 
     /// <summary>
-    /// Cleanup any expensive resources when shutting down
+    /// Cleanup any expensive resources owned by this pump instance.
+    /// Called once when the pump loop has stopped after its cancellation token was cancelled.
+    /// Do not release resources shared with other components, since the pump can be stopped
+    /// while the rest of the host keeps running.
     /// </summary>
     protected abstract Task CleanupResources();
 
@@ -219,15 +268,31 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
     /// </summary>
     protected virtual async Task DelayPolling()
     {
+        if (_pumpCancellationToken.IsCancellationRequested)
+            return;
+
+        var delayCancellation = _pumpDelayCancellationTokenSource;
+        //A scoped linked source that is disposed on every path, a long-lived linked source
+        //would pin one registration on the shutdown token per CancelPollingDelay call
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(
+            delayCancellation.Token,
+            _pumpCancellationToken
+        );
         try
         {
-            await Task.Delay(PollingDelay, _pumpDelayCancellationTokenSource.Token)
-                .ConfigureAwait(false);
+            await Task.Delay(PollingDelay, linked.Token).ConfigureAwait(false);
         }
         catch (TaskCanceledException)
         {
-            //reset the delay
-            _pumpDelayCancellationTokenSource = new CancellationTokenSource();
+            if (_pumpCancellationToken.IsCancellationRequested)
+                return;
+            //Only replace the source we waited on, so a concurrent CancelPollingDelay
+            //signal is never silently dropped
+            Interlocked.CompareExchange(
+                ref _pumpDelayCancellationTokenSource,
+                new CancellationTokenSource(),
+                delayCancellation
+            );
         }
     }
 }

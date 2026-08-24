@@ -1,9 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <Authors>BookBeat</Authors>
-    <Copyright>Copyright © BookBeat 2020</Copyright>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <!--
+      Shared test helpers, not a published package. This project has no
+      Microsoft.NET.Test.Sdk reference, so IsPackable must be set explicitly:
+      GeneratePackageOnBuild=false alone still lets `dotnet pack` package it.
+    -->
+    <IsPackable>false</IsPackable>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
   </PropertyGroup>
   <ItemGroup>

@@ -2,17 +2,9 @@
   <PropertyGroup>
     <TargetFrameworks>net9.0;net10.0</TargetFrameworks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Authors>BookBeat</Authors>
     <Description>PostgreSQL Transport for KnightBus</Description>
-    <Copyright>Copyright © BookBeat 2021</Copyright>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://knightbus.readthedocs.io</PackageProjectUrl>
-    <PackageIconUrl>https://raw.githubusercontent.com/BookBeat/knightbus/master/documentation/media/images/knighbus-64.png</PackageIconUrl>
-    <PackageIcon>knighbus-64.png</PackageIcon>
-    <RepositoryUrl>https://github.com/BookBeat/knightbus</RepositoryUrl>
-    <Version>3.0.0$(VersionSuffix)</Version>
+    <Version>3.0.1$(VersionSuffix)</Version>
     <PackageTags>knightbus;postgresql;queues;messaging</PackageTags>
-    <LangVersion>latest</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
@@ -30,9 +22,5 @@
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
     <PackageReference Include="Npgsql" Version="10.0.1" />
     <PackageReference Include="Npgsql.DependencyInjection" Version="10.0.1" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include="knighbus-64.png" Pack="true" Visible="false" PackagePath="" />
   </ItemGroup>
 </Project>

@@ -2,14 +2,14 @@
 
 ![Build status](https://github.com/BookBeat/knightbus/actions/workflows/dotnet.yaml/badge.svg?branch=master)
 [![NuGet](https://img.shields.io/nuget/v/KnightBus.Core.svg)](https://www.nuget.org/packages/KnightBus.Core/)
-[![Documentation Status](https://readthedocs.org/projects/knightbus/badge/?version=latest)](https://knightbus.readthedocs.io/en/latest/?badge=latest)
+[![Docs](https://github.com/BookBeat/knightbus/actions/workflows/docs.yaml/badge.svg?branch=master)](https://bookbeat.github.io/knightbus/)
 
 ## KnightBus is a fast, lightweight and extensible messaging framework that supports multiple active message transports
 
 
-[Find the official KnightBus documentation here](https://knightbus.readthedocs.io/)
+[Find the official KnightBus documentation here](https://bookbeat.github.io/knightbus/)
 
-<img src="documentation/media/images/knightbus-logo.png" alt="KnightBus Logo" width="300"/>
+<img src="docs/assets/images/knightbus-logo.png" alt="KnightBus Logo" width="300"/>
 
 ## Transports
 | Package                                                                                                        | NuGet                                                                                                                                                                                       |
@@ -139,22 +139,23 @@ public class CustomPlugin : IPlugin
 
 ## Documentation
 
-To get documentation up and running locally, do the following.
+The documentation site is built with [MkDocs Material](https://squidfunk.github.io/mkdocs-material/)
+from the `docs` folder and deployed to GitHub Pages when a push to `master` touches `docs/` or
+`mkdocs.yml`.
 
-1. Install `sphinx`: https://www.sphinx-doc.org
-2. Install `sphinx_rtd_theme`: https://github.com/readthedocs/sphinx_rtd_theme
-3. Run `make html source build` in the documentation folder
-4. Open `documentation/build/html/index.html` in a browser to preview your changes
-
-For Linux:
+To preview it locally with live reload:
 
 ```console
-# In documentation folder:
+$ python3 -m venv .venv && source .venv/bin/activate
+$ pip install -r docs/requirements.txt
+$ mkdocs serve
+```
 
-$ sudo apt install python3 python3-sphinx python3-pip
-$ python3 -m pip install sphinx-rtd-theme
-$ make html source build
-$ sensible-browser build/html/index.html
+Then open http://127.0.0.1:8000. Before pushing, run the same build CI runs, which turns broken links
+and pages missing from the navigation into errors:
+
+```console
+$ mkdocs build --strict
 ```
 
 

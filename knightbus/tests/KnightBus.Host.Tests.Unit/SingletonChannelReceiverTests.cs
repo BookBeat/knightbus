@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -88,11 +89,15 @@ public class SingletonChannelReceiverTests
             )
             .ReturnsAsync(handle.Object);
 
+        //The second renewal loses the lock, every other renewal succeeds
+        var renewCount = 0;
         handle
-            .SetupSequence(x => x.RenewAsync(It.IsAny<ILogger>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true)
-            .Throws(new Exception())
-            .ReturnsAsync(true);
+            .Setup(x => x.RenewAsync(It.IsAny<ILogger>(), It.IsAny<CancellationToken>()))
+            .Returns(() =>
+                Interlocked.Increment(ref renewCount) == 2
+                    ? throw new Exception("lock lost")
+                    : Task.FromResult(true)
+            );
 
         var underlyingReceiver = new Mock<IChannelReceiver>();
         underlyingReceiver.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);
@@ -102,17 +107,136 @@ public class SingletonChannelReceiverTests
             Mock.Of<ILogger>()
         )
         {
-            TimerInterval = TimeSpan.FromSeconds(1),
-            LockRefreshInterval = TimeSpan.FromSeconds(1),
+            TimerInterval = TimeSpan.FromMilliseconds(100),
+            LockRefreshInterval = TimeSpan.FromMilliseconds(100),
         };
         //act
         await singletonChannelReceiver.StartAsync(CancellationToken.None);
-        await Task.Delay(2100);
-        //assert
+
+        //assert: wait for the restart instead of a fixed delay
+        var deadline = DateTime.UtcNow.AddSeconds(10);
+        while (
+            underlyingReceiver.Invocations.Count(i =>
+                i.Method.Name == nameof(IChannelReceiver.StartAsync)
+            ) < 2
+            && DateTime.UtcNow < deadline
+        )
+        {
+            await Task.Delay(10, CancellationToken.None);
+        }
+
+        //let several timer intervals pass, a stale watcher would trigger a spurious
+        //third start in this window
+        await Task.Delay(500, CancellationToken.None);
         underlyingReceiver.Verify(
             x => x.StartAsync(It.IsAny<CancellationToken>()),
             Times.Exactly(2)
         );
+    }
+
+    [Test]
+    public async Task Should_release_lock_when_shutting_down()
+    {
+        //arrange
+        var handle = new Mock<ISingletonLockHandle>();
+        handle
+            .Setup(x => x.RenewAsync(It.IsAny<ILogger>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var lockManager = new Mock<ISingletonLockManager>();
+        lockManager
+            .Setup(x =>
+                x.TryLockAsync(
+                    It.IsAny<string>(),
+                    TimeSpan.FromSeconds(60),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(handle.Object);
+        var underlyingReceiver = new Mock<IChannelReceiver>();
+        underlyingReceiver.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);
+        var singletonChannelReceiver = new SingletonChannelReceiver(
+            underlyingReceiver.Object,
+            lockManager.Object,
+            Mock.Of<ILogger>()
+        );
+        using var cts = new CancellationTokenSource();
+        await singletonChannelReceiver.StartAsync(cts.Token);
+
+        //act
+        cts.Cancel();
+
+        //assert
+        var deadline = DateTime.UtcNow.AddSeconds(5);
+        while (
+            !handle.Invocations.Any(i => i.Method.Name == nameof(ISingletonLockHandle.ReleaseAsync))
+            && DateTime.UtcNow < deadline
+        )
+        {
+            await Task.Delay(10, CancellationToken.None);
+        }
+
+        handle.Verify(
+            x => x.ReleaseAsync(It.IsAny<CancellationToken>()),
+            Times.Once,
+            "the singleton lock must be released on shutdown so another instance can take over immediately instead of waiting for the lease to expire"
+        );
+    }
+
+    [Test]
+    public async Task Should_hold_lock_until_teardown_when_teardown_token_is_provided()
+    {
+        //arrange
+        var handle = new Mock<ISingletonLockHandle>();
+        handle
+            .Setup(x => x.RenewAsync(It.IsAny<ILogger>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var lockManager = new Mock<ISingletonLockManager>();
+        lockManager
+            .Setup(x =>
+                x.TryLockAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<TimeSpan>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(handle.Object);
+        var underlyingReceiver = new Mock<IChannelReceiver>();
+        underlyingReceiver.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);
+        CancellationToken receiverToken = default;
+        underlyingReceiver
+            .Setup(x => x.StartAsync(It.IsAny<CancellationToken>()))
+            .Callback<CancellationToken>(t => receiverToken = t)
+            .Returns(Task.CompletedTask);
+        using var shutdown = new CancellationTokenSource();
+        using var teardown = new CancellationTokenSource();
+        var singletonChannelReceiver = new SingletonChannelReceiver(
+            underlyingReceiver.Object,
+            lockManager.Object,
+            Mock.Of<ILogger>(),
+            teardownToken: teardown.Token
+        );
+        await singletonChannelReceiver.StartAsync(shutdown.Token);
+
+        //act: phase one stops the wrapped receiver but must keep the lock
+        shutdown.Cancel();
+        await Task.Delay(700);
+
+        //assert
+        receiverToken
+            .IsCancellationRequested.Should()
+            .BeTrue("the wrapped receiver must stop on the shutdown token");
+        handle.Verify(
+            x => x.ReleaseAsync(It.IsAny<CancellationToken>()),
+            Times.Never,
+            "the lock must be held through the drain so no other instance starts processing"
+        );
+
+        //act: phase two releases the lock
+        teardown.Cancel();
+        await singletonChannelReceiver.TeardownCompletion.WaitAsync(TimeSpan.FromSeconds(5));
+
+        //assert
+        handle.Verify(x => x.ReleaseAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Test]

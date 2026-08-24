@@ -21,8 +21,7 @@ public class StorageQueueMessageStateHandlerTests : MessageStateHandlerTests<Tes
     {
         var queueManager = new StorageQueueManager(
             _configuration,
-            Array.Empty<IMessagePreProcessor>(),
-            new BlobStorageMessageAttachmentProvider(_configuration)
+            Array.Empty<IMessagePreProcessor>()
         );
 
         var queues = await queueManager.List(CancellationToken.None);

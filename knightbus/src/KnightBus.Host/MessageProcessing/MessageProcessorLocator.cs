@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using KnightBus.Core;
 using KnightBus.Host.MessageProcessing.Factories;
 using Microsoft.Extensions.Logging;
@@ -17,13 +18,15 @@ internal class MessageProcessorLocator
 
     public MessageProcessorLocator(
         IHostConfiguration configuration,
-        ITransportChannelFactory[] transportChannelFactories
+        ITransportChannelFactory[] transportChannelFactories,
+        CancellationToken? teardownToken = null
     )
     {
         _configuration = configuration;
         _transportStarterFactory = new TransportStarterFactory(
             transportChannelFactories,
-            configuration
+            configuration,
+            teardownToken
         );
     }
 

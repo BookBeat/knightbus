@@ -21,11 +21,7 @@ public class StorageQueueManagerTests : QueueManagerTests<TestCommand>
 
     public override async Task Setup()
     {
-        QueueManager = new StorageQueueManager(
-            _configuration,
-            Array.Empty<IMessagePreProcessor>(),
-            new BlobStorageMessageAttachmentProvider(_configuration)
-        );
+        QueueManager = new StorageQueueManager(_configuration, Array.Empty<IMessagePreProcessor>());
         QueueType = QueueType.Queue;
         var queues = await QueueManager.List(CancellationToken.None);
         foreach (var queue in queues)
