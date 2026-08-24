@@ -40,6 +40,8 @@ _build/
 
 # Ignore documentation built locally
 build/
+site/
+.venv/
 
 
 .DS_Store
