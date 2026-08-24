@@ -1,10 +1,20 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Messages;
+using Microsoft.Extensions.Logging;
 
 namespace KnightBus.Core.DefaultMiddlewares;
 
+/// <summary>
+/// Loads the attachment for <see cref="ICommandWithAttachment"/> messages before processing and
+/// deletes it after the message has been successfully processed.
+/// The attachment is kept when processing fails, since a retry needs it, and when the message is
+/// dead lettered, so the message can be inspected or requeued with its attachment intact.
+/// Attachments of dead lettered messages are never cleaned up by KnightBus; use a lifecycle
+/// policy in the attachment store when they must expire.
+/// </summary>
 public class AttachmentMiddleware : IMessageProcessorMiddleware
 {
     private readonly IMessageAttachmentProvider _attachmentProvider;
@@ -45,10 +55,24 @@ public class AttachmentMiddleware : IMessageProcessorMiddleware
             await next.ProcessAsync(messageStateHandler, cancellationToken).ConfigureAwait(false);
             if (attachment != null)
             {
-                attachment.Stream?.Dispose();
-                await _attachmentProvider
-                    .DeleteAttachmentAsync(queueName, attachmentId, cancellationToken)
-                    .ConfigureAwait(false);
+                try
+                {
+                    await _attachmentProvider
+                        .DeleteAttachmentAsync(queueName, attachmentId, cancellationToken)
+                        .ConfigureAwait(false);
+                }
+                catch (Exception e)
+                {
+                    //The message is already completed when the delete runs, so throwing here
+                    //would only trigger a failed abandon of a completed message. The attachment
+                    //is orphaned and must be cleaned up by the attachment store
+                    pipelineInformation?.HostConfiguration?.Log?.LogWarning(
+                        e,
+                        "Failed to delete attachment {AttachmentId} for {QueueName}",
+                        attachmentId,
+                        queueName
+                    );
+                }
             }
         }
         finally
