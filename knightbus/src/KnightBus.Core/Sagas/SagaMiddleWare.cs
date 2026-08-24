@@ -79,9 +79,23 @@ public class SagaMiddleware : IMessageProcessorMiddleware
                 if (saga.MessageMapper.IsStartMessage(typeof(T)))
                 {
                     //If we have started a saga but the start message fails then we must make sure the message can be retried
-                    await _sagaStore
-                        .Delete(saga.PartitionKey, saga.Id, cancellationToken)
-                        .ConfigureAwait(false);
+                    try
+                    {
+                        await _sagaStore
+                            .Delete(saga.PartitionKey, saga.Id, cancellationToken)
+                            .ConfigureAwait(false);
+                    }
+                    catch (Exception deleteException)
+                    {
+                        //The handler's exception must surface, not the cleanup failure.
+                        //Retries will see the saga as already started until the saga expires.
+                        pipelineInformation.HostConfiguration.Log.LogWarning(
+                            deleteException,
+                            "Failed to delete saga {PartitionKey} {SagaId} after the start message failed",
+                            saga.PartitionKey,
+                            saga.Id
+                        );
+                    }
                 }
                 throw;
             }
