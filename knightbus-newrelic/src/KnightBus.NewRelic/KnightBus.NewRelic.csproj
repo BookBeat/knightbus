@@ -3,20 +3,10 @@
     <TargetFrameworks>net9.0;net10.0</TargetFrameworks>
     <RootNamespace>KnightBus.NewRelicMiddleware</RootNamespace>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Authors>BookBeat</Authors>
     <Description>NewRelic.Agent.Api for KnightBus</Description>
-    <Copyright>Copyright © BookBeat 2021</Copyright>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://knightbus.readthedocs.io</PackageProjectUrl>
-    <PackageIconUrl>https://raw.githubusercontent.com/BookBeat/knightbus/master/documentation/media/images/knighbus-64.png</PackageIconUrl>
-    <PackageIcon>knighbus-64.png</PackageIcon>
-    <RepositoryUrl>https://github.com/BookBeat/knightbus</RepositoryUrl>
     <Version>13.0.0$(VersionSuffix)</Version>
     <PackageTags>knightbus;apm;newrelic.agent.api</PackageTags>
   </PropertyGroup>
-  <ItemGroup>
-    <None Include="knighbus-64.png" Pack="true" Visible="false" PackagePath="" />
-  </ItemGroup>
   <ItemGroup>
     <PackageReference Include="NewRelic.Agent.Api" Version="10.47.0" />
   </ItemGroup>
