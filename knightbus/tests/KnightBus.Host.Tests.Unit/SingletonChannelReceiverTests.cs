@@ -89,11 +89,15 @@ public class SingletonChannelReceiverTests
             )
             .ReturnsAsync(handle.Object);
 
+        //The second renewal loses the lock, every other renewal succeeds
+        var renewCount = 0;
         handle
-            .SetupSequence(x => x.RenewAsync(It.IsAny<ILogger>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true)
-            .Throws(new Exception())
-            .ReturnsAsync(true);
+            .Setup(x => x.RenewAsync(It.IsAny<ILogger>(), It.IsAny<CancellationToken>()))
+            .Returns(() =>
+                Interlocked.Increment(ref renewCount) == 2
+                    ? throw new Exception("lock lost")
+                    : Task.FromResult(true)
+            );
 
         var underlyingReceiver = new Mock<IChannelReceiver>();
         underlyingReceiver.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);
@@ -103,13 +107,27 @@ public class SingletonChannelReceiverTests
             Mock.Of<ILogger>()
         )
         {
-            TimerInterval = TimeSpan.FromSeconds(1),
-            LockRefreshInterval = TimeSpan.FromSeconds(1),
+            TimerInterval = TimeSpan.FromMilliseconds(100),
+            LockRefreshInterval = TimeSpan.FromMilliseconds(100),
         };
         //act
         await singletonChannelReceiver.StartAsync(CancellationToken.None);
-        await Task.Delay(2100);
-        //assert
+
+        //assert: wait for the restart instead of a fixed delay
+        var deadline = DateTime.UtcNow.AddSeconds(10);
+        while (
+            underlyingReceiver.Invocations.Count(i =>
+                i.Method.Name == nameof(IChannelReceiver.StartAsync)
+            ) < 2
+            && DateTime.UtcNow < deadline
+        )
+        {
+            await Task.Delay(10, CancellationToken.None);
+        }
+
+        //let several timer intervals pass, a stale watcher would trigger a spurious
+        //third start in this window
+        await Task.Delay(500, CancellationToken.None);
         underlyingReceiver.Verify(
             x => x.StartAsync(It.IsAny<CancellationToken>()),
             Times.Exactly(2)
