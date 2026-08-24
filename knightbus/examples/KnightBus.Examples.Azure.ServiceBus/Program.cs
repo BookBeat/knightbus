@@ -79,10 +79,11 @@ class Program
                         });
 
                     services
-                        .UseDistributedTracing()
                         .UseServiceBus(serviceBusConfiguration)
                         .AddServiceBusManagement(serviceBusConfiguration)
                         .RegisterProcessors(typeof(SampleServiceBusEventProcessor).Assembly)
+                        //UseOpenTelemetry sets up distributed tracing, so UseDistributedTracing
+                        //must not also be called or the providers compete
                         .UseOpenTelemetry()
                         .UseTransport<ServiceBusTransport>();
                 }

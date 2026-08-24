@@ -17,8 +17,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!--
+      Brand assets live in the docs site's asset folder, which is the only copy. Deleting or
+      renaming this file fails the pack with NU5046 for every package.
+    -->
     <None
-      Include="$(MSBuildThisFileDirectory)documentation/media/images/knighbus-64.png"
+      Include="$(MSBuildThisFileDirectory)docs/assets/images/knighbus-64.png"
       Pack="true"
       PackagePath=""
       Visible="false"

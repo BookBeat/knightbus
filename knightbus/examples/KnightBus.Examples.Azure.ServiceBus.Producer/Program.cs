@@ -71,8 +71,9 @@ class Program
                         });
 
                     // Register KnightBus ServiceBus client
-                    services.UseDistributedTracing();
                     services.UseServiceBus(serviceBusConfiguration);
+                    // UseOpenTelemetry sets up distributed tracing, so UseDistributedTracing
+                    // must not also be called or the providers compete
                     services.UseOpenTelemetry();
 
                     // Register the producer background service
