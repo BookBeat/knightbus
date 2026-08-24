@@ -121,7 +121,10 @@ does not collide with your application's own data source registration.
 services.UsePostgresSagaStore();
 ```
 
-State goes in `knightbus.sagas`, created on demand.
+State goes in `knightbus.sagas`, created on demand. The store is independent of the transport — it
+holds [saga](../features/sagas.md) state for messages arriving on any transport, and needs
+`UsePostgres(...)` for the connection rather than `UseTransport<PostgresTransport>()`. Conversely,
+sagas whose messages travel over PostgreSQL can use any other store.
 
 !!! warning "No concurrent-write detection"
     This store overwrites unconditionally — it does not check `ConcurrencyStamp`, so simultaneous

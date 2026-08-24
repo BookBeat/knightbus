@@ -103,9 +103,13 @@ uploads, the receiver downloads.
 
     There is no options overload; Redis attachments are stored uncompressed.
 
-Blob Storage is the usual choice even when the messages travel over another transport — the NATS
-example uses NATS for messages and Blob Storage for attachments. The provider is chosen per host, not
-per transport.
+Either provider works with any transport. Blob Storage is the usual choice even when the messages
+travel over another transport — the NATS example uses NATS for messages and Blob Storage for
+attachments — and `UseRedisAttachments()` is equally available to an application with no Redis
+transport. Both calls register the same core `AttachmentMiddleware`; what differs is only where the
+bytes land. The provider is chosen per host, not per transport, and the middleware resolves a single
+`IMessageAttachmentProvider` — so register one, since a second registration silently wins over the
+first.
 
 ## Lifecycle and cleanup
 

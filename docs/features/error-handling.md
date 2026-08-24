@@ -88,8 +88,9 @@ processing, and the reason to honour the cancellation token.
 
 For genuinely long work, prefer a short renewed lock over one enormous timeout — see
 [extending the lock](../concepts/processors.md#long-running-work-extending-the-lock). That mechanism
-needs `ExtendMessageLockDurationMiddleware` registered manually and only functions on Azure Storage
-Queues, the sole transport that can change a lock mid-flight.
+needs `ExtendMessageLockDurationMiddleware` registered manually. The middleware is a core one and may
+be registered on any host, but it can only renew where the transport can change a lock mid-flight,
+which today is Azure Storage Queues alone.
 
 ## Where dead letters go
 

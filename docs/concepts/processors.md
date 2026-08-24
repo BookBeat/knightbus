@@ -171,15 +171,18 @@ renewed every `ExtensionInterval` while your handler runs, and `MessageLockTimeo
 budget after which the handler's token is cancelled. The benefit is that a crashed host releases the
 message after `ExtensionDuration` instead of after the full two hours.
 
-!!! warning "Lock extension needs a middleware, and only works on Azure Storage Queues"
+!!! warning "Lock extension needs a middleware, and today renews only on Azure Storage Queues"
     Implementing the interface is not enough. You must register the middleware yourself:
 
     ```csharp
     services.AddMiddleware<ExtendMessageLockDurationMiddleware>();
     ```
 
-    Renewal also requires the transport to support changing a lock mid-flight, which today only
-    Azure Storage Queues does. See
+    `ExtendMessageLockDurationMiddleware` is a `KnightBus.Core` middleware like any other: it is
+    registered per host, not per transport, and runs on every listener. What it cannot do is renew a
+    lock the transport will not let it renew — the message state handler has to implement
+    `IMessageLockHandler<T>`, which today only Azure Storage Queues does. On other transports the
+    middleware simply passes the message through. See
     [errors and dead-lettering](../features/error-handling.md#message-locks).
 
 !!! danger "Do not use `IExtendMessageLockTimeout` on the PostgreSQL transport"

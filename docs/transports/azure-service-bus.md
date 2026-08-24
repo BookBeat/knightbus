@@ -172,7 +172,9 @@ delivery) and `CancelScheduledMessage` through the management API.
 ## Attachments
 
 Service Bus messages are size-limited, so large payloads belong in
-[attachments](../features/attachments.md), typically backed by Blob Storage:
+[attachments](../features/attachments.md). This package ships no attachment provider, which is not a
+gap — the provider is a host-wide choice, and either of the two that exist can back attachments here.
+Blob Storage is the usual pick:
 
 ```csharp
 services
@@ -181,6 +183,11 @@ services
     .UseBlobStorageAttachments()
     .UseTransport<ServiceBusTransport>();
 ```
+
+Note that only `UseTransport<ServiceBusTransport>()` appears — `UseBlobStorage(...)` supplies the
+storage account for the attachments and does not start any Storage Queues listener. The same pattern
+gives Service Bus messages [sagas](../features/sagas.md) and
+[singleton processing](../features/singleton-processing.md), which likewise ship in other packages.
 
 ## Serialization
 
