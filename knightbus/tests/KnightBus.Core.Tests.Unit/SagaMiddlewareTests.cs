@@ -220,6 +220,65 @@ public class SagaMiddlewareTests
         saga.Data.Data.Should().Be("loaded");
     }
 
+    [Test]
+    public async Task Should_rethrow_handler_exception_when_saga_delete_fails()
+    {
+        //arrange: the start message handler fails, and the cleanup delete also fails
+        var partitionKey = "a";
+        var id = "b";
+        var sagaStore = new Mock<ISagaStore>();
+        sagaStore
+            .Setup(x =>
+                x.Create(
+                    partitionKey,
+                    id,
+                    It.IsAny<SagaData>(),
+                    TimeSpan.FromHours(1),
+                    CancellationToken.None
+                )
+            )
+            .ReturnsAsync(new SagaData<SagaData> { Data = new SagaData() });
+        sagaStore
+            .Setup(x => x.Delete(partitionKey, id, CancellationToken.None))
+            .ThrowsAsync(new TimeoutException("delete failed"));
+
+        var di = new Mock<IDependencyInjection>();
+        di.Setup(x => x.GetInstance<object>(typeof(IProcessCommand<SagaStartMessage, Settings>)))
+            .Returns(new Saga());
+
+        var hostConfiguration = new Mock<IHostConfiguration>();
+        hostConfiguration.Setup(x => x.Log).Returns(Mock.Of<ILogger>());
+        hostConfiguration.Setup(x => x.DependencyInjection).Returns(di.Object);
+        var messageStateHandler = new Mock<IMessageStateHandler<SagaStartMessage>>();
+        messageStateHandler.Setup(x => x.MessageScope).Returns(di.Object);
+        var pipelineInformation = new Mock<IPipelineInformation>();
+        pipelineInformation.Setup(x => x.HostConfiguration).Returns(hostConfiguration.Object);
+        pipelineInformation
+            .Setup(x => x.ProcessorInterfaceType)
+            .Returns(typeof(IProcessCommand<SagaStartMessage, Settings>));
+        var next = new Mock<IMessageProcessor>();
+        next.Setup(x => x.ProcessAsync(messageStateHandler.Object, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("handler failed"));
+
+        var middleware = new SagaMiddleware(sagaStore.Object);
+
+        //act & assert: the handler's exception must surface, not the cleanup failure
+        await middleware
+            .Awaiting(x =>
+                x.ProcessAsync(
+                    messageStateHandler.Object,
+                    pipelineInformation.Object,
+                    next.Object,
+                    CancellationToken.None
+                )
+            )
+            .Should()
+            .ThrowAsync<InvalidOperationException>(
+                "the failure that caused the retry must not be masked by the saga cleanup failing"
+            );
+        sagaStore.Verify(x => x.Delete(partitionKey, id, CancellationToken.None), Times.Once);
+    }
+
     public class Saga : Saga<SagaData>, IProcessCommand<SagaStartMessage, Settings>
     {
         public override TimeSpan TimeToLive => TimeSpan.FromHours(1);
