@@ -23,6 +23,12 @@ public static class KnightBusHostExtensions
             .ConfigureServices(collection =>
             {
                 collection.AddSingleton(conf);
+                //One tracker for the whole host, reaching every pipeline as a middleware so
+                //that shutdown can see all in flight messages through a single counter
+                collection.AddSingleton<InFlightMessageTracker>();
+                collection.AddSingleton<IMessageProcessorMiddleware>(provider =>
+                    provider.GetRequiredService<InFlightMessageTracker>()
+                );
                 collection.AddHostedService<KnightBusHost>();
             });
 

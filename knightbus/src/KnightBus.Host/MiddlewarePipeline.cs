@@ -16,23 +16,27 @@ internal class MiddlewarePipeline
     public MiddlewarePipeline(
         IEnumerable<IMessageProcessorMiddleware> hostMiddlewares,
         IPipelineInformation pipelineInformation,
-        ILogger log,
-        InFlightMessageTracker inFlightTracker = null
+        ILogger log
     )
     {
         _pipelineInformation = pipelineInformation;
 
-        //The tracker must be outermost so the count covers error handling and dead lettering
+        var processorMiddlewares = new List<IMessageProcessorMiddleware>(hostMiddlewares);
+
+        //The in flight tracker must be outermost so the count covers error handling and dead lettering
+        var inFlightTracker = processorMiddlewares.SingleOrDefault(trackerMiddleware =>
+            trackerMiddleware is InFlightMessageTracker
+        );
         if (inFlightTracker != null)
         {
             _middlewares.Add(inFlightTracker);
+            processorMiddlewares.Remove(inFlightTracker);
         }
 
         //Add default outlying middlewares
         _middlewares.Add(new ErrorHandlingMiddleware(log));
 
         //See if there is a IMessageScopeProviderMiddleware that needs to be placed before the other middlewares
-        var processorMiddlewares = new List<IMessageProcessorMiddleware>(hostMiddlewares);
         var scopeProvider = processorMiddlewares.SingleOrDefault(scopeMiddleware =>
             scopeMiddleware is IMessageScopeProviderMiddleware
         );

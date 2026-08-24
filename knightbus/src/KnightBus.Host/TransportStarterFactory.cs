@@ -14,19 +14,16 @@ internal class TransportStarterFactory
 {
     private readonly ITransportChannelFactory[] _transportChannelFactories;
     private readonly IHostConfiguration _configuration;
-    private readonly InFlightMessageTracker _inFlightTracker;
     private readonly CancellationToken? _teardownToken;
 
     public TransportStarterFactory(
         ITransportChannelFactory[] transportChannelFactories,
         IHostConfiguration configuration,
-        InFlightMessageTracker inFlightTracker = null,
         CancellationToken? teardownToken = null
     )
     {
         _transportChannelFactories = transportChannelFactories;
         _configuration = configuration;
-        _inFlightTracker = inFlightTracker;
         _teardownToken = teardownToken;
     }
 
@@ -61,12 +58,7 @@ internal class TransportStarterFactory
 
         var middlewares =
             _configuration.DependencyInjection.GetInstances<IMessageProcessorMiddleware>();
-        var pipeline = new MiddlewarePipeline(
-            middlewares,
-            pipelineInformation,
-            _configuration.Log,
-            _inFlightTracker
-        );
+        var pipeline = new MiddlewarePipeline(middlewares, pipelineInformation, _configuration.Log);
         var serializer = GetSerializer(channelFactory, processorTypes.MessageType);
         var starter = channelFactory.Create(
             processorTypes.MessageType,

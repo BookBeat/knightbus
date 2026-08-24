@@ -8,6 +8,7 @@ using KnightBus.Core;
 using KnightBus.Core.DependencyInjection;
 using KnightBus.Host.MessageProcessing;
 using KnightBus.Host.Singleton;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -21,7 +22,7 @@ public class KnightBusHost : IHostedService
     private readonly CancellationTokenSource _teardownToken = new CancellationTokenSource();
     private static readonly TimeSpan DrainPollingInterval = TimeSpan.FromMilliseconds(100);
     private static readonly TimeSpan MinimumTeardownBudget = TimeSpan.FromSeconds(5);
-    internal InFlightMessageTracker InFlightTracker { get; } = new();
+    internal InFlightMessageTracker InFlightTracker { get; }
     internal List<IChannelReceiver> Receivers { get; } = new();
     internal List<IPlugin> Plugins { get; } = new();
     internal CancellationToken TeardownToken => _teardownToken.Token;
@@ -35,6 +36,9 @@ public class KnightBusHost : IHostedService
         configuration.DependencyInjection = new MicrosoftDependencyInjection(provider);
         configuration.Log = logger;
         _configuration = configuration;
+        //The same instance the pipelines get as a middleware, see UseKnightBus
+        InFlightTracker =
+            provider.GetService<InFlightMessageTracker>() ?? new InFlightMessageTracker();
     }
 
     public KnightBusHost Configure(Func<IHostConfiguration, IHostConfiguration> configuration)
@@ -62,7 +66,6 @@ public class KnightBusHost : IHostedService
             _locator = new MessageProcessorLocator(
                 _configuration,
                 transports.SelectMany(transport => transport.TransportChannelFactories).ToArray(),
-                InFlightTracker,
                 _teardownToken.Token
             );
             Receivers.AddRange(_locator.CreateReceivers());

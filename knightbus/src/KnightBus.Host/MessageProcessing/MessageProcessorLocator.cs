@@ -19,7 +19,6 @@ internal class MessageProcessorLocator
     public MessageProcessorLocator(
         IHostConfiguration configuration,
         ITransportChannelFactory[] transportChannelFactories,
-        InFlightMessageTracker inFlightTracker = null,
         CancellationToken? teardownToken = null
     )
     {
@@ -27,7 +26,6 @@ internal class MessageProcessorLocator
         _transportStarterFactory = new TransportStarterFactory(
             transportChannelFactories,
             configuration,
-            inFlightTracker,
             teardownToken
         );
     }

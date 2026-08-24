@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using KnightBus.Core;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
@@ -290,6 +291,23 @@ public class KnightBusHostShutdownTests
     }
 
     [Test]
+    public void Should_share_one_tracker_between_the_host_and_every_pipeline()
+    {
+        //arrange & act
+        using var host = new HostBuilder().UseKnightBus().Build();
+
+        //assert: the pipelines get the tracker as a middleware, and it must be the very
+        //instance the host polls while draining, not a second one
+        var tracker = host.Services.GetRequiredService<InFlightMessageTracker>();
+        host.Services.GetServices<IMessageProcessorMiddleware>()
+            .Should()
+            .Contain(
+                tracker,
+                "pipelines must count into the same tracker instance the host drains against"
+            );
+    }
+
+    [Test]
     public async Task Should_count_in_flight_messages_and_release_on_failure()
     {
         //arrange
@@ -347,10 +365,9 @@ public class KnightBusHostShutdownTests
         //arrange
         var tracker = new InFlightMessageTracker();
         var pipeline = new MiddlewarePipeline(
-            Array.Empty<IMessageProcessorMiddleware>(),
+            new IMessageProcessorMiddleware[] { tracker },
             Mock.Of<IPipelineInformation>(),
-            Mock.Of<ILogger>(),
-            tracker
+            Mock.Of<ILogger>()
         );
         long countDuringProcessing = -1;
         var finalProcessor = new Mock<IMessageProcessor>();
