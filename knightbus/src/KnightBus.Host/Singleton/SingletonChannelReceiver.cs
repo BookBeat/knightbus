@@ -20,7 +20,13 @@ internal class SingletonChannelReceiver : IChannelReceiver
     internal TimeSpan TimerInterval { get; set; } = TimeSpan.FromMinutes(1);
     internal TimeSpan LockDuration { get; set; } = TimeSpan.FromMinutes(1);
     internal TimeSpan LockRefreshInterval { get; set; } = TimeSpan.FromSeconds(19);
-    private bool _lockPollingEnabled = false;
+
+    //Written by the lock-lost watcher thread and read by the timer loop
+    private volatile bool _lockPollingEnabled = false;
+
+    //Incremented for every successful lock acquisition, so a stale watcher from a previous
+    //acquisition cannot re-enable polling after the lock has already been re-acquired
+    private int _acquisitionGeneration;
     private Task _pollingLoop;
 
     /// <summary>
@@ -85,6 +91,7 @@ internal class SingletonChannelReceiver : IChannelReceiver
                 cancellationToken,
                 scopeTokenSource.Token
             );
+            var generation = Interlocked.Increment(ref _acquisitionGeneration);
             _singletonScope = new SingletonTimerScope(
                 _log,
                 lockHandle,
@@ -101,8 +108,12 @@ internal class SingletonChannelReceiver : IChannelReceiver
                     () =>
                     {
                         scopeTokenSource.Token.WaitHandle.WaitOne();
-                        //Stop signal received, restart the polling
-                        if (!cancellationToken.IsCancellationRequested)
+                        //Stop signal received, restart the polling. A watcher that wakes late,
+                        //after the lock has already been re-acquired, must not restart it
+                        if (
+                            !cancellationToken.IsCancellationRequested
+                            && Volatile.Read(ref _acquisitionGeneration) == generation
+                        )
                         {
                             _lockPollingEnabled = true;
                             _log.LogInformation(
@@ -133,7 +144,10 @@ internal class SingletonChannelReceiver : IChannelReceiver
         await AcquireLock(cancellationToken).ConfigureAwait(false);
 
 #pragma warning disable 4014
-        _pollingLoop = Task.Run(async () => await TimerLoop(cancellationToken), cancellationToken);
+        _pollingLoop = Task.Run(
+            async () => await TimerLoop(cancellationToken),
+            CancellationToken.None
+        );
 #pragma warning restore 4014
     }
 }
