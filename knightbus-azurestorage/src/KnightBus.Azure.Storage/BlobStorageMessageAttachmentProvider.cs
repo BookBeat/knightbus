@@ -210,23 +210,44 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
             Metadata = metadata,
         };
 
-        // On failure the streams are deliberately not disposed: disposing the blob
-        // write stream would commit the partially staged blocks as a truncated blob,
-        // while uncommitted blocks are garbage collected by the service
-        var blobStream = await blob.OpenWriteAsync(
-                overwrite: true,
-                options: options,
-                cancellationToken: cancellationToken
-            )
-            .ConfigureAwait(false);
-        var compressionStream = new BrotliStream(
-            blobStream,
-            _options.CompressionLevel,
-            leaveOpen: true
-        );
-        await uploadStream.CopyToAsync(compressionStream, cancellationToken).ConfigureAwait(false);
-        await compressionStream.DisposeAsync().ConfigureAwait(false);
-        await blobStream.DisposeAsync().ConfigureAwait(false);
+        try
+        {
+            // On failure the streams are deliberately not disposed: disposing the blob
+            // write stream would commit the partially staged blocks as a truncated blob,
+            // while uncommitted blocks are garbage collected by the service
+            var blobStream = await blob.OpenWriteAsync(
+                    overwrite: true,
+                    options: options,
+                    cancellationToken: cancellationToken
+                )
+                .ConfigureAwait(false);
+            var compressionStream = new BrotliStream(
+                blobStream,
+                _options.CompressionLevel,
+                leaveOpen: true
+            );
+            await uploadStream
+                .CopyToAsync(compressionStream, cancellationToken)
+                .ConfigureAwait(false);
+            await compressionStream.DisposeAsync().ConfigureAwait(false);
+            await blobStream.DisposeAsync().ConfigureAwait(false);
+        }
+        catch
+        {
+            // OpenWrite creates the blob before any data is written, so clean up the
+            // empty one it leaves behind. The caller's token is usually already
+            // cancelled at this point, hence None
+            try
+            {
+                await blob.DeleteIfExistsAsync(cancellationToken: CancellationToken.None)
+                    .ConfigureAwait(false);
+            }
+            catch
+            {
+                // Best effort, never mask the original failure
+            }
+            throw;
+        }
     }
 
     public async Task<bool> DeleteAttachmentAsync(

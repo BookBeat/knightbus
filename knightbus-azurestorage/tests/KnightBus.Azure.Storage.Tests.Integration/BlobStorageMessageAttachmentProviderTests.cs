@@ -297,6 +297,12 @@ public class BlobStorageMessageAttachmentProviderTests
         var awaitUpload = () => uploadTask;
         await awaitUpload.Should().ThrowAsync<OperationCanceledException>();
         source.BytesRead.Should().BeLessThan(source.Length);
+
+        var container = new BlobContainerClient(StorageSetup.ConnectionString, "cancel-test");
+        var leftovers = new List<string>();
+        await foreach (var blob in container.GetBlobsAsync())
+            leftovers.Add(blob.Name);
+        leftovers.Should().BeEmpty("a failed upload must not leave a blob behind");
     }
 
     private sealed class CancellingRandomStream(
