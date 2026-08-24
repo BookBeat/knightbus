@@ -262,9 +262,48 @@ public class BlobStorageMessageAttachmentProviderTests
         var id = await provider.UploadAttachmentAsync("meta-test", attachment);
         var result = await provider.GetAttachmentAsync("meta-test", id);
 
+        // Assert - the surface must not depend on whether compression is enabled
+        result
+            .Metadata.Should()
+            .BeEquivalentTo(
+                new Dictionary<string, string>
+                {
+                    { "key", "value" },
+                    { "supports-uf8-values", "åäö ÅÄÖ hej" },
+                    { BlobStorageMessageAttachmentProvider.FileNameKey, "meta.txt" },
+                }
+            );
+    }
+
+    [Test]
+    public async Task Compression_StoresAllMetadataBase64EncodedForOlderReaders()
+    {
+        // Arrange - readers predating UncompressedLength base64-decode every value
+        // except Filename, so a raw value there makes the attachment unreadable
+        var provider = new BlobStorageMessageAttachmentProvider(
+            new StorageBusConfiguration(StorageSetup.ConnectionString),
+            new BlobStorageAttachmentOptions { EnableCompression = true }
+        );
+
+        using var ms = new MemoryStream(Encoding.UTF8.GetBytes("Message"));
+        var attachment = new MessageAttachment("compat.txt", MediaTypeNames.Text.Plain, ms);
+
+        // Act
+        var id = await provider.UploadAttachmentAsync("base64-test", attachment);
+
         // Assert
-        result.Metadata.Should().Contain("key", "value");
-        result.Metadata.Should().Contain("supports-uf8-values", "åäö ÅÄÖ hej");
+        var properties = await new BlobClient(
+            StorageSetup.ConnectionString,
+            "base64-test",
+            id
+        ).GetPropertiesAsync();
+        foreach (var (key, value) in properties.Value.Metadata)
+        {
+            if (key == BlobStorageMessageAttachmentProvider.FileNameKey)
+                continue;
+            var decode = () => Convert.FromBase64String(value);
+            decode.Should().NotThrow($"'{key}' must be decodable by an older reader");
+        }
     }
 
     [Test]

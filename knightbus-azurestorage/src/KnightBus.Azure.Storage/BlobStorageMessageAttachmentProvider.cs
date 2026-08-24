@@ -64,22 +64,21 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
             ? new BrotliStream(blobStream, CompressionMode.Decompress, leaveOpen: false)
             : blobStream;
 
-        // A decompressing stream cannot report its length, so it is kept in blob metadata
+        var metadata = properties.Value.Metadata.ToDictionary(
+            x => x.Key,
+            x => Keys.Contains(x.Key) ? x.Value : FromBase64(x.Value)
+        );
+
+        // A decompressing stream cannot report its length, so it is kept in blob
+        // metadata. Removed here so the metadata a handler sees does not depend on
+        // whether compression is enabled
         var length = properties.Value.ContentLength;
         if (isCompressed)
         {
             length =
-                properties.Value.Metadata.TryGetValue(
-                    UncompressedLengthKey,
-                    out var uncompressedLength
-                )
-                && long.TryParse(
-                    uncompressedLength,
-                    NumberStyles.None,
-                    CultureInfo.InvariantCulture,
-                    out var parsedLength
-                )
-                    ? parsedLength
+                metadata.Remove(UncompressedLengthKey, out var stored)
+                && TryReadUncompressedLength(stored, out var uncompressedLength)
+                    ? uncompressedLength
                     : 0;
         }
 
@@ -87,10 +86,7 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
             properties.Value.Metadata[FileNameKey],
             properties.Value.ContentType,
             resultStream,
-            properties.Value.Metadata.ToDictionary(
-                x => x.Key,
-                x => Keys.Contains(x.Key) ? x.Value : FromBase64(x.Value)
-            ),
+            metadata,
             length
         );
     }
@@ -116,8 +112,10 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
         {
             id = $"{id}{CompressedFileExtension}";
             contentEncoding = "br";
-            metadata[UncompressedLengthKey] = attachment.Length.ToString(
-                CultureInfo.InvariantCulture
+            // Base64 like every other value: readers predating this key decode all
+            // metadata they do not know about, and a raw value throws there
+            metadata[UncompressedLengthKey] = ToBase64(
+                attachment.Length.ToString(CultureInfo.InvariantCulture)
             );
         }
 
@@ -276,6 +274,24 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
 
     private static string FromBase64(string str) =>
         Encoding.UTF8.GetString(Convert.FromBase64String(str));
+
+    private static bool TryReadUncompressedLength(string stored, out long length)
+    {
+        length = 0;
+        try
+        {
+            return long.TryParse(
+                FromBase64(stored),
+                NumberStyles.None,
+                CultureInfo.InvariantCulture,
+                out length
+            );
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
+    }
 
     private sealed class BlobMessageAttachment : MessageAttachment
     {

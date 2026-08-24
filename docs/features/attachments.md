@@ -98,6 +98,9 @@ uploads, the receiver downloads.
     (`CanSeek` is `false`); its `Length` is preserved through blob metadata, and reports `0` only
     for compressed attachments stored by `KnightBus.Azure.Storage` versions before 18.1.0.
 
+    `Filename` and `UncompressedLength` are reserved metadata keys — your own entries under those
+    names are overwritten on upload.
+
 === "Redis"
 
     ```csharp
