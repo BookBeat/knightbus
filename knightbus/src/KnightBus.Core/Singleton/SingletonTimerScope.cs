@@ -16,6 +16,11 @@ public class SingletonTimerScope : IDisposable
     private Task _runningTask;
     private Task _releaseTask;
 
+    /// <summary>
+    /// Completes when the renewal loop has stopped and the lock release has finished
+    /// </summary>
+    public Task Completion => _runningTask;
+
     public SingletonTimerScope(
         ILogger log,
         ISingletonLockHandle lockHandle,

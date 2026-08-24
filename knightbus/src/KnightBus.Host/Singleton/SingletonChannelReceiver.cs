@@ -12,6 +12,7 @@ internal class SingletonChannelReceiver : IChannelReceiver
     private readonly IChannelReceiver _channelReceiver;
     private readonly ISingletonLockManager _lockManager;
     private readonly ILogger _log;
+    private readonly CancellationToken? _teardownToken;
     private SingletonTimerScope _singletonScope;
     private readonly string _lockId;
     internal string LockId => _lockId;
@@ -22,16 +23,23 @@ internal class SingletonChannelReceiver : IChannelReceiver
     private bool _lockPollingEnabled = false;
     private Task _pollingLoop;
 
+    /// <summary>
+    /// Completes when the lock held by this receiver has been released
+    /// </summary>
+    internal Task TeardownCompletion => _singletonScope?.Completion ?? Task.CompletedTask;
+
     public SingletonChannelReceiver(
         IChannelReceiver channelReceiver,
         ISingletonLockManager lockManager,
         ILogger log,
-        string lockId = null
+        string lockId = null,
+        CancellationToken? teardownToken = null
     )
     {
         _channelReceiver = channelReceiver;
         _lockManager = lockManager;
         _log = log;
+        _teardownToken = teardownToken;
         _lockId = lockId ?? channelReceiver.GetType().FullName;
         //MaxConcurrent and Prefetch must have specific  values to work with a singleton implementation.
         //Override those and let the other values be set from the specific implementation
@@ -65,25 +73,34 @@ internal class SingletonChannelReceiver : IChannelReceiver
 
         if (lockHandle != null)
         {
-            var linkedTokenSource = CancellationTokenSource.CreateLinkedTokenSource(
-                cancellationToken
+            //The lock is held and renewed until the teardown token fires, while the wrapped
+            //receiver stops on the ordinary shutdown token. This keeps the lock through the
+            //host's message drain, so no other instance can start processing while this one
+            //is still finishing in-flight messages. Without a teardown token both phases
+            //collapse into one and the lock is released on the shutdown token.
+            var scopeTokenSource = CancellationTokenSource.CreateLinkedTokenSource(
+                _teardownToken ?? cancellationToken
+            );
+            var receiverTokenSource = CancellationTokenSource.CreateLinkedTokenSource(
+                cancellationToken,
+                scopeTokenSource.Token
             );
             _singletonScope = new SingletonTimerScope(
                 _log,
                 lockHandle,
                 true,
                 LockRefreshInterval,
-                linkedTokenSource
+                scopeTokenSource
             );
             _log.LogInformation("Starting Singleton Processor with name {ProcessorName}", _lockId);
-            await _channelReceiver.StartAsync(linkedTokenSource.Token).ConfigureAwait(false);
+            await _channelReceiver.StartAsync(receiverTokenSource.Token).ConfigureAwait(false);
             _lockPollingEnabled = false;
 
 #pragma warning disable 4014
             Task.Run(
                     () =>
                     {
-                        linkedTokenSource.Token.WaitHandle.WaitOne();
+                        scopeTokenSource.Token.WaitHandle.WaitOne();
                         //Stop signal received, restart the polling
                         if (!cancellationToken.IsCancellationRequested)
                         {
@@ -94,9 +111,13 @@ internal class SingletonChannelReceiver : IChannelReceiver
                             );
                         }
                     },
-                    cancellationToken
+                    CancellationToken.None
                 )
-                .ContinueWith(t => linkedTokenSource.Dispose());
+                .ContinueWith(t =>
+                {
+                    receiverTokenSource.Dispose();
+                    scopeTokenSource.Dispose();
+                });
 #pragma warning restore 4014
         }
         else
