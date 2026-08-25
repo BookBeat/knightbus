@@ -160,7 +160,36 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
             _knownContainers.TryAdd(queueName, 0);
         }
 
+        var startPosition = uploadStream.CanSeek ? uploadStream.Position : 0;
+        var sourceConsumed = false;
+
         try
+        {
+            await UploadCoreAsync().ConfigureAwait(false);
+        }
+        catch (RequestFailedException e) when (e.ErrorCode == BlobErrorCode.ContainerNotFound)
+        {
+            // The container was deleted after its existence was cached. Recreate it
+            // and retry once, unless the source cannot be replayed
+            _knownContainers.TryRemove(queueName, out _);
+            if (!uploadStream.CanSeek && sourceConsumed)
+            {
+                throw;
+            }
+
+            await container
+                .CreateIfNotExistsAsync(cancellationToken: cancellationToken)
+                .ConfigureAwait(false);
+            _knownContainers.TryAdd(queueName, 0);
+
+            if (uploadStream.CanSeek)
+            {
+                uploadStream.Position = startPosition;
+            }
+            await UploadCoreAsync().ConfigureAwait(false);
+        }
+
+        async Task UploadCoreAsync()
         {
             if (_options.EnableCompression)
             {
@@ -169,12 +198,14 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
                         uploadStream,
                         blobHttpHeaders,
                         metadata,
+                        () => sourceConsumed = true,
                         cancellationToken
                     )
                     .ConfigureAwait(false);
             }
             else
             {
+                sourceConsumed = true;
                 await container
                     .GetBlobClient(id)
                     .UploadAsync(
@@ -186,12 +217,6 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
                     .ConfigureAwait(false);
             }
         }
-        catch (RequestFailedException e) when (e.ErrorCode == BlobErrorCode.ContainerNotFound)
-        {
-            // The container was deleted after its existence was cached
-            _knownContainers.TryRemove(queueName, out _);
-            throw;
-        }
     }
 
     private async Task UploadCompressedBlobAsync(
@@ -199,6 +224,7 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
         Stream uploadStream,
         BlobHttpHeaders blobHttpHeaders,
         Dictionary<string, string> metadata,
+        Action sourceRead,
         CancellationToken cancellationToken
     )
     {
@@ -219,6 +245,7 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
                     cancellationToken: cancellationToken
                 )
                 .ConfigureAwait(false);
+            sourceRead();
             var compressionStream = new BrotliStream(
                 blobStream,
                 _options.CompressionLevel,

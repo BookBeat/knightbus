@@ -307,6 +307,41 @@ public class BlobStorageMessageAttachmentProviderTests
     }
 
     [Test]
+    [TestCase(true)]
+    [TestCase(false)]
+    public async Task UploadAttachmentAsync_RecreatesContainerDeletedAfterCaching(
+        bool useCompression
+    )
+    {
+        // Arrange - prime the provider's container cache, then delete the container
+        var containerName = useCompression ? "recreate-compressed" : "recreate-plain";
+        var provider = new BlobStorageMessageAttachmentProvider(
+            new StorageBusConfiguration(StorageSetup.ConnectionString),
+            new BlobStorageAttachmentOptions { EnableCompression = useCompression }
+        );
+        using (var first = new MemoryStream(Encoding.UTF8.GetBytes("first")))
+        {
+            await provider.UploadAttachmentAsync(
+                containerName,
+                new MessageAttachment("first.txt", MediaTypeNames.Text.Plain, first)
+            );
+        }
+        await new BlobContainerClient(StorageSetup.ConnectionString, containerName).DeleteAsync();
+
+        // Act
+        using var ms = new MemoryStream(Encoding.UTF8.GetBytes("second"));
+        var id = await provider.UploadAttachmentAsync(
+            containerName,
+            new MessageAttachment("second.txt", MediaTypeNames.Text.Plain, ms)
+        );
+
+        // Assert
+        var result = await provider.GetAttachmentAsync(containerName, id);
+        using var reader = new StreamReader(result.Stream);
+        (await reader.ReadToEndAsync()).Should().Be("second");
+    }
+
+    [Test]
     public async Task Compression_CancelledMidUpload_ThrowsWithoutHanging()
     {
         // Arrange - the source cancels the token partway through being read
