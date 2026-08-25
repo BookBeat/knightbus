@@ -1,5 +1,4 @@
 {
-  "dotnet.projectName": "Knightbus", // Set this to the project's name. Make sure the project follows the project naming pattern.
   "dotnet.configuration": "Debug", // Set this to the desired build configuration (Debug or Release).
   "dotnet.targetFramework": "10.0",
   "csharp.format.enable": true,
@@ -7,7 +6,7 @@
   "csharp.suppressHiddenDiagnostics": true,
   "dotnet.codeLens.enableReferencesCodeLens": true,
   "dotnet.codeLens.enableTestsCodeLens": true,
-  "dotnet.defaultSolution": "${config:dotnet.projectName}.sln",
+  "dotnet.defaultSolution": "KnightBus.slnx",
   "dotnet.preferVisualStudioCodeFileSystemWatcher": true,
   "editor.codeActionsOnSave": {
     "source.fixAll": "always",

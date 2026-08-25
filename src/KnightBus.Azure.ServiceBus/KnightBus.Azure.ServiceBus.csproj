@@ -17,8 +17,4 @@
     <ProjectReference Include="..\KnightBus.Core\KnightBus.Core.csproj" />
     <ProjectReference Include="..\KnightBus.Azure.ServiceBus.Messages\KnightBus.Azure.ServiceBus.Messages.csproj" />
   </ItemGroup>
-
-  <ItemGroup>
-    <Reference Include="System.Net.Http" Condition="'$(TargetFramework)' == 'net461'" />
-  </ItemGroup>
 </Project>

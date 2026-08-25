@@ -1,0 +1,46 @@
+name: Bug report
+description: Something in KnightBus does not behave the way it should
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you saw, and what you expected instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to reproduce
+      description: >
+        The smallest set of steps or code that shows the problem. A message type, its mapping, and
+        the host configuration are usually enough.
+      render: csharp
+    validations:
+      required: true
+
+  - type: input
+    id: packages
+    attributes:
+      label: Packages and versions
+      description: Which KnightBus packages, at which versions.
+      placeholder: KnightBus.Core 18.2.2, KnightBus.Azure.ServiceBus 24.0.0
+    validations:
+      required: true
+
+  - type: input
+    id: runtime
+    attributes:
+      label: .NET version
+      placeholder: net10.0
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or stack trace
+      description: Anything the host logged. Leave out connection strings and keys.
+      render: text

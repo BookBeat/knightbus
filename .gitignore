@@ -31,8 +31,13 @@ _ReSharper*/
 #Nuget packages folder
 packages/
 
-# Ignore IDE folders
-.vscode/
+# Ignore IDE folders, except the few VS Code files that are shared on purpose
+# (they were committed already, while the folder was ignored wholesale).
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/*.code-workspace
 .idea
 
 # Ignore documentation build output generated VSCode

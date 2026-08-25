@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using Microsoft.Extensions.DependencyInjection;
-
-[assembly: InternalsVisibleTo("KnightBus.DependencyInjection.Tests.Unit")]
 
 namespace KnightBus.Core.DependencyInjection;
 

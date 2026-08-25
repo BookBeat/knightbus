@@ -67,7 +67,11 @@ markdown_extensions:
       anchor_linenums: true
       line_spans: __span
   - pymdownx.inlinehilite
-  - pymdownx.snippets
+  # base_path reaches the repository root so docs/contributing.md can include the
+  # CONTRIBUTING.md that GitHub surfaces, rather than the two drifting apart.
+  - pymdownx.snippets:
+      base_path: ["."]
+      check_paths: true
   - pymdownx.superfences
   - pymdownx.tabbed:
       alternate_style: true

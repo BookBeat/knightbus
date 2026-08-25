@@ -143,6 +143,6 @@ Defaults to `NewtonsoftSerializer`.
 
 ## Example
 
-[`KnightBus.Examples.Nats`](https://github.com/BookBeat/knightbus/tree/master/knightbus/examples/KnightBus.Examples.Nats)
+[`KnightBus.Samples.Nats`](https://github.com/BookBeat/knightbus/tree/master/samples/KnightBus.Samples.Nats)
 demonstrates a streaming request, events with two subscriptions, and attachments stored in Blob
 Storage.

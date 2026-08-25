@@ -86,7 +86,7 @@ public class ThumbnailRequested : IRedisCommand { }
   interface that changes KnightBus' behaviour, and where to put it.
 
 Runnable samples for every transport live in
-[`knightbus/examples`](https://github.com/BookBeat/knightbus/tree/master/knightbus/examples) in the
+[`samples`](https://github.com/BookBeat/knightbus/tree/master/samples) in the
 repository. They are built by CI, so they always compile against the current API.
 
 ## Requirements

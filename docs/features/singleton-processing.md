@@ -103,7 +103,7 @@ Two contract details matter:
 - **`RenewAsync` returns `true`** when the lease was renewed. Renewal is retried up to three times
   with backoff before the lock is considered lost.
 
-The [Schedule example](https://github.com/BookBeat/knightbus/tree/master/knightbus/examples/KnightBus.Examples.Schedule)
+The [Schedule example](https://github.com/BookBeat/knightbus/tree/master/samples/KnightBus.Samples.Schedule)
 contains a minimal in-memory implementation, useful for local development and tests but not for
 production — an in-memory lock cannot coordinate across processes.
 

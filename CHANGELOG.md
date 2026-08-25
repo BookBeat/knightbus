@@ -2,6 +2,31 @@
 
 # 2026-08-25
 
+### Repository restructure
+No package changed for consumers. The published package ids and versions are identical to what
+`master` produced before this change, and the packaged file lists are byte-for-byte the same; only
+where the sources live has moved. Two assemblies differ in metadata only: `KnightBus.Core` and
+`KnightBus.Schedule` each dropped an `InternalsVisibleTo` naming a test project that does not exist.
+* Projects moved from the merged-multi-repo layout (`knightbus/` plus eleven `knightbus-*` folders)
+  into `src/`, `tests/` and `samples/`. `KnightBus.slnx` keeps the grouping in solution folders
+* The sample applications were renamed `KnightBus.Examples.*` to `KnightBus.Samples.*`. They are not
+  published packages
+* Package versions are now managed centrally in `Directory.Packages.props`. Two dependencies that
+  had drifted were unified: `Azure.Identity` to 1.17.1 in `KnightBus.PostgreSql.Extensions.Azure`,
+  and `Microsoft.Extensions.Hosting` to 10.0.0 in the ServiceBus producer sample. The
+  `Azure.Identity` bump pulls newer transitive dependencies into the two Azure extension packages —
+  `Microsoft.IdentityModel.Abstractions` 6.35.0 to 8.14.0, `Microsoft.Identity.Client` 4.76.0 to
+  4.78.0, `Azure.Core` 1.49.0 to 1.50.0, `System.ClientModel` 1.7.0 to 1.8.0. None of these appear
+  in a nuspec, so what consumers resolve is unchanged
+* Settings shared by the test projects moved to `tests/Directory.Build.props` and
+  `tests/Directory.Build.targets`
+* Fixed: the pre-release workflow decided what to publish by diffing `<Version>` lines, which
+  treats a moved project file as a version bump on every package. It now matches projects by file
+  name and compares the declared versions against the branch point
+* Added `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, issue and pull request templates,
+  and a dependabot configuration. The pre-commit hook moved to `.githooks/`, installed with
+  `git config core.hooksPath .githooks`
+
 ### KnightBus.PostgreSql 4.0.0
 * PostgresBus now runs message pre-processors on send, schedule and publish, storing the returned properties in the `properties` column. Attachments and outgoing distributed tracing now work on this transport
 * `publish_events` gained a three-argument overload carrying properties; the two-argument overload is kept for older publishers. A publisher that finds the new overload missing creates it and retries, which requires DDL rights on the knightbus schema — roles without them can create it up front via `QueueInitializer.InitPublishFunction`

@@ -1,0 +1,33 @@
+name: Feature request
+description: Suggest something KnightBus should be able to do
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do, and where does KnightBus get in the way today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you have in mind
+      description: >
+        A sketch of the API or behaviour, if you have one. It does not need to be finished.
+    validations:
+      required: true
+
+  - type: input
+    id: area
+    attributes:
+      label: Which part of KnightBus
+      description: The transport, package, or feature this concerns.
+      placeholder: KnightBus.PostgreSql
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What you have tried instead
+      description: Workarounds you are using today, and why they are not enough.

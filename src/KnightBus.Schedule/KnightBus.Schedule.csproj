@@ -15,7 +15,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="KnightBus.Schedule.Tests.Integration" />
     <InternalsVisibleTo Include="KnightBus.Schedule.Tests.Unit" />
   </ItemGroup>
 </Project>
