@@ -1,5 +1,13 @@
 # CHANGELOG
 
+# 2026-08-25
+
+### KnightBus.PostgreSql 4.0.0
+* PostgresBus now runs message pre-processors on send, schedule and publish, storing the returned properties in the `properties` column. Attachments and outgoing distributed tracing now work on this transport
+* `publish_events` gained a three-argument overload carrying properties; the two-argument overload is kept for older publishers. A publisher that finds the new overload missing creates it and retries, which requires DDL rights on the knightbus schema — roles without them can create it up front via `QueueInitializer.InitPublishFunction`
+* Breaking: the PostgresBus constructor takes `IEnumerable<IMessagePreProcessor>`. No change needed when resolving `IPostgresBus` through DI
+* Fixed: ScheduleAsync with a fractional-second delay no longer fails under comma-decimal cultures for batches under 50 messages; the delay is now a typed interval parameter
+
 # 2026-08-24
 
 ### KnightBus.Azure.Storage 18.1.0

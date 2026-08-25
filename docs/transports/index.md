@@ -31,7 +31,7 @@ What the transport itself can do:
 | Dead letter queue | ✅ | ✅ | ✅ | ✅ | — |
 | Management API | ✅ | ✅ | ✅ | ✅ | — |
 | Message lock extension | — | ✅ | — | — | — |
-| Carries attachments | ✅ | ✅ | — | ✅ | ✅ |
+| Carries attachments | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Default serializer | Newtonsoft | Newtonsoft | System.Text.Json | Newtonsoft | Newtonsoft |
 
 What each package *ships* — a different question, answered by a different table:
@@ -66,12 +66,7 @@ concurrent writes.
 
 ### Where the transport does constrain you
 
-Two rows in the first table are the real couplings, and they fail in opposite directions.
-
-**Carries attachments** is about the send side. An attachment is uploaded by an
-[`IMessagePreProcessor`](../concepts/messages.md#pre-processing-messages-on-send), and `PostgresBus`
-does not run pre-processors — so a message sent over PostgreSQL never gets its attachment stored,
-whichever provider is registered. Every other transport carries attachments from either provider.
+One row in the first table is a real coupling.
 
 **Message lock extension** is about the receive side. `ExtendMessageLockDurationMiddleware` is a core
 middleware you may register on any host, but it can only renew a lock the transport lets it renew:

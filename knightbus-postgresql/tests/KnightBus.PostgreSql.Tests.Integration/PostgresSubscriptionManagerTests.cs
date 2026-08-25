@@ -33,7 +33,8 @@ public class PostgresSubscriptionManagerTests : QueueManagerTests<PostgresTestEv
         QueueType = QueueType.Subscription;
         _bus = new PostgresBus(
             PostgresSetup.DataSource,
-            new PostgresConfiguration { MessageSerializer = new MicrosoftJsonSerializer() }
+            new PostgresConfiguration { MessageSerializer = new MicrosoftJsonSerializer() },
+            []
         );
         await QueueInitializer.InitSubscription(
             PostgresQueueName.Create(AutoMessageMapper.GetQueueName<PostgresTestEvent>()),

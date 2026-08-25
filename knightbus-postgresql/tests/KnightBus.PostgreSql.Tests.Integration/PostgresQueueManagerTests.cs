@@ -30,7 +30,8 @@ public class PostgresQueueManagerTests : QueueManagerTests<PostgresTestCommand>
         QueueType = QueueType.Queue;
         _bus = new PostgresBus(
             PostgresSetup.DataSource,
-            new PostgresConfiguration { MessageSerializer = new MicrosoftJsonSerializer() }
+            new PostgresConfiguration { MessageSerializer = new MicrosoftJsonSerializer() },
+            []
         );
 
         await QueueInitializer.InitQueue(
