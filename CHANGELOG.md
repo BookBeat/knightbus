@@ -1,5 +1,12 @@
 # CHANGELOG
 
+# 2026-08-24
+
+### KnightBus.Azure.Storage 18.1.0
+* Attachment compression and decompression now stream instead of buffering the whole attachment in memory; compressed results up to 4 MB are still buffered and sent as a single request
+* Compressed attachments keep their uncompressed `Length` via blob metadata; their `Stream` is now read-forward only (`CanSeek` is `false`). `Length` is `0` for attachments from non-seekable sources and for compressed attachments stored by older versions
+* The attachment container is created up front on the first upload per container per provider, instead of on a failed upload; a container deleted afterwards is recreated and the upload retried once
+
 # 2025-12-19
 
 ### KnightBus.Core.Management 18.1.0

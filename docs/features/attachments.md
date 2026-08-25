@@ -93,6 +93,17 @@ uploads, the receiver downloads.
     `ContentEncoding: br`, and decompression on read is decided per blob by that suffix — so turning
     compression on is backwards compatible with attachments already in the store.
 
+    Compression and decompression stream — a compressed result over 4&nbsp;MB is uploaded in blocks
+    as it is produced rather than buffered whole in memory (smaller results are buffered and sent
+    as a single request), and downloads decompress on the fly. Reading a compressed attachment
+    makes its `Stream` **read-forward only**
+    (`CanSeek` is `false`); its `Length` is preserved through blob metadata, and reports `0` for
+    attachments sent from non-seekable streams and for compressed attachments stored by
+    `KnightBus.Azure.Storage` versions before 18.1.0.
+
+    `Filename` is a reserved metadata key, and `UncompressedLength` is reserved when compression
+    is enabled — your own entries under those names are overwritten on upload.
+
 === "Redis"
 
     ```csharp
