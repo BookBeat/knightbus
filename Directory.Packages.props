@@ -4,8 +4,8 @@
     csproj files carries only the package id.
 
     This is versioning of *dependencies*. Each package's own <Version> deliberately
-    stays in its .csproj — the pre-release workflow decides what to publish by
-    diffing those elements, so moving them here would silently publish nothing.
+    stays in its .csproj — the pre-release workflow decides what to publish by reading
+    those elements, so moving them here would silently publish nothing.
   -->
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>

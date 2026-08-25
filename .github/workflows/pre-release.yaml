@@ -53,28 +53,59 @@ jobs:
 
           git fetch --no-tags --prune origin +refs/heads/*:refs/remotes/origin/*
 
-          BASE="${{ env.BASE_REF }}"
-          echo "Diffing against base: $BASE"
+          # Compare against the branch point, not the tip of master. Against the tip, a package
+          # that master released after this branch was cut compares unequal, and a pre-release run
+          # from the stale branch would publish it at the older version it still has here.
+          BASE="$(git merge-base "${{ env.BASE_REF }}" HEAD)"
+          echo "Comparing against branch point $BASE (${{ env.BASE_REF }})"
 
-          # Changed csprojs (exclude obj/)
-          mapfile -t CSPROJS < <(git diff --name-only "$BASE"...HEAD -- '**/*.csproj' | grep -v '/obj/' || true)
+          # Read the declared version out of a csproj at a given revision, e.g. "HEAD:src/X/X.csproj".
+          # Prints nothing if the file does not exist there or declares no version.
+          version_at() {
+            git show "$1" 2>/dev/null \
+              | grep -oE '<(Version|VersionPrefix|PackageVersion)>[^<]*' \
+              | head -n1 \
+              | sed -E 's/^<[^>]+>//' \
+              || true
+          }
 
-          if [[ ${#CSPROJS[@]} -eq 0 ]]; then
-            echo "No csproj changes vs $BASE."
-            echo "hasPackages=false" >> "$GITHUB_OUTPUT"
-            echo "packProjects=" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
+          # Every project on the base, indexed by project file name.
+          BASE_INDEX="$(mktemp)"
+          git ls-tree -r --name-only "$BASE" \
+            | grep -E '\.csproj$' \
+            | grep -v '/obj/' \
+            | awk -F/ '{print $NF "\t" $0}' > "$BASE_INDEX"
 
+          # Compare each project's declared version against its counterpart on the base, matched
+          # by project file name rather than by path.
+          #
+          # Matching by name is what makes moving a project a non-event. Project file names are
+          # unique across the repository and are the published package ids, so the same name is
+          # the same package wherever it sits. A diff cannot express that: `git diff -- <path>`
+          # limits the pathspec to the new path, so git never sees the deletion at the old path
+          # to pair it with, reports the file as wholly added, and every line - including an
+          # untouched <Version> - reads as a bump. Rename detection does not save it either,
+          # since a project file that also changed can fall below the similarity threshold.
+          # Either way a repository restructure would publish every package at its current
+          # version, and it would do so silently.
           PACK_PROJECTS=()
 
-          for f in "${CSPROJS[@]}"; do
-            DIFF="$(git diff -U0 "$BASE"...HEAD -- "$f" || true)"
-            if echo "$DIFF" | grep -E '^[+-].*<(Version|VersionPrefix|PackageVersion)>' >/dev/null; then
-              echo "Version change detected in: $f"
-              PACK_PROJECTS+=("$f")
+          while IFS= read -r head_path; do
+            name="$(basename "$head_path")"
+            base_path="$(awk -F'\t' -v n="$name" '$1 == n {print $2; exit}' "$BASE_INDEX")"
+
+            head_version="$(version_at "HEAD:$head_path")"
+            base_version=""
+            if [[ -n "$base_path" ]]; then
+              base_version="$(version_at "$BASE:$base_path")"
             fi
-          done
+
+            # Unversioned projects - tests and samples - compare equal and are skipped.
+            if [[ "$head_version" != "$base_version" ]]; then
+              echo "Version change detected in $head_path: ${base_version:-none} -> ${head_version:-none}"
+              PACK_PROJECTS+=("$head_path")
+            fi
+          done < <(git ls-tree -r --name-only HEAD | grep -E '\.csproj$' | grep -v '/obj/')
 
           if [[ ${#PACK_PROJECTS[@]} -eq 0 ]]; then
             echo "No version bumps detected."
