@@ -8,7 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace KnightBus.Examples.Azure.ServiceBus.Producer;
+namespace KnightBus.Samples.Azure.ServiceBus.Producer;
 
 public class ProducerService : BackgroundService
 {

@@ -14,7 +14,7 @@ using KnightBus.Redis.Messages;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace KnightBus.Examples.Redis;
+namespace KnightBus.Samples.Redis;
 
 class Program
 {

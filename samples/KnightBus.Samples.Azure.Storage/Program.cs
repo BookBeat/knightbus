@@ -15,7 +15,7 @@ using KnightBus.Messages;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace KnightBus.Examples.Azure.Storage;
+namespace KnightBus.Samples.Azure.Storage;
 
 internal class Program
 {

@@ -13,8 +13,8 @@
     <PackageReference Include="Azure.Storage.Queues" Version="12.25.0" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\knightbus-newtonsoft\src\KnightBus.Newtonsoft\KnightBus.Newtonsoft.csproj" />
-    <ProjectReference Include="..\..\..\knightbus\src\KnightBus.Core\KnightBus.Core.csproj" />
+    <ProjectReference Include="..\KnightBus.Newtonsoft\KnightBus.Newtonsoft.csproj" />
+    <ProjectReference Include="..\KnightBus.Core\KnightBus.Core.csproj" />
     <ProjectReference Include="..\KnightBus.Azure.Storage.Messages\KnightBus.Azure.Storage.Messages.csproj" />
   </ItemGroup>
 </Project>

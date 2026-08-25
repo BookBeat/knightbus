@@ -15,7 +15,7 @@ using KnightBus.Nats.Messages;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace KnightBus.Examples.Nats;
+namespace KnightBus.Samples.Nats;
 
 class Program
 {

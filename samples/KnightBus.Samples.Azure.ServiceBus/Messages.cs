@@ -2,7 +2,7 @@ using KnightBus.Azure.ServiceBus;
 using KnightBus.Azure.ServiceBus.Messages;
 using KnightBus.Messages;
 
-namespace KnightBus.Examples.Azure.ServiceBus;
+namespace KnightBus.Samples.Azure.ServiceBus;
 
 public class OtherSampleServiceBusMessage : IServiceBusCommand
 {

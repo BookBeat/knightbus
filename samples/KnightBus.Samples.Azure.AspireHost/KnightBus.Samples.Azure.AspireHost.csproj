@@ -7,8 +7,8 @@
     <UserSecretsId>b2ad9cab-ed30-4aba-b11f-df0144c0ee91</UserSecretsId>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../KnightBus.Examples.Azure.ServiceBus.Producer/KnightBus.Examples.Azure.ServiceBus.Producer.csproj" />
-    <ProjectReference Include="../KnightBus.Examples.Azure.ServiceBus/KnightBus.Examples.Azure.ServiceBus.csproj" />
+    <ProjectReference Include="../KnightBus.Samples.Azure.ServiceBus.Producer/KnightBus.Samples.Azure.ServiceBus.Producer.csproj" />
+    <ProjectReference Include="../KnightBus.Samples.Azure.ServiceBus/KnightBus.Samples.Azure.ServiceBus.csproj" />
     <PackageReference Include="Aspire.Hosting.Azure.ServiceBus" Version="13.0.2" />
   </ItemGroup>
 </Project>

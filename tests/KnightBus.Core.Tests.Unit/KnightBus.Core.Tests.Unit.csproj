@@ -11,8 +11,8 @@
     <PackageReference Include="NUnit3TestAdapter" Version="5.0.0" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\knightbus-newtonsoft\src\KnightBus.Newtonsoft\KnightBus.Newtonsoft.csproj" />
-    <ProjectReference Include="..\..\..\knightbus-schedule\src\KnightBus.Schedule\KnightBus.Schedule.csproj" />
+    <ProjectReference Include="..\..\src\KnightBus.Newtonsoft\KnightBus.Newtonsoft.csproj" />
+    <ProjectReference Include="..\..\src\KnightBus.Schedule\KnightBus.Schedule.csproj" />
     <ProjectReference Include="..\..\src\KnightBus.Core\KnightBus.Core.csproj" />
   </ItemGroup>
 </Project>

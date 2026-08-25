@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\knightbus\src\KnightBus.Core.Management\KnightBus.Core.Management.csproj" />
+    <ProjectReference Include="..\KnightBus.Core.Management\KnightBus.Core.Management.csproj" />
     <ProjectReference Include="..\KnightBus.Redis\KnightBus.Redis.csproj" />
   </ItemGroup>
 </Project>

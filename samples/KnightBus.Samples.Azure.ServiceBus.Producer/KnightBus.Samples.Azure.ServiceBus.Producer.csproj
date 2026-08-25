@@ -5,12 +5,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\knightbus-azureservicebus\src\KnightBus.Azure.ServiceBus\KnightBus.Azure.ServiceBus.csproj" />
-    <ProjectReference Include="..\..\..\knightbus-opentelemetry\src\KnightBus.OpenTelemetry\KnightBus.OpenTelemetry.csproj" />
+    <ProjectReference Include="..\..\src\KnightBus.Azure.ServiceBus\KnightBus.Azure.ServiceBus.csproj" />
+    <ProjectReference Include="..\..\src\KnightBus.OpenTelemetry\KnightBus.OpenTelemetry.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\KnightBus.Examples.Azure.ServiceBus\Messages.cs" Link="Messages.cs" />
+    <Compile Include="..\KnightBus.Samples.Azure.ServiceBus\Messages.cs" Link="Messages.cs" />
   </ItemGroup>
 
   <ItemGroup>

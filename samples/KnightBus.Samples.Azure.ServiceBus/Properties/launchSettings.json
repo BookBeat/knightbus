@@ -7,7 +7,7 @@
       "launchBrowser": false,
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "OTEL_SERVICE_NAME": "KnightBus.Examples.Azure.ServiceBus",
+        "OTEL_SERVICE_NAME": "KnightBus.Samples.Azure.ServiceBus",
         "OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT": "4095",
         "OTEL_EXPORTER_OTLP_COMPRESSION": "gzip",
         "OTEL_EXPORTER_OTLP_PROTOCOL": "http/protobuf",

@@ -14,13 +14,13 @@ topic.AddServiceBusSubscription("subscription-2");
 
 // Add the consumer (KnightBus host) - waits for Service Bus to be ready
 builder
-    .AddProject<Projects.KnightBus_Examples_Azure_ServiceBus>("servicebushost")
+    .AddProject<Projects.KnightBus_Samples_Azure_ServiceBus>("servicebushost")
     .WithReference(serviceBus)
     .WaitFor(serviceBus);
 
 // Add the producer - waits for Service Bus to be ready
 builder
-    .AddProject<Projects.KnightBus_Examples_Azure_ServiceBus_Producer>("producer")
+    .AddProject<Projects.KnightBus_Samples_Azure_ServiceBus_Producer>("producer")
     .WithReference(serviceBus)
     .WaitFor(serviceBus);
 

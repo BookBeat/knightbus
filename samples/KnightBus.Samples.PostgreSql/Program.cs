@@ -13,7 +13,7 @@ using KnightBus.PostgreSql.Messages;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace KnightBus.Examples.PostgreSql;
+namespace KnightBus.Samples.PostgreSql;
 
 class Program
 {

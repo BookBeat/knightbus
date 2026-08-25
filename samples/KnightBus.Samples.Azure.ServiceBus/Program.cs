@@ -18,7 +18,7 @@ using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
-namespace KnightBus.Examples.Azure.ServiceBus;
+namespace KnightBus.Samples.Azure.ServiceBus;
 
 class Program
 {
@@ -57,7 +57,7 @@ class Program
                         .AddOpenTelemetry()
                         .ConfigureResource(resourceBuilder =>
                         {
-                            resourceBuilder.AddService("KnightBus.Examples.Azure.ServiceBus");
+                            resourceBuilder.AddService("KnightBus.Samples.Azure.ServiceBus");
                         })
                         .UseOtlpExporter()
                         .WithTracing(builder =>
