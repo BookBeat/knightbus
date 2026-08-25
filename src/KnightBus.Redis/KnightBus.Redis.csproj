@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net9.0;net10.0</TargetFrameworks>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Description>Redis Transport for KnightBus</Description>
+    <Version>16.0.0$(VersionSuffix)</Version>
+    <PackageTags>knightbus;redis;queues;messaging</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="StackExchange.Redis" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\KnightBus.Newtonsoft\KnightBus.Newtonsoft.csproj" />
+    <ProjectReference Include="..\KnightBus.Core\KnightBus.Core.csproj" />
+    <ProjectReference Include="..\KnightBus.Redis.Messages\KnightBus.Redis.Messages.csproj" />
+  </ItemGroup>
+</Project>

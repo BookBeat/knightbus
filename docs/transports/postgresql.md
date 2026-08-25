@@ -176,6 +176,6 @@ change — see [serialization](../concepts/serialization.md#defaults-differ-per-
 
 ## Example
 
-[`KnightBus.Examples.PostgreSql`](https://github.com/BookBeat/knightbus/tree/master/knightbus/examples/KnightBus.Examples.PostgreSql)
+[`KnightBus.Samples.PostgreSql`](https://github.com/BookBeat/knightbus/tree/master/samples/KnightBus.Samples.PostgreSql)
 covers commands, events with two subscriptions, a poison message, a saga and a custom shutdown grace
 period.

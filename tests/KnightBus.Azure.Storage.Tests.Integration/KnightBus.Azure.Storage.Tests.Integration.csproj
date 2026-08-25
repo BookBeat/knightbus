@@ -1,0 +1,12 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="Moq" />
+    <PackageReference Include="Testcontainers.Azurite" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\KnightBus.Shared.Tests.Integration\KnightBus.Shared.Tests.Integration.csproj" />
+    <ProjectReference Include="..\..\src\KnightBus.Azure.Storage.Management\KnightBus.Azure.Storage.Management.csproj" />
+    <ProjectReference Include="..\..\src\KnightBus.Azure.Storage\KnightBus.Azure.Storage.csproj" />
+  </ItemGroup>
+</Project>

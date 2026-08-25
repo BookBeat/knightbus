@@ -193,7 +193,7 @@ read-only on the interface.
 
 ## Example
 
-[`KnightBus.Examples.Azure.Storage`](https://github.com/BookBeat/knightbus/tree/master/knightbus/examples/KnightBus.Examples.Azure.Storage)
+[`KnightBus.Samples.Azure.Storage`](https://github.com/BookBeat/knightbus/tree/master/samples/KnightBus.Samples.Azure.Storage)
 shows attachments, the blob lock manager, the blob saga store and distributed tracing together. Run
 it against [Azurite](https://learn.microsoft.com/azure/storage/common/storage-use-azurite) with
 `UseDevelopmentStorage=true`.

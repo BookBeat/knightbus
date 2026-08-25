@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net9.0;net10.0</TargetFrameworks>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Description>Azure Service Bus Transport for KnightBus</Description>
+    <Version>24.0.0$(VersionSuffix)</Version>
+    <PackageTags>knightbus;azure servicebus;amqp;queues;messaging</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Azure.Identity" />
+    <PackageReference Include="Azure.Messaging.ServiceBus" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\KnightBus.Newtonsoft\KnightBus.Newtonsoft.csproj" />
+    <ProjectReference Include="..\KnightBus.Core\KnightBus.Core.csproj" />
+    <ProjectReference Include="..\KnightBus.Azure.ServiceBus.Messages\KnightBus.Azure.ServiceBus.Messages.csproj" />
+  </ItemGroup>
+</Project>

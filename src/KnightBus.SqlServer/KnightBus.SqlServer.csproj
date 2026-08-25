@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net9.0;net10.0</TargetFrameworks>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Description>Sql Server for KnightBus</Description>
+    <Version>17.0.0$(VersionSuffix)</Version>
+    <PackageTags>knightbus;sql;sql server;saga;</PackageTags>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.SqlClient" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\KnightBus.Core\KnightBus.Core.csproj" />
+  </ItemGroup>
+</Project>

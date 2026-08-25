@@ -1,0 +1,38 @@
+version: 2
+updates:
+  # NuGet versions are centralised, so dependabot edits Directory.Packages.props.
+  - package-ecosystem: nuget
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      # These ship with the runtime and are pinned per target framework; moving them
+      # one at a time produces a stream of near-identical pull requests.
+      dotnet-runtime:
+        patterns:
+          - "Microsoft.Extensions.*"
+          - "System.*"
+      opentelemetry:
+        patterns:
+          - "OpenTelemetry*"
+      testing:
+        patterns:
+          - "NUnit*"
+          - "Microsoft.NET.Test.Sdk"
+          - "Moq"
+          - "FluentAssertions"
+          - "AwesomeAssertions"
+          - "Testcontainers*"
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+
+  # docs/requirements.txt is hash-pinned, so these pull requests need the hashes
+  # regenerated rather than a version line edited.
+  - package-ecosystem: pip
+    directory: "/docs"
+    schedule:
+      interval: monthly

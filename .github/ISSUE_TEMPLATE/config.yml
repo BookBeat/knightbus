@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation
+    url: https://bookbeat.github.io/knightbus/
+    about: Getting started, the transports, and the feature guides.
+  - name: Security vulnerability
+    url: https://github.com/BookBeat/knightbus/security/advisories/new
+    about: Report privately rather than in a public issue.

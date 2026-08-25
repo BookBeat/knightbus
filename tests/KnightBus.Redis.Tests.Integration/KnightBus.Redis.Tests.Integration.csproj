@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" />
+    <PackageReference Include="Moq" />
+    <PackageReference Include="Testcontainers.Redis" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\KnightBus.Shared.Tests.Integration\KnightBus.Shared.Tests.Integration.csproj" />
+    <ProjectReference Include="..\..\src\KnightBus.Redis.Management\KnightBus.Redis.Management.csproj" />
+    <ProjectReference Include="..\..\src\KnightBus.Redis\KnightBus.Redis.csproj" />
+  </ItemGroup>
+</Project>

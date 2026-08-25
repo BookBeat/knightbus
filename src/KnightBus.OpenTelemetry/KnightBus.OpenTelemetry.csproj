@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net9.0;net10.0</TargetFrameworks>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Description>OpenTelemetry for KnightBus</Description>
+    <Version>1.0.0-alpha3$(VersionSuffix)</Version>
+    <PackageTags>knightbus;opentelemetry;tracing;observability</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" Visible="false" PackagePath="" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="OpenTelemetry.Api" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\KnightBus.Core\KnightBus.Core.csproj" />
+  </ItemGroup>
+</Project>

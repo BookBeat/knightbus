@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!--
+      Base classes the transport integration suites derive from, not a suite of its own.
+      See tests/Directory.Build.targets for why the runner packages are kept out.
+    -->
+    <IsTestSuite>false</IsTestSuite>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="FluentAssertions" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\KnightBus.Core.Management\KnightBus.Core.Management.csproj" />
+    <ProjectReference Include="..\..\src\KnightBus.Host\KnightBus.Host.csproj" />
+  </ItemGroup>
+</Project>

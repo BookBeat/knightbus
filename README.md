@@ -33,7 +33,7 @@
 |------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | [KnightBus.ApplicationInsights](https://www.nuget.org/packages/KnightBus.ApplicationInsights/)             | [![KnightBus.ApplicationInsights](https://img.shields.io/nuget/v/KnightBus.ApplicationInsights.svg)](https://www.nuget.org/packages/KnightBus.ApplicationInsights/)                   |
 | [KnightBus.NewRelic](https://www.nuget.org/packages/KnightBus.NewRelic/)                                   | [![KnightBus.NewRelic](https://img.shields.io/nuget/v/KnightBus.NewRelic.svg)](https://www.nuget.org/packages/KnightBus.NewRelic/)                                                    |
-| [KnightBus.OpenTelemetry](knightbus-opentelemetry/README.md)                                               | [![KnightBus.OpenTelemetry](https://img.shields.io/nuget/v/KnightBus.OpenTelemetry.svg)](https://www.nuget.org/packages/KnightBus.OpenTelemetry/)                                     |
+| [KnightBus.OpenTelemetry](src/KnightBus.OpenTelemetry/README.md)                                               | [![KnightBus.OpenTelemetry](https://img.shields.io/nuget/v/KnightBus.OpenTelemetry.svg)](https://www.nuget.org/packages/KnightBus.OpenTelemetry/)                                     |
 
 ## Serialization
 | Package                                                                                                    | NuGet                                                                                                                                                                                 |
@@ -137,6 +137,17 @@ public class CustomPlugin : IPlugin
 }
 ```
 
+## Repository layout
+
+```
+src/        One folder per published package
+tests/      One folder per test project, plus the shared integration base classes
+samples/    Runnable example applications
+docs/       The documentation site, and the brand assets
+```
+
+`CONTRIBUTING.md` covers building, testing, formatting and releasing.
+
 ## Documentation
 
 The documentation site is built with [MkDocs Material](https://squidfunk.github.io/mkdocs-material/)
@@ -160,12 +171,12 @@ $ mkdocs build --strict
 
 
 ## Examples
-Several examples of KnightBus usage can be found in the `knightbus/examples` folder.
+Several examples of KnightBus usage can be found in the `samples` folder.
 
 ## Azure Service Bus Aspire Host OpenTelemetry Example
-An example of an Aspire Host using KnightBus with Azure Service Bus can be found in the `knightbus/examples/KnightBus.Examples.Azure.AspireHost` folder.
+An example of an Aspire Host using KnightBus with Azure Service Bus can be found in the `samples/KnightBus.Samples.Azure.AspireHost` folder.
 
-You can run the example Service Bus Aspire Host locally by executing the following command in the `knightbus/examples/KnightBus.Examples.Azure.AspireHost` folder:
+You can run the example Service Bus Aspire Host locally by executing the following command in the `samples/KnightBus.Samples.Azure.AspireHost` folder:
 
 ```console
 dotnet run 

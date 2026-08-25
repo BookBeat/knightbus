@@ -1,0 +1,12 @@
+# Normalise line endings on the way into the repository. Existing files keep whatever
+# is already stored; this is deliberately not paired with `git add --renormalize`, which
+# would rewrite every file at once.
+* text=auto eol=lf
+
+# Explicit rather than inferred, so nothing here is treated as binary. Normalising line
+# endings does not touch a leading BOM, which .editorconfig requires on C# sources.
+*.cs text eol=lf
+
+*.png binary
+*.ico binary
+*.svg text eol=lf

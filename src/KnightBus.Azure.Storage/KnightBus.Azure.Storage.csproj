@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net9.0;net10.0</TargetFrameworks>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Description>Azure Storage Transport for KnightBus</Description>
+    <Version>18.1.0$(VersionSuffix)</Version>
+    <PackageTags>knightbus;azure storage;blob;queues;messaging</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Azure.Identity" />
+    <PackageReference Include="Azure.Storage.Blobs" />
+    <PackageReference Include="Azure.Storage.Queues" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\KnightBus.Newtonsoft\KnightBus.Newtonsoft.csproj" />
+    <ProjectReference Include="..\KnightBus.Core\KnightBus.Core.csproj" />
+    <ProjectReference Include="..\KnightBus.Azure.Storage.Messages\KnightBus.Azure.Storage.Messages.csproj" />
+  </ItemGroup>
+</Project>

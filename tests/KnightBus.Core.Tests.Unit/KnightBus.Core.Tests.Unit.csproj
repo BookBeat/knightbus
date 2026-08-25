@@ -1,0 +1,12 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Moq" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\KnightBus.Newtonsoft\KnightBus.Newtonsoft.csproj" />
+    <ProjectReference Include="..\..\src\KnightBus.Schedule\KnightBus.Schedule.csproj" />
+    <ProjectReference Include="..\..\src\KnightBus.Core\KnightBus.Core.csproj" />
+  </ItemGroup>
+</Project>

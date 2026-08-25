@@ -194,4 +194,4 @@ and so on). The [transport pages](transports/index.md) list the exact client sur
   on one page.
 
 Complete runnable programs for each transport live in
-[`knightbus/examples`](https://github.com/BookBeat/knightbus/tree/master/knightbus/examples).
+[`samples`](https://github.com/BookBeat/knightbus/tree/master/samples).

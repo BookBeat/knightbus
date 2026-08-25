@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net9.0;net10.0</TargetFrameworks>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Description>NATS for KnightBus</Description>
+    <Version>7.0.0$(VersionSuffix)</Version>
+    <PackageTags>knightbus;nats;queues;messaging</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\KnightBus.Newtonsoft\KnightBus.Newtonsoft.csproj" />
+    <ProjectReference Include="..\KnightBus.Core\KnightBus.Core.csproj" />
+    <ProjectReference Include="..\KnightBus.Nats.Messages\KnightBus.Nats.Messages.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NATS.Client" />
+  </ItemGroup>
+</Project>

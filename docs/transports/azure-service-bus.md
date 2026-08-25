@@ -195,7 +195,7 @@ Defaults to `NewtonsoftSerializer`. See [serialization](../concepts/serializatio
 
 ## Example
 
-[`KnightBus.Examples.Azure.ServiceBus`](https://github.com/BookBeat/knightbus/tree/master/knightbus/examples/KnightBus.Examples.Azure.ServiceBus)
+[`KnightBus.Samples.Azure.ServiceBus`](https://github.com/BookBeat/knightbus/tree/master/samples/KnightBus.Samples.Azure.ServiceBus)
 demonstrates commands, events with two subscriptions, the dead letter hook, creation options,
 management and OpenTelemetry. A separate producer example and an Aspire host that runs both against
 the Service Bus emulator sit alongside it.

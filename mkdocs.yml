@@ -11,7 +11,7 @@ edit_uri: edit/master/docs/
 theme:
   name: material
   logo: assets/images/knightbus-logo.svg
-  favicon: assets/images/knighbus-64.png
+  favicon: assets/images/knightbus-64.png
   icon:
     repo: fontawesome/brands/github
   palette:
@@ -67,7 +67,11 @@ markdown_extensions:
       anchor_linenums: true
       line_spans: __span
   - pymdownx.inlinehilite
-  - pymdownx.snippets
+  # base_path reaches the repository root so docs/contributing.md can include the
+  # CONTRIBUTING.md that GitHub surfaces, rather than the two drifting apart.
+  - pymdownx.snippets:
+      base_path: ["."]
+      check_paths: true
   - pymdownx.superfences
   - pymdownx.tabbed:
       alternate_style: true

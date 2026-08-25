@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\KnightBus.Azure.ServiceBus.Management\KnightBus.Azure.ServiceBus.Management.csproj" />
+    <ProjectReference Include="..\..\src\KnightBus.Azure.ServiceBus\KnightBus.Azure.ServiceBus.csproj" />
+    <ProjectReference Include="..\..\src\KnightBus.Host\KnightBus.Host.csproj" />
+    <ProjectReference Include="..\..\src\KnightBus.OpenTelemetry\KnightBus.OpenTelemetry.csproj" />
+    <ProjectReference Include="..\..\src\KnightBus.NewRelic\KnightBus.NewRelic.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="OpenTelemetry" />
+    <PackageReference Include="OpenTelemetry.Exporter.Console" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Process" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Http" />
+  </ItemGroup>
+</Project>

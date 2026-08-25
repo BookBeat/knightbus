@@ -153,6 +153,6 @@ Defaults to `NewtonsoftSerializer`.
 
 ## Example
 
-[`KnightBus.Examples.Redis`](https://github.com/BookBeat/knightbus/tree/master/knightbus/examples/KnightBus.Examples.Redis)
+[`KnightBus.Samples.Redis`](https://github.com/BookBeat/knightbus/tree/master/samples/KnightBus.Samples.Redis)
 covers commands, events with three subscriptions, attachments, a saga and a custom performance-logging
 middleware. Start Redis with `docker run -p 6379:6379 redis`.

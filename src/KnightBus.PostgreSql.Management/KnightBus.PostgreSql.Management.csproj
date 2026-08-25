@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net9.0;net10.0</TargetFrameworks>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Description>PostgreSQL Transport Management for KnightBus</Description>
+    <Version>4.1.0$(VersionSuffix)</Version>
+    <PackageTags>knightbus;postgresql;queues;messaging</PackageTags>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Npgsql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\KnightBus.Core.Management\KnightBus.Core.Management.csproj" />
+    <ProjectReference Include="..\KnightBus.Messages\KnightBus.Messages.csproj" />
+    <ProjectReference Include="..\KnightBus.PostgreSql\KnightBus.PostgreSql.csproj" />
+  </ItemGroup>
+</Project>

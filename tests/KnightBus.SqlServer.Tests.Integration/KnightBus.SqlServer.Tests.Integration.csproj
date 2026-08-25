@@ -1,0 +1,11 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="Moq" />
+    <PackageReference Include="Testcontainers.MsSql" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\KnightBus.Shared.Tests.Integration\KnightBus.Shared.Tests.Integration.csproj" />
+    <ProjectReference Include="..\..\src\KnightBus.SqlServer\KnightBus.SqlServer.csproj" />
+  </ItemGroup>
+</Project>
