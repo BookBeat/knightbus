@@ -144,19 +144,19 @@ A saga that never completes lingers until its `TimeToLive` expires.
 
 ## Concurrency
 
-!!! danger "Only the Blob store detects concurrent writes"
+!!! danger "Only the Blob and Redis stores detect concurrent writes"
     Saga state carries a `ConcurrencyStamp`, but of the four shipped stores **only `BlobSagaStore`
-    populates and checks it**. On the PostgreSQL, SQL Server and Redis stores, `UpdateAsync` is an
-    unconditional overwrite: two messages for the same saga processed simultaneously will both
-    succeed, and the second silently discards the first one's changes.
-    `SagaDataConflictException` is never raised by those three.
+    and `RedisSagaStore` populate and check it**. On the PostgreSQL and SQL Server stores,
+    `UpdateAsync` is an unconditional overwrite: two messages for the same saga processed
+    simultaneously will both succeed, and the second silently discards the first one's changes.
+    `SagaDataConflictException` is never raised by those two.
 
     If a saga can receive concurrent messages and correctness depends on not losing an update, you
-    must either use the Blob store or serialize processing with `MaxConcurrentCalls => 1` on the
-    saga's settings. Making the update idempotent is not sufficient on its own — a lost update is
-    lost regardless of how the write is shaped.
+    must either use the Blob or Redis store or serialize processing with `MaxConcurrentCalls => 1`
+    on the saga's settings. Making the update idempotent is not sufficient on its own — a lost update
+    is lost regardless of how the write is shaped.
 
-Where concurrency *is* detected — the Blob store — the losing write throws
+Where concurrency *is* detected — the Blob and Redis stores — the losing write throws
 `SagaDataConflictException`. That propagates like any other handler failure, so the message is retried
 and picks up the newer state. The work already done in the losing attempt runs twice, so keep saga
 handlers cheap or idempotent.
@@ -168,19 +168,15 @@ handlers cheap or idempotent.
 | `BlobSagaStore` | **Yes** — blob ETag | Checked on read; blobs are not deleted | Container `knightbus-sagas`. |
 | `PostgresSagaStore` | **No** — last write wins | Checked on read; rows are not deleted | Table `knightbus.sagas`, created on demand. |
 | `SqlServerSagaStore` | **No** — last write wins | Checked on read; rows are not deleted | Table `dbo.Sagastore`, created on demand. See size limits below. |
-| `RedisSagaStore` | **No** — last write wins | Native Redis TTL, but see caveat | Keys `sagas:{partitionKey}:{id}`. |
+| `RedisSagaStore` | **Yes** — concurrency stamp | Native Redis TTL, preserved across updates; keys are removed on complete or expiry | Hash `sagas:{partitionKey}:{id}` with `data` and `stamp` fields. |
 
 !!! warning "SQL Server store size limits"
     `dbo.Sagastore` stores the partition key and id as `NVARCHAR(50)` and the serialized state as
     `NVARCHAR(4000)`. Anything longer fails to persist, so keep SQL Server saga state small.
 
-!!! warning "Redis sagas stop expiring once updated"
-    `RedisSagaStore` sets the TTL when the saga is created, but `UpdateAsync` rewrites the key without
-    preserving it. Any saga that is ever updated — the normal case — becomes a key with no expiry and
-    is never reclaimed. Budget for that, or expire the keys yourself.
-
 Expiry in the Blob, PostgreSQL and SQL Server stores is evaluated when the saga is *read*: an expired
-saga reports as not found, but its row or blob stays. Clean up periodically if that matters.
+saga reports as not found, but its row or blob stays. Clean up periodically if that matters. Redis
+uses native key expiry, so expired sagas are removed by Redis itself.
 
 ## Duplicate starts
 
@@ -221,7 +217,7 @@ surfaces — retries then see a duplicate until the saga's `TimeToLive` expires.
 | --- | --- |
 | `SagaNotFoundException` | A non-start message arrived for a saga that does not exist (or has expired). |
 | `SagaAlreadyStartedException` | A start message arrived for a saga that already exists. Handled internally — see [duplicate starts](#duplicate-starts). |
-| `SagaDataConflictException` | Optimistic concurrency conflict on write. Only the Blob store raises it. |
+| `SagaDataConflictException` | Optimistic concurrency conflict on write. Raised by the Blob and Redis stores. |
 | `SagaStorageFailedException` | The underlying store failed. |
 | `SagaMessageMappingNotFoundException` | A message reached the saga with no `MapMessage`/`MapStartMessage` registered. |
 
@@ -249,9 +245,10 @@ The contract expectations are: `Create` throws `SagaAlreadyStartedException` if 
 `GetSaga` throws `SagaNotFoundException` if it does not, and `Update`/`Complete` throw
 `SagaDataConflictException` when the `ConcurrencyStamp` no longer matches.
 
-Note that of the shipped stores only `BlobSagaStore` honours that last expectation. If you need
-reliable conflict detection, a custom store implementing it properly is a legitimate reason to write
-one.
+Of the shipped stores, `BlobSagaStore` and `RedisSagaStore` honour that last expectation; PostgreSQL
+and SQL Server do not. A custom store should treat a null or empty `ConcurrencyStamp` as an
+unconditional write and report a missing saga as `SagaNotFoundException` before checking the stamp —
+the shared conformance tests expect both.
 
 ## See also
 

@@ -103,20 +103,26 @@ large or long-lived attachments since Redis keeps everything in memory.
 services.UseRedisSagaStore();
 ```
 
-State is stored under `sagas:{partitionKey}:{id}`. Like the attachment provider, this is independent
-of the transport: it stores [saga](../features/sagas.md) state for messages arriving on any
-transport, and sagas over Redis can just as well use the Blob, PostgreSQL or SQL Server store.
+Like the attachment provider, this is independent of the transport: it stores
+[saga](../features/sagas.md) state for messages arriving on any transport, and sagas over Redis can
+just as well use the Blob, PostgreSQL or SQL Server store.
 
-!!! warning "No concurrent-write detection, and updated sagas never expire"
-    Two independent problems with this store:
+Each saga is a Redis hash at `sagas:{partitionKey}:{id}` with two fields: `data` holds the serialized
+state and `stamp` the concurrency stamp. `Create` sets the saga's `TimeToLive` as the key expiry, and
+because updates only rewrite hash fields the expiry is preserved until the saga completes or Redis
+expires it.
 
-    - It does not track `ConcurrencyStamp`, so simultaneous writes to the same saga silently
-      overwrite one another instead of raising a conflict. Serialize the saga with
-      `MaxConcurrentCalls => 1` or use the Blob store.
-    - The TTL is set when the saga is created, but updating it rewrites the key without preserving
-      the TTL. Any saga that is ever updated becomes a permanent key.
+Concurrent writes are detected. `Create` and `GetSaga` return a `ConcurrencyStamp`, and an `Update`
+or `Complete` whose stamp no longer matches throws `SagaDataConflictException`, which retries the
+message — see [saga concurrency](../features/sagas.md#concurrency). Each write is a single Lua script
+on a single key, so the check and the write are atomic and the store works unchanged on Redis
+Cluster. The server must allow `EVAL`, `EVALSHA` and `SCRIPT LOAD`.
 
-    See [saga concurrency](../features/sagas.md#concurrency).
+!!! warning "Upgrading from 15.x"
+    Versions before 16.0.0 stored each saga as a plain string under the same key. A 16.x host reading
+    such a key fails with `WRONGTYPE`, and a 15.x host reading a 16.x hash fails the same way. Let
+    running sagas finish, or delete `sagas:*`, before upgrading, and do not run both versions against
+    one Redis database.
 
 ## Management
 

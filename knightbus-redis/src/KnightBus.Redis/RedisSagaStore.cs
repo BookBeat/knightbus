@@ -10,6 +10,51 @@ namespace KnightBus.Redis;
 
 public class RedisSagaStore : ISagaStore
 {
+    internal const string DataField = "data";
+    internal const string StampField = "stamp";
+
+    private const long Ok = 1;
+    private const long Missing = 0;
+    private const long Conflict = -1;
+
+    private static readonly RedisValue[] Fields = [DataField, StampField];
+
+    // KEYS[1] saga, ARGV[1] data, ARGV[2] stamp, ARGV[3] ttl in milliseconds
+    private const string CreateScript = $$"""
+        if redis.call('EXISTS', KEYS[1]) == 1 then
+          return -1
+        end
+        redis.call('HSET', KEYS[1], '{{DataField}}', ARGV[1], '{{StampField}}', ARGV[2])
+        redis.call('PEXPIRE', KEYS[1], ARGV[3])
+        return 1
+        """;
+
+    // KEYS[1] saga, ARGV[1] data, ARGV[2] expected stamp or '', ARGV[3] new stamp
+    private const string UpdateScript = $$"""
+        local current = redis.call('HGET', KEYS[1], '{{StampField}}')
+        if not current then
+          return 0
+        end
+        if ARGV[2] ~= '' and current ~= ARGV[2] then
+          return -1
+        end
+        redis.call('HSET', KEYS[1], '{{DataField}}', ARGV[1], '{{StampField}}', ARGV[3])
+        return 1
+        """;
+
+    // KEYS[1] saga, ARGV[1] expected stamp or ''
+    private const string CompleteScript = $$"""
+        local current = redis.call('HGET', KEYS[1], '{{StampField}}')
+        if not current then
+          return 0
+        end
+        if ARGV[1] ~= '' and current ~= ARGV[1] then
+          return -1
+        end
+        redis.call('DEL', KEYS[1])
+        return 1
+        """;
+
     private readonly IConnectionMultiplexer _connectionMultiplexer;
     private readonly IRedisConfiguration _configuration;
     private readonly IMessageSerializer _serializer;
@@ -26,29 +71,43 @@ public class RedisSagaStore : ISagaStore
 
     public async Task<SagaData<T>> GetSaga<T>(string partitionKey, string id, CancellationToken ct)
     {
-        byte[] saga = await GetDatabase()
-            .StringGetAsync(GetKey(partitionKey, id))
+        var values = await GetDatabase()
+            .HashGetAsync(GetKey(partitionKey, id), Fields)
             .ConfigureAwait(false);
-        if (saga == null)
+        if (values[0].IsNull)
             throw new SagaNotFoundException(partitionKey, id);
-        return new SagaData<T> { Data = _serializer.Deserialize<T>(saga.AsSpan()) };
+        return new SagaData<T>
+        {
+            Data = _serializer.Deserialize<T>((ReadOnlyMemory<byte>)values[0]),
+            ConcurrencyStamp = values[1],
+        };
     }
 
     public async Task<SagaData<T>> Create<T>(
         string partitionKey,
         string id,
-        T sagaData,
+        T data,
         TimeSpan ttl,
         CancellationToken ct
     )
     {
-        var saga = _serializer.Serialize(sagaData);
-        var sagaSaved = await GetDatabase()
-            .StringSetAsync(GetKey(partitionKey, id), saga, ttl, When.NotExists)
+        var stamp = NewStamp();
+        var result = await GetDatabase()
+            .ScriptEvaluateAsync(
+                CreateScript,
+                [GetKey(partitionKey, id)],
+                [_serializer.Serialize(data), stamp, ToMilliseconds(ttl)]
+            )
             .ConfigureAwait(false);
-        if (!sagaSaved)
-            throw new SagaAlreadyStartedException(partitionKey, id);
-        return new SagaData<T> { Data = sagaData };
+        switch (ReadCode(result))
+        {
+            case Ok:
+                return new SagaData<T> { Data = data, ConcurrencyStamp = stamp };
+            case Conflict:
+                throw new SagaAlreadyStartedException(partitionKey, id);
+            default:
+                throw new SagaStorageFailedException(partitionKey, id);
+        }
     }
 
     public async Task Update<T>(
@@ -58,22 +117,37 @@ public class RedisSagaStore : ISagaStore
         CancellationToken ct
     )
     {
-        var saga = _serializer.Serialize(sagaData.Data);
-        var sagaSaved = await GetDatabase()
-            .StringSetAsync(GetKey(partitionKey, id), saga, null, When.Exists)
+        var stamp = NewStamp();
+        var result = await GetDatabase()
+            .ScriptEvaluateAsync(
+                UpdateScript,
+                [GetKey(partitionKey, id)],
+                [
+                    _serializer.Serialize(sagaData.Data),
+                    sagaData.ConcurrencyStamp ?? string.Empty,
+                    stamp,
+                ]
+            )
             .ConfigureAwait(false);
-        if (!sagaSaved)
-            throw new SagaNotFoundException(partitionKey, id);
+        ThrowUnlessOk(result, partitionKey, id);
+        sagaData.ConcurrencyStamp = stamp;
     }
 
-    public Task Complete<T>(
+    public async Task Complete<T>(
         string partitionKey,
         string id,
         SagaData<T> sagaData,
         CancellationToken ct
     )
     {
-        return Delete(partitionKey, id, ct);
+        var result = await GetDatabase()
+            .ScriptEvaluateAsync(
+                CompleteScript,
+                [GetKey(partitionKey, id)],
+                [sagaData.ConcurrencyStamp ?? string.Empty]
+            )
+            .ConfigureAwait(false);
+        ThrowUnlessOk(result, partitionKey, id);
     }
 
     public async Task Delete(string partitionKey, string id, CancellationToken ct)
@@ -90,4 +164,27 @@ public class RedisSagaStore : ISagaStore
 
     private static RedisKey GetKey(string partitionKey, string id) =>
         RedisQueueConventions.GetSagaKey(partitionKey, id);
+
+    private static string NewStamp() => Guid.NewGuid().ToString("N");
+
+    private static long ToMilliseconds(TimeSpan ttl) =>
+        Math.Max(1, (long)Math.Ceiling(ttl.TotalMilliseconds));
+
+    private static long ReadCode(RedisResult result) =>
+        result.IsNull ? long.MinValue : (long)result;
+
+    private static void ThrowUnlessOk(RedisResult result, string partitionKey, string id)
+    {
+        switch (ReadCode(result))
+        {
+            case Ok:
+                return;
+            case Missing:
+                throw new SagaNotFoundException(partitionKey, id);
+            case Conflict:
+                throw new SagaDataConflictException(partitionKey, id);
+            default:
+                throw new SagaStorageFailedException(partitionKey, id);
+        }
+    }
 }

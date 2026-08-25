@@ -61,8 +61,8 @@ So all of these are ordinary arrangements, not workarounds:
 
 Pick each row of the second table on its own merits — cost, durability, what you already operate —
 and mix freely. The differences that matter are between the *implementations*, not the transports:
-see [sagas](../features/sagas.md#concurrency) for the important one, that only the Blob store detects
-concurrent writes.
+see [sagas](../features/sagas.md#concurrency) for the important one, that only the Blob and Redis
+stores detect concurrent writes.
 
 ### Where the transport does constrain you
 

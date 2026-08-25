@@ -145,9 +145,9 @@ services.UseBlobStorageSagas();
 ```
 
 State is stored in the `knightbus-sagas` container with the blob ETag providing optimistic
-concurrency — the only shipped store that detects concurrent writes, which is reason enough to choose
-it whatever transport carries the saga's messages. Expiry is evaluated on read, so expired blobs are
-reported as not found but are not deleted for you. See [sagas](../features/sagas.md).
+concurrency, so concurrent writes to the same saga are detected — of the shipped stores only this one
+and Redis do that, whatever transport carries the saga's messages. Expiry is evaluated on read, so
+expired blobs are reported as not found but are not deleted for you. See [sagas](../features/sagas.md).
 
 ## Singleton lock manager
 

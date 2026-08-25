@@ -256,6 +256,7 @@ anywhere else. Only queue management is transport-specific. See the
 | Lock extension has no effect | Middleware not registered, or transport is not Azure Storage Queues. |
 | Attachment is null on receive | No attachment provider on the receiving host, or the message was sent over PostgreSQL. |
 | Dead letter hook never fires | Transport's own delivery limit is lower than `DeadLetterDeliveryLimit`. |
+| `WRONGTYPE` from the Redis saga store | Saga keys written by KnightBus.Redis 15.x or earlier; drain or delete `sagas:*` before upgrading. |
 | Custom serializer ignored | Placed on the message or processor instead of the mapping — or sending over PostgreSQL. |
 | `An instance of ISagaStore is already registered` | Two saga stores registered; only one is allowed. |
 | Events not received by a new subscriber (Redis) | Fan-out happens at publish time; the subscription must exist before events are published. |
