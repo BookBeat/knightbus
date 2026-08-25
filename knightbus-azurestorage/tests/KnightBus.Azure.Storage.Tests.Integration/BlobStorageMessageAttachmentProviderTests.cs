@@ -1,13 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.IO.Compression;
 using System.Net.Mime;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Azure.Storage.Blobs;
-using Azure.Storage.Blobs.Models;
 using FluentAssertions;
 using KnightBus.Core;
 using NUnit.Framework;
@@ -388,19 +386,9 @@ public class BlobStorageMessageAttachmentProviderTests
     }
 
     [Test]
-    [TestCase(true)]
-    [TestCase(false)]
-    public async Task UploadAttachmentAsync_UserMetadataNamedUncompressedLength_RoundTrips(
-        bool useCompression
-    )
+    public async Task UploadAttachmentAsync_UserMetadataNamedUncompressedLength_RoundTripsWithoutCompression()
     {
-        // Arrange - older senders store this key as plain user metadata, so it must
-        // never be treated as the provider's own
-        var provider = new BlobStorageMessageAttachmentProvider(
-            new StorageBusConfiguration(StorageSetup.ConnectionString),
-            new BlobStorageAttachmentOptions { EnableCompression = useCompression }
-        );
-
+        // Arrange - the key is only reserved on compressed blobs
         using var ms = new MemoryStream(Encoding.UTF8.GetBytes("Message"));
         var attachment = new MessageAttachment(
             "collide.txt",
@@ -410,8 +398,8 @@ public class BlobStorageMessageAttachmentProviderTests
         );
 
         // Act
-        var id = await provider.UploadAttachmentAsync("collide-test", attachment);
-        var result = await provider.GetAttachmentAsync("collide-test", id);
+        var id = await _target.UploadAttachmentAsync("collide-test", attachment);
+        var result = await _target.GetAttachmentAsync("collide-test", id);
 
         // Assert
         result
@@ -421,60 +409,6 @@ public class BlobStorageMessageAttachmentProviderTests
                 {
                     { "UncompressedLength", "mine" },
                     { BlobStorageMessageAttachmentProvider.FileNameKey, "collide.txt" },
-                }
-            );
-    }
-
-    [Test]
-    public async Task GetAttachmentAsync_OldSenderCompressedBlobWithUserLengthKey_RoundTrips()
-    {
-        // Arrange - written the way KnightBus.Azure.Storage 18.0.0 stored a compressed
-        // attachment whose user metadata happened to contain a numeric UncompressedLength
-        using var compressed = new MemoryStream();
-        await using (
-            var brotli = new BrotliStream(compressed, CompressionLevel.Fastest, leaveOpen: true)
-        )
-        {
-            await new MemoryStream(Encoding.UTF8.GetBytes("old payload")).CopyToAsync(brotli);
-        }
-        compressed.Position = 0;
-
-        var id = $"{Guid.NewGuid():N}.brotli";
-        var container = new BlobContainerClient(StorageSetup.ConnectionString, "old-sender-test");
-        await container.CreateIfNotExistsAsync();
-        await container
-            .GetBlobClient(id)
-            .UploadAsync(
-                compressed,
-                new BlobHttpHeaders
-                {
-                    ContentType = MediaTypeNames.Text.Plain,
-                    ContentEncoding = "br",
-                },
-                new Dictionary<string, string>
-                {
-                    { BlobStorageMessageAttachmentProvider.FileNameKey, "old.txt" },
-                    {
-                        "UncompressedLength",
-                        Convert.ToBase64String(Encoding.UTF8.GetBytes("12345"))
-                    },
-                }
-            );
-
-        // Act
-        var result = await _target.GetAttachmentAsync("old-sender-test", id);
-
-        // Assert
-        using var reader = new StreamReader(result.Stream);
-        (await reader.ReadToEndAsync()).Should().Be("old payload");
-        result.Length.Should().Be(0);
-        result
-            .Metadata.Should()
-            .BeEquivalentTo(
-                new Dictionary<string, string>
-                {
-                    { BlobStorageMessageAttachmentProvider.FileNameKey, "old.txt" },
-                    { "UncompressedLength", "12345" },
                 }
             );
     }

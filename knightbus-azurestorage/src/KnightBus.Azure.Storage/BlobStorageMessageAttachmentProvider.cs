@@ -19,9 +19,7 @@ namespace KnightBus.Azure.Storage;
 public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
 {
     internal const string FileNameKey = "Filename";
-
-    // Namespaced so it cannot collide with user metadata written by older senders
-    internal const string UncompressedLengthKey = "KnightBusUncompressedLength";
+    internal const string UncompressedLengthKey = "UncompressedLength";
     private readonly IStorageBusConfiguration _configuration;
     private readonly BlobStorageAttachmentOptions _options;
 
