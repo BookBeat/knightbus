@@ -3,10 +3,10 @@
 # 2026-08-25
 
 ### KnightBus.Redis 16.0.0
-* Breaking: sagas are stored as Redis hashes with `data` and `stamp` fields instead of strings, under the same `sagas:{partitionKey}:{id}` key. 15.x and 16.x cannot share a saga store — let running sagas finish or delete `sagas:*` before upgrading, and do not roll back to 15.x with 16.x sagas in place
+* Breaking: sagas are stored as Redis hashes with `data` and `stamp` fields instead of strings, under the same `sagas:{partitionKey}:{id}` key. 16.x fails with `WRONGTYPE` on every 15.x saga key, so delete `sagas:*` (with `SCAN`, not `KEYS`) before upgrading; draining alone is not enough, because a 15.x saga that was updated and never completed has no expiry. Do not roll back to 15.x with 16.x sagas in place — 15.x silently drops start messages for them and overwrites them on update
 * `RedisSagaStore` detects concurrent writes: `Create` and `GetSaga` return a `ConcurrencyStamp`, and `Update`/`Complete` throw `SagaDataConflictException` when the stamp no longer matches. A null or empty stamp still writes or deletes unconditionally
-* Updating a saga no longer clears its TTL; the expiry set by `Create` is kept until the saga completes or expires. Sagas that 15.x left without an expiry after their first update now end when their `TimeToLive` runs out
-* `Create`, `Update` and `Complete` run as single atomic Lua scripts and `Delete` is a single `DEL`, removing the read-then-delete race. The server must allow `EVAL`
+* Updating a saga no longer clears its TTL; the expiry set by `Create` is kept until the saga completes or expires
+* `Create`, `Update` and `Complete` run as single atomic Lua scripts and `Delete` is a single `DEL`, removing the read-then-delete race. The server must allow `EVAL`, `EVALSHA` and `SCRIPT LOAD`
 * Saga methods validate the partition key, id and TTL and honour an already-cancelled `CancellationToken` before talking to Redis
 * Added `RedisQueueConventions.GetSagaKey`
 

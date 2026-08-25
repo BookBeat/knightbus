@@ -108,7 +108,7 @@ public class ConcurrentSagaStoreTests : SagaStoreTests
             TimeSpan.FromMinutes(1),
             CancellationToken.None
         );
-        //act & assert
+        //act
         await SagaStore
             .Awaiting(x =>
                 x.Complete(
@@ -120,6 +120,9 @@ public class ConcurrentSagaStoreTests : SagaStoreTests
             )
             .Should()
             .ThrowAsync<SagaDataConflictException>();
+        //assert
+        var saga = await SagaStore.GetSaga<Data>(partitionKey, id, CancellationToken.None);
+        saga.Data.Message.Should().Be("yo");
     }
 
     [Test]
@@ -148,36 +151,6 @@ public class ConcurrentSagaStoreTests : SagaStoreTests
             .Awaiting(x => x.GetSaga<Data>(partitionKey, id, CancellationToken.None))
             .Should()
             .ThrowAsync<SagaNotFoundException>();
-    }
-
-    [Test]
-    public async Task Complete_should_keep_the_saga_when_stamp_differs()
-    {
-        //arrange
-        var partitionKey = Guid.NewGuid().ToString("N");
-        var id = Guid.NewGuid().ToString("N");
-        await SagaStore.Create(
-            partitionKey,
-            id,
-            new Data { Message = "yo" },
-            TimeSpan.FromMinutes(1),
-            CancellationToken.None
-        );
-        //act
-        await SagaStore
-            .Awaiting(x =>
-                x.Complete(
-                    partitionKey,
-                    id,
-                    new SagaData<Data> { ConcurrencyStamp = "stale" },
-                    CancellationToken.None
-                )
-            )
-            .Should()
-            .ThrowAsync<SagaDataConflictException>();
-        //assert
-        var saga = await SagaStore.GetSaga<Data>(partitionKey, id, CancellationToken.None);
-        saga.Data.Message.Should().Be("yo");
     }
 
     [Test]

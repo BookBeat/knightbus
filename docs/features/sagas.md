@@ -160,7 +160,10 @@ A saga that never completes lingers until its `TimeToLive` expires.
 Where concurrency *is* detected — the Blob and Redis stores — the losing write throws
 `SagaDataConflictException`. That propagates like any other handler failure, so the message is retried
 and picks up the newer state. The work already done in the losing attempt runs twice, so keep saga
-handlers cheap or idempotent.
+handlers cheap or idempotent. If the loser was the saga's *start* message, the middleware also deletes
+the saga before the exception propagates (see
+[failure during the start message](#failure-during-the-start-message)), which discards the winning
+write as well; the retry then starts the saga afresh.
 
 ## Choosing a store
 

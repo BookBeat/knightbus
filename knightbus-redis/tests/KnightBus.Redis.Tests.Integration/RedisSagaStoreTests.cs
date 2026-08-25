@@ -221,6 +221,60 @@ public class RedisSagaStoreTests : ConcurrentSagaStoreTests
             .Where(e => e.Message.Contains("WRONGTYPE"));
     }
 
+    [Test]
+    public async Task Update_should_fail_with_wrongtype_for_a_saga_written_by_15x()
+    {
+        //arrange
+        var partitionKey = Guid.NewGuid().ToString("N");
+        var id = Guid.NewGuid().ToString("N");
+        await SeedLegacySaga(partitionKey, id);
+        //act & assert
+        await SagaStore
+            .Awaiting(x =>
+                x.Update(
+                    partitionKey,
+                    id,
+                    new SagaData<Data> { Data = new Data { Message = "updated" } },
+                    CancellationToken.None
+                )
+            )
+            .Should()
+            .ThrowAsync<RedisServerException>()
+            .Where(e => e.Message.Contains("WRONGTYPE"));
+    }
+
+    [Test]
+    public async Task Complete_should_fail_with_wrongtype_for_a_saga_written_by_15x()
+    {
+        //arrange
+        var partitionKey = Guid.NewGuid().ToString("N");
+        var id = Guid.NewGuid().ToString("N");
+        await SeedLegacySaga(partitionKey, id);
+        //act & assert
+        await SagaStore
+            .Awaiting(x =>
+                x.Complete(partitionKey, id, new SagaData<Data>(), CancellationToken.None)
+            )
+            .Should()
+            .ThrowAsync<RedisServerException>()
+            .Where(e => e.Message.Contains("WRONGTYPE"));
+    }
+
+    [Test]
+    public async Task Delete_should_remove_a_saga_written_by_15x()
+    {
+        //arrange
+        var partitionKey = Guid.NewGuid().ToString("N");
+        var id = Guid.NewGuid().ToString("N");
+        await SeedLegacySaga(partitionKey, id);
+        //act
+        await SagaStore.Delete(partitionKey, id, CancellationToken.None);
+        //assert
+        (await RedisTestBase.Database.KeyExistsAsync(Key(partitionKey, id)))
+            .Should()
+            .BeFalse();
+    }
+
     [TestCase(0)]
     [TestCase(-1)]
     public async Task Create_should_throw_when_ttl_is_not_positive(int seconds)
