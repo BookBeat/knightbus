@@ -19,8 +19,9 @@ namespace KnightBus.Azure.Storage;
 public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
 {
     internal const string FileNameKey = "Filename";
-    internal const string UncompressedLengthKey = "UncompressedLength";
-    private static readonly HashSet<string> Keys = [FileNameKey, UncompressedLengthKey];
+
+    // Namespaced so it cannot collide with user metadata written by older senders
+    internal const string UncompressedLengthKey = "KnightBusUncompressedLength";
     private readonly IStorageBusConfiguration _configuration;
     private readonly BlobStorageAttachmentOptions _options;
 
@@ -66,7 +67,10 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
 
         var metadata = properties.Value.Metadata.ToDictionary(
             x => x.Key,
-            x => Keys.Contains(x.Key) ? x.Value : FromBase64(x.Value)
+            x =>
+                x.Key == FileNameKey || (isCompressed && x.Key == UncompressedLengthKey)
+                    ? x.Value
+                    : FromBase64(x.Value)
         );
 
         // A decompressing stream cannot report its length, so it is kept in blob

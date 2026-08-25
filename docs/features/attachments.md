@@ -99,8 +99,8 @@ uploads, the receiver downloads.
     attachments sent from non-seekable streams and for compressed attachments stored by
     `KnightBus.Azure.Storage` versions before 18.1.0.
 
-    `Filename` and `UncompressedLength` are reserved metadata keys — your own entries under those
-    names are overwritten on upload.
+    `Filename` and `KnightBusUncompressedLength` are reserved metadata keys — your own entries
+    under those names are overwritten on upload.
 
 === "Redis"
 
