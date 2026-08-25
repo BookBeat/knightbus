@@ -26,6 +26,7 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
     private readonly ConcurrentDictionary<string, byte> _knownContainers = new();
 
     private const string CompressedFileExtension = ".brotli";
+    private const long SingleRequestThresholdBytes = 4 * 1024 * 1024;
 
     public BlobStorageMessageAttachmentProvider(string connectionString)
         : this(new StorageBusConfiguration(connectionString)) { }
@@ -237,48 +238,92 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
         CancellationToken cancellationToken
     )
     {
-        var options = new BlockBlobOpenWriteOptions
-        {
-            HttpHeaders = blobHttpHeaders,
-            Metadata = metadata,
-        };
-
+        Stream blobStream = null;
         try
         {
-            // On failure the streams are deliberately not disposed: disposing the blob
-            // write stream would commit the partially staged blocks as a truncated blob,
-            // while uncommitted blocks are garbage collected by the service
-            var blobStream = await blob.OpenWriteAsync(
-                    overwrite: true,
-                    options: options,
-                    cancellationToken: cancellationToken
-                )
-                .ConfigureAwait(false);
-            sourceRead();
+            // Compress into memory first: a result within the threshold uploads as a
+            // single request. Only when it outgrows the threshold is the blob write
+            // stream opened and the buffer drained into it as staged blocks. On failure
+            // the streams are deliberately not disposed: disposing the blob write stream
+            // would commit the partially staged blocks as a truncated blob, while
+            // uncommitted blocks are garbage collected by the service
+            var buffer = new MemoryStream();
             var compressionStream = new BrotliStream(
-                blobStream,
+                buffer,
                 _options.CompressionLevel,
                 leaveOpen: true
             );
-            await uploadStream
-                .CopyToAsync(compressionStream, cancellationToken)
-                .ConfigureAwait(false);
+            sourceRead();
+            var chunk = new byte[81920];
+            int read;
+            while (
+                (
+                    read = await uploadStream
+                        .ReadAsync(chunk, cancellationToken)
+                        .ConfigureAwait(false)
+                ) > 0
+            )
+            {
+                await compressionStream
+                    .WriteAsync(chunk.AsMemory(0, read), cancellationToken)
+                    .ConfigureAwait(false);
+                if (blobStream == null && buffer.Length <= SingleRequestThresholdBytes)
+                {
+                    continue;
+                }
+
+                blobStream ??= await blob.OpenWriteAsync(
+                        overwrite: true,
+                        options: new BlockBlobOpenWriteOptions
+                        {
+                            HttpHeaders = blobHttpHeaders,
+                            Metadata = metadata,
+                        },
+                        cancellationToken: cancellationToken
+                    )
+                    .ConfigureAwait(false);
+                buffer.Position = 0;
+                await buffer.CopyToAsync(blobStream, cancellationToken).ConfigureAwait(false);
+                buffer.SetLength(0);
+            }
             await compressionStream.DisposeAsync().ConfigureAwait(false);
-            await blobStream.DisposeAsync().ConfigureAwait(false);
+            buffer.Position = 0;
+
+            if (blobStream == null)
+            {
+                await blob.UploadAsync(
+                        buffer,
+                        new BlobUploadOptions
+                        {
+                            HttpHeaders = blobHttpHeaders,
+                            Metadata = metadata,
+                        },
+                        cancellationToken
+                    )
+                    .ConfigureAwait(false);
+            }
+            else
+            {
+                await buffer.CopyToAsync(blobStream, cancellationToken).ConfigureAwait(false);
+                await blobStream.DisposeAsync().ConfigureAwait(false);
+            }
         }
         catch
         {
-            // OpenWrite creates the blob before any data is written, so clean up the
-            // empty one it leaves behind. The caller's token is usually already
-            // cancelled at this point, hence None
-            try
+            if (blobStream != null)
             {
-                await blob.DeleteIfExistsAsync(cancellationToken: CancellationToken.None)
-                    .ConfigureAwait(false);
-            }
-            catch
-            {
-                // Best effort, never mask the original failure
+                // OpenWrite creates the blob before any data is written, so clean up the
+                // empty one it leaves behind. The caller's token is usually already
+                // cancelled at this point, hence None
+                try
+                {
+                    await blob.DeleteIfExistsAsync(cancellationToken: CancellationToken.None)
+                        .ConfigureAwait(false);
+                }
+                catch
+                {
+                    // Best effort, never mask the original failure
+                }
             }
             throw;
         }

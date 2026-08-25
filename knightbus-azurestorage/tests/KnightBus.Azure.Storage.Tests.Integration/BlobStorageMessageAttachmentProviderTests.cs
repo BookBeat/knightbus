@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Specialized;
 using FluentAssertions;
 using KnightBus.Core;
 using NUnit.Framework;
@@ -210,10 +211,40 @@ public class BlobStorageMessageAttachmentProviderTests
         var id = await provider.UploadAttachmentAsync("large-test", attachment);
         var result = await provider.GetAttachmentAsync("large-test", id);
 
-        // Assert
+        // Assert - large enough to overflow the single-request threshold into staged blocks
         using var downloaded = new MemoryStream();
         await result.Stream.CopyToAsync(downloaded);
         downloaded.ToArray().Should().Equal(originalContent);
+        var blocks = await new BlockBlobClient(
+            StorageSetup.ConnectionString,
+            "large-test",
+            id
+        ).GetBlockListAsync();
+        blocks.Value.CommittedBlocks.Should().NotBeEmpty();
+    }
+
+    [Test]
+    public async Task Compression_SmallAttachment_UploadsAsSingleBlob()
+    {
+        // Arrange
+        var provider = new BlobStorageMessageAttachmentProvider(
+            new StorageBusConfiguration(StorageSetup.ConnectionString),
+            new BlobStorageAttachmentOptions { EnableCompression = true }
+        );
+
+        using var ms = new MemoryStream(Encoding.UTF8.GetBytes("Small payload"));
+        var attachment = new MessageAttachment("small.txt", MediaTypeNames.Text.Plain, ms);
+
+        // Act
+        var id = await provider.UploadAttachmentAsync("single-shot-test", attachment);
+
+        // Assert - a blob created by a single PutBlob has no committed block list
+        var blocks = await new BlockBlobClient(
+            StorageSetup.ConnectionString,
+            "single-shot-test",
+            id
+        ).GetBlockListAsync();
+        blocks.Value.CommittedBlocks.Should().BeEmpty();
     }
 
     [Test]
@@ -457,10 +488,12 @@ public class BlobStorageMessageAttachmentProviderTests
             new BlobStorageAttachmentOptions { EnableCompression = true }
         );
 
+        // Cancel past the single-request threshold so the staged-block path is the one
+        // that has to unwind
         using var cts = new CancellationTokenSource();
         await using var source = new CancellingRandomStream(
             length: 64 * 1024 * 1024,
-            cancelAfterBytes: 1024 * 1024,
+            cancelAfterBytes: 8 * 1024 * 1024,
             cts
         );
         var attachment = new MessageAttachment(
