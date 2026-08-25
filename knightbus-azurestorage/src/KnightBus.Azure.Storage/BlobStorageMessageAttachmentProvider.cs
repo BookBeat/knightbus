@@ -112,11 +112,18 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
         {
             id = $"{id}{CompressedFileExtension}";
             contentEncoding = "br";
-            // Base64 like every other value: readers predating this key decode all
-            // metadata they do not know about, and a raw value throws there
-            metadata[UncompressedLengthKey] = ToBase64(
-                attachment.Length.ToString(CultureInfo.InvariantCulture)
-            );
+            // The bytes that will actually be uploaded - attachment.Length is the whole
+            // stream even when positioned mid-stream, and 0 when non-seekable, where the
+            // key is omitted and readers fall back to 0. Base64 like every other value
+            // so readers predating this key can still decode it
+            if (attachment.Stream.CanSeek)
+            {
+                metadata[UncompressedLengthKey] = ToBase64(
+                    (attachment.Stream.Length - attachment.Stream.Position).ToString(
+                        CultureInfo.InvariantCulture
+                    )
+                );
+            }
         }
 
         var blobHttpHeaders = new BlobHttpHeaders

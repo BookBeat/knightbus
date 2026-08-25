@@ -238,6 +238,85 @@ public class BlobStorageMessageAttachmentProviderTests
     }
 
     [Test]
+    public async Task Compression_SourceNotAtStart_ReportsDeliveredLength()
+    {
+        // Arrange - only the bytes after Position are uploaded, and Length must agree
+        var provider = new BlobStorageMessageAttachmentProvider(
+            new StorageBusConfiguration(StorageSetup.ConnectionString),
+            new BlobStorageAttachmentOptions { EnableCompression = true }
+        );
+
+        var payload = new byte[500];
+        new Random(42).NextBytes(payload);
+        using var ms = new MemoryStream(payload);
+        ms.Position = 100;
+        var attachment = new MessageAttachment("mid.bin", MediaTypeNames.Application.Octet, ms);
+
+        // Act
+        var id = await provider.UploadAttachmentAsync("length-test", attachment);
+        var result = await provider.GetAttachmentAsync("length-test", id);
+
+        // Assert
+        using var downloaded = new MemoryStream();
+        await result.Stream.CopyToAsync(downloaded);
+        downloaded.Length.Should().Be(400);
+        result.Length.Should().Be(400);
+    }
+
+    [Test]
+    public async Task Compression_NonSeekableSource_UploadsFullyAndReportsZeroLength()
+    {
+        // Arrange
+        var provider = new BlobStorageMessageAttachmentProvider(
+            new StorageBusConfiguration(StorageSetup.ConnectionString),
+            new BlobStorageAttachmentOptions { EnableCompression = true }
+        );
+
+        var payload = Encoding.UTF8.GetBytes("Payload from a non-seekable source");
+        var attachment = new MessageAttachment(
+            "nonseekable.txt",
+            MediaTypeNames.Text.Plain,
+            new NonSeekableReadStream(new MemoryStream(payload))
+        );
+
+        // Act
+        var id = await provider.UploadAttachmentAsync("length-test", attachment);
+        var result = await provider.GetAttachmentAsync("length-test", id);
+
+        // Assert - 0 is the documented Length for non-seekable streams
+        using var downloaded = new MemoryStream();
+        await result.Stream.CopyToAsync(downloaded);
+        downloaded.ToArray().Should().Equal(payload);
+        result.Length.Should().Be(0);
+    }
+
+    private sealed class NonSeekableReadStream(Stream inner) : Stream
+    {
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position
+        {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+        public override int Read(byte[] buffer, int offset, int count) =>
+            inner.Read(buffer, offset, count);
+
+        public override void Flush() { }
+
+        public override long Seek(long offset, SeekOrigin origin) =>
+            throw new NotSupportedException();
+
+        public override void SetLength(long value) => throw new NotSupportedException();
+
+        public override void Write(byte[] buffer, int offset, int count) =>
+            throw new NotSupportedException();
+    }
+
+    [Test]
     public async Task Compression_UploadPreservesUserMetadata()
     {
         // Arrange

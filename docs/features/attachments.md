@@ -95,8 +95,9 @@ uploads, the receiver downloads.
 
     Compression and decompression are fully streaming — the attachment is never buffered whole in
     memory on either side. That makes a compressed attachment's `Stream` **read-forward only**
-    (`CanSeek` is `false`); its `Length` is preserved through blob metadata, and reports `0` only
-    for compressed attachments stored by `KnightBus.Azure.Storage` versions before 18.1.0.
+    (`CanSeek` is `false`); its `Length` is preserved through blob metadata, and reports `0` for
+    attachments sent from non-seekable streams and for compressed attachments stored by
+    `KnightBus.Azure.Storage` versions before 18.1.0.
 
     `Filename` and `UncompressedLength` are reserved metadata keys — your own entries under those
     names are overwritten on upload.
