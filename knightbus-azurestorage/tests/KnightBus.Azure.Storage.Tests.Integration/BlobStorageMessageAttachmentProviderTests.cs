@@ -80,8 +80,9 @@ public class BlobStorageMessageAttachmentProviderTests
         // Act
         var result = await provider.GetAttachmentAsync("dispose-test", id);
 
-        // Assert
+        // Assert - compressed attachments decompress on the fly and are read-forward only
         result.Stream.CanRead.Should().BeTrue();
+        result.Stream.CanSeek.Should().Be(!useCompression);
     }
 
     [Test]
@@ -215,6 +216,7 @@ public class BlobStorageMessageAttachmentProviderTests
         using var downloaded = new MemoryStream();
         await result.Stream.CopyToAsync(downloaded);
         downloaded.ToArray().Should().Equal(originalContent);
+        result.Length.Should().Be(originalContent.Length);
         var blocks = await new BlockBlobClient(
             StorageSetup.ConnectionString,
             "large-test",
@@ -290,7 +292,7 @@ public class BlobStorageMessageAttachmentProviderTests
         // Assert
         using var downloaded = new MemoryStream();
         await result.Stream.CopyToAsync(downloaded);
-        downloaded.Length.Should().Be(400);
+        downloaded.ToArray().Should().Equal(payload[100..]);
         result.Length.Should().Be(400);
     }
 
@@ -414,6 +416,17 @@ public class BlobStorageMessageAttachmentProviderTests
             var decode = () => Convert.FromBase64String(value);
             decode.Should().NotThrow($"'{key}' must be decodable by an older reader");
         }
+        // A raw digit string can accidentally be valid base64, so lock the decoded value
+        Encoding
+            .UTF8.GetString(
+                Convert.FromBase64String(
+                    properties.Value.Metadata[
+                        BlobStorageMessageAttachmentProvider.UncompressedLengthKey
+                    ]
+                )
+            )
+            .Should()
+            .Be("7");
     }
 
     [Test]

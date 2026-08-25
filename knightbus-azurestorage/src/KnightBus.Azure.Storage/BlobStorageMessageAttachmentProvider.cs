@@ -171,7 +171,6 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
         }
 
         var startPosition = uploadStream.CanSeek ? uploadStream.Position : 0;
-        var sourceConsumed = false;
 
         try
         {
@@ -182,7 +181,7 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
             // The container was deleted after its existence was cached. Recreate it
             // and retry once, unless the source cannot be replayed
             _knownContainers.TryRemove(queueName, out _);
-            if (!uploadStream.CanSeek && sourceConsumed)
+            if (!uploadStream.CanSeek)
             {
                 throw;
             }
@@ -208,14 +207,12 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
                         uploadStream,
                         blobHttpHeaders,
                         metadata,
-                        () => sourceConsumed = true,
                         cancellationToken
                     )
                     .ConfigureAwait(false);
             }
             else
             {
-                sourceConsumed = true;
                 await container
                     .GetBlobClient(id)
                     .UploadAsync(
@@ -234,7 +231,6 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
         Stream uploadStream,
         BlobHttpHeaders blobHttpHeaders,
         Dictionary<string, string> metadata,
-        Action sourceRead,
         CancellationToken cancellationToken
     )
     {
@@ -253,7 +249,6 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
                 _options.CompressionLevel,
                 leaveOpen: true
             );
-            sourceRead();
             var chunk = new byte[81920];
             int read;
             while (
