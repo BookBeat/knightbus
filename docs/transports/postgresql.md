@@ -112,6 +112,20 @@ Publishing an event calls the `publish_events` function, which inserts the messa
 subscription's table. So an event with three subscriptions is stored three times, and each subscriber
 consumes independently.
 
+The function exists in two overloads: a three-argument one that also carries
+[pre-processor](../concepts/messages.md#pre-processing-messages-on-send) properties, and a legacy
+two-argument one kept for publishers on `KnightBus.PostgreSql` versions before 4.0.0. Both are
+created whenever a listener initializes a subscription, and a 4.0.0 publisher that finds the
+three-argument overload missing — a database initialized by an older version — creates it and
+retries the publish.
+
+!!! warning "Publishers may need DDL rights when upgrading to 4.0.0"
+    Listeners only run initialization when a subscription table is missing, so on an existing
+    database it is the publisher that creates the new overload on its first publish. That requires
+    its database role to be allowed to create functions in the `knightbus` schema. If the role has
+    no DDL rights, create the overload during the upgrade instead —
+    `QueueInitializer.InitPublishFunction` emits it.
+
 The connection is registered as a keyed `NpgsqlDataSource` under the key `knightbus-postgres`, so it
 does not collide with your application's own data source registration.
 
@@ -134,17 +148,7 @@ sagas whose messages travel over PostgreSQL can use any other store.
 
 ## Limitations
 
-Two behaviours specific to this transport are worth knowing before you choose it:
-
-!!! warning "No attachments, no outgoing trace propagation"
-    `PostgresBus` does not run [message pre-processors](../concepts/messages.md#pre-processing-messages-on-send).
-    Anything built on them has no effect when sending over PostgreSQL:
-
-    - **[Attachments](../features/attachments.md)** are never uploaded.
-    - **Outgoing [distributed tracing](../monitoring.md#distributed-tracing)** properties are not
-      attached.
-
-    Custom pre-processors you register are also skipped for these messages.
+One behaviour specific to this transport is worth knowing before you choose it:
 
 !!! warning "`ICustomMessageSerializer` is ignored when sending"
     The serializer is captured when the client is constructed, so a per-message override on the

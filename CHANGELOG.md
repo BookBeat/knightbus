@@ -2,6 +2,12 @@
 
 # 2026-08-25
 
+### KnightBus.PostgreSql 4.0.0
+* PostgresBus now runs message pre-processors on send, schedule and publish, storing the returned properties in the `properties` column. Attachments and outgoing distributed tracing now work on this transport
+* `publish_events` gained a three-argument overload carrying properties; the two-argument overload is kept for older publishers. A publisher that finds the new overload missing creates it and retries, which requires DDL rights on the knightbus schema — roles without them can create it up front via `QueueInitializer.InitPublishFunction`
+* Breaking: the PostgresBus constructor takes `IEnumerable<IMessagePreProcessor>`. No change needed when resolving `IPostgresBus` through DI
+* Fixed: ScheduleAsync with a fractional-second delay no longer fails under comma-decimal cultures for batches under 50 messages; the delay is now a typed interval parameter
+
 ### KnightBus.Redis 16.0.0
 * Breaking: sagas are stored as Redis hashes with `data` and `stamp` fields instead of strings, under the same `sagas:{partitionKey}:{id}` key. 16.x fails with `WRONGTYPE` on every 15.x saga key, so delete `sagas:*` (with `SCAN`, not `KEYS`) before upgrading; draining alone is not enough, because a 15.x saga that was updated and never completed has no expiry. Do not roll back to 15.x with 16.x sagas in place — 15.x silently drops start messages for them and overwrites them on update
 * `RedisSagaStore` detects concurrent writes: `Create` and `GetSaga` return a `ConcurrencyStamp`, and `Update`/`Complete` throw `SagaDataConflictException` when the stamp no longer matches. A null or empty stamp still writes or deletes unconditionally

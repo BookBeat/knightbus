@@ -30,7 +30,7 @@ in KnightBus.
 | `ICommand` | One logical consumer. | Implement a transport-specific descendant instead. |
 | `IEvent` | Fan-out to many subscriptions. | Implement a transport-specific descendant instead. |
 | `IRequest` | Request/response. | Implement `INatsRequest`; only NATS supports requests. |
-| `ICommandWithAttachment` | Adds an out-of-band payload. | Requires a registered attachment provider on **both** sender and receiver. Adds `IMessageAttachment Attachment { get; set; }`. Not supported when sending over PostgreSQL. |
+| `ICommandWithAttachment` | Adds an out-of-band payload. | Requires a registered attachment provider on **both** sender and receiver. Adds `IMessageAttachment Attachment { get; set; }`. |
 
 ### Transport interfaces
 
@@ -254,7 +254,7 @@ anywhere else. Only queue management is transport-specific. See the
 | `No queue name mapping exists for {type}` | Mapping missing, or not in the same assembly as the message. |
 | Host fails: no `ISingletonLockManager` | `ISingletonProcessor` or `UseScheduling()` without a lock manager. |
 | Lock extension has no effect | Middleware not registered, or transport is not Azure Storage Queues. |
-| Attachment is null on receive | No attachment provider on the receiving host, or the message was sent over PostgreSQL. |
+| Attachment is null on receive | No attachment provider on the receiving host. |
 | Dead letter hook never fires | Transport's own delivery limit is lower than `DeadLetterDeliveryLimit`. |
 | `WRONGTYPE` from the Redis saga store | Saga keys written by KnightBus.Redis 15.x or earlier; drain or delete `sagas:*` before upgrading. |
 | Custom serializer ignored | Placed on the message or processor instead of the mapping — or sending over PostgreSQL. |

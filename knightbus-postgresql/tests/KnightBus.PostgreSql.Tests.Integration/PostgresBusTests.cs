@@ -1,9 +1,13 @@
-﻿using System.Text.Json;
+﻿using System.Globalization;
+using System.Text.Json;
 using FluentAssertions;
 using KnightBus.Core;
+using KnightBus.Core.PreProcessors;
 using KnightBus.Messages;
 using KnightBus.PostgreSql.Management;
 using KnightBus.PostgreSql.Messages;
+using Npgsql;
+using NpgsqlTypes;
 using NUnit.Framework;
 
 namespace KnightBus.PostgreSql.Tests.Integration;
@@ -18,7 +22,7 @@ public class PostgresBusTests
     [OneTimeSetUp]
     public async Task OneTimeSetUp()
     {
-        _postgresBus = new PostgresBus(PostgresSetup.DataSource, new PostgresConfiguration());
+        _postgresBus = new PostgresBus(PostgresSetup.DataSource, new PostgresConfiguration(), []);
         _postgresQueueClient = new PostgresQueueClient<TestCommand>(
             PostgresSetup.DataSource,
             new MicrosoftJsonSerializer()
@@ -40,6 +44,14 @@ public class PostgresBusTests
             PostgresQueueName.Create(AutoMessageMapper.GetQueueName<TestCommand>()),
             default
         );
+        await PostgresSetup
+            .DataSource.CreateCommand(
+                @"
+DROP TABLE IF EXISTS knightbus.s_bus_test_topic_bus_sub;
+DROP TABLE IF EXISTS knightbus.dlq_bus_test_topic_bus_sub;
+DROP TABLE IF EXISTS knightbus.t_bus_test_topic;"
+            )
+            .ExecuteNonQueryAsync();
     }
 
     [SetUp]
@@ -141,8 +153,9 @@ public class PostgresBusTests
             .ToBlockingEnumerable()
             .ToList();
 
-        result[0].Message.MessageBody.Should().Be("For future from 0");
         result.Count.Should().Be(100_000);
+        // UPDATE ... RETURNING does not preserve the CTE's ORDER BY, so assert membership
+        result.Select(m => m.Message.MessageBody).Should().Contain("For future from 0");
     }
 
     [Test]
@@ -164,9 +177,180 @@ public class PostgresBusTests
         messages.Count.Should().Be(2);
         messages[0].Message.MessageBody.Should().Be("message body 1");
         messages[0].ReadCount.Should().Be(1);
+        messages[0].Properties.Should().BeEmpty();
         messages[1].Message.MessageBody.Should().Be("message body 2");
         messages[1].ReadCount.Should().Be(1);
+        messages[1].Properties.Should().BeEmpty();
     }
+
+    [Test]
+    public async Task SendAsync_WithPreProcessors_StoresPropertiesOnMessage()
+    {
+        var bus = new PostgresBus(
+            PostgresSetup.DataSource,
+            new PostgresConfiguration(),
+            [new TestPreProcessor()]
+        );
+
+        await bus.SendAsync<TestCommand>(
+            [
+                new TestCommand { MessageBody = "first" },
+                new TestCommand { MessageBody = "skip this one" },
+                new TestCommand { MessageBody = "third" },
+            ],
+            default
+        );
+
+        var messages = _postgresQueueClient
+            .GetMessagesAsync(3, 100, default)
+            .ToBlockingEnumerable()
+            .ToList();
+
+        messages.Count.Should().Be(3);
+        messages[0].Properties["trace_id"].Should().Be("first");
+        messages[1].Properties.Should().BeEmpty();
+        messages[2].Properties["trace_id"].Should().Be("third");
+    }
+
+    [Test]
+    public async Task SendAsync_ManyMessagesWithPreProcessors_StoresPropertiesOnMessage()
+    {
+        var bus = new PostgresBus(
+            PostgresSetup.DataSource,
+            new PostgresConfiguration(),
+            [new TestPreProcessor()]
+        );
+
+        // 50 or more messages take the binary COPY path
+        var commands = Enumerable
+            .Range(0, 60)
+            .Select(i => new TestCommand
+            {
+                MessageBody = i % 2 == 0 ? $"Message {i}" : $"skip {i}",
+            })
+            .ToList();
+        await bus.SendAsync<TestCommand>(commands, default);
+
+        var messages = _postgresQueueClient
+            .GetMessagesAsync(60, 100, default)
+            .ToBlockingEnumerable()
+            .ToList();
+
+        messages.Count.Should().Be(60);
+        foreach (var message in messages)
+        {
+            if (message.Message.MessageBody.StartsWith("skip"))
+                message.Properties.Should().BeEmpty();
+            else
+                message.Properties["trace_id"].Should().Be(message.Message.MessageBody);
+        }
+    }
+
+    [Test]
+    public async Task PublishAsync_WithPreProcessors_StoresPropertiesOnMessage()
+    {
+        await InitBusTestSubscription();
+        var bus = new PostgresBus(
+            PostgresSetup.DataSource,
+            new PostgresConfiguration(),
+            [new TestPreProcessor()]
+        );
+
+        var events = Enumerable
+            .Range(0, 6)
+            .Select(i => new BusTestEvent(i % 2 == 0 ? $"event {i}" : $"skip {i}"))
+            .ToList();
+        await bus.PublishAsync(events, default);
+
+        var messages = CreateBusTestSubscriptionClient()
+            .GetMessagesAsync(6, 100, default)
+            .ToBlockingEnumerable()
+            .ToList();
+
+        messages.Count.Should().Be(6);
+        foreach (var message in messages)
+        {
+            if (message.Message.Value.StartsWith("skip"))
+                message.Properties.Should().BeEmpty();
+            else
+                message.Properties["trace_id"].Should().Be(message.Message.Value);
+        }
+    }
+
+    [Test]
+    public async Task PublishAsync_LegacyTwoArgumentFunction_StillWorks()
+    {
+        await InitBusTestSubscription();
+
+        await using var connection = await PostgresSetup.DataSource.OpenConnectionAsync();
+        await using var cmd = new NpgsqlCommand(
+            "select knightbus.publish_events($1, $2)",
+            connection
+        );
+        cmd.Parameters.Add(
+            new NpgsqlParameter { Value = "bus_test_topic", NpgsqlDbType = NpgsqlDbType.Text }
+        );
+        cmd.Parameters.Add(
+            new NpgsqlParameter
+            {
+                Value = new[]
+                {
+                    new MicrosoftJsonSerializer().Serialize(new BusTestEvent("legacy")),
+                },
+                NpgsqlDbType = NpgsqlDbType.Array | NpgsqlDbType.Jsonb,
+            }
+        );
+        await cmd.ExecuteNonQueryAsync();
+
+        var messages = CreateBusTestSubscriptionClient()
+            .GetMessagesAsync(1, 100, default)
+            .ToBlockingEnumerable()
+            .ToList();
+
+        messages.Single().Message.Value.Should().Be("legacy");
+        messages.Single().Properties.Should().BeEmpty();
+    }
+
+    [Test]
+    public async Task PublishAsync_MissingPropertiesOverload_CreatesItAndRetries()
+    {
+        await InitBusTestSubscription();
+        // A database initialized before 4.0.0 only has the two-argument function
+        await PostgresSetup
+            .DataSource.CreateCommand(
+                "DROP FUNCTION IF EXISTS knightbus.publish_events(text, jsonb[], jsonb[]);"
+            )
+            .ExecuteNonQueryAsync();
+        var bus = new PostgresBus(
+            PostgresSetup.DataSource,
+            new PostgresConfiguration(),
+            [new TestPreProcessor()]
+        );
+
+        await bus.PublishAsync(new BusTestEvent("healed"), default);
+
+        var messages = CreateBusTestSubscriptionClient()
+            .GetMessagesAsync(1, 100, default)
+            .ToBlockingEnumerable()
+            .ToList();
+
+        messages.Single().Message.Value.Should().Be("healed");
+        messages.Single().Properties["trace_id"].Should().Be("healed");
+    }
+
+    private static Task InitBusTestSubscription() =>
+        QueueInitializer.InitSubscription(
+            PostgresQueueName.Create(AutoMessageMapper.GetQueueName<BusTestEvent>()),
+            PostgresQueueName.Create(new BusTestEventSubscription().Name),
+            PostgresSetup.DataSource
+        );
+
+    private static PostgresSubscriptionClient<BusTestEvent> CreateBusTestSubscriptionClient() =>
+        new(
+            PostgresSetup.DataSource,
+            new MicrosoftJsonSerializer(),
+            new BusTestEventSubscription()
+        );
 
     [Test]
     public async Task GetMessages_visibility_timeout()
@@ -320,6 +504,33 @@ WHERE message_id = {message[0].Id}"
     }
 
     [Test]
+    public async Task Schedule_FractionalDelayUnderCommaDecimalCulture()
+    {
+        var previousCulture = CultureInfo.CurrentCulture;
+        CultureInfo.CurrentCulture = new CultureInfo("sv-SE");
+        try
+        {
+            await _postgresBus.ScheduleAsync<TestCommand>(
+                [new TestCommand { MessageBody = "fractional delay" }],
+                TimeSpan.FromMilliseconds(1500),
+                default
+            );
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = previousCulture;
+        }
+
+        await Task.Delay(2000);
+
+        var result = _postgresQueueClient
+            .GetMessagesAsync(1, 10, default)
+            .ToBlockingEnumerable()
+            .ToList();
+        result.Single().Message.MessageBody.Should().Be("fractional delay");
+    }
+
+    [Test]
     public async Task PeekDeadLetterMessagesAsync()
     {
         await _postgresBus.SendAsync<TestCommand>(
@@ -371,6 +582,49 @@ WHERE message_id = {message[0].Id}"
 public class TestCommand : IPostgresCommand
 {
     public string MessageBody { get; set; }
+}
+
+public class BusTestEvent : IPostgresEvent
+{
+    public string Value { get; set; }
+
+    public BusTestEvent(string value)
+    {
+        Value = value;
+    }
+}
+
+public class BusTestEventMapping : IMessageMapping<BusTestEvent>
+{
+    public string QueueName => "bus_test_topic";
+}
+
+public class BusTestEventSubscription : IEventSubscription<BusTestEvent>
+{
+    public string Name => "bus_sub";
+}
+
+public class TestPreProcessor : IMessagePreProcessor
+{
+    public Task<IDictionary<string, object>> PreProcess<T>(
+        T message,
+        CancellationToken cancellationToken
+    )
+        where T : IMessage
+    {
+        var body = message switch
+        {
+            TestCommand command => command.MessageBody,
+            BusTestEvent busEvent => busEvent.Value,
+            _ => "unknown",
+        };
+
+        // Mirrors AttachmentPreProcessor, which returns nothing for messages without attachments
+        IDictionary<string, object> properties = body.StartsWith("skip")
+            ? new Dictionary<string, object>()
+            : new Dictionary<string, object> { ["trace_id"] = body };
+        return Task.FromResult(properties);
+    }
 }
 
 public class TestMessageSettings : IProcessingSettings

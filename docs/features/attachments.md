@@ -4,8 +4,8 @@ Attachments let a message carry a payload far larger than the transport allows. 
 out of band and only its id travels in the message body, so a 100 MB file can ride on a transport
 with a 256 KB message limit.
 
-Attachments are transport independent: the same mechanism works on Service Bus, Storage Queues, Redis
-and NATS.
+Attachments are transport independent: the same mechanism works on Service Bus, Storage Queues,
+PostgreSQL, Redis and NATS.
 
 ## Sending an attachment
 
@@ -142,13 +142,9 @@ On send, an `IMessagePreProcessor` uploads the attachment and puts its id in the
 message property. On receive, `AttachmentMiddleware` reads that property, downloads the file and
 assigns `message.Attachment` before your processor runs.
 
-Two consequences follow:
-
-- **Serializers must skip the `Attachment` property.** Both bundled serializers do. If you write your
-  own, mirror that — see [serialization](../concepts/serialization.md#writing-your-own).
-- **Attachments do not work on the PostgreSQL transport.** `PostgresBus` does not run pre-processors,
-  so nothing uploads the attachment. Use another transport for messages with attachments, or store
-  the payload yourself and send a reference.
+One consequence follows: **serializers must skip the `Attachment` property.** Both bundled
+serializers do. If you write your own, mirror that — see
+[serialization](../concepts/serialization.md#writing-your-own).
 
 ## Custom providers
 
