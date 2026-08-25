@@ -1,0 +1,19 @@
+<Project>
+  <!--
+    The test runner packages. They live in a .targets rather than the .props next to it
+    because .targets is imported after the project body, so IsTestSuite has its final
+    value here and a project can opt out.
+
+    KnightBus.Shared.Tests.Integration is the one that does. It holds the base classes the
+    transport integration suites derive from, and SagaStoreTests is a concrete class, so
+    referencing Microsoft.NET.Test.Sdk would have the runner execute those tests directly,
+    with no backing store behind them.
+  -->
+  <ItemGroup Condition="'$(IsTestSuite)' != 'false'">
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="NUnit3TestAdapter">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+</Project>
