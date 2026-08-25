@@ -16,11 +16,5 @@ public static class RedisQueueConventions
     public static string GetSubscriptionQueueName(string queueName, string subscription) =>
         $"{queueName}:subs:{subscription}";
 
-    public static string GetAttachmentMetadataKey(string queueName, string id) =>
-        $"{GetMessageHashKey(queueName, id)}:attachment:metadata";
-
-    public static string GetAttachmentBinaryKey(string queueName, string id) =>
-        $"{GetMessageHashKey(queueName, id)}:attachment:binary";
-
     public static string GetSagaKey(string partitionKey, string id) => $"sagas:{partitionKey}:{id}";
 }
