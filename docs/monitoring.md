@@ -128,10 +128,6 @@ public class SampleProcessor : IProcessCommand<SampleCommand, DefaultSettings>
 To integrate with a different correlation scheme, implement `IDistributedTracingProvider` and
 register it with `UseDistributedTracing<MyProvider>()`.
 
-!!! warning "Not propagated by the PostgreSQL transport"
-    Outgoing trace properties are attached by a pre-processor, and `PostgresBus` does not run
-    pre-processors — so trace context is not propagated when sending over PostgreSQL.
-
 ## Liveness probes
 
 `UseTcpAliveListener(port)` opens a TCP port for orchestrator health checks. It stops answering as

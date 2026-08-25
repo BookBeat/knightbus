@@ -58,6 +58,12 @@ public static class QueueInitializer
         await transaction.CommitAsync();
     }
 
+    public static async Task InitPublishFunction(NpgsqlConnection connection)
+    {
+        await using var createPublishFunctionCmd = CreatePublishFunction(connection);
+        await createPublishFunctionCmd.ExecuteNonQueryAsync().ConfigureAwait(false);
+    }
+
     public static async Task InitQueue(
         PostgresQueueName queueName,
         NpgsqlDataSource npgsqlDataSource
@@ -124,6 +130,7 @@ DO NOTHING;",
 
     private static NpgsqlCommand CreatePublishFunction(NpgsqlConnection connection)
     {
+        // The 2-arg overload is kept for publishers running versions without preprocessor support
         var publishFunction = new NpgsqlCommand(
             @$"
 CREATE OR REPLACE FUNCTION {SchemaName}.publish_events(
@@ -136,13 +143,35 @@ DECLARE
 BEGIN
     FOR subscription_name IN
         EXECUTE format('SELECT subscription_name FROM %I.t_%I', '{SchemaName}', topic)
-    LOOP      
+    LOOP
 
         -- Insert all messages into the queue table in a single statement
         EXECUTE format('
             INSERT INTO %I.s_%I_%I (visibility_timeout, message)
             SELECT now(), unnest($1)
         ', '{SchemaName}', topic, subscription_name) USING messages;
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION {SchemaName}.publish_events(
+    topic TEXT,
+    messages JSONB[],
+    properties JSONB[]
+)
+RETURNS VOID AS $$
+DECLARE
+    subscription_name TEXT;
+BEGIN
+    FOR subscription_name IN
+        EXECUTE format('SELECT subscription_name FROM %I.t_%I', '{SchemaName}', topic)
+    LOOP
+
+        -- Insert all messages into the queue table in a single statement
+        EXECUTE format('
+            INSERT INTO %I.s_%I_%I (visibility_timeout, message, properties)
+            SELECT now(), m, p FROM unnest($1, $2) AS u(m, p)
+        ', '{SchemaName}', topic, subscription_name) USING messages, properties;
     END LOOP;
 END;
 $$ LANGUAGE plpgsql;",

@@ -23,7 +23,8 @@ public class PostgresMessageStateHandlerTests : MessageStateHandlerTests<Postgre
         );
         _bus = new PostgresBus(
             PostgresSetup.DataSource,
-            new PostgresConfiguration { MessageSerializer = new MicrosoftJsonSerializer() }
+            new PostgresConfiguration { MessageSerializer = new MicrosoftJsonSerializer() },
+            []
         );
 
         await QueueInitializer.InitQueue(

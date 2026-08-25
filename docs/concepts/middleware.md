@@ -155,10 +155,9 @@ services.AddMiddleware<MyScopeProvider>();
     attachments over NATS backed by Blob Storage — or any other combination — need no special
     handling.
 
-    Two of them do depend on the transport for their *effect*, not their registration:
-    `AttachmentMiddleware` has nothing to load unless the sending bus ran the upload pre-processor
-    (all transports but PostgreSQL do), and `ExtendMessageLockDurationMiddleware` only renews a lock
-    when the message state handler implements `IMessageLockHandler<T>` (today only Storage Queues).
+    One of them does depend on the transport for its *effect*, not its registration:
+    `ExtendMessageLockDurationMiddleware` only renews a lock when the message state handler
+    implements `IMessageLockHandler<T>` (today only Storage Queues).
     See the [transport matrix](../transports/index.md#feature-matrix).
 
 ## See also

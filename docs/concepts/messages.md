@@ -171,13 +171,8 @@ services.AddScoped<IMessagePreProcessor, TenantPreProcessor>();
 ```
 
 Every registered pre-processor runs for every outgoing message, and the resulting properties are
-merged onto the transport message (Service Bus application properties, NATS headers, and so on).
-
-!!! warning "Pre-processors do not run on the PostgreSQL transport"
-    `PostgresBus` does not resolve `IMessagePreProcessor` at all. Anything built on pre-processing —
-    [attachments](../features/attachments.md) and outgoing
-    [distributed tracing](../monitoring.md#distributed-tracing) — therefore has no effect when
-    sending over PostgreSQL.
+merged onto the transport message (Service Bus application properties, NATS headers, the PostgreSQL
+`properties` column, and so on).
 
 ## See also
 
