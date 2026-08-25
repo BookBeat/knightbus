@@ -116,7 +116,8 @@ Concurrent writes are detected. `Create` and `GetSaga` return a `ConcurrencyStam
 or `Complete` whose stamp no longer matches throws `SagaDataConflictException`, which retries the
 message — see [saga concurrency](../features/sagas.md#concurrency). Each write is a single Lua script
 on a single key, so the check and the write are atomic and the store works unchanged on Redis
-Cluster. The server must allow `EVAL`, `EVALSHA` and `SCRIPT LOAD`.
+Cluster. The server must allow `EVAL`, `EVALSHA` and `SCRIPT LOAD`. A `CancellationToken` is honoured
+before a call reaches Redis, not during it — StackExchange.Redis does not take one.
 
 !!! warning "Upgrading from 15.x"
     Versions before 16.0.0 stored each saga as a plain string under the same key. A 16.x host reading

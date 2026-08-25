@@ -176,6 +176,85 @@ public class RedisSagaStoreTests : ConcurrentSagaStoreTests
             .Where(e => e.Message.Contains("WRONGTYPE"));
     }
 
+    [TestCase(0)]
+    [TestCase(-1)]
+    public async Task Create_should_throw_when_ttl_is_not_positive(int seconds)
+    {
+        //arrange
+        var partitionKey = Guid.NewGuid().ToString("N");
+        var id = Guid.NewGuid().ToString("N");
+        //act & assert
+        await SagaStore
+            .Awaiting(x =>
+                x.Create(
+                    partitionKey,
+                    id,
+                    new Data { Message = "yo" },
+                    TimeSpan.FromSeconds(seconds),
+                    CancellationToken.None
+                )
+            )
+            .Should()
+            .ThrowAsync<ArgumentOutOfRangeException>();
+    }
+
+    [Test]
+    public async Task Create_should_round_a_sub_millisecond_ttl_up()
+    {
+        //arrange
+        var partitionKey = Guid.NewGuid().ToString("N");
+        var id = Guid.NewGuid().ToString("N");
+        //act
+        await SagaStore.Create(
+            partitionKey,
+            id,
+            new Data { Message = "yo" },
+            TimeSpan.FromTicks(1),
+            CancellationToken.None
+        );
+        await Task.Delay(2);
+        //assert
+        var sagaData = await SagaStore.Create(
+            partitionKey,
+            id,
+            new Data { Message = "yo" },
+            TimeSpan.FromMinutes(1),
+            CancellationToken.None
+        );
+        sagaData.Should().NotBeNull();
+    }
+
+    [Test]
+    public async Task Should_throw_when_partition_key_or_id_is_empty()
+    {
+        await SagaStore
+            .Awaiting(x => x.GetSaga<Data>("", "id", CancellationToken.None))
+            .Should()
+            .ThrowAsync<ArgumentException>();
+        await SagaStore
+            .Awaiting(x => x.GetSaga<Data>("partition", null, CancellationToken.None))
+            .Should()
+            .ThrowAsync<ArgumentException>();
+    }
+
+    [Test]
+    public async Task Should_throw_when_the_token_is_already_cancelled()
+    {
+        //arrange
+        var partitionKey = Guid.NewGuid().ToString("N");
+        var id = Guid.NewGuid().ToString("N");
+        var cancelled = new CancellationToken(true);
+        //act & assert
+        await SagaStore
+            .Awaiting(x => x.GetSaga<Data>(partitionKey, id, cancelled))
+            .Should()
+            .ThrowAsync<OperationCanceledException>();
+        await SagaStore
+            .Awaiting(x => x.Delete(partitionKey, id, cancelled))
+            .Should()
+            .ThrowAsync<OperationCanceledException>();
+    }
+
     private static RedisKey Key(string partitionKey, string id) =>
         RedisQueueConventions.GetSagaKey(partitionKey, id);
 }

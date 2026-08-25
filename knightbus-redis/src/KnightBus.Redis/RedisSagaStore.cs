@@ -71,9 +71,9 @@ public class RedisSagaStore : ISagaStore
 
     public async Task<SagaData<T>> GetSaga<T>(string partitionKey, string id, CancellationToken ct)
     {
-        var values = await GetDatabase()
-            .HashGetAsync(GetKey(partitionKey, id), Fields)
-            .ConfigureAwait(false);
+        var key = GetKey(partitionKey, id);
+        ct.ThrowIfCancellationRequested();
+        var values = await GetDatabase().HashGetAsync(key, Fields).ConfigureAwait(false);
         if (values[0].IsNull)
             throw new SagaNotFoundException(partitionKey, id);
         return new SagaData<T>
@@ -91,11 +91,19 @@ public class RedisSagaStore : ISagaStore
         CancellationToken ct
     )
     {
+        var key = GetKey(partitionKey, id);
+        if (ttl <= TimeSpan.Zero)
+            throw new ArgumentOutOfRangeException(
+                nameof(ttl),
+                ttl,
+                "The saga time to live must be positive"
+            );
+        ct.ThrowIfCancellationRequested();
         var stamp = NewStamp();
         var result = await GetDatabase()
             .ScriptEvaluateAsync(
                 CreateScript,
-                [GetKey(partitionKey, id)],
+                [key],
                 [_serializer.Serialize(data), stamp, ToMilliseconds(ttl)]
             )
             .ConfigureAwait(false);
@@ -117,11 +125,14 @@ public class RedisSagaStore : ISagaStore
         CancellationToken ct
     )
     {
+        var key = GetKey(partitionKey, id);
+        ArgumentNullException.ThrowIfNull(sagaData);
+        ct.ThrowIfCancellationRequested();
         var stamp = NewStamp();
         var result = await GetDatabase()
             .ScriptEvaluateAsync(
                 UpdateScript,
-                [GetKey(partitionKey, id)],
+                [key],
                 [
                     _serializer.Serialize(sagaData.Data),
                     sagaData.ConcurrencyStamp ?? string.Empty,
@@ -140,21 +151,20 @@ public class RedisSagaStore : ISagaStore
         CancellationToken ct
     )
     {
+        var key = GetKey(partitionKey, id);
+        ArgumentNullException.ThrowIfNull(sagaData);
+        ct.ThrowIfCancellationRequested();
         var result = await GetDatabase()
-            .ScriptEvaluateAsync(
-                CompleteScript,
-                [GetKey(partitionKey, id)],
-                [sagaData.ConcurrencyStamp ?? string.Empty]
-            )
+            .ScriptEvaluateAsync(CompleteScript, [key], [sagaData.ConcurrencyStamp ?? string.Empty])
             .ConfigureAwait(false);
         ThrowUnlessOk(result, partitionKey, id);
     }
 
     public async Task Delete(string partitionKey, string id, CancellationToken ct)
     {
-        var deleted = await GetDatabase()
-            .KeyDeleteAsync(GetKey(partitionKey, id))
-            .ConfigureAwait(false);
+        var key = GetKey(partitionKey, id);
+        ct.ThrowIfCancellationRequested();
+        var deleted = await GetDatabase().KeyDeleteAsync(key).ConfigureAwait(false);
         if (!deleted)
             throw new SagaNotFoundException(partitionKey, id);
     }
@@ -162,8 +172,12 @@ public class RedisSagaStore : ISagaStore
     private IDatabase GetDatabase() =>
         _connectionMultiplexer.GetDatabase(_configuration.DatabaseId);
 
-    private static RedisKey GetKey(string partitionKey, string id) =>
-        RedisQueueConventions.GetSagaKey(partitionKey, id);
+    private static RedisKey GetKey(string partitionKey, string id)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(partitionKey);
+        ArgumentException.ThrowIfNullOrEmpty(id);
+        return RedisQueueConventions.GetSagaKey(partitionKey, id);
+    }
 
     private static string NewStamp() => Guid.NewGuid().ToString("N");
 

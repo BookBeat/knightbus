@@ -7,6 +7,7 @@
 * `RedisSagaStore` detects concurrent writes: `Create` and `GetSaga` return a `ConcurrencyStamp`, and `Update`/`Complete` throw `SagaDataConflictException` when the stamp no longer matches. A null or empty stamp still writes or deletes unconditionally
 * Updating a saga no longer clears its TTL; the expiry set by `Create` is kept until the saga completes or expires
 * `Create`, `Update` and `Complete` run as single atomic Lua scripts and `Delete` is a single `DEL`, removing the read-then-delete race. The server must allow `EVAL`
+* Saga methods validate the partition key, id and TTL and honour an already-cancelled `CancellationToken` before talking to Redis
 * Added `RedisQueueConventions.GetSagaKey`
 
 # 2026-08-24
