@@ -74,7 +74,7 @@
 
   <!-- Sample-only -->
   <ItemGroup>
-    <PackageVersion Include="Aspire.Hosting.Azure.ServiceBus" Version="13.0.2" />
+    <PackageVersion Include="Aspire.Hosting.Azure.ServiceBus" Version="13.5.2" />
     <PackageVersion Include="OpenTelemetry" Version="1.15.3" />
     <PackageVersion Include="OpenTelemetry.Exporter.Console" Version="1.15.3" />
     <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.3" />
