@@ -171,7 +171,7 @@ renewed every `ExtensionInterval` while your handler runs, and `MessageLockTimeo
 budget after which the handler's token is cancelled. The benefit is that a crashed host releases the
 message after `ExtensionDuration` instead of after the full two hours.
 
-!!! warning "Lock extension needs a middleware, and today renews only on Azure Storage Queues"
+!!! warning "Lock extension needs a middleware, and renews only on Azure Storage Queues and PostgreSQL"
     Implementing the interface is not enough. You must register the middleware yourself:
 
     ```csharp
@@ -181,19 +181,9 @@ message after `ExtensionDuration` instead of after the full two hours.
     `ExtendMessageLockDurationMiddleware` is a `KnightBus.Core` middleware like any other: it is
     registered per host, not per transport, and runs on every listener. What it cannot do is renew a
     lock the transport will not let it renew — the message state handler has to implement
-    `IMessageLockHandler<T>`, which today only Azure Storage Queues does. On other transports the
-    middleware simply passes the message through. See
-    [errors and dead-lettering](../features/error-handling.md#message-locks).
-
-!!! danger "Do not use `IExtendMessageLockTimeout` on the PostgreSQL transport"
-    On PostgreSQL it is not merely inert — it is harmful. The message pump takes the *fetch* lock for
-    `ExtensionDuration` whenever the settings implement this interface, but nothing on that transport
-    can renew it. With the values above the row becomes visible again after 5 minutes while your
-    handler runs on toward its 2-hour budget, so the message is picked up and processed concurrently,
-    and then dead-lettered.
-
-    Use plain `IProcessingSettings` with a `MessageLockTimeout` long enough for the work, or move the
-    message to Azure Storage Queues. Service Bus renews locks itself and needs neither.
+    `IMessageLockHandler<T>`, which today Azure Storage Queues and PostgreSQL do. On other transports
+    the middleware simply passes the message through; Service Bus renews locks itself and needs
+    neither. See [errors and dead-lettering](../features/error-handling.md#message-locks).
 
 ## See also
 

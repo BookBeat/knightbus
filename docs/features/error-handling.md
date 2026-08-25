@@ -90,7 +90,7 @@ For genuinely long work, prefer a short renewed lock over one enormous timeout â
 [extending the lock](../concepts/processors.md#long-running-work-extending-the-lock). That mechanism
 needs `ExtendMessageLockDurationMiddleware` registered manually. The middleware is a core one and may
 be registered on any host, but it can only renew where the transport can change a lock mid-flight,
-which today is Azure Storage Queues alone.
+which today means Azure Storage Queues and PostgreSQL.
 
 ## Where dead letters go
 

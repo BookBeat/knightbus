@@ -34,6 +34,9 @@ where the sources live has moved. Two assemblies differ in metadata only: `Knigh
   files beside it. It is the `PackageIcon` for every package and the documentation favicon; nothing
   was broken before, every reference pointed at the misspelled name consistently
 
+### KnightBus.PostgreSql 4.1.0
+* `PostgresMessageStateHandler` implements `IMessageLockHandler<T>`, so `ExtendMessageLockDurationMiddleware` renews message locks on this transport and `IExtendMessageLockTimeout` settings are safe to use here. A renewal pushes `visibility_timeout` forward and only applies while the consumer still holds the row; once another consumer has fetched it, the renewal is a no-op
+
 ### KnightBus.PostgreSql 4.0.0
 * PostgresBus now runs message pre-processors on send, schedule and publish, storing the returned properties in the `properties` column. Attachments and outgoing distributed tracing now work on this transport
 * `publish_events` gained a three-argument overload carrying properties; the two-argument overload is kept for older publishers. A publisher that finds the new overload missing creates it and retries, which requires DDL rights on the knightbus schema — roles without them can create it up front via `QueueInitializer.InitPublishFunction`

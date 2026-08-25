@@ -1,3 +1,4 @@
+using FluentAssertions;
 using KnightBus.Core;
 using KnightBus.PostgreSql.Management;
 using KnightBus.Shared.Tests.Integration;
@@ -75,11 +76,56 @@ public class PostgresMessageStateHandlerTests : MessageStateHandlerTests<Postgre
         await _bus.SendAsync(new PostgresTestCommand(message), default);
     }
 
-    protected override async Task<
-        IMessageStateHandler<PostgresTestCommand>
-    > GetMessageStateHandler()
+    protected override Task<IMessageStateHandler<PostgresTestCommand>> GetMessageStateHandler()
     {
-        var messages = _postgresQueueClient.GetMessagesAsync(1, 5, default);
+        return GetMessageStateHandler(visibilityTimeoutSeconds: 5);
+    }
+
+    [Test]
+    public async Task Should_extend_the_lock_and_keep_the_message_invisible()
+    {
+        //arrange
+        await SendMessage("Testing Lock Extension");
+        var stateHandler = await GetMessageStateHandler(visibilityTimeoutSeconds: 1);
+
+        //act
+        await ((IMessageLockHandler<PostgresTestCommand>)stateHandler).SetLockDuration(
+            TimeSpan.FromSeconds(30),
+            default
+        );
+        await Task.Delay(2000);
+
+        //assert
+        var messages = await GetMessages(1);
+        messages.Should().BeEmpty();
+    }
+
+    [Test]
+    public async Task Should_not_extend_a_lock_that_another_consumer_has_taken_over()
+    {
+        //arrange
+        await SendMessage("Testing Stale Lock Extension");
+        var firstConsumer = await GetMessageStateHandler(visibilityTimeoutSeconds: 1);
+        await Task.Delay(2000);
+        await GetMessageStateHandler(visibilityTimeoutSeconds: 1);
+
+        //act
+        await ((IMessageLockHandler<PostgresTestCommand>)firstConsumer).SetLockDuration(
+            TimeSpan.FromSeconds(30),
+            default
+        );
+        await Task.Delay(2000);
+
+        //assert
+        var messages = await GetMessages(1);
+        messages.Should().HaveCount(1);
+    }
+
+    private async Task<IMessageStateHandler<PostgresTestCommand>> GetMessageStateHandler(
+        int visibilityTimeoutSeconds
+    )
+    {
+        var messages = _postgresQueueClient.GetMessagesAsync(1, visibilityTimeoutSeconds, default);
         var result = new List<PostgresMessage<PostgresTestCommand>>();
         await foreach (var m in messages)
         {

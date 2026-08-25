@@ -130,6 +130,26 @@ WHERE message_id = ($2);
         await command.ExecuteNonQueryAsync().ConfigureAwait(false);
     }
 
+    public async Task SetVisibilityTimeoutAsync(
+        PostgresMessage<T> message,
+        TimeSpan timeout,
+        CancellationToken ct
+    )
+    {
+        //read_count changes on every fetch, so only the consumer that fetched the row can extend its lock
+        await using var command = _npgsqlDataSource.CreateCommand(
+            @$"
+UPDATE {SchemaName}.{_prefix}_{_queueName}
+SET visibility_timeout = clock_timestamp() + ($1)
+WHERE message_id = ($2) AND read_count = ($3);
+"
+        );
+        command.Parameters.Add(new NpgsqlParameter<TimeSpan> { TypedValue = timeout });
+        command.Parameters.Add(new NpgsqlParameter<long> { TypedValue = message.Id });
+        command.Parameters.Add(new NpgsqlParameter<int> { TypedValue = message.ReadCount });
+        await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+    }
+
     public async Task DeadLetterMessageAsync(PostgresMessage<T> message)
     {
         await using var command = _npgsqlDataSource.CreateCommand(
