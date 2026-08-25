@@ -18,7 +18,7 @@ published NuGet package id — nothing sets `PackageId` or `AssemblyName`. Renam
 
 > **Note**
 > `docs/assets/images` is used by the build, not just by the site. `Directory.Build.props` packs
-> `docs/assets/images/knighbus-64.png` as the `PackageIcon` for every package, and the root
+> `docs/assets/images/knightbus-64.png` as the `PackageIcon` for every package, and the root
 > `README.md` uses the logo from the same folder. Renaming or removing those files fails
 > `dotnet pack` with `NU5046`.
 

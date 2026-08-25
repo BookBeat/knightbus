@@ -30,6 +30,9 @@ where the sources live has moved. Two assemblies differ in metadata only: `Knigh
 * Added `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, issue and pull request templates,
   and a dependabot configuration. The pre-commit hook moved to `.githooks/`, installed with
   `git config core.hooksPath .githooks`
+* The brand icon is spelled `knightbus-64.png` rather than `knighbus-64.png`, matching the logo
+  files beside it. It is the `PackageIcon` for every package and the documentation favicon; nothing
+  was broken before, every reference pointed at the misspelled name consistently
 
 ### KnightBus.PostgreSql 4.0.0
 * PostgresBus now runs message pre-processors on send, schedule and publish, storing the returned properties in the `properties` column. Attachments and outgoing distributed tracing now work on this transport

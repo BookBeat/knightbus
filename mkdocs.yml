@@ -11,7 +11,7 @@ edit_uri: edit/master/docs/
 theme:
   name: material
   logo: assets/images/knightbus-logo.svg
-  favicon: assets/images/knighbus-64.png
+  favicon: assets/images/knightbus-64.png
   icon:
     repo: fontawesome/brands/github
   palette:
