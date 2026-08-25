@@ -9,6 +9,6 @@
   <ItemGroup>
     <ProjectReference Include="../KnightBus.Samples.Azure.ServiceBus.Producer/KnightBus.Samples.Azure.ServiceBus.Producer.csproj" />
     <ProjectReference Include="../KnightBus.Samples.Azure.ServiceBus/KnightBus.Samples.Azure.ServiceBus.csproj" />
-    <PackageReference Include="Aspire.Hosting.Azure.ServiceBus" Version="13.0.2" />
+    <PackageReference Include="Aspire.Hosting.Azure.ServiceBus" />
   </ItemGroup>
 </Project>

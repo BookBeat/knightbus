@@ -8,7 +8,7 @@
     <PackageTags>knightbus;apm;newrelic.agent.api</PackageTags>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="NewRelic.Agent.Api" Version="10.47.0" />
+    <PackageReference Include="NewRelic.Agent.Api" />
   </ItemGroup>
 
   <ItemGroup>

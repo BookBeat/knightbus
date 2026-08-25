@@ -14,13 +14,8 @@
     <ProjectReference Include="..\KnightBus.PostgreSql.Messages\KnightBus.PostgreSql.Messages.csproj" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
-    <PackageReference Include="Npgsql" Version="9.0.4" />
-    <PackageReference Include="Npgsql.DependencyInjection" Version="9.0.4" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
-    <PackageReference Include="Npgsql" Version="10.0.1" />
-    <PackageReference Include="Npgsql.DependencyInjection" Version="10.0.1" />
+  <ItemGroup>
+    <PackageReference Include="Npgsql" />
+    <PackageReference Include="Npgsql.DependencyInjection" />
   </ItemGroup>
 </Project>
