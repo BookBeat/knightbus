@@ -143,7 +143,7 @@ sagas whose messages travel over PostgreSQL can use any other store.
 !!! warning "No concurrent-write detection"
     This store overwrites unconditionally — it does not check `ConcurrencyStamp`, so simultaneous
     updates to the same saga silently lose one another. Serialize the saga with
-    `MaxConcurrentCalls => 1` or use the Blob store. See
+    `MaxConcurrentCalls => 1` or use the Blob or Redis store. See
     [saga concurrency](../features/sagas.md#concurrency).
 
 ## Limitations

@@ -21,4 +21,6 @@ public static class RedisQueueConventions
 
     public static string GetAttachmentBinaryKey(string queueName, string id) =>
         $"{GetMessageHashKey(queueName, id)}:attachment:binary";
+
+    public static string GetSagaKey(string partitionKey, string id) => $"sagas:{partitionKey}:{id}";
 }
