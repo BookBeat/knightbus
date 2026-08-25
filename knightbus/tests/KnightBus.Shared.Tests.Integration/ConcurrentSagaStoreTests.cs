@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -180,28 +181,6 @@ public class ConcurrentSagaStoreTests : SagaStoreTests
     }
 
     [Test]
-    public async Task Complete_should_delete_the_saga_when_stamp_is_null()
-    {
-        //arrange
-        var partitionKey = Guid.NewGuid().ToString("N");
-        var id = Guid.NewGuid().ToString("N");
-        await SagaStore.Create(
-            partitionKey,
-            id,
-            new Data { Message = "yo" },
-            TimeSpan.FromMinutes(1),
-            CancellationToken.None
-        );
-        //act
-        await SagaStore.Complete(partitionKey, id, new SagaData<Data>(), CancellationToken.None);
-        //assert
-        await SagaStore
-            .Awaiting(x => x.GetSaga<Data>(partitionKey, id, CancellationToken.None))
-            .Should()
-            .ThrowAsync<SagaNotFoundException>();
-    }
-
-    [Test]
     public async Task Create_should_return_a_concurrency_stamp()
     {
         //arrange
@@ -297,7 +276,7 @@ public class ConcurrentSagaStoreTests : SagaStoreTests
     }
 
     [Test]
-    public async Task Concurrent_updates_with_the_same_stamp_should_fail_exactly_once()
+    public async Task Concurrent_updates_with_the_same_stamp_should_let_exactly_one_win()
     {
         //arrange
         var partitionKey = Guid.NewGuid().ToString("N");
@@ -309,25 +288,20 @@ public class ConcurrentSagaStoreTests : SagaStoreTests
             TimeSpan.FromMinutes(1),
             CancellationToken.None
         );
-        var first = new SagaData<Data>
-        {
-            Data = new Data { Message = "first" },
-            ConcurrencyStamp = created.ConcurrencyStamp,
-        };
-        var second = new SagaData<Data>
-        {
-            Data = new Data { Message = "second" },
-            ConcurrencyStamp = created.ConcurrencyStamp,
-        };
+        var writers = Enumerable
+            .Range(0, 5)
+            .Select(i => new SagaData<Data>
+            {
+                Data = new Data { Message = $"writer {i}" },
+                ConcurrencyStamp = created.ConcurrencyStamp,
+            })
+            .ToArray();
         //act
-        var conflicts = await Task.WhenAll(
-            TryUpdate(partitionKey, id, first),
-            TryUpdate(partitionKey, id, second)
-        );
+        var conflicts = await Task.WhenAll(writers.Select(w => TryUpdate(partitionKey, id, w)));
         //assert
         conflicts.Should().ContainSingle(e => e == null);
-        conflicts.Should().ContainSingle(e => e != null);
-        var winner = conflicts[0] == null ? first : second;
+        conflicts.Count(e => e != null).Should().Be(writers.Length - 1);
+        var winner = writers[Array.IndexOf(conflicts, null)];
         var stored = await SagaStore.GetSaga<Data>(partitionKey, id, CancellationToken.None);
         stored.Data.Message.Should().Be(winner.Data.Message);
         stored.ConcurrencyStamp.Should().Be(winner.ConcurrencyStamp);

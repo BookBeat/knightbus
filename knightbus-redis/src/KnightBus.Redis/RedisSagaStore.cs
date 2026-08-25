@@ -21,8 +21,12 @@ public class RedisSagaStore : ISagaStore
 
     // KEYS[1] saga, ARGV[1] data, ARGV[2] stamp, ARGV[3] ttl in milliseconds
     private const string CreateScript = $$"""
-        if redis.call('EXISTS', KEYS[1]) == 1 then
+        local kind = redis.call('TYPE', KEYS[1])['ok']
+        if kind == 'hash' then
           return -1
+        end
+        if kind ~= 'none' then
+          return redis.error_reply('WRONGTYPE ' .. KEYS[1] .. ' holds a ' .. kind .. ', not a saga hash')
         end
         redis.call('HSET', KEYS[1], '{{DataField}}', ARGV[1], '{{StampField}}', ARGV[2])
         redis.call('PEXPIRE', KEYS[1], ARGV[3])
@@ -31,10 +35,10 @@ public class RedisSagaStore : ISagaStore
 
     // KEYS[1] saga, ARGV[1] data, ARGV[2] expected stamp or '', ARGV[3] new stamp
     private const string UpdateScript = $$"""
-        local current = redis.call('HGET', KEYS[1], '{{StampField}}')
-        if not current then
+        if redis.call('EXISTS', KEYS[1]) == 0 then
           return 0
         end
+        local current = redis.call('HGET', KEYS[1], '{{StampField}}')
         if ARGV[2] ~= '' and current ~= ARGV[2] then
           return -1
         end
@@ -44,10 +48,10 @@ public class RedisSagaStore : ISagaStore
 
     // KEYS[1] saga, ARGV[1] expected stamp or ''
     private const string CompleteScript = $$"""
-        local current = redis.call('HGET', KEYS[1], '{{StampField}}')
-        if not current then
+        if redis.call('EXISTS', KEYS[1]) == 0 then
           return 0
         end
+        local current = redis.call('HGET', KEYS[1], '{{StampField}}')
         if ARGV[1] ~= '' and current ~= ARGV[1] then
           return -1
         end
@@ -181,8 +185,7 @@ public class RedisSagaStore : ISagaStore
 
     private static string NewStamp() => Guid.NewGuid().ToString("N");
 
-    private static long ToMilliseconds(TimeSpan ttl) =>
-        Math.Max(1, (long)Math.Ceiling(ttl.TotalMilliseconds));
+    private static long ToMilliseconds(TimeSpan ttl) => (long)Math.Ceiling(ttl.TotalMilliseconds);
 
     private static long ReadCode(RedisResult result) =>
         result.IsNull ? long.MinValue : (long)result;

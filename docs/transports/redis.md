@@ -115,15 +115,22 @@ expires it.
 Concurrent writes are detected. `Create` and `GetSaga` return a `ConcurrencyStamp`, and an `Update`
 or `Complete` whose stamp no longer matches throws `SagaDataConflictException`, which retries the
 message — see [saga concurrency](../features/sagas.md#concurrency). Each write is a single Lua script
-on a single key, so the check and the write are atomic and the store works unchanged on Redis
-Cluster. The server must allow `EVAL`, `EVALSHA` and `SCRIPT LOAD`. A `CancellationToken` is honoured
-before a call reaches Redis, not during it — StackExchange.Redis does not take one.
+on a single key, so the check and the write are atomic, and the store — unlike the Redis transport —
+works unchanged on Redis Cluster. The server must allow `EVAL`, `EVALSHA` and `SCRIPT LOAD`. A
+`CancellationToken` is honoured before a call reaches Redis, not during it — StackExchange.Redis does
+not take one.
+
+!!! note "The check is only as durable as the key"
+    Every saga key carries a TTL, which makes saga keys the first candidates for eviction under the
+    `volatile-*` `maxmemory` policies, and an asynchronously replicated write can be lost on failover.
+    An evicted or lost saga lets a stale writer through unnoticed. Run sagas against an instance with
+    `maxmemory-policy noeviction` and durability settings that match what the saga protects.
 
 !!! warning "Upgrading from 15.x"
-    Versions before 16.0.0 stored each saga as a plain string under the same key. A 16.x host reading
-    such a key fails with `WRONGTYPE`, and a 15.x host reading a 16.x hash fails the same way. Let
-    running sagas finish, or delete `sagas:*`, before upgrading, and do not run both versions against
-    one Redis database.
+    Versions before 16.0.0 stored each saga as a plain string under the same key. A 16.x host fails
+    with `WRONGTYPE` on any read or write of such a key — including starting a saga whose id is still
+    occupied — and a 15.x host reading a 16.x hash fails the same way. Let running sagas finish, or
+    delete `sagas:*`, before upgrading, and do not run both versions against one Redis database.
 
 ## Management
 

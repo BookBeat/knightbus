@@ -154,7 +154,8 @@ A saga that never completes lingers until its `TimeToLive` expires.
     If a saga can receive concurrent messages and correctness depends on not losing an update, you
     must either use the Blob or Redis store or serialize processing with `MaxConcurrentCalls => 1`
     on the saga's settings. Making the update idempotent is not sufficient on its own — a lost update
-    is lost regardless of how the write is shaped.
+    is lost regardless of how the write is shaped. With Redis the check is only as durable as the key,
+    so read the [eviction and replication caveat](../transports/redis.md#saga-store) first.
 
 Where concurrency *is* detected — the Blob and Redis stores — the losing write throws
 `SagaDataConflictException`. That propagates like any other handler failure, so the message is retried

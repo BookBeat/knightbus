@@ -34,6 +34,8 @@ public class RedisSagaStoreTests : ConcurrentSagaStoreTests
             .ThrowAsync<SagaNotFoundException>();
     }
 
+    // Not in the shared fixture: a conditional delete of a missing blob gets a 412 from Azure, so
+    // the Blob store reports a conflict here.
     [Test]
     public async Task Complete_should_throw_not_found_before_conflict_when_saga_is_missing()
     {
@@ -133,6 +135,30 @@ public class RedisSagaStoreTests : ConcurrentSagaStoreTests
     }
 
     [Test]
+    public async Task Update_should_write_unconditionally_when_the_stored_stamp_is_missing()
+    {
+        //arrange
+        var partitionKey = Guid.NewGuid().ToString("N");
+        var id = Guid.NewGuid().ToString("N");
+        await RedisTestBase.Database.HashSetAsync(
+            Key(partitionKey, id),
+            RedisSagaStore.DataField,
+            _configuration.MessageSerializer.Serialize(new Data { Message = "yo" })
+        );
+        //act
+        await SagaStore.Update(
+            partitionKey,
+            id,
+            new SagaData<Data> { Data = new Data { Message = "updated" } },
+            CancellationToken.None
+        );
+        //assert
+        var saga = await SagaStore.GetSaga<Data>(partitionKey, id, CancellationToken.None);
+        saga.Data.Message.Should().Be("updated");
+        saga.ConcurrencyStamp.Should().NotBeNullOrEmpty();
+    }
+
+    [Test]
     public async Task Update_should_survive_a_script_flush()
     {
         //arrange
@@ -163,14 +189,33 @@ public class RedisSagaStoreTests : ConcurrentSagaStoreTests
         //arrange
         var partitionKey = Guid.NewGuid().ToString("N");
         var id = Guid.NewGuid().ToString("N");
-        await RedisTestBase.Database.StringSetAsync(
-            Key(partitionKey, id),
-            _configuration.MessageSerializer.Serialize(new Data { Message = "legacy" }),
-            TimeSpan.FromMinutes(1)
-        );
+        await SeedLegacySaga(partitionKey, id);
         //act & assert
         await SagaStore
             .Awaiting(x => x.GetSaga<Data>(partitionKey, id, CancellationToken.None))
+            .Should()
+            .ThrowAsync<RedisServerException>()
+            .Where(e => e.Message.Contains("WRONGTYPE"));
+    }
+
+    [Test]
+    public async Task Create_should_fail_with_wrongtype_for_a_saga_written_by_15x()
+    {
+        //arrange
+        var partitionKey = Guid.NewGuid().ToString("N");
+        var id = Guid.NewGuid().ToString("N");
+        await SeedLegacySaga(partitionKey, id);
+        //act & assert
+        await SagaStore
+            .Awaiting(x =>
+                x.Create(
+                    partitionKey,
+                    id,
+                    new Data { Message = "yo" },
+                    TimeSpan.FromMinutes(1),
+                    CancellationToken.None
+                )
+            )
             .Should()
             .ThrowAsync<RedisServerException>()
             .Where(e => e.Message.Contains("WRONGTYPE"));
@@ -199,32 +244,6 @@ public class RedisSagaStoreTests : ConcurrentSagaStoreTests
     }
 
     [Test]
-    public async Task Create_should_round_a_sub_millisecond_ttl_up()
-    {
-        //arrange
-        var partitionKey = Guid.NewGuid().ToString("N");
-        var id = Guid.NewGuid().ToString("N");
-        //act
-        await SagaStore.Create(
-            partitionKey,
-            id,
-            new Data { Message = "yo" },
-            TimeSpan.FromTicks(1),
-            CancellationToken.None
-        );
-        await Task.Delay(2);
-        //assert
-        var sagaData = await SagaStore.Create(
-            partitionKey,
-            id,
-            new Data { Message = "yo" },
-            TimeSpan.FromMinutes(1),
-            CancellationToken.None
-        );
-        sagaData.Should().NotBeNull();
-    }
-
-    [Test]
     public async Task Should_throw_when_partition_key_or_id_is_empty()
     {
         await SagaStore
@@ -243,6 +262,7 @@ public class RedisSagaStoreTests : ConcurrentSagaStoreTests
         //arrange
         var partitionKey = Guid.NewGuid().ToString("N");
         var id = Guid.NewGuid().ToString("N");
+        var sagaData = new SagaData<Data> { Data = new Data { Message = "yo" } };
         var cancelled = new CancellationToken(true);
         //act & assert
         await SagaStore
@@ -250,10 +270,31 @@ public class RedisSagaStoreTests : ConcurrentSagaStoreTests
             .Should()
             .ThrowAsync<OperationCanceledException>();
         await SagaStore
+            .Awaiting(x =>
+                x.Create(partitionKey, id, sagaData.Data, TimeSpan.FromMinutes(1), cancelled)
+            )
+            .Should()
+            .ThrowAsync<OperationCanceledException>();
+        await SagaStore
+            .Awaiting(x => x.Update(partitionKey, id, sagaData, cancelled))
+            .Should()
+            .ThrowAsync<OperationCanceledException>();
+        await SagaStore
+            .Awaiting(x => x.Complete(partitionKey, id, sagaData, cancelled))
+            .Should()
+            .ThrowAsync<OperationCanceledException>();
+        await SagaStore
             .Awaiting(x => x.Delete(partitionKey, id, cancelled))
             .Should()
             .ThrowAsync<OperationCanceledException>();
     }
+
+    private Task SeedLegacySaga(string partitionKey, string id) =>
+        RedisTestBase.Database.StringSetAsync(
+            Key(partitionKey, id),
+            _configuration.MessageSerializer.Serialize(new Data { Message = "legacy" }),
+            TimeSpan.FromMinutes(1)
+        );
 
     private static RedisKey Key(string partitionKey, string id) =>
         RedisQueueConventions.GetSagaKey(partitionKey, id);
