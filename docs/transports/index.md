@@ -38,7 +38,7 @@ What each package *ships* — a different question, answered by a different tabl
 
 | | Service Bus | Storage Queues | PostgreSQL | Redis | NATS | [SQL Server](../features/sagas.md) |
 | --- | :--: | :--: | :--: | :--: | :--: | :--: |
-| Attachment provider | — | ✅ Blob | — | ✅ | — | — |
+| Attachment provider | — | ✅ Blob | — | — | — | — |
 | Saga store | — | ✅ Blob | ✅ | ✅ | — | ✅ |
 | Singleton lock manager | — | ✅ Blob lease | — | — | — | — |
 
@@ -57,7 +57,7 @@ So all of these are ordinary arrangements, not workarounds:
 - messages over Service Bus with singleton processors, coordinated by Blob leases — the only lock
   implementation KnightBus ships, and the reason `KnightBus.Azure.Storage` appears in applications
   that use no Azure queue at all;
-- messages over Redis with attachments in Blob Storage, because Redis keeps its own in memory.
+- messages over Redis with attachments in Blob Storage, the only attachment provider KnightBus ships.
 
 Pick each row of the second table on its own merits — cost, durability, what you already operate —
 and mix freely. The differences that matter are between the *implementations*, not the transports:

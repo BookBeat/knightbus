@@ -2,6 +2,11 @@
 
 # 2026-08-25
 
+### KnightBus.Redis 17.0.0
+**Breaking:** the Redis attachment provider is removed. Redis holds its whole dataset in memory, which is the wrong place for a payload large enough to need an attachment.
+* Removed `UseRedisAttachments()`, `RedisAttachmentProvider` and `RedisQueueConventions.GetAttachmentMetadataKey`/`GetAttachmentBinaryKey`. Switch to `UseBlobStorageAttachments()` from `KnightBus.Azure.Storage`; the Redis transport itself is unchanged, only where the attachment bytes land differs
+* Drain the queues before upgrading. An in-flight message whose attachment id points at `{queue}:msg:{id}:attachment:*` will not resolve once the host reads from Blob Storage. Leftover keys can be removed with `SCAN` over `*:attachment:metadata` and `*:attachment:binary`
+
 ### Repository restructure
 No package changed for consumers. The published package ids and versions are identical to what
 `master` produced before this change, and the packaged file lists are byte-for-byte the same; only

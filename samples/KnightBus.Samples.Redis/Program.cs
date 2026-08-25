@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -36,8 +35,6 @@ class Program
                     {
                         configuration.ConnectionString = redisConnection;
                     })
-                    //Enable reading attachments from Redis
-                    .UseRedisAttachments()
                     //Enable the saga store
                     .UseRedisSagaStore()
                     .RegisterProcessors()
@@ -76,12 +73,6 @@ class Program
         public string Message { get; set; }
     }
 
-    class SampleRedisAttachmentCommand : IRedisCommand, ICommandWithAttachment
-    {
-        public string Message { get; set; }
-        public IMessageAttachment Attachment { get; set; }
-    }
-
     class SampleRedisEvent : IRedisEvent
     {
         public string Message { get; set; }
@@ -112,11 +103,6 @@ class Program
         public string QueueName => "sample-redis-command";
     }
 
-    class SampleRedisMessageAttachmentMapping : IMessageMapping<SampleRedisAttachmentCommand>
-    {
-        public string QueueName => "sample-redis-attachment-command";
-    }
-
     class SampleRedisEventMapping : IMessageMapping<SampleRedisEvent>
     {
         public string QueueName => "sample-redis-event";
@@ -127,24 +113,6 @@ class Program
     {
         public Task ProcessAsync(SampleRedisCommand command, CancellationToken cancellationToken)
         {
-            return Task.CompletedTask;
-        }
-    }
-
-    class SampleRedisAttachmentProcessor
-        : IProcessCommand<SampleRedisAttachmentCommand, RedisProcessingSetting>
-    {
-        public Task ProcessAsync(
-            SampleRedisAttachmentCommand command,
-            CancellationToken cancellationToken
-        )
-        {
-            Console.WriteLine($"Received command: '{command.Message}'");
-            using (var streamReader = new StreamReader(command.Attachment.Stream))
-            {
-                Console.WriteLine($"Attach file contents:'{streamReader.ReadToEnd()}'");
-            }
-
             return Task.CompletedTask;
         }
     }
