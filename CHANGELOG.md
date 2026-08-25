@@ -23,6 +23,10 @@ where the sources live has moved. Two assemblies differ in metadata only: `Knigh
 * Fixed: the pre-release workflow decided what to publish by diffing `<Version>` lines, which
   treats a moved project file as a version bump on every package. It now matches projects by file
   name and compares the declared versions against the branch point
+* Fixed: `KnightBus.OpenTelemetry` was the one package whose `<Version>` omitted
+  `$(VersionSuffix)`, so a pre-release run silently dropped the suffix and would have pushed the
+  real `1.0.0-alpha3` to NuGet. Pre-release builds are now `1.0.0-alpha3-alpha-<sha>`. The released
+  version is unchanged
 * Added `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, issue and pull request templates,
   and a dependabot configuration. The pre-commit hook moved to `.githooks/`, installed with
   `git config core.hooksPath .githooks`

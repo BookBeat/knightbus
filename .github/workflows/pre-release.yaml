@@ -61,11 +61,16 @@ jobs:
 
           # Read the declared version out of a csproj at a given revision, e.g. "HEAD:src/X/X.csproj".
           # Prints nothing if the file does not exist there or declares no version.
+          #
+          # $(VersionSuffix) is stripped so what gets compared is the release version rather than
+          # the literal text. Adding or removing that token is a change to how a package builds,
+          # not a new release, and should not publish anything on its own.
           version_at() {
             git show "$1" 2>/dev/null \
               | grep -oE '<(Version|VersionPrefix|PackageVersion)>[^<]*' \
               | head -n1 \
               | sed -E 's/^<[^>]+>//' \
+              | sed -E 's/\$\(VersionSuffix\)//' \
               || true
           }
 
