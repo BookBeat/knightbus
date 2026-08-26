@@ -3,7 +3,7 @@
     <TargetFrameworks>net9.0;net10.0</TargetFrameworks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Description>NATS for KnightBus</Description>
-    <Version>7.0.0$(VersionSuffix)</Version>
+    <Version>7.1.0$(VersionSuffix)</Version>
     <PackageTags>knightbus;nats;queues;messaging</PackageTags>
   </PropertyGroup>
 

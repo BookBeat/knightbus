@@ -3,8 +3,20 @@
 # 2026-08-26
 
 ### Nullable reference types enabled across all packages
-Ships with each package's next version bump. All public APIs now carry nullability annotations;
-the signatures themselves are unchanged.
+All public APIs now carry nullability annotations; the signatures themselves are unchanged. Released
+as a minor bump for the seventeen packages whose compiled surface changed: `KnightBus.Core` 18.3.0,
+`KnightBus.Core.Management` 18.3.0, `KnightBus.Messages` 7.3.0, `KnightBus.Host` 18.2.0,
+`KnightBus.Azure.ServiceBus` 24.1.0, `KnightBus.Azure.ServiceBus.Management` 4.2.0,
+`KnightBus.Azure.Storage` 18.2.0, `KnightBus.Azure.Storage.Management` 4.2.0, `KnightBus.Redis`
+17.1.0, `KnightBus.Redis.Management` 3.2.0, `KnightBus.PostgreSql` 4.1.0, `KnightBus.Nats` 7.1.0,
+`KnightBus.SqlServer` 17.1.0, `KnightBus.Schedule` 15.2.0, `KnightBus.Newtonsoft` 5.2.0,
+`KnightBus.ApplicationInsights` 14.1.0 and `KnightBus.NewRelic` 13.1.0.
+
+The other nine packages are byte-for-byte unchanged and are not republished. The four PostgreSql
+satellites, `KnightBus.Nats.Messages` and `KnightBus.OpenTelemetry` were already annotated, so
+inheriting the setting from `Directory.Build.props` compiles them identically;
+`KnightBus.Azure.ServiceBus.Messages`, `KnightBus.Azure.Storage.Messages` and
+`KnightBus.Redis.Messages` hold only marker interfaces, which have nothing to annotate.
 * Consumers with nullable enabled that implement the extension points get new warnings until they
   match the annotations: `ICommandWithAttachment.Attachment` is now `IMessageAttachment?` (CS8767)
   and `ISingletonLockManager.TryLockAsync` now returns `Task<ISingletonLockHandle?>` (CS8613) —

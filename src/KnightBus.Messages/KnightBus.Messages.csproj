@@ -3,7 +3,7 @@
     <TargetFrameworks>net9.0;net10.0</TargetFrameworks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Description>Base KnightBus Message Interfaces</Description>
-    <Version>7.2.0$(VersionSuffix)</Version>
+    <Version>7.3.0$(VersionSuffix)</Version>
     <PackageTags>knightbus;messaging;</PackageTags>
   </PropertyGroup>
 </Project>
