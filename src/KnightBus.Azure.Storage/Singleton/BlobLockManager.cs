@@ -15,7 +15,7 @@ namespace KnightBus.Azure.Storage.Singleton;
 internal class BlobLockManager : ISingletonLockManager
 {
     private readonly IStorageBusConfiguration _configuration;
-    private BlobContainerClient? _client;
+    private BlobContainerClient _client = null!;
     private readonly IBlobLockScheme _lockScheme;
 
     public BlobLockManager(string connectionString, IBlobLockScheme? lockScheme = null)
@@ -49,7 +49,7 @@ internal class BlobLockManager : ISingletonLockManager
         CancellationToken cancellationToken
     )
     {
-        var blob = _client!.GetBlobClient(Path.Combine(_lockScheme.Directory, lockId));
+        var blob = _client.GetBlobClient(Path.Combine(_lockScheme.Directory, lockId));
 
         var lease = await TryAcquireLeaseAsync(blob, lockPeriod, cancellationToken)
             .ConfigureAwait(false);

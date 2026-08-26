@@ -487,7 +487,7 @@ public class BlobStorageMessageAttachmentProviderTests
         );
 
         // Assert
-        var result = (await provider.GetAttachmentAsync(containerName, id))!;
+        var result = await provider.GetAttachmentAsync(containerName, id);
         using var reader = new StreamReader(result.Stream);
         (await reader.ReadToEndAsync()).Should().Be("second");
     }
