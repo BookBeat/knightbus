@@ -5,7 +5,7 @@ namespace KnightBus.Core.DistributedTracing;
 
 public class DefaultDistributedTracingProvider : IDistributedTracingProvider
 {
-    private string _traceId;
+    private string? _traceId;
 
     public void SetProperties(IDictionary<string, string> properties)
     {

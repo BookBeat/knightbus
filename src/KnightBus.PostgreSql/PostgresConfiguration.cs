@@ -18,7 +18,7 @@ public class PostgresConfiguration : IPostgresConfiguration
 
     public PostgresConfiguration() { }
 
-    public string ConnectionString { get; set; } = null!;
+    public string? ConnectionString { get; set; }
     public IMessageSerializer MessageSerializer { get; set; } = new MicrosoftJsonSerializer();
     public TimeSpan PollingDelay { get; set; } = TimeSpan.FromSeconds(5);
 }

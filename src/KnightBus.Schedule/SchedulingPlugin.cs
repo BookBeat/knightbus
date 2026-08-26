@@ -14,7 +14,7 @@ public class SchedulingPlugin : IStoppablePlugin
 {
     private readonly IHostConfiguration _configuration;
     private readonly ILogger<SchedulingPlugin> _logger;
-    private IScheduler _scheduler;
+    private IScheduler? _scheduler;
 
     public SchedulingPlugin(IHostConfiguration configuration, ILogger<SchedulingPlugin> logger)
     {
@@ -56,7 +56,7 @@ public class SchedulingPlugin : IStoppablePlugin
                     processor.Name,
                     scheduleType.Name
                 );
-                var settings = (ISchedule)Activator.CreateInstance(scheduleType);
+                var settings = (ISchedule)Activator.CreateInstance(scheduleType)!;
 
                 CronExpression.ValidateExpression(settings.CronExpression);
 

@@ -14,6 +14,8 @@
     <RepositoryUrl>https://github.com/BookBeat/knightbus</RepositoryUrl>
     <PackageIcon>knightbus-64.png</PackageIcon>
     <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <WarningsAsErrors>$(WarningsAsErrors);Nullable</WarningsAsErrors>
   </PropertyGroup>
 
   <ItemGroup>

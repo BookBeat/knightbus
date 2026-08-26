@@ -10,10 +10,10 @@ public interface IServiceBusConfiguration : ITransportConfiguration
     /// <summary>
     /// Used when using a <see cref="TokenCredential"/>. The fully qualified Service Bus namespace to connect to. This is likely to be similar to <c>{yournamespace}.servicebus.windows.net</c>
     /// </summary>
-    string FullyQualifiedNamespace { get; set; }
+    string? FullyQualifiedNamespace { get; set; }
 
     /// <summary>
     /// The Azure managed identity credential to use for authorization. Access controls may be specified by the Service Bus namespace.
     /// </summary>
-    TokenCredential Credential { get; set; }
+    TokenCredential? Credential { get; set; }
 }

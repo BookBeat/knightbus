@@ -64,7 +64,7 @@ public class MessageMapperTests
 
 public class MessageMapperRegisteredCommand : ICommand
 {
-    public string MessageId { get; set; }
+    public string MessageId { get; set; } = null!;
 }
 
 public class MessageMapperRegisteredCommandMapping : IMessageMapping<MessageMapperRegisteredCommand>

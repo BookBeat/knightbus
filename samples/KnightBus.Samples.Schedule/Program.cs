@@ -72,7 +72,7 @@ public class InMemoryLockManager : ISingletonLockManager
 {
     private readonly ConcurrentDictionary<string, int> _heldLocks = new();
 
-    public Task<ISingletonLockHandle> TryLockAsync(
+    public Task<ISingletonLockHandle?> TryLockAsync(
         string lockId,
         TimeSpan lockPeriod,
         CancellationToken cancellationToken
@@ -85,10 +85,10 @@ public class InMemoryLockManager : ISingletonLockManager
                 await Task.Delay(TimeSpan.FromSeconds(50));
                 _heldLocks.TryRemove(lockId, out _);
             });
-            return Task.FromResult<ISingletonLockHandle>(new InMemoryLockHandle(lockId));
+            return Task.FromResult<ISingletonLockHandle?>(new InMemoryLockHandle(lockId));
         }
 
-        return Task.FromResult<ISingletonLockHandle>(null);
+        return Task.FromResult<ISingletonLockHandle?>(null);
     }
 
     public Task InitializeAsync()

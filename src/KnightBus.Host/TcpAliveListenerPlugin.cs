@@ -13,7 +13,7 @@ public class TcpAliveListenerPlugin : IStoppablePlugin, IDisposable
     private readonly ILogger _log;
     private readonly int _port;
     private readonly CancellationTokenSource _stopTokenSource = new();
-    private CancellationTokenSource _listenerTokenSource;
+    private CancellationTokenSource? _listenerTokenSource;
     private Task _listenerTask = Task.CompletedTask;
 
     public TcpAliveListenerPlugin(

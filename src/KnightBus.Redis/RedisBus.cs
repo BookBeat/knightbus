@@ -121,7 +121,7 @@ public class RedisBus : IRedisBus
                 subscriptions.Select(sub =>
                     SendAsync(
                         message,
-                        RedisQueueConventions.GetSubscriptionQueueName(queueName, sub)
+                        RedisQueueConventions.GetSubscriptionQueueName(queueName, ((string)sub)!)
                     )
                 )
             )
@@ -142,7 +142,7 @@ public class RedisBus : IRedisBus
                 subscriptions.Select(sub =>
                     SendAsync(
                         messageList,
-                        RedisQueueConventions.GetSubscriptionQueueName(queueName, sub)
+                        RedisQueueConventions.GetSubscriptionQueueName(queueName, ((string)sub)!)
                     )
                 )
             )

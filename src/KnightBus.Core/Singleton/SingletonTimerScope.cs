@@ -14,7 +14,7 @@ public class SingletonTimerScope : IDisposable
     private readonly CancellationTokenSource _cts;
     private readonly object _releaseLockObject = new();
     private Task _runningTask;
-    private Task _releaseTask;
+    private Task? _releaseTask;
 
     /// <summary>
     /// Completes when the renewal loop has stopped and the lock release has finished

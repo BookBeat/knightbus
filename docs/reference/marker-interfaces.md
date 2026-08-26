@@ -30,7 +30,7 @@ in KnightBus.
 | `ICommand` | One logical consumer. | Implement a transport-specific descendant instead. |
 | `IEvent` | Fan-out to many subscriptions. | Implement a transport-specific descendant instead. |
 | `IRequest` | Request/response. | Implement `INatsRequest`; only NATS supports requests. |
-| `ICommandWithAttachment` | Adds an out-of-band payload. | Requires a registered attachment provider on **both** sender and receiver. Adds `IMessageAttachment Attachment { get; set; }`. |
+| `ICommandWithAttachment` | Adds an out-of-band payload. | Requires a registered attachment provider on **both** sender and receiver. Adds `IMessageAttachment? Attachment { get; set; }`. |
 
 ### Transport interfaces
 
@@ -46,7 +46,7 @@ in KnightBus.
 public class ImportFile : IServiceBusCommand, ICommandWithAttachment
 {
     public string Description { get; set; }
-    public IMessageAttachment Attachment { get; set; }
+    public IMessageAttachment? Attachment { get; set; }
 }
 ```
 

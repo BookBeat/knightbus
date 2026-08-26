@@ -78,7 +78,7 @@ public class BlobLockManagerTests
             CancellationToken.None
         );
         //act
-        await handle.ReleaseAsync(CancellationToken.None);
+        await handle!.ReleaseAsync(CancellationToken.None);
         var secondHandle = await lockManager.TryLockAsync(
             lockId,
             TimeSpan.FromMinutes(1),
@@ -106,7 +106,7 @@ public class BlobLockManagerTests
         );
         //act
         await Task.Delay(TimeSpan.FromSeconds(10));
-        var renewed = await handle.RenewAsync(Mock.Of<ILogger>(), CancellationToken.None);
+        var renewed = await handle!.RenewAsync(Mock.Of<ILogger>(), CancellationToken.None);
         //assert
         renewed.Should().BeTrue();
     }
@@ -131,7 +131,7 @@ public class BlobLockManagerTests
         await Task.Delay(TimeSpan.FromSeconds(16));
         //steal lock
         await lockManager.TryLockAsync(lockId, TimeSpan.FromSeconds(15), CancellationToken.None);
-        await handle
+        await handle!
             .Awaiting(x => x.RenewAsync(Mock.Of<ILogger>(), CancellationToken.None))
             .Should()
             .ThrowAsync<RequestFailedException>();

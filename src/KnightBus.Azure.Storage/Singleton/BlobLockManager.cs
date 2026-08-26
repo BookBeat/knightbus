@@ -15,15 +15,15 @@ namespace KnightBus.Azure.Storage.Singleton;
 internal class BlobLockManager : ISingletonLockManager
 {
     private readonly IStorageBusConfiguration _configuration;
-    private BlobContainerClient _client;
+    private BlobContainerClient _client = null!;
     private readonly IBlobLockScheme _lockScheme;
 
-    public BlobLockManager(string connectionString, IBlobLockScheme lockScheme = null)
+    public BlobLockManager(string connectionString, IBlobLockScheme? lockScheme = null)
         : this(new StorageBusConfiguration(connectionString), lockScheme) { }
 
     public BlobLockManager(
         IStorageBusConfiguration configuration,
-        IBlobLockScheme lockScheme = null
+        IBlobLockScheme? lockScheme = null
     )
     {
         _configuration = configuration;
@@ -43,7 +43,7 @@ internal class BlobLockManager : ISingletonLockManager
         return Task.CompletedTask;
     }
 
-    public async Task<ISingletonLockHandle> TryLockAsync(
+    public async Task<ISingletonLockHandle?> TryLockAsync(
         string lockId,
         TimeSpan lockPeriod,
         CancellationToken cancellationToken
@@ -89,7 +89,7 @@ internal class BlobLockManager : ISingletonLockManager
         );
     }
 
-    private static async Task<BlobLease> TryAcquireLeaseAsync(
+    private static async Task<BlobLease?> TryAcquireLeaseAsync(
         BlobClient blob,
         TimeSpan leasePeriod,
         CancellationToken cancellationToken

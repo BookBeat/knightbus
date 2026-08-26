@@ -50,7 +50,7 @@ public class SagaMapperTests
 
     internal class TestMessage : IMessage
     {
-        public string Id { get; set; }
+        public string Id { get; set; } = null!;
     }
 
     internal class UnMappedMessage : IMessage { }

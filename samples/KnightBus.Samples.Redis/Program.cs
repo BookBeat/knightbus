@@ -70,12 +70,12 @@ class Program
 
     class SampleRedisCommand : IRedisCommand
     {
-        public string Message { get; set; }
+        public string Message { get; set; } = null!;
     }
 
     class SampleRedisEvent : IRedisEvent
     {
-        public string Message { get; set; }
+        public string Message { get; set; } = null!;
     }
 
     class SampleRedisSagaStarterCommand : IRedisCommand

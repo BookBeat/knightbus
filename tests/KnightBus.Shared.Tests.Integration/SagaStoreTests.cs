@@ -11,11 +11,11 @@ namespace KnightBus.Shared.Tests.Integration;
 [TestFixture]
 public class SagaStoreTests
 {
-    protected ISagaStore SagaStore { get; set; }
+    protected ISagaStore SagaStore { get; set; } = null!;
 
     protected class Data
     {
-        public string Message { get; set; }
+        public string Message { get; set; } = null!;
     }
 
     [SetUp]

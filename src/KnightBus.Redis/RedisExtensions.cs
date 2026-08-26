@@ -9,7 +9,7 @@ public static class RedisExtensions
 {
     public static IServiceCollection UseRedis(
         this IServiceCollection services,
-        Action<IRedisConfiguration> configuration = null
+        Action<IRedisConfiguration>? configuration = null
     )
     {
         var redisConfiguration = new RedisConfiguration();
@@ -18,6 +18,7 @@ public static class RedisExtensions
         services.AddSingleton<IConnectionMultiplexer>(provider =>
             ConnectionMultiplexer.Connect(
                 provider.GetRequiredService<IRedisConfiguration>().ConnectionString
+                    ?? throw new InvalidOperationException("ConnectionString must be configured")
             )
         );
         services.AddScoped<IRedisBus, RedisBus>();

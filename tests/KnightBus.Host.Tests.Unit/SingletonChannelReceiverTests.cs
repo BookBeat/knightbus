@@ -25,7 +25,7 @@ public class SingletonChannelReceiverTests
                 x.TryLockAsync(It.IsAny<string>(), TimeSpan.FromSeconds(60), CancellationToken.None)
             )
             .ReturnsAsync(Mock.Of<ISingletonLockHandle>())
-            .ReturnsAsync((ISingletonLockHandle)null);
+            .ReturnsAsync((ISingletonLockHandle?)null);
         var underlyingReceiver = new Mock<IChannelReceiver>();
         underlyingReceiver.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);
         var singletonChannelReceiver = new SingletonChannelReceiver(
@@ -54,7 +54,7 @@ public class SingletonChannelReceiverTests
                 x.TryLockAsync(It.IsAny<string>(), TimeSpan.FromSeconds(60), CancellationToken.None)
             )
             .ReturnsAsync(Mock.Of<ISingletonLockHandle>())
-            .ReturnsAsync((ISingletonLockHandle)null)
+            .ReturnsAsync((ISingletonLockHandle?)null)
             .ReturnsAsync(Mock.Of<ISingletonLockHandle>());
         var underlyingReceiver = new Mock<IChannelReceiver>();
         underlyingReceiver.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);

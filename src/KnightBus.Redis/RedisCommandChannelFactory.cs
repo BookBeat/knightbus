@@ -23,7 +23,7 @@ internal class RedisCommandChannelFactory : ITransportChannelFactory
 
     public IChannelReceiver Create(
         Type messageType,
-        IEventSubscription subscription,
+        IEventSubscription? subscription,
         IProcessingSettings processingSettings,
         IMessageSerializer serializer,
         IHostConfiguration configuration,
@@ -31,7 +31,7 @@ internal class RedisCommandChannelFactory : ITransportChannelFactory
     )
     {
         var queueReaderType = typeof(RedisCommandChannelReceiver<>).MakeGenericType(messageType);
-        var queueReader = (IChannelReceiver)
+        var queueReader =
             Activator.CreateInstance(
                 queueReaderType,
                 _connectionMultiplexer,
@@ -40,8 +40,9 @@ internal class RedisCommandChannelFactory : ITransportChannelFactory
                 Configuration,
                 configuration,
                 processor
-            );
-        return queueReader;
+            ) as IChannelReceiver;
+        return queueReader
+            ?? throw new InvalidOperationException("ChannelReceiver could not be created");
     }
 
     public bool CanCreate(Type messageType)

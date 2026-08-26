@@ -13,7 +13,7 @@ internal class SingletonChannelReceiver : IChannelReceiver
     private readonly ISingletonLockManager _lockManager;
     private readonly ILogger _log;
     private readonly CancellationToken? _teardownToken;
-    private SingletonTimerScope _singletonScope;
+    private SingletonTimerScope? _singletonScope;
     private readonly string _lockId;
     internal string LockId => _lockId;
     public IProcessingSettings Settings { get; set; }
@@ -27,7 +27,7 @@ internal class SingletonChannelReceiver : IChannelReceiver
     //Incremented for every successful lock acquisition, so a stale watcher from a previous
     //acquisition cannot re-enable polling after the lock has already been re-acquired
     private int _acquisitionGeneration;
-    private Task _pollingLoop;
+    private Task? _pollingLoop;
 
     /// <summary>
     /// Completes when the lock held by this receiver has been released
@@ -38,7 +38,7 @@ internal class SingletonChannelReceiver : IChannelReceiver
         IChannelReceiver channelReceiver,
         ISingletonLockManager lockManager,
         ILogger log,
-        string lockId = null,
+        string? lockId = null,
         CancellationToken? teardownToken = null
     )
     {
@@ -46,7 +46,7 @@ internal class SingletonChannelReceiver : IChannelReceiver
         _lockManager = lockManager;
         _log = log;
         _teardownToken = teardownToken;
-        _lockId = lockId ?? channelReceiver.GetType().FullName;
+        _lockId = lockId ?? channelReceiver.GetType().FullName!;
         //MaxConcurrent and Prefetch must have specific  values to work with a singleton implementation.
         //Override those and let the other values be set from the specific implementation
         Settings = new SingletonProcessingSettings

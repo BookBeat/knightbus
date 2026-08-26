@@ -8,10 +8,10 @@ namespace KnightBus.PostgreSql;
 public class PostgresSubscriptionChannelReceiver<T> : IChannelReceiver
     where T : class, IPostgresEvent
 {
-    private PostgresSubscriptionClient<T> _queueClient;
+    private PostgresSubscriptionClient<T> _queueClient = null!;
     private readonly NpgsqlDataSource _npgsqlDataSource;
     private readonly IMessageProcessor _processor;
-    private readonly IEventSubscription? _subscription;
+    private readonly IEventSubscription _subscription;
     private readonly IHostConfiguration _hostConfiguration;
     private readonly IMessageSerializer _serializer;
     private readonly IPostgresConfiguration _postgresConfiguration;
@@ -28,7 +28,7 @@ public class PostgresSubscriptionChannelReceiver<T> : IChannelReceiver
     {
         _npgsqlDataSource = npgsqlDataSource;
         _processor = processor;
-        _subscription = subscription;
+        _subscription = subscription ?? throw new ArgumentNullException(nameof(subscription));
         Settings = settings;
         _hostConfiguration = hostConfiguration;
         _serializer = serializer;

@@ -34,7 +34,7 @@ public static class StorageExtensions
 
     public static IServiceCollection UseBlobStorage(
         this IServiceCollection services,
-        Action<IStorageBusConfiguration> config = null
+        Action<IStorageBusConfiguration>? config = null
     )
     {
         var storageConfig = new StorageBusConfiguration();

@@ -1,5 +1,14 @@
 # KnightBus.Core Changelog
 
+# 18.3.0
+* Nullable reference types are enabled. Public APIs carry nullability annotations; no signature changed.
+  Implementations of the annotated extension points get new warnings until they match:
+  `ITransportChannelFactory.Create` takes an `IEventSubscription?` (command processors have no
+  subscription), `ITransportConfiguration.ConnectionString` is `string?` (null when using managed
+  identity), `ISingletonLockManager.TryLockAsync` returns `Task<ISingletonLockHandle?>` (null already
+  meant "lock held elsewhere"), `IPipelineInformation.Subscription` is nullable, and
+  `SagaData.ConcurrencyStamp` is `string?` (stores that do not use stamps leave it unset)
+
 # 7.1.0
 * Add support for metadata in `IMessageAttachement`s
 

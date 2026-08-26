@@ -10,7 +10,7 @@ internal class StorageSetup
     private static readonly AzuriteContainer Azurite = new AzuriteBuilder()
         .WithCommand("--skipApiVersionCheck")
         .Build();
-    public static string ConnectionString;
+    public static string ConnectionString = null!;
 
     [OneTimeSetUp]
     public async Task OneTimeSetUp()

@@ -6,5 +6,5 @@
 /// </summary>
 public interface ICommandWithAttachment
 {
-    IMessageAttachment Attachment { get; set; }
+    IMessageAttachment? Attachment { get; set; }
 }

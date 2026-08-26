@@ -7,7 +7,7 @@ namespace KnightBus.Azure.Storage.Tests.Unit;
 
 public class LongRunningTestCommand : IStorageQueueCommand
 {
-    public string Message { get; set; }
+    public string Message { get; set; } = null!;
 }
 
 public class LongRunningTestMessageMapping : IMessageMapping<LongRunningTestCommand>

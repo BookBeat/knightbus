@@ -8,7 +8,7 @@ namespace KnightBus.Core.Management;
 public class QueueMessageAttachmentProvider(IMessageAttachmentProvider attachmentProvider)
     : IQueueMessageAttachmentProvider
 {
-    public async Task<QueueMessageAttachment> GetAttachment(
+    public async Task<QueueMessageAttachment?> GetAttachment(
         string queue,
         Dictionary<string, string> messageProperties,
         CancellationToken cancellationToken
@@ -23,9 +23,6 @@ public class QueueMessageAttachmentProvider(IMessageAttachmentProvider attachmen
             attachmentId,
             cancellationToken
         );
-
-        if (attachment is null)
-            return null;
 
         return new QueueMessageAttachment(
             attachment.Stream,

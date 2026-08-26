@@ -32,7 +32,7 @@ public record QueueMessage(
             ScheduledTime,
             DeliveryCount,
             MessageId,
-            Properties.ToDictionary(x => x.Key, x => x.Value.ToString()),
+            Properties.ToDictionary(x => x.Key, x => x.Value.ToString()!),
             SequenceNumber
         ) { }
 };

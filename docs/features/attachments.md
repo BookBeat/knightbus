@@ -15,7 +15,7 @@ Implement `ICommandWithAttachment` on the command alongside its transport interf
 public class ImportFile : IServiceBusCommand, ICommandWithAttachment
 {
     public string Description { get; set; }
-    public IMessageAttachment Attachment { get; set; }
+    public IMessageAttachment? Attachment { get; set; }
 }
 ```
 

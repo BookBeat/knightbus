@@ -16,7 +16,7 @@ namespace KnightBus.Shared.Tests.Integration;
 public abstract class QueueManagerTests<TCommand>
     where TCommand : class, IMessage
 {
-    protected IQueueManager QueueManager { get; set; }
+    protected IQueueManager QueueManager { get; set; } = null!;
     protected QueueType QueueType { get; set; }
 
     [SetUp]

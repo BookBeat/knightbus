@@ -8,7 +8,7 @@ internal class PipelineInformation : IPipelineInformation
 {
     public PipelineInformation(
         Type processorInterfaceType,
-        IEventSubscription subscription,
+        IEventSubscription? subscription,
         IProcessingSettings processingSettings,
         IHostConfiguration hostConfiguration
     )
@@ -20,7 +20,7 @@ internal class PipelineInformation : IPipelineInformation
     }
 
     public Type ProcessorInterfaceType { get; }
-    public IEventSubscription Subscription { get; }
+    public IEventSubscription? Subscription { get; }
     public IProcessingSettings ProcessingSettings { get; }
     public IHostConfiguration HostConfiguration { get; }
 }

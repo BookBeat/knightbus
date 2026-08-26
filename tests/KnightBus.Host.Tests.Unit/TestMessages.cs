@@ -44,8 +44,8 @@ public class TestCommandTwo : ICommand { }
 
 public class AttachmentCommand : ICommandWithAttachment, ICommand
 {
-    public string Message { get; set; }
-    public IMessageAttachment Attachment { get; set; }
+    public string Message { get; set; } = null!;
+    public IMessageAttachment? Attachment { get; set; }
 }
 
 public class AttachmentMessageMapping : IMessageMapping<AttachmentCommand>

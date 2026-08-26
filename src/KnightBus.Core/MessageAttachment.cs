@@ -11,7 +11,7 @@ public class MessageAttachment : IMessageAttachment
         string filename,
         string contentType,
         Stream stream,
-        Dictionary<string, string> metadata = null
+        Dictionary<string, string>? metadata = null
     )
     {
         Filename = filename;

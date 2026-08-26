@@ -110,7 +110,7 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
         requiredMetadata.ToList().ForEach(x => metadata[x.Key] = x.Value); // Merge the dictionaries, on collisions, override keys in user's metadata with requiredMetadata
 
         var id = Guid.NewGuid().ToString("N");
-        string contentEncoding = null;
+        string? contentEncoding = null;
         if (_options.EnableCompression)
         {
             id = $"{id}{CompressedFileExtension}";
@@ -234,7 +234,7 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
         CancellationToken cancellationToken
     )
     {
-        Stream blobStream = null;
+        Stream? blobStream = null;
         try
         {
             // Compress into memory first: a result within the threshold uploads as a

@@ -8,8 +8,6 @@ using KnightBus.Newtonsoft;
 
 namespace KnightBus.Azure.Storage;
 
-#nullable enable
-
 public interface IStorageBusConfiguration : ITransportConfiguration
 {
     /// <summary>
@@ -48,7 +46,7 @@ public class StorageBusConfiguration : IStorageBusConfiguration
     /// <summary>
     /// <remarks>Should be left blank if using managed identity</remarks>
     /// </summary>
-    public string ConnectionString { get; set; }
+    public string? ConnectionString { get; set; }
     public IMessageSerializer MessageSerializer { get; set; } = new NewtonsoftSerializer();
 
     /// <summary>

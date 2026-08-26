@@ -114,7 +114,7 @@ public class JobExecutorTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync((ISingletonLockHandle)null);
+            .ReturnsAsync((ISingletonLockHandle?)null);
         var processor = new Mock<IProcessSchedule<DummySchedule>>();
         var di = new Mock<IDependencyInjection>();
         di.Setup(x => x.GetScope()).Returns(di.Object);
@@ -132,7 +132,7 @@ public class JobExecutorTests
 
     public class DummySchedule : ISchedule
     {
-        public string CronExpression { get; }
+        public string CronExpression { get; } = null!;
         public TimeZoneInfo TimeZone => TimeZoneInfo.Utc;
     }
 }

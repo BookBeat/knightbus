@@ -3,7 +3,7 @@
     <TargetFrameworks>net9.0;net10.0</TargetFrameworks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Description>Azure Service Bus Transport Management for KnightBus</Description>
-    <Version>4.1.0$(VersionSuffix)</Version>
+    <Version>4.2.0$(VersionSuffix)</Version>
     <PackageTags>knightbus;azure servicebus;amqp;queues;messaging</PackageTags>
   </PropertyGroup>
 

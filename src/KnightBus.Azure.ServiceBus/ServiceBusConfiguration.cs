@@ -1,5 +1,4 @@
-﻿#nullable enable
-using System;
+﻿using System;
 using Azure.Core;
 using Azure.Messaging.ServiceBus;
 using Azure.Messaging.ServiceBus.Administration;

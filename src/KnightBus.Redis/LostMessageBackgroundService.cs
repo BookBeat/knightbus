@@ -75,14 +75,16 @@ internal class LostMessageBackgroundService<T>
                 Debug.WriteLine($"Found {listItems.Length} processing in {queueName}");
 
                 var checkedItems = await Task.WhenAll(
-                        listItems.Select(item => HandlePotentiallyLostMessage(queueName, item))
+                        listItems.Select(item =>
+                            HandlePotentiallyLostMessage(queueName, ((byte[])item)!)
+                        )
                     )
                     .ConfigureAwait(false);
 
                 foreach (var (lost, message, listItem) in checkedItems.Where(item => item.lost))
                 {
                     if (
-                        await RecoverLostMessageAsync(queueName, listItem, message.Id)
+                        await RecoverLostMessageAsync(queueName, listItem, message!.Id)
                             .ConfigureAwait(false)
                     )
                     {
@@ -106,7 +108,7 @@ internal class LostMessageBackgroundService<T>
 
     private async Task<(
         bool lost,
-        RedisListItem<T> message,
+        RedisListItem<T>? message,
         RedisValue listItem
     )> HandlePotentiallyLostMessage(string queueName, byte[] listItem)
     {

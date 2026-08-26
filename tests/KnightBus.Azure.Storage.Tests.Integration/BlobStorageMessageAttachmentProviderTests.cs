@@ -15,7 +15,7 @@ namespace KnightBus.Azure.Storage.Tests.Integration;
 
 public class BlobStorageMessageAttachmentProviderTests
 {
-    private BlobStorageMessageAttachmentProvider _target;
+    private BlobStorageMessageAttachmentProvider _target = null!;
 
     [SetUp]
     public void Setup()

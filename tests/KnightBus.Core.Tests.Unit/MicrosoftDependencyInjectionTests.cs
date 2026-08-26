@@ -12,7 +12,7 @@ namespace KnightBus.Core.Tests.Unit;
 
 public class TestSchedule : ISchedule
 {
-    public string CronExpression { get; }
+    public string CronExpression { get; } = null!;
     public TimeZoneInfo TimeZone => TimeZoneInfo.Utc;
 }
 
@@ -26,7 +26,7 @@ public class TestScheduleProcessor : IProcessSchedule<TestSchedule>
 
 public class MicrosoftDependencyInjectionTests
 {
-    private MicrosoftDependencyInjection DependencyInjection { get; set; }
+    private MicrosoftDependencyInjection DependencyInjection { get; set; } = null!;
 
     [SetUp]
     public void Setup()

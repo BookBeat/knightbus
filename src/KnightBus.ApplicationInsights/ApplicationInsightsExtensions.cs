@@ -23,7 +23,7 @@ public static class ApplicationInsightsExtensions
         TelemetryConfiguration telemetryConfiguration
     )
     {
-        QuickPulseTelemetryProcessor processor = null;
+        QuickPulseTelemetryProcessor? processor = null;
 
         telemetryConfiguration
             .TelemetryProcessorChainBuilder.Use(next =>

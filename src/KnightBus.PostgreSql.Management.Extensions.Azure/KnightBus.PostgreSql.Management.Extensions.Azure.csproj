@@ -6,7 +6,6 @@
     <Version>3.1.0$(VersionSuffix)</Version>
     <PackageTags>knightbus;postgresql;queues;messaging</PackageTags>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>

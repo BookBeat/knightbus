@@ -19,7 +19,7 @@ public interface INatsBus
         CancellationToken cancellationToken = default
     )
         where T : INatsRequest;
-    IEnumerable<TResponse> RequestStream<T, TResponse>(
+    IEnumerable<TResponse?> RequestStream<T, TResponse>(
         INatsRequest command,
         CancellationToken cancellationToken = default
     )
@@ -92,7 +92,7 @@ public class NatsBus : INatsBus
         return serializer.Deserialize<TResponse>(reply.Data.AsSpan());
     }
 
-    public IEnumerable<TResponse> RequestStream<T, TResponse>(
+    public IEnumerable<TResponse?> RequestStream<T, TResponse>(
         INatsRequest command,
         CancellationToken cancellationToken = default
     )

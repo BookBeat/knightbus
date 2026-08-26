@@ -23,7 +23,7 @@ public class ErrorHandlingMiddleware : IMessageProcessorMiddleware
     )
         where T : class, IMessage
     {
-        T message = null;
+        T? message = null;
         try
         {
             message = messageStateHandler.GetMessage();

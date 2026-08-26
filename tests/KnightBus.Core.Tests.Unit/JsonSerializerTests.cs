@@ -88,7 +88,7 @@ public class JsonSerializerTests
 
     public class TestSerializationCommand : ICommand
     {
-        public string Name { get; set; }
+        public string Name { get; set; } = null!;
         public int Age { get; set; }
         public float Height { get; set; }
     }

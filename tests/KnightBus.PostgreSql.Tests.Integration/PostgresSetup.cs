@@ -14,8 +14,8 @@ public class PostgresSetup
         .WithPassword("passw")
         .Build();
 
-    public static NpgsqlDataSource DataSource;
-    public static string ConnectionString;
+    public static NpgsqlDataSource DataSource = null!;
+    public static string ConnectionString = null!;
 
     [OneTimeSetUp]
     public async Task OneTimeSetup()

@@ -10,7 +10,7 @@ public interface IQueueMessageAttachmentProvider
     /// Gets the attachment for the given queue and attachment id.
     /// </summary>
     /// <returns>The attachment if it exists, otherwise <see langword="null" /></returns>
-    Task<QueueMessageAttachment> GetAttachment(
+    Task<QueueMessageAttachment?> GetAttachment(
         string queue,
         Dictionary<string, string> messageProperties,
         CancellationToken cancellationToken

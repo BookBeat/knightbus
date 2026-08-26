@@ -29,7 +29,7 @@ public class NewtonsoftSerializer : IMessageSerializer
 
     public T Deserialize<T>(ReadOnlySpan<byte> serialized)
     {
-        return JsonConvert.DeserializeObject<T>(Encoding.UTF8.GetString(serialized), _settings);
+        return JsonConvert.DeserializeObject<T>(Encoding.UTF8.GetString(serialized), _settings)!;
     }
 
     public T Deserialize<T>(ReadOnlyMemory<byte> serialized)
@@ -37,7 +37,7 @@ public class NewtonsoftSerializer : IMessageSerializer
         return JsonConvert.DeserializeObject<T>(
             Encoding.UTF8.GetString(serialized.Span),
             _settings
-        );
+        )!;
     }
 
     public Task<T> Deserialize<T>(Stream serialized)
@@ -46,7 +46,7 @@ public class NewtonsoftSerializer : IMessageSerializer
 
         using var sr = new StreamReader(serialized);
         using var jsonTextReader = new JsonTextReader(sr);
-        return Task.FromResult(serializer.Deserialize<T>(jsonTextReader));
+        return Task.FromResult(serializer.Deserialize<T>(jsonTextReader)!);
     }
 
     public string ContentType => "application/json";

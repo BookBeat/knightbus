@@ -32,11 +32,11 @@ public class AttachmentMiddleware : IMessageProcessorMiddleware
     )
         where T : class, IMessage
     {
-        IMessageAttachment attachment = null;
+        IMessageAttachment? attachment = null;
         var queueName = AutoMessageMapper.GetQueueName<T>();
         try
         {
-            string attachmentId = null;
+            string? attachmentId = null;
             if (typeof(ICommandWithAttachment).IsAssignableFrom(typeof(T)))
             {
                 attachmentId = AttachmentUtility
@@ -58,7 +58,7 @@ public class AttachmentMiddleware : IMessageProcessorMiddleware
                 try
                 {
                     await _attachmentProvider
-                        .DeleteAttachmentAsync(queueName, attachmentId, cancellationToken)
+                        .DeleteAttachmentAsync(queueName, attachmentId!, cancellationToken)
                         .ConfigureAwait(false);
                 }
                 catch (Exception e)

@@ -12,7 +12,7 @@ public class RedisSetup
         .WithPortBinding(6380, 6379)
         .Build();
 
-    public static string ConnectionString;
+    public static string ConnectionString = null!;
 
     [OneTimeSetUp]
     public async Task OneTimeSetup()

@@ -43,12 +43,12 @@ internal class TransportStarterFactory
             throw new TransportMissingException(processorTypes.MessageType);
 
         var processingSettings = (IProcessingSettings)
-            Activator.CreateInstance(processorTypes.SettingsType);
+            Activator.CreateInstance(processorTypes.SettingsType)!;
 
         var eventSubscription =
             processorTypes.SubscriptionType == null
                 ? null
-                : (IEventSubscription)Activator.CreateInstance(processorTypes.SubscriptionType);
+                : (IEventSubscription)Activator.CreateInstance(processorTypes.SubscriptionType)!;
         var pipelineInformation = new PipelineInformation(
             processorInterface,
             eventSubscription,
@@ -86,7 +86,7 @@ internal class TransportStarterFactory
     private IChannelReceiver WrapSingletonReceiver(
         IChannelReceiver channelReceiver,
         Type type,
-        IEventSubscription subscription
+        IEventSubscription? subscription
     )
     {
         if (typeof(ISingletonProcessor).IsAssignableFrom(type))

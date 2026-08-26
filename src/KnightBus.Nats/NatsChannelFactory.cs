@@ -16,7 +16,7 @@ public class NatsChannelFactory : ITransportChannelFactory
 
     public IChannelReceiver Create(
         Type messageType,
-        IEventSubscription subscription,
+        IEventSubscription? subscription,
         IProcessingSettings processingSettings,
         IMessageSerializer serializer,
         IHostConfiguration configuration,
@@ -24,7 +24,7 @@ public class NatsChannelFactory : ITransportChannelFactory
     )
     {
         var readerType = typeof(NatsQueueChannelReceiver<>).MakeGenericType(messageType);
-        var reader = (IChannelReceiver)
+        var reader =
             Activator.CreateInstance(
                 readerType,
                 processingSettings,
@@ -33,9 +33,10 @@ public class NatsChannelFactory : ITransportChannelFactory
                 processor,
                 Configuration,
                 subscription
-            );
+            ) as IChannelReceiver;
 
-        return reader;
+        return reader
+            ?? throw new InvalidOperationException("ChannelReceiver could not be created");
     }
 
     public bool CanCreate(Type messageType)

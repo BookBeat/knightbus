@@ -204,7 +204,7 @@ public class MiddlewarePipelineTest
     {
         public int DeliveryCount { get; }
         public int DeadLetterDeliveryLimit { get; }
-        public IDictionary<string, string> MessageProperties { get; }
+        public IDictionary<string, string> MessageProperties { get; } = null!;
 
         public Task CompleteAsync()
         {
@@ -231,6 +231,6 @@ public class MiddlewarePipelineTest
             throw new NotImplementedException();
         }
 
-        public IDependencyInjection MessageScope { get; set; }
+        public IDependencyInjection MessageScope { get; set; } = null!;
     }
 }
