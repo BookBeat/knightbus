@@ -114,6 +114,27 @@ public class PostgresMessageStateHandlerTests : MessageStateHandlerTests<Postgre
         messages.Should().HaveCount(1);
     }
 
+    [Test]
+    public async Task Should_ignore_a_lock_extension_after_the_message_was_completed()
+    {
+        //arrange
+        await SendMessage("Testing Extension After Complete");
+        var stateHandler = await GetMessageStateHandler(visibilityTimeoutSeconds: 0);
+        await stateHandler.CompleteAsync();
+
+        //act
+        await stateHandler
+            .Awaiting(h => h.SetLockDuration(TimeSpan.FromSeconds(30), default))
+            .Should()
+            .NotThrowAsync();
+
+        //assert
+        var messages = await GetMessages(1);
+        messages.Should().BeEmpty();
+        var deadLetters = await GetDeadLetterMessages(1);
+        deadLetters.Should().BeEmpty();
+    }
+
     private async Task<PostgresMessageStateHandler<PostgresTestCommand>> GetMessageStateHandler(
         int visibilityTimeoutSeconds
     )
