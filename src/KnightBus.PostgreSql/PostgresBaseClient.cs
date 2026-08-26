@@ -27,9 +27,18 @@ public class PostgresBaseClient<T>
         _queueName = queueName;
     }
 
-    public async IAsyncEnumerable<PostgresMessage<T>> GetMessagesAsync(
+    public IAsyncEnumerable<PostgresMessage<T>> GetMessagesAsync(
         int count,
         int visibilityTimeout,
+        CancellationToken ct
+    )
+    {
+        return GetMessagesAsync(count, TimeSpan.FromSeconds(visibilityTimeout), ct);
+    }
+
+    public async IAsyncEnumerable<PostgresMessage<T>> GetMessagesAsync(
+        int count,
+        TimeSpan visibilityTimeout,
         [EnumeratorCancellation] CancellationToken ct
     )
     {
@@ -59,9 +68,7 @@ UPDATE {SchemaName}.{_prefix}_{_queueName} t
         );
 
         command.Parameters.Add(new NpgsqlParameter<int> { TypedValue = count });
-        command.Parameters.Add(
-            new NpgsqlParameter<TimeSpan> { TypedValue = TimeSpan.FromSeconds(visibilityTimeout) }
-        );
+        command.Parameters.Add(new NpgsqlParameter<TimeSpan> { TypedValue = visibilityTimeout });
 
         await command.PrepareAsync(ct);
 

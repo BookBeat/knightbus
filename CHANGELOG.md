@@ -1,5 +1,11 @@
 # CHANGELOG
 
+# 2026-08-26
+
+### KnightBus.PostgreSql 4.1.0
+* `PostgresMessageStateHandler` implements `IMessageLockHandler<T>`, so `ExtendMessageLockDurationMiddleware` renews message locks on this transport and `IExtendMessageLockTimeout` settings are now supported here. A renewal pushes `visibility_timeout` forward and only applies while the consumer still holds the row; once another consumer has fetched it, the renewal is a no-op
+* The fetch lock is passed to the queue client as a `TimeSpan` instead of whole seconds, so a fractional `MessageLockTimeout` or `ExtensionDuration` no longer truncates — a value under one second used to become a zero-second lock. `PostgresBaseClient.GetMessagesAsync` gained a `TimeSpan` overload; the `int` one remains
+
 # 2026-08-25
 
 ### Repository restructure
@@ -33,9 +39,6 @@ where the sources live has moved. Two assemblies differ in metadata only: `Knigh
 * The brand icon is spelled `knightbus-64.png` rather than `knighbus-64.png`, matching the logo
   files beside it. It is the `PackageIcon` for every package and the documentation favicon; nothing
   was broken before, every reference pointed at the misspelled name consistently
-
-### KnightBus.PostgreSql 4.1.0
-* `PostgresMessageStateHandler` implements `IMessageLockHandler<T>`, so `ExtendMessageLockDurationMiddleware` renews message locks on this transport and `IExtendMessageLockTimeout` settings are safe to use here. A renewal pushes `visibility_timeout` forward and only applies while the consumer still holds the row; once another consumer has fetched it, the renewal is a no-op
 
 ### KnightBus.PostgreSql 4.0.0
 * PostgresBus now runs message pre-processors on send, schedule and publish, storing the returned properties in the `properties` column. Attachments and outgoing distributed tracing now work on this transport

@@ -76,9 +76,11 @@ public class PostgresMessageStateHandlerTests : MessageStateHandlerTests<Postgre
         await _bus.SendAsync(new PostgresTestCommand(message), default);
     }
 
-    protected override Task<IMessageStateHandler<PostgresTestCommand>> GetMessageStateHandler()
+    protected override async Task<
+        IMessageStateHandler<PostgresTestCommand>
+    > GetMessageStateHandler()
     {
-        return GetMessageStateHandler(visibilityTimeoutSeconds: 5);
+        return await GetMessageStateHandler(visibilityTimeoutSeconds: 5);
     }
 
     [Test]
@@ -86,14 +88,10 @@ public class PostgresMessageStateHandlerTests : MessageStateHandlerTests<Postgre
     {
         //arrange
         await SendMessage("Testing Lock Extension");
-        var stateHandler = await GetMessageStateHandler(visibilityTimeoutSeconds: 1);
+        var stateHandler = await GetMessageStateHandler(visibilityTimeoutSeconds: 0);
 
         //act
-        await ((IMessageLockHandler<PostgresTestCommand>)stateHandler).SetLockDuration(
-            TimeSpan.FromSeconds(30),
-            default
-        );
-        await Task.Delay(2000);
+        await stateHandler.SetLockDuration(TimeSpan.FromSeconds(30), default);
 
         //assert
         var messages = await GetMessages(1);
@@ -105,23 +103,18 @@ public class PostgresMessageStateHandlerTests : MessageStateHandlerTests<Postgre
     {
         //arrange
         await SendMessage("Testing Stale Lock Extension");
-        var firstConsumer = await GetMessageStateHandler(visibilityTimeoutSeconds: 1);
-        await Task.Delay(2000);
-        await GetMessageStateHandler(visibilityTimeoutSeconds: 1);
+        var firstConsumer = await GetMessageStateHandler(visibilityTimeoutSeconds: 0);
+        await GetMessageStateHandler(visibilityTimeoutSeconds: 0);
 
         //act
-        await ((IMessageLockHandler<PostgresTestCommand>)firstConsumer).SetLockDuration(
-            TimeSpan.FromSeconds(30),
-            default
-        );
-        await Task.Delay(2000);
+        await firstConsumer.SetLockDuration(TimeSpan.FromSeconds(30), default);
 
         //assert
         var messages = await GetMessages(1);
         messages.Should().HaveCount(1);
     }
 
-    private async Task<IMessageStateHandler<PostgresTestCommand>> GetMessageStateHandler(
+    private async Task<PostgresMessageStateHandler<PostgresTestCommand>> GetMessageStateHandler(
         int visibilityTimeoutSeconds
     )
     {

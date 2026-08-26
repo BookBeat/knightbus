@@ -153,10 +153,10 @@ on your processing settings and register `ExtendMessageLockDurationMiddleware` â
 [extending the lock](../concepts/processors.md#long-running-work-extending-the-lock) for the settings
 and the registration.
 
-Each renewal pushes the row's `visibility_timeout` forward by `ExtensionDuration`. It only applies
-while this consumer still holds the row: every fetch increments `read_count`, and a renewal whose
-`read_count` no longer matches is a no-op, so a consumer whose lock already lapsed cannot extend a
-lock another consumer has since taken.
+Each renewal pushes the row's `visibility_timeout` forward by `ExtensionDuration`. Every fetch
+increments `read_count`, and a renewal whose `read_count` no longer matches is a no-op, so a consumer
+cannot extend a lock another consumer has since taken. A renewal after the lock has lapsed still
+succeeds as long as nobody else has fetched the row.
 
 ## Limitations
 
