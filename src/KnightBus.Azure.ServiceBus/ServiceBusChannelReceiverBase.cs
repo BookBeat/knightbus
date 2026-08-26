@@ -18,7 +18,7 @@ internal abstract class ServiceBusChannelReceiverBase<T> : IChannelReceiver
     private readonly IMessageSerializer _serializer;
     protected readonly ILogger Log;
     private CancellationToken _cancellationToken;
-    private ServiceBusProcessor _client;
+    private ServiceBusProcessor? _client;
     private int _deadLetterLimit;
     protected readonly IClientFactory ClientFactory;
     protected readonly ServiceBusAdministrationClient ManagementClient;
@@ -60,7 +60,7 @@ internal abstract class ServiceBusChannelReceiverBase<T> : IChannelReceiver
                 try
                 {
                     Log.LogInformation($"Closing ServiceBus channel receiver for {typeof(T).Name}");
-                    await _client.CloseAsync(CancellationToken.None);
+                    await _client!.CloseAsync(CancellationToken.None);
                 }
                 catch (Exception)
                 {

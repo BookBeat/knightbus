@@ -96,7 +96,7 @@ public class ScheduleProcessorLockingTests
     {
         private readonly ConcurrentDictionary<string, byte> _heldLocks = new();
 
-        public Task<ISingletonLockHandle> TryLockAsync(
+        public Task<ISingletonLockHandle?> TryLockAsync(
             string lockId,
             TimeSpan lockPeriod,
             CancellationToken cancellationToken
@@ -104,10 +104,10 @@ public class ScheduleProcessorLockingTests
         {
             if (_heldLocks.TryAdd(lockId, 0))
             {
-                return Task.FromResult<ISingletonLockHandle>(new TrackingLockHandle(lockId));
+                return Task.FromResult<ISingletonLockHandle?>(new TrackingLockHandle(lockId));
             }
 
-            return Task.FromResult<ISingletonLockHandle>(null);
+            return Task.FromResult<ISingletonLockHandle?>(null);
         }
 
         public Task InitializeAsync()

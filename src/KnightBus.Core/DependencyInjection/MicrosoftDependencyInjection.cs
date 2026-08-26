@@ -8,9 +8,9 @@ namespace KnightBus.Core.DependencyInjection;
 public class MicrosoftDependencyInjection : IDependencyInjection
 {
     private readonly IServiceProvider _provider;
-    private readonly IServiceScope _scope;
+    private readonly IServiceScope? _scope;
 
-    public MicrosoftDependencyInjection(IServiceProvider provider, IServiceScope scope = null)
+    public MicrosoftDependencyInjection(IServiceProvider provider, IServiceScope? scope = null)
     {
         _provider = provider;
         _scope = scope;

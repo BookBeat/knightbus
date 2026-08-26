@@ -60,7 +60,7 @@ class Program
             );
             foreach (var reply in response)
             {
-                Console.WriteLine(reply.Reply);
+                Console.WriteLine(reply?.Reply);
             }
         }
 
@@ -75,12 +75,12 @@ class Program
 
     class SampleNatsMessage : INatsRequest
     {
-        public string Message { get; set; }
+        public string Message { get; set; } = null!;
     }
 
     class SampleNatsCommand : INatsCommand, ICommandWithAttachment
     {
-        public IMessageAttachment Attachment { get; set; }
+        public IMessageAttachment? Attachment { get; set; }
     }
 
     class SampleNatsCommandMapping : IMessageMapping<SampleNatsCommand>
@@ -90,7 +90,7 @@ class Program
 
     class SampleNatsEvent : INatsEvent
     {
-        public string Message { get; set; }
+        public string Message { get; set; } = null!;
     }
 
     class SampleSubscription1 : IEventSubscription<SampleNatsEvent>
@@ -105,7 +105,7 @@ class Program
 
     class SampleNatsReply
     {
-        public string Reply { get; set; }
+        public string Reply { get; set; } = null!;
     }
 
     class SampleNatsMessageMapping : IMessageMapping<SampleNatsMessage>
@@ -161,7 +161,7 @@ class Program
     {
         public Task ProcessAsync(SampleNatsCommand message, CancellationToken cancellationToken)
         {
-            using (var s = new StreamReader(message.Attachment.Stream))
+            using (var s = new StreamReader(message.Attachment!.Stream))
             {
                 Console.WriteLine($"Command {s.ReadToEnd()}");
             }

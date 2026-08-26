@@ -78,7 +78,7 @@ public class SqlServerSagaStore : ISagaStore
 
                 await result.ReadAsync().ConfigureAwait(false);
                 var json = result.GetString(0);
-                return new SagaData<T> { Data = JsonSerializer.Deserialize<T>(json) };
+                return new SagaData<T> { Data = JsonSerializer.Deserialize<T>(json)! };
             }
             catch (SqlException e) when (e.Number == 208)
             {

@@ -42,9 +42,11 @@ public class BlobSagaStore : ISagaStore
                 throw new SagaNotFoundException(partitionKey, id);
 
             var downloadInfo = await blob.DownloadAsync(ct).ConfigureAwait(false);
-            T data = await JsonSerializer
-                .DeserializeAsync<T>(downloadInfo.Value.Content, cancellationToken: ct)
-                .ConfigureAwait(false);
+            T data = (
+                await JsonSerializer
+                    .DeserializeAsync<T>(downloadInfo.Value.Content, cancellationToken: ct)
+                    .ConfigureAwait(false)
+            )!;
             return new SagaData<T>
             {
                 Data = data,
@@ -114,7 +116,7 @@ public class BlobSagaStore : ISagaStore
             when (e.Status == 404 && e.ErrorCode == "ContainerNotFound")
         {
             await _container.CreateIfNotExistsAsync(cancellationToken: ct).ConfigureAwait(false);
-            await Create(partitionKey, id, data, ttl, ct);
+            return await Create(partitionKey, id, data, ttl, ct).ConfigureAwait(false);
         }
         catch (RequestFailedException e) when (e.Status == 412 || e.Status == 409)
         {
@@ -146,7 +148,7 @@ public class BlobSagaStore : ISagaStore
                             Metadata = properties.Value.Metadata,
                             Conditions = new AppendBlobRequestConditions
                             {
-                                IfMatch = new ETag(sagaData.ConcurrencyStamp),
+                                IfMatch = new ETag(sagaData.ConcurrencyStamp!),
                             },
                         },
                         ct
@@ -177,7 +179,7 @@ public class BlobSagaStore : ISagaStore
         {
             var conditions = new AppendBlobRequestConditions
             {
-                IfMatch = new ETag(sagaData.ConcurrencyStamp),
+                IfMatch = new ETag(sagaData.ConcurrencyStamp!),
             };
             await blob.DeleteAsync(conditions: conditions, cancellationToken: ct)
                 .ConfigureAwait(false);

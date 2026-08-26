@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using KnightBus.Messages;
@@ -42,7 +43,10 @@ public class RedisManagementClient : IRedisManagementClient
     {
         _log = log;
         _db = ConnectionMultiplexer
-            .Connect(configuration.ConnectionString)
+            .Connect(
+                configuration.ConnectionString
+                    ?? throw new InvalidOperationException("ConnectionString must be configured")
+            )
             .GetDatabase(configuration.DatabaseId);
         _serializer = configuration.MessageSerializer;
     }

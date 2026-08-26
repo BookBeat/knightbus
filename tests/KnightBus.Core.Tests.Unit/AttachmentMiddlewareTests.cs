@@ -54,7 +54,7 @@ public class AttachmentMiddlewareTests
         );
         //assert
         stream.CanRead.Should().BeFalse("It should have been disposed");
-        message.Attachment.Filename.Should().Be("test.txt");
+        message.Attachment!.Filename.Should().Be("test.txt");
         message.Attachment.ContentType.Should().Be("text/plain");
         nextProcessor.Verify(
             x => x.ProcessAsync(stateHandler.Object, CancellationToken.None),
@@ -216,7 +216,7 @@ public class AttachmentMiddlewareTests
                     It.IsAny<EventId>(),
                     It.Is<It.IsAnyType>((v, t) => true),
                     It.IsAny<Exception>(),
-                    It.IsAny<Func<It.IsAnyType, Exception, string>>()
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()
                 ),
             Times.Once,
             "the orphaned attachment must be visible in the log"

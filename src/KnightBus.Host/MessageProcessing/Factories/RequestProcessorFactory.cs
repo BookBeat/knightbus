@@ -20,9 +20,9 @@ internal class RequestProcessorFactory : MessageProcessorFactoryBase, IProcessor
     public IMessageProcessor GetProcessor(Type processorInterface)
     {
         var requestProcessorType = typeof(RequestProcessor<>).MakeGenericType(
-            GetProcessorTypes(processorInterface).ResponseType
+            GetProcessorTypes(processorInterface).ResponseType!
         );
         return (IMessageProcessor)
-            Activator.CreateInstance(requestProcessorType, processorInterface);
+            Activator.CreateInstance(requestProcessorType, processorInterface)!;
     }
 }

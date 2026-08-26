@@ -34,7 +34,7 @@ internal class RedisQueueClient<T>
         _log = log;
     }
 
-    internal async Task<RedisMessage<T>[]> GetMessagesAsync(int count)
+    internal async Task<RedisMessage<T>?[]> GetMessagesAsync(int count)
     {
         var queueMessageCount = await GetMessageCount(_queueName).ConfigureAwait(false);
 
@@ -55,14 +55,16 @@ internal class RedisQueueClient<T>
         return messages;
     }
 
-    private async Task<RedisMessage<T>> GetMessageAsync(CancellationTokenSource cancellationsSource)
+    private async Task<RedisMessage<T>?> GetMessageAsync(
+        CancellationTokenSource cancellationsSource
+    )
     {
         if (cancellationsSource.IsCancellationRequested)
             return null;
 
         try
         {
-            byte[] listItem = await _db.ListRightPopLeftPushAsync(
+            byte[]? listItem = await _db.ListRightPopLeftPushAsync(
                     _queueName,
                     RedisQueueConventions.GetProcessingQueueName(_queueName)
                 )
@@ -109,7 +111,7 @@ internal class RedisQueueClient<T>
             deadLetterQueueName
         );
 
-        byte[] listItem = await _db.ListRightPopLeftPushAsync(
+        byte[]? listItem = await _db.ListRightPopLeftPushAsync(
                 deadLetterQueueName,
                 deadLetterProcessingQueueName
             )
@@ -197,12 +199,12 @@ internal class RedisQueueClient<T>
 
         var values = await _db.ListRangeAsync(_queueName, 0, limit).ConfigureAwait(false);
 
-        foreach (byte[] value in values)
+        foreach (byte[]? value in values)
         {
-            var message = _serializer.Deserialize<RedisListItem<T>>(value.AsSpan());
+            var message = _serializer.Deserialize<RedisListItem<T>>(value!.AsSpan());
             var hashKey = RedisQueueConventions.GetMessageHashKey(_queueName, message.Id);
             var hash = await _db.HashGetAllAsync(hashKey).ConfigureAwait(false);
-            yield return new RedisMessage<T>(value, message.Id, message.Body, hash, _queueName);
+            yield return new RedisMessage<T>(value!, message.Id, message.Body, hash, _queueName);
         }
     }
 
@@ -218,11 +220,11 @@ internal class RedisQueueClient<T>
             )
             .ConfigureAwait(false);
 
-        foreach (byte[] value in values)
+        foreach (byte[]? value in values)
         {
             var deadletter = new RedisDeadletter<T>
             {
-                Message = _serializer.Deserialize<RedisListItem<T>>(value.AsSpan()),
+                Message = _serializer.Deserialize<RedisListItem<T>>(value!.AsSpan()),
             };
             var hash = RedisQueueConventions.GetMessageHashKey(_queueName, deadletter.Message.Id);
             var hashes = await _db.HashGetAllAsync(hash).ConfigureAwait(false);
@@ -239,11 +241,11 @@ internal class RedisQueueClient<T>
             )
             .ConfigureAwait(false);
 
-        foreach (byte[] value in values)
+        foreach (byte[]? value in values)
         {
             var deadLetter = new RedisDeadletter<T>
             {
-                Message = _serializer.Deserialize<RedisListItem<T>>(value.AsSpan()),
+                Message = _serializer.Deserialize<RedisListItem<T>>(value!.AsSpan()),
             };
             var hash = RedisQueueConventions.GetMessageHashKey(_queueName, deadLetter.Message.Id);
             var hashes = await _db.HashGetAllAsync(hash).ConfigureAwait(false);
@@ -287,11 +289,11 @@ internal class RedisQueueClient<T>
         // ReSharper disable once ConditionIsAlwaysTrueOrFalse
         if (values == null)
             return;
-        foreach (byte[] value in values)
+        foreach (byte[]? value in values)
         {
             var message = new RedisDeadletter<T>
             {
-                Message = _serializer.Deserialize<RedisListItem<T>>(value.AsSpan()),
+                Message = _serializer.Deserialize<RedisListItem<T>>(value!.AsSpan()),
             };
             await _db.KeyDeleteAsync(
                     RedisQueueConventions.GetMessageHashKey(_queueName, message.Message.Id)

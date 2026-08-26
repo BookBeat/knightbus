@@ -11,8 +11,8 @@ namespace KnightBus.Redis.Tests.Unit;
 [TestFixture]
 public class RedisQueueClientTests
 {
-    private Mock<IDatabase> _db;
-    private RedisQueueClient<TestCommand> _target;
+    private Mock<IDatabase> _db = null!;
+    private RedisQueueClient<TestCommand> _target = null!;
     private ILogger _log = Mock.Of<ILogger>();
 
     [SetUp]

@@ -9,7 +9,7 @@ public static class KnightBusHostExtensions
 {
     public static IHostBuilder UseKnightBus(
         this IHostBuilder builder,
-        Action<IHostConfiguration> configuration = null
+        Action<IHostConfiguration>? configuration = null
     )
     {
         IHostConfiguration conf = new HostConfiguration();

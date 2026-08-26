@@ -33,12 +33,12 @@ public class AutoMessageMapperTests
 
 public class NotRegisteredMessage : ICommand
 {
-    public string MessageId { get; set; }
+    public string MessageId { get; set; } = null!;
 }
 
 public class RegisteredCommand : ICommand
 {
-    public string MessageId { get; set; }
+    public string MessageId { get; set; } = null!;
 }
 
 public class RegisteredMessageMapping : IMessageMapping<RegisteredCommand>

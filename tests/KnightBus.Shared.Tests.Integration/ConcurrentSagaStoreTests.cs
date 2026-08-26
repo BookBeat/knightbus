@@ -280,7 +280,7 @@ public class ConcurrentSagaStoreTests : SagaStoreTests
         stored.ConcurrencyStamp.Should().Be(winner.ConcurrencyStamp);
     }
 
-    private async Task<SagaDataConflictException> TryUpdate(
+    private async Task<SagaDataConflictException?> TryUpdate(
         string partitionKey,
         string id,
         SagaData<Data> sagaData

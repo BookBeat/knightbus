@@ -13,7 +13,7 @@ namespace KnightBus.Azure.Storage.Tests.Unit;
 [TestFixture]
 public class StorageQueueMessagePumpTests
 {
-    private Mock<IStorageQueueClient> _clientMock;
+    private Mock<IStorageQueueClient> _clientMock = null!;
 
     [SetUp]
     public void SetUp()

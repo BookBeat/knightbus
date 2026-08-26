@@ -43,22 +43,22 @@ public interface ISaga<T> : ISaga
 
 public class SagaData<T>
 {
-    public T Data { get; set; }
-    public string ConcurrencyStamp { get; set; }
+    public T Data { get; set; } = default!;
+    public string? ConcurrencyStamp { get; set; }
 }
 
 public abstract class Saga<T> : ISaga<T>
 {
     public abstract string PartitionKey { get; }
-    public string Id { get; set; }
-    public SagaData<T> SagaData { private get; set; }
+    public string Id { get; set; } = null!;
+    public SagaData<T> SagaData { private get; set; } = null!;
     public T Data
     {
         get { return SagaData.Data; }
         set { SagaData.Data = value; }
     }
     public ISagaMessageMapper MessageMapper { get; } = new SagaMessageMapper();
-    public ISagaStore SagaStore { get; set; }
+    public ISagaStore SagaStore { get; set; } = null!;
 
     public abstract TimeSpan TimeToLive { get; }
 

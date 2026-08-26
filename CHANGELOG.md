@@ -1,5 +1,22 @@
 # CHANGELOG
 
+# 2026-08-26
+
+### Nullable reference types enabled across all packages
+Ships with each package's next version bump. All public APIs now carry nullability annotations;
+the signatures themselves are unchanged.
+* Consumers with nullable enabled that implement the extension points get new warnings until they
+  match the annotations: `ICommandWithAttachment.Attachment` is now `IMessageAttachment?` (CS8767)
+  and `ISingletonLockManager.TryLockAsync` now returns `Task<ISingletonLockHandle?>` (CS8613) —
+  the null contracts were always there, the types now say so
+* Fixed in `KnightBus.Azure.Storage`: `BlobSagaStore.Create` returned saga data without a
+  `ConcurrencyStamp` when it had to create the blob container first (the first saga in a fresh
+  storage account), which silently disabled optimistic concurrency for that saga instance until
+  its next update
+* Misconfiguration now fails fast instead of deep inside a client library: a missing
+  `ConnectionString` throws `InvalidOperationException` when the Redis/Postgres client is built,
+  and the channel factories throw `InvalidOperationException` if a receiver cannot be constructed
+
 # 2026-08-25
 
 ### KnightBus.Redis 17.0.0

@@ -80,6 +80,6 @@ public class StorageQueueMessageStateHandlerTests : MessageStateHandlerTests<Tes
             AutoMessageMapper.GetQueueName<TestCommand>()
         );
         var message = await client.GetMessagesAsync<TestCommand>(1, TimeSpan.FromSeconds(5));
-        return new StorageQueueMessageStateHandler<TestCommand>(client, message.First(), 5, null);
+        return new StorageQueueMessageStateHandler<TestCommand>(client, message.First(), 5, null!);
     }
 }

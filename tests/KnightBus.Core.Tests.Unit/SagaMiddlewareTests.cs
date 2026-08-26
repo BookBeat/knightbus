@@ -54,7 +54,7 @@ public class SagaMiddlewareTests
         await middleware.ProcessAsync(
             messageStateHandler.Object,
             pipelineInformation.Object,
-            null,
+            null!,
             CancellationToken.None
         );
         //assert
@@ -102,7 +102,7 @@ public class SagaMiddlewareTests
         await middleware.ProcessAsync(
             messageStateHandler.Object,
             pipelineInformation.Object,
-            null,
+            null!,
             CancellationToken.None
         );
         //assert
@@ -153,7 +153,7 @@ public class SagaMiddlewareTests
                 x.ProcessAsync(
                     messageStateHandler.Object,
                     pipelineInformation.Object,
-                    null,
+                    null!,
                     CancellationToken.None
                 )
             )
@@ -333,7 +333,7 @@ public class SagaMiddlewareTests
 
     public class SagaData
     {
-        public string Data { get; set; }
+        public string Data { get; set; } = null!;
     }
 
     public class SagaStartMessage : ICommand { }

@@ -20,9 +20,9 @@ public class StorageQueueMessage
         internal set => Properties["_bmid"] = value;
     }
 
-    internal string QueueMessageId { get; set; }
-    public string PopReceipt { get; internal set; }
-    public IMessage Message { get; internal set; }
+    internal string QueueMessageId { get; set; } = null!;
+    public string PopReceipt { get; internal set; } = null!;
+    public IMessage Message { get; internal set; } = null!;
     public int DequeueCount { get; set; }
     public Dictionary<string, string> Properties { get; internal set; } = new();
     public DateTimeOffset? Time { get; internal set; }

@@ -20,9 +20,9 @@ public interface IStorageQueueClient
     Task<int> GetDeadLetterCountAsync();
     Task<List<StorageQueueMessage>> PeekDeadLettersAsync<T>(int count)
         where T : IStorageQueueCommand;
-    Task<StorageQueueMessage> ReceiveDeadLetterAsync<T>()
+    Task<StorageQueueMessage?> ReceiveDeadLetterAsync<T>()
         where T : IStorageQueueCommand;
-    Task RequeueDeadLettersAsync<T>(int count, Func<T, bool> shouldRequeue)
+    Task RequeueDeadLettersAsync<T>(int count, Func<T, bool>? shouldRequeue)
         where T : IStorageQueueCommand;
     Task CompleteAsync(StorageQueueMessage message);
     Task AbandonByErrorAsync(StorageQueueMessage message, TimeSpan? visibilityTimeout);
@@ -129,7 +129,7 @@ public class StorageQueueClient(
             var properties = await preProcessor.PreProcess(message, cancellationToken);
             foreach (var property in properties)
             {
-                storageMessage.Properties[property.Key] = property.Value.ToString();
+                storageMessage.Properties[property.Key] = property.Value.ToString()!;
             }
         }
 
@@ -163,7 +163,7 @@ public class StorageQueueClient(
         return PeekMessagesAsync<T>(count, _dlQueue);
     }
 
-    public async Task RequeueDeadLettersAsync<T>(int count, Func<T, bool> shouldRequeue)
+    public async Task RequeueDeadLettersAsync<T>(int count, Func<T, bool>? shouldRequeue)
         where T : IStorageQueueCommand
     {
         for (var i = 0; i < count; i++)
@@ -195,7 +195,7 @@ public class StorageQueueClient(
         }
     }
 
-    public async Task<StorageQueueMessage> ReceiveDeadLetterAsync<T>()
+    public async Task<StorageQueueMessage?> ReceiveDeadLetterAsync<T>()
         where T : IStorageQueueCommand
     {
         var messages = await GetMessagesAsync<T>(1, null, _dlQueue).ConfigureAwait(false);

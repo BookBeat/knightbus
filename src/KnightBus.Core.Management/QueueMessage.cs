@@ -6,7 +6,7 @@ namespace KnightBus.Core.Management;
 
 public record QueueMessage(
     string Body,
-    string Error,
+    string? Error,
     DateTimeOffset? Time,
     DateTimeOffset? ScheduledTime,
     int DeliveryCount,
@@ -17,7 +17,7 @@ public record QueueMessage(
 {
     public QueueMessage(
         string Body,
-        string Error,
+        string? Error,
         DateTimeOffset? Time,
         DateTimeOffset? ScheduledTime,
         int DeliveryCount,
@@ -32,7 +32,7 @@ public record QueueMessage(
             ScheduledTime,
             DeliveryCount,
             MessageId,
-            Properties.ToDictionary(x => x.Key, x => x.Value.ToString()),
+            Properties.ToDictionary(x => x.Key, x => x.Value.ToString()!),
             SequenceNumber
         ) { }
 };

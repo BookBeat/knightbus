@@ -6,7 +6,7 @@ namespace KnightBus.Samples.Azure.ServiceBus;
 
 public class OtherSampleServiceBusMessage : IServiceBusCommand
 {
-    public string SomeProperty { get; set; }
+    public string SomeProperty { get; set; } = null!;
 }
 
 class SampleServiceBusEventMapping : IMessageMapping<SampleServiceBusEvent>
@@ -26,12 +26,12 @@ class SampleServiceBusMessageMapping
 
 public class SampleServiceBusMessage : IServiceBusCommand
 {
-    public string Message { get; set; }
+    public string Message { get; set; } = null!;
 }
 
 public class SampleServiceBusEvent : IServiceBusEvent
 {
-    public string Message { get; set; }
+    public string Message { get; set; } = null!;
 }
 
 public class OtherSampleServiceBusMessageMapping : IMessageMapping<OtherSampleServiceBusMessage>

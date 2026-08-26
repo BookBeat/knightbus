@@ -7,9 +7,9 @@ namespace KnightBus.Redis;
 public class RedisDeadletter<T>
     where T : IMessage
 {
-    public RedisListItem<T> Message { get; internal set; }
+    public RedisListItem<T> Message { get; internal set; } = null!;
 
-    public IDictionary<string, string> HashEntries { get; internal set; }
+    public IDictionary<string, string> HashEntries { get; internal set; } = null!;
 
     public DateTimeOffset LastProcessed =>
         HashEntries.TryGetValue(RedisHashKeys.LastProcessed, out var value)

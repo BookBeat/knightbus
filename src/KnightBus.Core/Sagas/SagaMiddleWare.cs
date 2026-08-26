@@ -43,7 +43,7 @@ public class SagaMiddleware : IMessageProcessorMiddleware
             var sagaHandlerType = typeof(SagaHandler<,>).MakeGenericType(sagaDataType, typeof(T));
             var message = messageStateHandler.GetMessage();
             var sagaHandler = (ISagaHandler)
-                Activator.CreateInstance(sagaHandlerType, _sagaStore, processor, message);
+                Activator.CreateInstance(sagaHandlerType, _sagaStore, processor, message)!;
             try
             {
                 await sagaHandler.Initialize(cancellationToken).ConfigureAwait(false);

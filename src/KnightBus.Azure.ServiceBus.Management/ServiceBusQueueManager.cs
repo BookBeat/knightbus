@@ -69,7 +69,7 @@ public class ServiceBusQueueManager : IQueueManager, IQueueMessageSender, IAsync
             .ToList();
     }
 
-    private static QueueMessage MapToQueueMessage(ServiceBusReceivedMessage m, object error)
+    private static QueueMessage MapToQueueMessage(ServiceBusReceivedMessage m, object? error)
     {
         return new QueueMessage(
             Encoding.UTF8.GetString(m.Body),

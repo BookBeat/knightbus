@@ -14,7 +14,7 @@ public class SqlServerSetup
         .WithPortBinding(14333, 1433)
         .Build();
 
-    public static string ConnectionString;
+    public static string ConnectionString = null!;
 
     [OneTimeSetUp]
     public async Task OneTimeSetup()

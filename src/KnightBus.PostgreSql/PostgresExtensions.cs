@@ -18,7 +18,8 @@ public static class PostgresExtensions
         services.AddSingleton<IPostgresConfiguration>(_ => postgresConfiguration);
 
         services.AddNpgsqlDataSource(
-            postgresConfiguration.ConnectionString,
+            postgresConfiguration.ConnectionString
+                ?? throw new InvalidOperationException("ConnectionString must be configured"),
             dataSourceBuilder ?? (_ => { }),
             serviceKey: PostgresConstants.NpgsqlDataSourceContainerKey
         );

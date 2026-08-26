@@ -38,7 +38,7 @@ public interface INatsConfiguration : ITransportConfiguration
 
 public class NatsConfiguration : INatsConfiguration
 {
-    public string ConnectionString
+    public string? ConnectionString
     {
         get => Options?.Url;
         set => Options.Url = value;

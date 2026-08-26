@@ -41,7 +41,7 @@ internal class SagaMessageMapper : ISagaMessageMapper
     {
         try
         {
-            return _mappings[typeof(TMessage)] as Func<TMessage, string>;
+            return (_mappings[typeof(TMessage)] as Func<TMessage, string>)!;
         }
         catch (KeyNotFoundException)
         {

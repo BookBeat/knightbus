@@ -7,9 +7,9 @@ namespace KnightBus.PostgreSql.Tests.Integration;
 
 public class PostgresMessageStateHandlerTests : MessageStateHandlerTests<PostgresTestCommand>
 {
-    private PostgresBus _bus;
-    private PostgresQueueClient<PostgresTestCommand> _postgresQueueClient;
-    private PostgresManagementClient _postgresManagementClient;
+    private PostgresBus _bus = null!;
+    private PostgresQueueClient<PostgresTestCommand> _postgresQueueClient = null!;
+    private PostgresManagementClient _postgresManagementClient = null!;
 
     public override async Task Setup()
     {

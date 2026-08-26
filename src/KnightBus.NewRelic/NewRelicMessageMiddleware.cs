@@ -18,7 +18,7 @@ public class NewRelicMessageMiddleware : IMessageProcessorMiddleware
     )
         where T : class, IMessage
     {
-        var messageName = typeof(T).FullName;
+        var messageName = typeof(T).FullName!;
         NewRelic.Api.Agent.NewRelic.SetTransactionName("Message", messageName);
         try
         {

@@ -19,10 +19,10 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
     protected readonly IProcessingSettings Settings;
     protected readonly ILogger Log;
     private readonly SemaphoreSlim _maxConcurrent;
-    private Task _runningTask;
+    private Task? _runningTask;
     private CancellationTokenSource _pumpDelayCancellationTokenSource = new();
     private CancellationToken _pumpCancellationToken = CancellationToken.None;
-    private string _queueName;
+    private string _queueName = null!;
 
     protected GenericMessagePump(IProcessingSettings settings, ILogger log)
     {
@@ -217,7 +217,7 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
     /// <param name="lockDuration">Duration to lock message for other consumers</param>
     /// <typeparam name="TMessage">The type of message</typeparam>
     /// <returns></returns>
-    protected abstract IAsyncEnumerable<TInternalRepresentation> GetMessagesAsync<TMessage>(
+    protected abstract IAsyncEnumerable<TInternalRepresentation?> GetMessagesAsync<TMessage>(
         int count,
         TimeSpan? lockDuration
     )

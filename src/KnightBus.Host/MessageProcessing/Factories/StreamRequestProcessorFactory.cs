@@ -20,9 +20,9 @@ internal class StreamRequestProcessorFactory : MessageProcessorFactoryBase, IPro
     public IMessageProcessor GetProcessor(Type processorInterface)
     {
         var requestProcessorType = typeof(StreamRequestProcessor<>).MakeGenericType(
-            GetProcessorTypes(processorInterface).ResponseType
+            GetProcessorTypes(processorInterface).ResponseType!
         );
         return (IMessageProcessor)
-            Activator.CreateInstance(requestProcessorType, processorInterface);
+            Activator.CreateInstance(requestProcessorType, processorInterface)!;
     }
 }

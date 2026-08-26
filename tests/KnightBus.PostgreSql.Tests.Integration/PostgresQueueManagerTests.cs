@@ -9,9 +9,9 @@ namespace KnightBus.PostgreSql.Tests.Integration;
 [TestFixture]
 public class PostgresQueueManagerTests : QueueManagerTests<PostgresTestCommand>
 {
-    private PostgresBus _bus;
-    private PostgresQueueClient<PostgresTestCommand> _postgresQueueClient;
-    private PostgresManagementClient _postgresManagementClient;
+    private PostgresBus _bus = null!;
+    private PostgresQueueClient<PostgresTestCommand> _postgresQueueClient = null!;
+    private PostgresManagementClient _postgresManagementClient = null!;
 
     public override async Task Setup()
     {

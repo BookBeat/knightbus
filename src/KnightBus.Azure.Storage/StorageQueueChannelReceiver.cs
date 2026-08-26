@@ -16,13 +16,13 @@ namespace KnightBus.Azure.Storage;
 internal class StorageQueueChannelReceiver<T> : IChannelReceiver
     where T : class, IStorageQueueCommand
 {
-    private IStorageQueueClient _storageQueueClient;
+    private IStorageQueueClient _storageQueueClient = null!;
     private readonly IMessageSerializer _serializer;
     private readonly IStorageBusConfiguration _storageOptions;
     private readonly IMessageProcessor _processor;
     private readonly IHostConfiguration _hostConfiguration;
     public IProcessingSettings Settings { get; set; }
-    private StorageQueueMessagePump _messagePump;
+    private StorageQueueMessagePump _messagePump = null!;
 
     public StorageQueueChannelReceiver(
         IProcessingSettings settings,

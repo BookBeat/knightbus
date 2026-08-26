@@ -79,7 +79,7 @@ picks it up.
 ```csharp
 public interface ISingletonLockManager
 {
-    Task<ISingletonLockHandle> TryLockAsync(
+    Task<ISingletonLockHandle?> TryLockAsync(
         string lockId,
         TimeSpan lockPeriod,
         CancellationToken cancellationToken

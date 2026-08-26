@@ -26,7 +26,7 @@ internal static class MessageMapper
             IMessageMapping mappingInstance;
             if (typeof(IMessageMapping).IsAssignableFrom(mapping))
             {
-                mappingInstance = (IMessageMapping)Activator.CreateInstance(mapping);
+                mappingInstance = (IMessageMapping)Activator.CreateInstance(mapping)!;
             }
             else
             {

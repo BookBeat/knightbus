@@ -16,7 +16,7 @@ internal class ServiceBusQueueChannelFactory : ITransportChannelFactory
 
     public IChannelReceiver Create(
         Type messageType,
-        IEventSubscription subscription,
+        IEventSubscription? subscription,
         IProcessingSettings processingSettings,
         IMessageSerializer serializer,
         IHostConfiguration configuration,
@@ -24,7 +24,7 @@ internal class ServiceBusQueueChannelFactory : ITransportChannelFactory
     )
     {
         var queueReaderType = typeof(ServiceBusQueueChannelReceiver<>).MakeGenericType(messageType);
-        var queueReader = (IChannelReceiver)
+        var queueReader =
             Activator.CreateInstance(
                 queueReaderType,
                 processingSettings,
@@ -32,8 +32,9 @@ internal class ServiceBusQueueChannelFactory : ITransportChannelFactory
                 Configuration,
                 configuration,
                 processor
-            );
-        return queueReader;
+            ) as IChannelReceiver;
+        return queueReader
+            ?? throw new InvalidOperationException("ChannelReceiver could not be created");
     }
 
     public bool CanCreate(Type messageType)

@@ -17,7 +17,7 @@ namespace KnightBus.Host;
 public class KnightBusHost : IHostedService
 {
     private IHostConfiguration _configuration;
-    private MessageProcessorLocator _locator;
+    private MessageProcessorLocator? _locator;
     private readonly CancellationTokenSource _shutdownToken = new CancellationTokenSource();
     private readonly CancellationTokenSource _teardownToken = new CancellationTokenSource();
     private static readonly TimeSpan DrainPollingInterval = TimeSpan.FromMilliseconds(100);

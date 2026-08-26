@@ -18,7 +18,7 @@ namespace KnightBus.Host.Tests.Unit;
 [TestFixture]
 public class MessageProcessorLocatorTests
 {
-    private Mock<ITransportChannelFactory> _queueStarterFactory;
+    private Mock<ITransportChannelFactory> _queueStarterFactory = null!;
 
     [SetUp]
     public void Setup()

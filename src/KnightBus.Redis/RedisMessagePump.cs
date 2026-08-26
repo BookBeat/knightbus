@@ -16,9 +16,9 @@ internal class RedisMessagePump<T> : GenericMessagePump<RedisMessage<T>, IMessag
     private readonly string _queueName;
     private readonly IMessageSerializer _serializer;
     private readonly RedisConfiguration _redisConfiguration;
-    private RedisQueueClient<T> _queueClient;
-    private LostMessageBackgroundService<T> _lostMessageService;
-    private Task _lostMessageTask;
+    private RedisQueueClient<T> _queueClient = null!;
+    private LostMessageBackgroundService<T>? _lostMessageService;
+    private Task? _lostMessageTask;
 
     public RedisMessagePump(
         IConnectionMultiplexer connectionMultiplexer,
@@ -69,7 +69,7 @@ internal class RedisMessagePump<T> : GenericMessagePump<RedisMessage<T>, IMessag
         CancelPollingDelay();
     }
 
-    protected override async IAsyncEnumerable<RedisMessage<T>> GetMessagesAsync<TMessage>(
+    protected override async IAsyncEnumerable<RedisMessage<T>?> GetMessagesAsync<TMessage>(
         int count,
         TimeSpan? lockDuration
     )

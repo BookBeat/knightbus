@@ -15,7 +15,7 @@ namespace KnightBus.Azure.Storage.Tests.Integration;
 
 public class BlobStorageMessageAttachmentProviderTests
 {
-    private BlobStorageMessageAttachmentProvider _target;
+    private BlobStorageMessageAttachmentProvider _target = null!;
 
     [SetUp]
     public void Setup()
@@ -45,7 +45,7 @@ public class BlobStorageMessageAttachmentProviderTests
         var id = await _target.UploadAttachmentAsync("queue", attachment);
 
         // Assert
-        var result = await _target.GetAttachmentAsync("queue", id);
+        var result = (await _target.GetAttachmentAsync("queue", id))!;
         result
             .Metadata.Should()
             .BeEquivalentTo(
@@ -78,7 +78,7 @@ public class BlobStorageMessageAttachmentProviderTests
         }
 
         // Act
-        var result = await provider.GetAttachmentAsync("dispose-test", id);
+        var result = (await provider.GetAttachmentAsync("dispose-test", id))!;
 
         // Assert - compressed attachments decompress on the fly and are read-forward only
         result.Stream.CanRead.Should().BeTrue();
@@ -129,7 +129,7 @@ public class BlobStorageMessageAttachmentProviderTests
 
         // Act
         var id = await provider.UploadAttachmentAsync("compression-test", attachment);
-        var result = await provider.GetAttachmentAsync("compression-test", id);
+        var result = (await provider.GetAttachmentAsync("compression-test", id))!;
 
         // Assert
         using var reader = new StreamReader(result.Stream);
@@ -158,7 +158,7 @@ public class BlobStorageMessageAttachmentProviderTests
             new StorageBusConfiguration(StorageSetup.ConnectionString),
             new BlobStorageAttachmentOptions { EnableCompression = true }
         );
-        var result = await providerWithCompression.GetAttachmentAsync("compat-test", id);
+        var result = (await providerWithCompression.GetAttachmentAsync("compat-test", id))!;
 
         // Assert
         using var reader = new StreamReader(result.Stream);
@@ -186,7 +186,7 @@ public class BlobStorageMessageAttachmentProviderTests
         var providerNoCompression = new BlobStorageMessageAttachmentProvider(
             StorageSetup.ConnectionString
         );
-        var result = await providerNoCompression.GetAttachmentAsync("compat-test-2", id);
+        var result = (await providerNoCompression.GetAttachmentAsync("compat-test-2", id))!;
 
         // Assert
         using var reader = new StreamReader(result.Stream);
@@ -210,7 +210,7 @@ public class BlobStorageMessageAttachmentProviderTests
 
         // Act
         var id = await provider.UploadAttachmentAsync("large-test", attachment);
-        var result = await provider.GetAttachmentAsync("large-test", id);
+        var result = (await provider.GetAttachmentAsync("large-test", id))!;
 
         // Assert - large enough to overflow the single-request threshold into staged blocks
         using var downloaded = new MemoryStream();
@@ -264,7 +264,7 @@ public class BlobStorageMessageAttachmentProviderTests
 
         // Act
         var id = await provider.UploadAttachmentAsync("length-test", attachment);
-        var result = await provider.GetAttachmentAsync("length-test", id);
+        var result = (await provider.GetAttachmentAsync("length-test", id))!;
 
         // Assert - the decompressing stream cannot report a length, so it comes from metadata
         result.Length.Should().Be(originalContent.Length);
@@ -287,7 +287,7 @@ public class BlobStorageMessageAttachmentProviderTests
 
         // Act
         var id = await provider.UploadAttachmentAsync("length-test", attachment);
-        var result = await provider.GetAttachmentAsync("length-test", id);
+        var result = (await provider.GetAttachmentAsync("length-test", id))!;
 
         // Assert
         using var downloaded = new MemoryStream();
@@ -314,7 +314,7 @@ public class BlobStorageMessageAttachmentProviderTests
 
         // Act
         var id = await provider.UploadAttachmentAsync("length-test", attachment);
-        var result = await provider.GetAttachmentAsync("length-test", id);
+        var result = (await provider.GetAttachmentAsync("length-test", id))!;
 
         // Assert - 0 is the documented Length for non-seekable streams
         using var downloaded = new MemoryStream();
@@ -372,7 +372,7 @@ public class BlobStorageMessageAttachmentProviderTests
 
         // Act
         var id = await provider.UploadAttachmentAsync("meta-test", attachment);
-        var result = await provider.GetAttachmentAsync("meta-test", id);
+        var result = (await provider.GetAttachmentAsync("meta-test", id))!;
 
         // Assert - the surface must not depend on whether compression is enabled
         result
@@ -443,7 +443,7 @@ public class BlobStorageMessageAttachmentProviderTests
 
         // Act
         var id = await _target.UploadAttachmentAsync("collide-test", attachment);
-        var result = await _target.GetAttachmentAsync("collide-test", id);
+        var result = (await _target.GetAttachmentAsync("collide-test", id))!;
 
         // Assert
         result
@@ -487,7 +487,7 @@ public class BlobStorageMessageAttachmentProviderTests
         );
 
         // Assert
-        var result = await provider.GetAttachmentAsync(containerName, id);
+        var result = (await provider.GetAttachmentAsync(containerName, id))!;
         using var reader = new StreamReader(result.Stream);
         (await reader.ReadToEndAsync()).Should().Be("second");
     }
