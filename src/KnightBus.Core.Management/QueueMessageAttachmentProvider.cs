@@ -24,9 +24,6 @@ public class QueueMessageAttachmentProvider(IMessageAttachmentProvider attachmen
             cancellationToken
         );
 
-        if (attachment is null)
-            return null;
-
         return new QueueMessageAttachment(
             attachment.Stream,
             attachment.ContentType,

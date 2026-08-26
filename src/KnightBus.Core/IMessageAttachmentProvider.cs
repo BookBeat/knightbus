@@ -9,8 +9,7 @@ namespace KnightBus.Core;
 /// </summary>
 public interface IMessageAttachmentProvider
 {
-    /// <returns>The attachment if it exists, otherwise <see langword="null" /></returns>
-    Task<IMessageAttachment?> GetAttachmentAsync(
+    Task<IMessageAttachment> GetAttachmentAsync(
         string queueName,
         string id,
         CancellationToken cancellationToken = default(CancellationToken)

@@ -43,7 +43,7 @@ public class BlobStorageMessageAttachmentProvider : IMessageAttachmentProvider
         _options = options ?? new BlobStorageAttachmentOptions();
     }
 
-    public async Task<IMessageAttachment?> GetAttachmentAsync(
+    public async Task<IMessageAttachment> GetAttachmentAsync(
         string queueName,
         string id,
         CancellationToken cancellationToken = default(CancellationToken)

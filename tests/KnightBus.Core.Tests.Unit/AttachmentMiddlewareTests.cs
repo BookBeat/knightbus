@@ -251,7 +251,7 @@ public class AttachmentMiddlewareTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(default(IMessageAttachment));
+            .ReturnsAsync(default(IMessageAttachment)!);
         var middleware = new AttachmentMiddleware(attachmentProvider.Object);
         //act
         await middleware.ProcessAsync(
