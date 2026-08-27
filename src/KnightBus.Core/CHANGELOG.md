@@ -1,5 +1,10 @@
 # KnightBus.Core Changelog
 
+# 18.4.0
+* `Microsoft.Extensions.DependencyInjection.Abstractions`, `Microsoft.Extensions.Logging.Abstractions`
+  and `System.Text.Json` move to 9.0.19 on `net9.0` and 10.0.11 on `net10.0`, raising the floor
+  consumers resolve against. No API change
+
 # 18.3.0
 * Nullable reference types are enabled. Public APIs carry nullability annotations; no signature changed.
   Implementations of the annotated extension points get new warnings until they match:

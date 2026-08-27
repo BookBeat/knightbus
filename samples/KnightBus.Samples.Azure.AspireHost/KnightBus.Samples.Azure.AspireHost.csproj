@@ -1,9 +1,14 @@
-<Project Sdk="Aspire.AppHost.Sdk/13.0.2">
+<Project Sdk="Aspire.AppHost.Sdk/13.5.3">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>b2ad9cab-ed30-4aba-b11f-df0144c0ee91</UserSecretsId>
+    <!--
+      Aspire 13.5 warns when the CLI bundle is absent. The sample only needs to build and run
+      locally, so it opts out rather than pulling the bundle into CI.
+    -->
+    <NoWarn>$(NoWarn);ASPIRE010</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../KnightBus.Samples.Azure.ServiceBus.Producer/KnightBus.Samples.Azure.ServiceBus.Producer.csproj" />

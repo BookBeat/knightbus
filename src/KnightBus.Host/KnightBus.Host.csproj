@@ -3,7 +3,7 @@
     <TargetFrameworks>net9.0;net10.0</TargetFrameworks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Description>KnightBus Host</Description>
-    <Version>18.2.0$(VersionSuffix)</Version>
+    <Version>18.3.0$(VersionSuffix)</Version>
     <PackageTags>knightbus;servicebus;esb;queues;messaging</PackageTags>
   </PropertyGroup>
   <ItemGroup>

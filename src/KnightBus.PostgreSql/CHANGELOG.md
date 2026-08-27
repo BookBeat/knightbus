@@ -1,5 +1,9 @@
 # KnightBus.PostgreSql Changelog
 
+# 4.3.0
+(minor): `Npgsql` and `Npgsql.DependencyInjection` move to 9.0.5 on `net9.0` and 10.0.3 on `net10.0`,
+raising the floor consumers resolve against. No API change.
+
 # 4.2.0
 (minor): Implement `IMessageLockHandler<T>` on `PostgresMessageStateHandler` so `ExtendMessageLockDurationMiddleware` can renew message locks. The fetch lock is passed as a `TimeSpan`, so fractional durations no longer truncate to whole seconds.
 

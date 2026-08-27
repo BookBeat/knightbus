@@ -14,19 +14,24 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageVersion Include="Azure.Identity" Version="1.17.1" />
-    <PackageVersion Include="Azure.Messaging.ServiceBus" Version="7.20.1" />
-    <PackageVersion Include="Azure.Storage.Blobs" Version="12.27.0" />
-    <PackageVersion Include="Azure.Storage.Queues" Version="12.25.0" />
+    <PackageVersion Include="Azure.Identity" Version="1.21.0" />
+    <PackageVersion Include="Azure.Messaging.ServiceBus" Version="7.20.2" />
+    <PackageVersion Include="Azure.Storage.Blobs" Version="12.29.2" />
+    <PackageVersion Include="Azure.Storage.Queues" Version="12.27.1" />
     <PackageVersion Include="Microsoft.ApplicationInsights.DependencyCollector" Version="2.23.0" />
     <PackageVersion Include="Microsoft.ApplicationInsights.PerfCounterCollector" Version="2.23.0" />
-    <PackageVersion Include="Microsoft.Data.SqlClient" Version="6.1.3" />
+    <!-- Held on the 6.1 LTS line; 7.x is STS, and this floor is what consumers inherit. -->
+    <PackageVersion Include="Microsoft.Data.SqlClient" Version="6.1.6" />
     <PackageVersion Include="NATS.Client" Version="1.1.8" />
-    <PackageVersion Include="NewRelic.Agent.Api" Version="10.47.0" />
+    <PackageVersion Include="NewRelic.Agent.Api" Version="10.54.0" />
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
-    <PackageVersion Include="OpenTelemetry.Api" Version="1.15.3" />
-    <PackageVersion Include="Quartz" Version="3.15.1" />
-    <PackageVersion Include="StackExchange.Redis" Version="2.10.1" />
+    <PackageVersion Include="OpenTelemetry.Api" Version="1.18.0" />
+    <PackageVersion Include="Quartz" Version="3.19.1" />
+    <!--
+      Held on 2.x. The 3.x API mirrors 2.13.17, but it defaults to RESP3 and raises the floor
+      in the published KnightBus.Redis package, forcing consumers off 2.x — its own release.
+    -->
+    <PackageVersion Include="StackExchange.Redis" Version="2.13.17" />
   </ItemGroup>
 
   <!--
@@ -36,52 +41,54 @@
   <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
     <PackageVersion
       Include="Microsoft.Extensions.DependencyInjection.Abstractions"
-      Version="9.0.3"
+      Version="9.0.19"
     />
-    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="9.0.3" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.3" />
-    <PackageVersion Include="Npgsql" Version="9.0.4" />
-    <PackageVersion Include="Npgsql.DependencyInjection" Version="9.0.4" />
-    <PackageVersion Include="System.Text.Json" Version="9.0.3" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="9.0.19" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.19" />
+    <PackageVersion Include="Npgsql" Version="9.0.5" />
+    <PackageVersion Include="Npgsql.DependencyInjection" Version="9.0.5" />
+    <PackageVersion Include="System.Text.Json" Version="9.0.19" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' != 'net9.0'">
     <PackageVersion
       Include="Microsoft.Extensions.DependencyInjection.Abstractions"
-      Version="10.0.0"
+      Version="10.0.11"
     />
-    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
-    <PackageVersion Include="Npgsql" Version="10.0.1" />
-    <PackageVersion Include="Npgsql.DependencyInjection" Version="10.0.1" />
-    <PackageVersion Include="System.Text.Json" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.11" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.11" />
+    <PackageVersion Include="Npgsql" Version="10.0.3" />
+    <PackageVersion Include="Npgsql.DependencyInjection" Version="10.0.3" />
+    <PackageVersion Include="System.Text.Json" Version="10.0.11" />
   </ItemGroup>
 
   <!-- Test-only -->
   <ItemGroup>
-    <PackageVersion Include="AwesomeAssertions" Version="9.3.0" />
+    <PackageVersion Include="AwesomeAssertions" Version="9.6.0" />
     <PackageVersion Include="FluentAssertions" Version="[7.2.0,8.0.0)" />
-    <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
+    <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.11" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.11" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
     <PackageVersion Include="Moq" Version="4.20.72" />
-    <PackageVersion Include="NUnit" Version="4.3.2" />
-    <PackageVersion Include="NUnit3TestAdapter" Version="5.0.0" />
-    <PackageVersion Include="Testcontainers.Azurite" Version="4.3.0" />
-    <PackageVersion Include="Testcontainers.MsSql" Version="4.3.0" />
-    <PackageVersion Include="Testcontainers.PostgreSql" Version="4.3.0" />
-    <PackageVersion Include="Testcontainers.Redis" Version="4.3.0" />
+    <PackageVersion Include="NUnit" Version="4.6.1" />
+    <PackageVersion Include="NUnit3TestAdapter" Version="6.3.0" />
+    <PackageVersion Include="Testcontainers.Azurite" Version="4.14.0" />
+    <PackageVersion Include="Testcontainers.MsSql" Version="4.14.0" />
+    <PackageVersion Include="Testcontainers.PostgreSql" Version="4.14.0" />
+    <PackageVersion Include="Testcontainers.Redis" Version="4.14.0" />
   </ItemGroup>
 
   <!-- Sample-only -->
   <ItemGroup>
-    <PackageVersion Include="Aspire.Hosting.Azure.ServiceBus" Version="13.0.2" />
-    <PackageVersion Include="OpenTelemetry" Version="1.15.3" />
-    <PackageVersion Include="OpenTelemetry.Exporter.Console" Version="1.15.3" />
-    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.3" />
-    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.15.3" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.2" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.15.1" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.Process" Version="1.15.1-beta.1" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.15.1" />
+    <!-- Travels with Aspire.AppHost.Sdk, pinned in the AspireHost csproj. -->
+    <PackageVersion Include="Aspire.Hosting.Azure.ServiceBus" Version="13.5.3" />
+    <PackageVersion Include="OpenTelemetry" Version="1.18.0" />
+    <PackageVersion Include="OpenTelemetry.Exporter.Console" Version="1.18.0" />
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.18.0" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.18.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.18.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.18.0" />
+    <!-- Has never shipped a stable release. -->
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Process" Version="1.18.0-rc.1" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.18.0" />
   </ItemGroup>
 </Project>
