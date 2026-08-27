@@ -6,7 +6,43 @@
 * `PostgresMessageStateHandler` implements `IMessageLockHandler<T>`, so `ExtendMessageLockDurationMiddleware` renews message locks on this transport and `IExtendMessageLockTimeout` settings are now supported here. A renewal pushes `visibility_timeout` forward and only applies while the consumer still holds the row; once another consumer has fetched it, the renewal is a no-op
 * The fetch lock is passed to the queue client as a `TimeSpan` instead of whole seconds, so a fractional `MessageLockTimeout` or `ExtensionDuration` no longer truncates — a value under one second used to become a zero-second lock. `PostgresBaseClient.GetMessagesAsync` gained a `TimeSpan` overload; the `int` one remains
 
-# 2026-08-26
+### Dependency sweep
+Every centrally managed dependency moved to its current release. No API changed; what changed for
+consumers is the minimum version each package resolves against, so the twelve packages holding a
+direct reference to something that moved get a minor bump: `KnightBus.Core` 18.4.0, `KnightBus.Host`
+18.3.0, `KnightBus.Azure.ServiceBus` 24.2.0, `KnightBus.Azure.Storage` 18.3.0, `KnightBus.Redis`
+17.2.0, `KnightBus.SqlServer` 17.2.0, `KnightBus.PostgreSql` 4.3.0, `KnightBus.PostgreSql.Management`
+4.2.0, `KnightBus.PostgreSql.Extensions.Azure` 2.1.0, `KnightBus.Schedule` 15.3.0,
+`KnightBus.NewRelic` 13.2.0 and `KnightBus.OpenTelemetry` 1.0.0-alpha4.
+
+`KnightBus.PostgreSql` goes to 4.3.0 rather than 4.2.0: the lock-extension release above already
+published 4.2.0 with the previous Npgsql floor, and CI pushes with `--skip-duplicate`, so reusing
+that version would drop the new floor silently.
+
+The remaining fourteen packages are unchanged and not republished. `KnightBus.ApplicationInsights`,
+`KnightBus.Nats` and `KnightBus.Newtonsoft` were already on the current version of everything they
+reference; the `.Messages` and `.Management` satellites have no package references of their own, and
+the floors their published nuspecs already declare still resolve against the new versions.
+
+* Runtime packages, pinned per target framework: `Microsoft.Extensions.*` and `System.Text.Json` to
+  9.0.19 on `net9.0` and 10.0.11 on `net10.0`; `Npgsql` and `Npgsql.DependencyInjection` to 9.0.5 and
+  10.0.3
+* `Azure.Identity` 1.21.0, `Azure.Storage.Blobs` 12.29.2, `Azure.Storage.Queues` 12.27.1,
+  `Azure.Messaging.ServiceBus` 7.20.2, `Quartz` 3.19.1, `NewRelic.Agent.Api` 10.54.0 and the
+  OpenTelemetry family 1.18.0
+* **Held back deliberately.** `StackExchange.Redis` stays on 2.x (2.13.17): 3.x mirrors the 2.13.17
+  API, but it defaults to RESP3 and would raise the floor in `KnightBus.Redis`, forcing every
+  consumer off 2.x — that belongs in its own major release. `Microsoft.Data.SqlClient` stays on the
+  6.1 LTS line (6.1.6) rather than 7.0.2, which is short-term support. `FluentAssertions` keeps its
+  `[7.2.0,8.0.0)` range, the guard against the v8 licence change
+* `PostgresAzureConfiguration.TokenCredential` now defaults to
+  `new ManagedIdentityCredential(ManagedIdentityId.SystemAssigned)`; Azure.Identity 1.21.0 obsoleted
+  the constructor the old default resolved to. Same system-assigned identity, spelled explicitly
+* Twelve security advisories against transitive test dependencies are gone — `MessagePack` 2.5.192
+  (two high, nine moderate) reached the build through `Microsoft.NET.Test.Sdk`, now 18.9.0, and
+  `SSH.NET` 2024.2.0 (one high) through Testcontainers, now 4.14.0. Both were confined to the test
+  suites and the Aspire sample, all of which are `IsPackable=false`, so no published package ever
+  carried them
 
 ### Nullable reference types enabled across all packages
 All public APIs now carry nullability annotations; the signatures themselves are unchanged. Released

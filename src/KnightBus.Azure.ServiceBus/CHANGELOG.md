@@ -1,5 +1,11 @@
 ﻿# KnightBus.Azure.ServiceBus Changelog
 
+## 24.2.0
+### Changed
+- `Azure.Identity` moves to 1.21.0 and `Azure.Messaging.ServiceBus` to 7.20.2, raising the floor
+  consumers resolve against. No API change
+
+
 ## 24.1.0
 ### Changed
 - Nullable reference types are enabled. `IServiceBusConfiguration.FullyQualifiedNamespace` and

@@ -7,8 +7,7 @@ namespace KnightBus.PostgreSql.Tests.Integration;
 [SetUpFixture]
 public class PostgresSetup
 {
-    private static readonly PostgreSqlContainer Postgres = new PostgreSqlBuilder()
-        .WithImage("postgres")
+    private static readonly PostgreSqlContainer Postgres = new PostgreSqlBuilder("postgres")
         .WithPortBinding(5433, 5432)
         .WithUsername("postgres")
         .WithPassword("passw")

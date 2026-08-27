@@ -27,7 +27,8 @@ public class PostgresAzureConfiguration : PostgresConfiguration
     /// <summary>
     /// <see cref="TokenCredential"/> to use for acquiring Azure AD tokens. Defaults to <see cref="ManagedIdentityCredential"/>
     /// </summary>
-    public TokenCredential TokenCredential { get; set; } = new ManagedIdentityCredential();
+    public TokenCredential TokenCredential { get; set; } =
+        new ManagedIdentityCredential(ManagedIdentityId.SystemAssigned);
 
     /// <summary>
     /// The set of scopes to request when acquiring an Azure AD token.
