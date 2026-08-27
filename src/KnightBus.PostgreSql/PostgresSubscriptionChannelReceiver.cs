@@ -37,6 +37,14 @@ public class PostgresSubscriptionChannelReceiver<T> : IChannelReceiver
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
+        // Runs on every startup, not just when the table is missing, so already-deployed
+        // subscriptions pick up schema changes (e.g. new columns) added by a newer library version
+        await QueueInitializer.InitSubscription(
+            PostgresQueueName.Create(AutoMessageMapper.GetQueueName<T>()),
+            PostgresQueueName.Create(_subscription.Name),
+            _npgsqlDataSource
+        );
+
         _queueClient = new PostgresSubscriptionClient<T>(
             _npgsqlDataSource,
             _serializer,

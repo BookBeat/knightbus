@@ -105,7 +105,7 @@ public class PostgresBus : IPostgresBus
     private static async Task BatchInsert(
         NpgsqlConnection connection,
         string queueName,
-        List<(byte[] Message, byte[]? Properties)> rows,
+        List<(byte[] Message, byte[]? Properties, int Priority)> rows,
         TimeSpan? delay,
         CancellationToken ct
     )
@@ -116,7 +116,7 @@ public class PostgresBus : IPostgresBus
             batch.BatchCommands.Add(
                 new NpgsqlBatchCommand(
                     //lang=postgresql
-                    $"INSERT INTO {SchemaName}.{QueuePrefix}_{queueName} (visibility_timeout, message, properties) VALUES (now() + $1, $2, $3)"
+                    $"INSERT INTO {SchemaName}.{QueuePrefix}_{queueName} (visibility_timeout, message, properties, priority) VALUES (now() + $1, $2, $3, $4)"
                 )
                 {
                     Parameters =
@@ -132,6 +132,7 @@ public class PostgresBus : IPostgresBus
                             Value = (object?)row.Properties ?? DBNull.Value,
                             NpgsqlDbType = NpgsqlDbType.Jsonb,
                         },
+                        new NpgsqlParameter<int> { TypedValue = row.Priority },
                     },
                 }
             );
@@ -144,14 +145,14 @@ public class PostgresBus : IPostgresBus
     private static async Task BatchCopy(
         NpgsqlConnection connection,
         string queueName,
-        List<(byte[] Message, byte[]? Properties)> rows,
+        List<(byte[] Message, byte[]? Properties, int Priority)> rows,
         TimeSpan? delay,
         CancellationToken ct
     )
     {
         string sql =
             //lang=postgresql
-            $"COPY {SchemaName}.{QueuePrefix}_{queueName} (visibility_timeout, message, properties) FROM STDIN (FORMAT binary)";
+            $"COPY {SchemaName}.{QueuePrefix}_{queueName} (visibility_timeout, message, properties, priority) FROM STDIN (FORMAT binary)";
 
         await using var importer = await connection
             .BeginBinaryImportAsync(sql, ct)
@@ -171,6 +172,7 @@ public class PostgresBus : IPostgresBus
                 await importer
                     .WriteAsync(row.Properties, NpgsqlDbType.Jsonb, ct)
                     .ConfigureAwait(false);
+            await importer.WriteAsync(row.Priority, NpgsqlDbType.Integer, ct).ConfigureAwait(false);
         }
 
         await importer.CompleteAsync(ct).ConfigureAwait(false);
@@ -245,19 +247,19 @@ public class PostgresBus : IPostgresBus
 
     // Pre-processors can perform slow I/O such as attachment uploads, so all rows are
     // serialized before a connection is opened or a COPY transaction is started
-    private async Task<List<(byte[] Message, byte[]? Properties)>> SerializeMessagesAsync<T>(
-        IEnumerable<T> messages,
-        CancellationToken ct
-    )
+    private async Task<
+        List<(byte[] Message, byte[]? Properties, int Priority)>
+    > SerializeMessagesAsync<T>(IEnumerable<T> messages, CancellationToken ct)
         where T : IMessage
     {
-        var rows = new List<(byte[], byte[]?)>();
+        var rows = new List<(byte[], byte[]?, int)>();
         foreach (var message in messages)
         {
             rows.Add(
                 (
                     _serializer.Serialize(message),
-                    await SerializePropertiesAsync(message, ct).ConfigureAwait(false)
+                    await SerializePropertiesAsync(message, ct).ConfigureAwait(false),
+                    message is IPriority priority ? priority.Priority : 0
                 )
             );
         }

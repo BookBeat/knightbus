@@ -43,7 +43,7 @@ WITH cte AS
         SELECT message_id
         FROM {SchemaName}.{_prefix}_{_queueName}
         WHERE visibility_timeout <= clock_timestamp()
-        ORDER BY message_id ASC
+        ORDER BY priority DESC, message_id ASC
         LIMIT ($1)
         FOR UPDATE SKIP LOCKED
     )

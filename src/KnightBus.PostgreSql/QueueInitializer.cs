@@ -218,7 +218,9 @@ CREATE TABLE IF NOT EXISTS {SchemaName}.metadata (
         var createIndexCmd = new NpgsqlCommand(
             @$"
 CREATE INDEX IF NOT EXISTS {SchemaName}_{prefix}_{queueName}_visibility_timeout_idx
-ON {SchemaName}.{prefix}_{queueName} (visibility_timeout ASC);",
+ON {SchemaName}.{prefix}_{queueName} (visibility_timeout ASC);
+CREATE INDEX IF NOT EXISTS {SchemaName}_{prefix}_{queueName}_priority_idx
+ON {SchemaName}.{prefix}_{queueName} (visibility_timeout ASC, priority DESC, message_id ASC);",
             connection
         );
         return createIndexCmd;
@@ -259,7 +261,8 @@ CREATE TABLE IF NOT EXISTS {SchemaName}.{prefix}_{queueName} (
     visibility_timeout TIMESTAMP WITH TIME ZONE NOT NULL,
     message JSONB,
     properties JSONB
-);",
+);
+ALTER TABLE {SchemaName}.{prefix}_{queueName} ADD COLUMN IF NOT EXISTS priority INT NOT NULL DEFAULT 0;",
             connection
         );
         return createQueueCmd;

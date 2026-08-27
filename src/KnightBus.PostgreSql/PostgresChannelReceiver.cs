@@ -34,6 +34,13 @@ public class PostgresChannelReceiver<T> : IChannelReceiver
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
+        // Runs on every startup, not just when the table is missing, so already-deployed
+        // queues pick up schema changes (e.g. new columns) added by a newer library version
+        await QueueInitializer.InitQueue(
+            PostgresQueueName.Create(AutoMessageMapper.GetQueueName<T>()),
+            _npgsqlDataSource
+        );
+
         _queueClient = new PostgresQueueClient<T>(_npgsqlDataSource, _serializer);
         var pump = new PostgresMessagePump<T>(
             Settings,

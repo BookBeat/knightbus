@@ -184,6 +184,109 @@ DROP TABLE IF EXISTS knightbus.t_bus_test_topic;"
     }
 
     [Test]
+    public async Task GetMessages_HigherPriorityMessageIsFetchedFirst()
+    {
+        await _postgresBus.SendAsync(
+            new TestCommand { MessageBody = "default priority" },
+            default
+        );
+        await _postgresBus.SendAsync(
+            new TestCommand { MessageBody = "urgent", Priority = 10 },
+            default
+        );
+
+        var messages = _postgresQueueClient
+            .GetMessagesAsync(1, 100, default)
+            .ToBlockingEnumerable()
+            .ToList();
+
+        messages.Single().Message.MessageBody.Should().Be("urgent");
+    }
+
+    [Test]
+    public async Task GetMessages_SamePriorityPreservesInsertionOrder()
+    {
+        await _postgresBus.SendAsync<TestCommand>(
+            [
+                new TestCommand { MessageBody = "first", Priority = 5 },
+                new TestCommand { MessageBody = "second", Priority = 5 },
+            ],
+            default
+        );
+
+        var messages = _postgresQueueClient
+            .GetMessagesAsync(2, 100, default)
+            .ToBlockingEnumerable()
+            .ToList();
+
+        messages.Count.Should().Be(2);
+        messages[0].Message.MessageBody.Should().Be("first");
+        messages[1].Message.MessageBody.Should().Be("second");
+    }
+
+    [Test]
+    public async Task InitQueue_AddsPriorityColumnToExistingTable()
+    {
+        var legacyQueueName = PostgresQueueName.Create("legacy_priority_queue");
+
+        // Simulate a queue table created before priority support existed (no `priority` column)
+        await PostgresSetup
+            .DataSource.CreateCommand(
+                @"
+CREATE SCHEMA IF NOT EXISTS knightbus;
+CREATE TABLE IF NOT EXISTS knightbus.q_legacy_priority_queue (
+    message_id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    read_count SMALLINT DEFAULT 0 NOT NULL,
+    enqueued_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
+    visibility_timeout TIMESTAMP WITH TIME ZONE NOT NULL,
+    message JSONB,
+    properties JSONB
+);"
+            )
+            .ExecuteNonQueryAsync();
+
+        try
+        {
+            // What an upgraded host runs automatically at receiver startup
+            await QueueInitializer.InitQueue(legacyQueueName, PostgresSetup.DataSource);
+
+            var serializer = new MicrosoftJsonSerializer();
+            await using var connection = await PostgresSetup.DataSource.OpenConnectionAsync();
+            await using var insertCmd = new NpgsqlCommand(
+                "INSERT INTO knightbus.q_legacy_priority_queue (visibility_timeout, message, priority) VALUES (now(), $1, $2)",
+                connection
+            );
+            insertCmd.Parameters.Add(
+                new NpgsqlParameter
+                {
+                    Value = serializer.Serialize(new TestCommand { MessageBody = "migrated" }),
+                    NpgsqlDbType = NpgsqlDbType.Jsonb,
+                }
+            );
+            insertCmd.Parameters.Add(new NpgsqlParameter<int> { TypedValue = 5 });
+            await insertCmd.ExecuteNonQueryAsync();
+
+            var legacyQueueClient = new PostgresBaseClient<TestCommand>(
+                PostgresSetup.DataSource,
+                serializer,
+                PostgresConstants.QueuePrefix,
+                legacyQueueName
+            );
+
+            var messages = legacyQueueClient
+                .GetMessagesAsync(1, 100, default)
+                .ToBlockingEnumerable()
+                .ToList();
+
+            messages.Single().Message.MessageBody.Should().Be("migrated");
+        }
+        finally
+        {
+            await _postgresManagementClient.DeleteQueue(legacyQueueName, default);
+        }
+    }
+
+    [Test]
     public async Task SendAsync_WithPreProcessors_StoresPropertiesOnMessage()
     {
         var bus = new PostgresBus(
@@ -579,9 +682,10 @@ WHERE message_id = {message[0].Id}"
     }
 }
 
-public class TestCommand : IPostgresCommand
+public class TestCommand : IPostgresCommand, IPriority
 {
     public string MessageBody { get; set; }
+    public int Priority { get; set; }
 }
 
 public class BusTestEvent : IPostgresEvent
