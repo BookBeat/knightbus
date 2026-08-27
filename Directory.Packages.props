@@ -21,7 +21,7 @@
     <PackageVersion Include="Microsoft.ApplicationInsights.DependencyCollector" Version="2.23.0" />
     <PackageVersion Include="Microsoft.ApplicationInsights.PerfCounterCollector" Version="2.23.0" />
     <!-- Held on the 6.1 LTS line; 7.x is STS, and this floor is what consumers inherit. -->
-    <PackageVersion Include="Microsoft.Data.SqlClient" Version="6.1.6" />
+    <PackageVersion Include="Microsoft.Data.SqlClient" Version="7.0.2" />
     <PackageVersion Include="NATS.Client" Version="1.1.8" />
     <PackageVersion Include="NewRelic.Agent.Api" Version="10.54.0" />
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
