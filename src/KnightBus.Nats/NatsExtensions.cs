@@ -8,7 +8,7 @@ public static class NatsExtensions
 {
     public static IServiceCollection UseNats(
         this IServiceCollection services,
-        Action<INatsConfiguration> configuration = null
+        Action<INatsConfiguration>? configuration = null
     )
     {
         var natsConfiguration = new NatsConfiguration();

@@ -24,7 +24,7 @@ public class CustomJobFactory : SimpleJobFactory
     {
         var jobType = typeof(JobExecutor<,>).MakeGenericType(settingsType, processorType);
         var jobExecutor = (IJob)
-            Activator.CreateInstance(jobType, log, singletonLockManager, dependencyInjection);
+            Activator.CreateInstance(jobType, log, singletonLockManager, dependencyInjection)!;
         _jobs.TryAdd(jobExecutor.GetType(), jobExecutor);
     }
 

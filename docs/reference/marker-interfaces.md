@@ -30,7 +30,7 @@ in KnightBus.
 | `ICommand` | One logical consumer. | Implement a transport-specific descendant instead. |
 | `IEvent` | Fan-out to many subscriptions. | Implement a transport-specific descendant instead. |
 | `IRequest` | Request/response. | Implement `INatsRequest`; only NATS supports requests. |
-| `ICommandWithAttachment` | Adds an out-of-band payload. | Requires a registered attachment provider on **both** sender and receiver. Adds `IMessageAttachment Attachment { get; set; }`. |
+| `ICommandWithAttachment` | Adds an out-of-band payload. | Requires a registered attachment provider on **both** sender and receiver. Adds `IMessageAttachment? Attachment { get; set; }`. |
 
 ### Transport interfaces
 
@@ -46,7 +46,7 @@ in KnightBus.
 public class ImportFile : IServiceBusCommand, ICommandWithAttachment
 {
     public string Description { get; set; }
-    public IMessageAttachment Attachment { get; set; }
+    public IMessageAttachment? Attachment { get; set; }
 }
 ```
 
@@ -231,15 +231,15 @@ searching for an interface to make one of these happen, there isn't one:
 | Host-wide concurrency limit | `ThrottleHost(maxConcurrent)` |
 | Liveness probe | `UseTcpAliveListener(port)` |
 | Cron scheduling | `UseScheduling()` + `RegisterSchedules()` |
-| Attachments | `UseBlobStorageAttachments()` / `UseRedisAttachments()` |
+| Attachments | `UseBlobStorageAttachments()` |
 | Sagas | `UseBlobStorageSagas()` / `UseRedisSagaStore()` / `UsePostgresSagaStore()` / `UseSqlServerSagaStore(...)` |
 | Distributed tracing | `UseDistributedTracing()` |
 | Telemetry | `UseOpenTelemetry()` / `UseApplicationInsights(...)` / `UseNewRelic()` |
 | Queue management | `AddServiceBusManagement(...)` and friends |
 
 Where a row lists several calls, they are alternative *stores*, not one call per transport:
-`UseRedisAttachments()` and `UsePostgresSagaStore()` are as valid in a Service Bus application as
-anywhere else. Only queue management is transport-specific. See the
+`UseBlobStorageAttachments()` and `UsePostgresSagaStore()` are as valid in a Service Bus application
+as anywhere else. Only queue management is transport-specific. See the
 [transport matrix](../transports/index.md#feature-matrix).
 
 ## Quick diagnosis

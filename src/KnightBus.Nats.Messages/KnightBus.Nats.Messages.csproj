@@ -5,7 +5,6 @@
     <Description>NATS Messages for KnightBus</Description>
     <Version>1.1.0$(VersionSuffix)</Version>
     <PackageTags>knightbus;nats;queues;messaging</PackageTags>
-    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>

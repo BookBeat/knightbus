@@ -12,8 +12,8 @@ namespace KnightBus.Redis.Tests.Integration;
 
 public class RedisQueueClientTests
 {
-    private IRedisBus _bus;
-    private RedisQueueClient<TestCommand> _target;
+    private IRedisBus _bus = null!;
+    private RedisQueueClient<TestCommand> _target = null!;
     private ILogger _log = Mock.Of<ILogger>();
     private readonly string _queueName = AutoMessageMapper.GetQueueName<TestCommand>();
 
@@ -21,7 +21,7 @@ public class RedisQueueClientTests
     public void Setup()
     {
         _bus = new RedisBus(
-            RedisTestBase.Configuration.ConnectionString,
+            RedisTestBase.Configuration.ConnectionString!,
             Enumerable.Empty<IMessagePreProcessor>()
         );
         _target = new RedisQueueClient<TestCommand>(
@@ -36,7 +36,7 @@ public class RedisQueueClientTests
     public void BaseTeardown()
     {
         var server = RedisTestBase.Database.Multiplexer.GetServer(
-            RedisTestBase.Configuration.ConnectionString
+            RedisTestBase.Configuration.ConnectionString!
         );
         server.FlushDatabase();
     }
@@ -46,7 +46,7 @@ public class RedisQueueClientTests
         var command = new TestCommand(Guid.NewGuid().ToString());
         await _bus.SendAsync(command);
         var messages = await _target.GetMessagesAsync(1);
-        return messages.First();
+        return messages.First()!;
     }
 
     [Test]
@@ -67,7 +67,7 @@ public class RedisQueueClientTests
 
         //Assert
         messages.Length.Should().Be(1);
-        var message = messages.First();
+        var message = messages.First()!;
         message.Message.Should().BeEquivalentTo(command);
         message.HashEntries.Should().ContainKey(RedisHashKeys.DeliveryCount);
         message.HashEntries.Should().ContainKey(RedisHashKeys.LastProcessed);
@@ -118,7 +118,7 @@ public class RedisQueueClientTests
         errorMessage.Should().Be(exception.Message);
 
         var reQueuedMessages = await _target.GetMessagesAsync(1);
-        var reQueuedMessage = reQueuedMessages.First();
+        var reQueuedMessage = reQueuedMessages.First()!;
         reQueuedMessage.Message.Should().BeEquivalentTo(message.Message);
         reQueuedMessage.HashKey.Should().BeEquivalentTo(message.HashKey);
     }

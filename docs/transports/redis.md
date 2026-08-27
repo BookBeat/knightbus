@@ -1,9 +1,8 @@
 # Redis
 
 The highest-throughput KnightBus transport: commands and events built on Redis lists. The package
-also ships an attachment provider and a saga store, which are host-wide features rather than Redis
-transport features — any transport can use them, and this transport can equally use the ones shipped
-by other packages.
+also ships a saga store, which is a host-wide feature rather than a Redis transport feature — any
+transport can use it, and this transport can equally use the stores shipped by other packages.
 
 ```bash
 dotnet add package KnightBus.Redis
@@ -82,20 +81,10 @@ messages are not stranded.
 
 ## Attachments
 
-```csharp
-services
-    .UseRedis(config => config.ConnectionString = connectionString)
-    .UseRedisAttachments();
-```
-
-Attachments are stored in Redis itself, uncompressed — there is no options overload.
-
-This registers a *provider*, not a Redis-transport feature. `UseRedisAttachments()` backs
-[attachments](../features/attachments.md) for every transport in the host — a Service Bus or NATS
-message can carry its payload in Redis — and it needs `UseRedis(...)` for the connection, not
-`UseTransport<RedisTransport>()`. The reverse holds too: messages travelling over Redis can use the
-[Blob Storage provider](azure-storage-queues.md#attachments) instead, which is the better choice for
-large or long-lived attachments since Redis keeps everything in memory.
+This package ships no attachment provider. Messages travelling over Redis carry
+[attachments](../features/attachments.md) through the
+[Blob Storage provider](azure-storage-queues.md#attachments), registered on the host alongside the
+Redis transport.
 
 ## Saga store
 
@@ -103,9 +92,9 @@ large or long-lived attachments since Redis keeps everything in memory.
 services.UseRedisSagaStore();
 ```
 
-Like the attachment provider, this is independent of the transport: it stores
-[saga](../features/sagas.md) state for messages arriving on any transport, and sagas over Redis can
-just as well use the Blob, PostgreSQL or SQL Server store.
+This is independent of the transport: it stores [saga](../features/sagas.md) state for messages
+arriving on any transport, and sagas over Redis can just as well use the Blob, PostgreSQL or SQL
+Server store.
 
 Each saga is a Redis hash at `sagas:{partitionKey}:{id}` with two fields: `data` holds the serialized
 state and `stamp` the concurrency stamp. `Create` sets the saga's `TimeToLive` as the key expiry, and

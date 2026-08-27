@@ -17,7 +17,6 @@ namespace KnightBus.Host;
 public class KnightBusHost : IHostedService
 {
     private IHostConfiguration _configuration;
-    private MessageProcessorLocator _locator;
     private readonly CancellationTokenSource _shutdownToken = new CancellationTokenSource();
     private readonly CancellationTokenSource _teardownToken = new CancellationTokenSource();
     private static readonly TimeSpan DrainPollingInterval = TimeSpan.FromMilliseconds(100);
@@ -63,12 +62,12 @@ public class KnightBusHost : IHostedService
 
         if (transports.Any())
         {
-            _locator = new MessageProcessorLocator(
+            var locator = new MessageProcessorLocator(
                 _configuration,
                 transports.SelectMany(transport => transport.TransportChannelFactories).ToArray(),
                 _teardownToken.Token
             );
-            Receivers.AddRange(_locator.CreateReceivers());
+            Receivers.AddRange(locator.CreateReceivers());
             _configuration.Log.LogInformation("Starting receivers");
             foreach (var receiver in Receivers)
             {

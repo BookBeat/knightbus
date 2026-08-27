@@ -38,11 +38,12 @@ public class GenericMessagePumpTests
     {
         public readonly ConcurrentQueue<(
             LogLevel Level,
-            Exception Exception,
+            Exception? Exception,
             string Message
         )> Entries = new();
 
-        public IDisposable BeginScope<TState>(TState state) => null;
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull => null;
 
         public bool IsEnabled(LogLevel logLevel) => true;
 
@@ -50,8 +51,8 @@ public class GenericMessagePumpTests
             LogLevel logLevel,
             EventId eventId,
             TState state,
-            Exception exception,
-            Func<TState, Exception, string> formatter
+            Exception? exception,
+            Func<TState, Exception?, string> formatter
         )
         {
             Entries.Enqueue((logLevel, exception, formatter(state, exception)));
@@ -60,8 +61,8 @@ public class GenericMessagePumpTests
 
     private class TestMessagePump : GenericMessagePump<TestCommand, ICommand>
     {
-        private readonly Func<Task> _createChannel;
-        private readonly Func<Task> _cleanupResources;
+        private readonly Func<Task>? _createChannel;
+        private readonly Func<Task>? _cleanupResources;
         private readonly TimeSpan? _pollingDelay;
         private int _getMessagesInvocations;
         private int _createChannelInvocations;
@@ -75,10 +76,10 @@ public class GenericMessagePumpTests
 
         public TestMessagePump(
             ILogger log,
-            Func<Task> createChannel = null,
-            Func<Task> cleanupResources = null,
+            Func<Task>? createChannel = null,
+            Func<Task>? cleanupResources = null,
             TimeSpan? pollingDelay = null,
-            IProcessingSettings settings = null
+            IProcessingSettings? settings = null
         )
             : base(settings ?? new TestPumpSettings(), log)
         {

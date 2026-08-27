@@ -63,10 +63,10 @@ public class ErrorHandlingMiddlewareTests
                     It.Is<EventId>(eventId => eventId.Id == 0),
                     It.Is<It.IsAnyType>(
                         (@object, @type) =>
-                            @object.ToString().StartsWith("Error processing message")
+                            @object.ToString()!.StartsWith("Error processing message")
                     ),
                     It.IsAny<Exception>(),
-                    It.IsAny<Func<It.IsAnyType, Exception, string>>()
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()
                 ),
             Times.Once
         );
@@ -128,10 +128,10 @@ public class ErrorHandlingMiddlewareTests
                     It.Is<EventId>(eventId => eventId.Id == 0),
                     It.Is<It.IsAnyType>(
                         (@object, @type) =>
-                            @object.ToString().StartsWith("Failed to abandon message")
+                            @object.ToString()!.StartsWith("Failed to abandon message")
                     ),
                     It.IsAny<Exception>(),
-                    It.IsAny<Func<It.IsAnyType, Exception, string>>()
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()
                 ),
             Times.Once
         );

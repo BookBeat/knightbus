@@ -13,7 +13,7 @@ namespace KnightBus.Redis.Tests.Integration;
 [TestFixture]
 public class RedisSagaStoreTests : ConcurrentSagaStoreTests
 {
-    private IRedisConfiguration _configuration;
+    private IRedisConfiguration _configuration = null!;
 
     public override void Setup()
     {
@@ -131,7 +131,7 @@ public class RedisSagaStoreTests : ConcurrentSagaStoreTests
             .MessageSerializer.Deserialize<Data>((ReadOnlyMemory<byte>)fields[0])
             .Message.Should()
             .Be("yo");
-        ((string)fields[1]).Should().Be(created.ConcurrencyStamp);
+        ((string?)fields[1]).Should().Be(created.ConcurrencyStamp);
     }
 
     [Test]
@@ -305,7 +305,7 @@ public class RedisSagaStoreTests : ConcurrentSagaStoreTests
             .Should()
             .ThrowAsync<ArgumentException>();
         await SagaStore
-            .Awaiting(x => x.GetSaga<Data>("partition", null, CancellationToken.None))
+            .Awaiting(x => x.GetSaga<Data>("partition", null!, CancellationToken.None))
             .Should()
             .ThrowAsync<ArgumentException>();
     }

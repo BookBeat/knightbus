@@ -15,13 +15,13 @@ public class NatsQueueChannelReceiver<T> : IChannelReceiver
     private readonly IHostConfiguration _hostConfiguration;
     private readonly IMessageProcessor _processor;
     private readonly INatsConfiguration _configuration;
-    private readonly IEventSubscription _subscription;
+    private readonly IEventSubscription? _subscription;
     private const string CommandQueueGroup = "qg";
     public IProcessingSettings Settings { get; set; }
     private readonly ConnectionFactory _factory;
     private readonly ILogger _log;
     private CancellationToken _cancellationToken;
-    private IConnection _connection;
+    private IConnection _connection = null!;
     private readonly SemaphoreSlim _maxConcurrent;
 
     public NatsQueueChannelReceiver(
@@ -30,7 +30,7 @@ public class NatsQueueChannelReceiver<T> : IChannelReceiver
         IHostConfiguration hostConfiguration,
         IMessageProcessor processor,
         INatsConfiguration configuration,
-        IEventSubscription subscription
+        IEventSubscription? subscription
     )
     {
         Settings = settings;

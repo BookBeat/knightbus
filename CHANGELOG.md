@@ -1,12 +1,46 @@
 # CHANGELOG
 
-# 2026-08-26
+# 2026-08-27
 
-### KnightBus.PostgreSql 4.1.0
+### KnightBus.PostgreSql 4.2.0
 * `PostgresMessageStateHandler` implements `IMessageLockHandler<T>`, so `ExtendMessageLockDurationMiddleware` renews message locks on this transport and `IExtendMessageLockTimeout` settings are now supported here. A renewal pushes `visibility_timeout` forward and only applies while the consumer still holds the row; once another consumer has fetched it, the renewal is a no-op
 * The fetch lock is passed to the queue client as a `TimeSpan` instead of whole seconds, so a fractional `MessageLockTimeout` or `ExtensionDuration` no longer truncates — a value under one second used to become a zero-second lock. `PostgresBaseClient.GetMessagesAsync` gained a `TimeSpan` overload; the `int` one remains
 
+# 2026-08-26
+
+### Nullable reference types enabled across all packages
+All public APIs now carry nullability annotations; the signatures themselves are unchanged. Released
+as a minor bump for the seventeen packages whose compiled surface changed: `KnightBus.Core` 18.3.0,
+`KnightBus.Core.Management` 18.3.0, `KnightBus.Messages` 7.3.0, `KnightBus.Host` 18.2.0,
+`KnightBus.Azure.ServiceBus` 24.1.0, `KnightBus.Azure.ServiceBus.Management` 4.2.0,
+`KnightBus.Azure.Storage` 18.2.0, `KnightBus.Azure.Storage.Management` 4.2.0, `KnightBus.Redis`
+17.1.0, `KnightBus.Redis.Management` 3.2.0, `KnightBus.PostgreSql` 4.1.0, `KnightBus.Nats` 7.1.0,
+`KnightBus.SqlServer` 17.1.0, `KnightBus.Schedule` 15.2.0, `KnightBus.Newtonsoft` 5.2.0,
+`KnightBus.ApplicationInsights` 14.1.0 and `KnightBus.NewRelic` 13.1.0.
+
+The other nine packages are byte-for-byte unchanged and are not republished. The four PostgreSql
+satellites, `KnightBus.Nats.Messages` and `KnightBus.OpenTelemetry` were already annotated, so
+inheriting the setting from `Directory.Build.props` compiles them identically;
+`KnightBus.Azure.ServiceBus.Messages`, `KnightBus.Azure.Storage.Messages` and
+`KnightBus.Redis.Messages` hold only marker interfaces, which have nothing to annotate.
+* Consumers with nullable enabled that implement the extension points get new warnings until they
+  match the annotations: `ICommandWithAttachment.Attachment` is now `IMessageAttachment?` (CS8767)
+  and `ISingletonLockManager.TryLockAsync` now returns `Task<ISingletonLockHandle?>` (CS8613) —
+  the null contracts were always there, the types now say so
+* Fixed in `KnightBus.Azure.Storage`: `BlobSagaStore.Create` returned saga data without a
+  `ConcurrencyStamp` when it had to create the blob container first (the first saga in a fresh
+  storage account), which silently disabled optimistic concurrency for that saga instance until
+  its next update
+* Misconfiguration now fails fast instead of deep inside a client library: a missing
+  `ConnectionString` throws `InvalidOperationException` when the Redis/Postgres client is built,
+  and the channel factories throw `InvalidOperationException` if a receiver cannot be constructed
+
 # 2026-08-25
+
+### KnightBus.Redis 17.0.0
+**Breaking:** the Redis attachment provider is removed. Redis holds its whole dataset in memory, which is the wrong place for a payload large enough to need an attachment.
+* Removed `UseRedisAttachments()`, `RedisAttachmentProvider` and `RedisQueueConventions.GetAttachmentMetadataKey`/`GetAttachmentBinaryKey`. Switch to `UseBlobStorageAttachments()` from `KnightBus.Azure.Storage`; the Redis transport itself is unchanged, only where the attachment bytes land differs
+* Drain the queues before upgrading. An in-flight message whose attachment id points at `{queue}:msg:{id}:attachment:*` will not resolve once the host reads from Blob Storage. Leftover keys can be removed with `SCAN` over `*:attachment:metadata` and `*:attachment:binary`
 
 ### Repository restructure
 No package changed for consumers. The published package ids and versions are identical to what

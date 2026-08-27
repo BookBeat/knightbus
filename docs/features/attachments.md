@@ -15,7 +15,7 @@ Implement `ICommandWithAttachment` on the command alongside its transport interf
 public class ImportFile : IServiceBusCommand, ICommandWithAttachment
 {
     public string Description { get; set; }
-    public IMessageAttachment Attachment { get; set; }
+    public IMessageAttachment? Attachment { get; set; }
 }
 ```
 
@@ -69,58 +69,44 @@ The stream is disposed for you once the message finishes, so do not hold on to i
 ## Registering a provider
 
 Attachments need a store, and **both the sender and the receiver must register one** — the sender
-uploads, the receiver downloads.
+uploads, the receiver downloads. Azure Blob Storage is the only provider KnightBus ships; for
+anything else, [write your own](#custom-providers).
 
-=== "Azure Blob Storage"
+```csharp
+services
+    .UseBlobStorage(storageConnectionString)
+    .UseBlobStorageAttachments();
+```
 
-    ```csharp
-    services
-        .UseBlobStorage(storageConnectionString)
-        .UseBlobStorageAttachments();
-    ```
+With optional compression:
 
-    With optional compression:
+```csharp
+services.UseBlobStorageAttachments(options =>
+{
+    options.EnableCompression = true;
+    options.CompressionLevel = CompressionLevel.Optimal;
+});
+```
 
-    ```csharp
-    services.UseBlobStorageAttachments(options =>
-    {
-        options.EnableCompression = true;
-        options.CompressionLevel = CompressionLevel.Optimal;
-    });
-    ```
+Compression uses **Brotli** and is off by default. Compressed blobs get a `.brotli` suffix and
+`ContentEncoding: br`, and decompression on read is decided per blob by that suffix — so turning
+compression on is backwards compatible with attachments already in the store.
 
-    Compression uses **Brotli** and is off by default. Compressed blobs get a `.brotli` suffix and
-    `ContentEncoding: br`, and decompression on read is decided per blob by that suffix — so turning
-    compression on is backwards compatible with attachments already in the store.
+Compression and decompression stream — a compressed result over 4&nbsp;MB is uploaded in blocks
+as it is produced rather than buffered whole in memory (smaller results are buffered and sent
+as a single request), and downloads decompress on the fly. Reading a compressed attachment
+makes its `Stream` **read-forward only** (`CanSeek` is `false`); its `Length` is preserved through
+blob metadata, and reports `0` for attachments sent from non-seekable streams and for compressed
+attachments stored by `KnightBus.Azure.Storage` versions before 18.1.0.
 
-    Compression and decompression stream — a compressed result over 4&nbsp;MB is uploaded in blocks
-    as it is produced rather than buffered whole in memory (smaller results are buffered and sent
-    as a single request), and downloads decompress on the fly. Reading a compressed attachment
-    makes its `Stream` **read-forward only**
-    (`CanSeek` is `false`); its `Length` is preserved through blob metadata, and reports `0` for
-    attachments sent from non-seekable streams and for compressed attachments stored by
-    `KnightBus.Azure.Storage` versions before 18.1.0.
+`Filename` is a reserved metadata key, and `UncompressedLength` is reserved when compression
+is enabled — your own entries under those names are overwritten on upload.
 
-    `Filename` is a reserved metadata key, and `UncompressedLength` is reserved when compression
-    is enabled — your own entries under those names are overwritten on upload.
-
-=== "Redis"
-
-    ```csharp
-    services
-        .UseRedis(config => config.ConnectionString = redisConnectionString)
-        .UseRedisAttachments();
-    ```
-
-    There is no options overload; Redis attachments are stored uncompressed.
-
-Either provider works with any transport. Blob Storage is the usual choice even when the messages
-travel over another transport — the NATS example uses NATS for messages and Blob Storage for
-attachments — and `UseRedisAttachments()` is equally available to an application with no Redis
-transport. Both calls register the same core `AttachmentMiddleware`; what differs is only where the
-bytes land. The provider is chosen per host, not per transport, and the middleware resolves a single
-`IMessageAttachmentProvider` — so register one, since a second registration silently wins over the
-first.
+The provider works with any transport, and is chosen per host rather than per transport — the NATS
+example uses NATS for messages and Blob Storage for attachments. `UseBlobStorageAttachments()` needs
+`UseBlobStorage(...)` for the connection, not `UseTransport<StorageTransport>()`. The middleware
+resolves a single `IMessageAttachmentProvider`, so register one: a second registration silently wins
+over the first.
 
 ## Lifecycle and cleanup
 

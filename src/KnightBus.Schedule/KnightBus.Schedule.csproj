@@ -3,7 +3,7 @@
     <TargetFrameworks>net9.0;net10.0</TargetFrameworks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Description>KnightBus Chron Scheduler</Description>
-    <Version>15.1.0$(VersionSuffix)</Version>
+    <Version>15.2.0$(VersionSuffix)</Version>
     <PackageTags>knightbus;quartz;schedule;trigger</PackageTags>
   </PropertyGroup>
   <ItemGroup>

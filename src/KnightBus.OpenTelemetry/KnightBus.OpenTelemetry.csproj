@@ -6,7 +6,6 @@
     <Version>1.0.0-alpha3$(VersionSuffix)</Version>
     <PackageTags>knightbus;opentelemetry;tracing;observability</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>

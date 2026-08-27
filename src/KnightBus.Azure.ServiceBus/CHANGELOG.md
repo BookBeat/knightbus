@@ -1,5 +1,13 @@
 ﻿# KnightBus.Azure.ServiceBus Changelog
 
+## 24.1.0
+### Changed
+- Nullable reference types are enabled. `IServiceBusConfiguration.FullyQualifiedNamespace` and
+  `Credential` are now `string?`/`TokenCredential?`, matching what `ServiceBusConfiguration` already
+  declared: they are null in connection-string mode, as `ConnectionString` is under managed identity
+- The queue and topic channel factories throw `InvalidOperationException` when a channel receiver
+  cannot be constructed, instead of surfacing as a `NullReferenceException` at an unrelated call site
+
 
 ## 17.0.0
 ### Changed 

@@ -14,7 +14,7 @@ namespace KnightBus.Azure.Storage.Tests.Unit;
 [TestFixture]
 public class ExtendMessageLockDurationMiddlewareTests
 {
-    private Mock<IDependencyInjection> _dependencyInjection;
+    private Mock<IDependencyInjection> _dependencyInjection = null!;
 
     [Test]
     public async Task Should_allow_regular_processing_settings_to_bypass_the_renewal()
@@ -242,10 +242,10 @@ public class MyMessage : IStorageQueueCommand { }
 
 public class MyPipeline : IPipelineInformation
 {
-    public Type ProcessorInterfaceType { get; }
-    public IEventSubscription Subscription { get; }
-    public IProcessingSettings ProcessingSettings { get; set; }
-    public IHostConfiguration HostConfiguration { get; set; }
+    public Type ProcessorInterfaceType { get; } = null!;
+    public IEventSubscription? Subscription { get; }
+    public IProcessingSettings ProcessingSettings { get; set; } = null!;
+    public IHostConfiguration HostConfiguration { get; set; } = null!;
 }
 
 public class MySettings : IProcessingSettings, IExtendMessageLockTimeout

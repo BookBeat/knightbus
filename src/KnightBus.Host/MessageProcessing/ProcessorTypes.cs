@@ -6,8 +6,8 @@ internal struct ProcessorTypes
 {
     public ProcessorTypes(
         Type messageType,
-        Type responseType,
-        Type subscriptionType,
+        Type? responseType,
+        Type? subscriptionType,
         Type settingsType
     )
     {
@@ -18,8 +18,8 @@ internal struct ProcessorTypes
     }
 
     public Type MessageType { get; }
-    public Type ResponseType { get; }
-    public Type SubscriptionType { get; }
+    public Type? ResponseType { get; }
+    public Type? SubscriptionType { get; }
     public Type SettingsType { get; }
 
     public override string ToString()

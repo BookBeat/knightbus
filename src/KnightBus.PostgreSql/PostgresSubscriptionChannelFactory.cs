@@ -24,7 +24,7 @@ public class PostgresSubscriptionChannelFactory : ITransportChannelFactory
 
     public IChannelReceiver Create(
         Type messageType,
-        IEventSubscription subscription,
+        IEventSubscription? subscription,
         IProcessingSettings processingSettings,
         IMessageSerializer serializer,
         IHostConfiguration configuration,

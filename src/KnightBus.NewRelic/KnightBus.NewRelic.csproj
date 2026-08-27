@@ -4,7 +4,7 @@
     <RootNamespace>KnightBus.NewRelicMiddleware</RootNamespace>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Description>NewRelic.Agent.Api for KnightBus</Description>
-    <Version>13.0.0$(VersionSuffix)</Version>
+    <Version>13.1.0$(VersionSuffix)</Version>
     <PackageTags>knightbus;apm;newrelic.agent.api</PackageTags>
   </PropertyGroup>
   <ItemGroup>

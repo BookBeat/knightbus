@@ -17,7 +17,7 @@ namespace KnightBus.Redis.Tests.Integration;
 [TestFixture]
 public class RedisQueueManagerTests : QueueManagerTests<TestCommand>
 {
-    private RedisBus _bus;
+    private RedisBus _bus = null!;
 
     public override async Task Setup()
     {
@@ -25,7 +25,7 @@ public class RedisQueueManagerTests : QueueManagerTests<TestCommand>
         var managementClient = new RedisManagementClient(Configuration, logger.Object);
         QueueManager = new RedisQueueManager(managementClient, Configuration);
         QueueType = QueueType.Queue;
-        _bus = new RedisBus(Configuration.ConnectionString, Array.Empty<IMessagePreProcessor>());
+        _bus = new RedisBus(Configuration.ConnectionString!, Array.Empty<IMessagePreProcessor>());
         var queues = await QueueManager.List(CancellationToken.None);
         await QueueManager.Delete(
             AutoMessageMapper.GetQueueName<TestCommand>(),
@@ -66,9 +66,9 @@ public class RedisQueueManagerTests : QueueManagerTests<TestCommand>
         return new RedisMessageStateHandler<TestCommand>(
             Multiplexer,
             Configuration,
-            m.First(),
+            m.First()!,
             5,
-            null,
+            null!,
             Mock.Of<ILogger>()
         );
     }

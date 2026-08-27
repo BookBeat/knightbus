@@ -137,7 +137,7 @@ services.AddMiddleware<MyScopeProvider>();
 | `ErrorHandlingMiddleware` | always | Catches, logs, and abandons the message on failure. |
 | `DeadLetterMiddleware` | always | Dead-letters once delivery attempts are exhausted, via the [`IProcessBeforeDeadLetter<T>`](../features/error-handling.md#hooking-into-dead-lettering) hook. |
 | Scope provider | always | One DI scope per message. |
-| `AttachmentMiddleware` | `UseBlobStorageAttachments()`, `UseRedisAttachments()` | Loads and cleans up [attachments](../features/attachments.md). |
+| `AttachmentMiddleware` | `UseBlobStorageAttachments()` | Loads and cleans up [attachments](../features/attachments.md). |
 | `SagaMiddleware` | `EnableSagas(...)`, `UseBlobStorageSagas()`, `UsePostgresSagaStore()`, `UseRedisSagaStore()`, `UseSqlServerSagaStore(...)` | Loads and persists [saga](../features/sagas.md) state. |
 | `DistributedTracingMiddleware` | `UseDistributedTracing()` | Restores the incoming trace id into the message scope. |
 | `ThrottlingMiddleware` | `ThrottleHost(n)` | Host-wide concurrency gate. |
@@ -148,12 +148,12 @@ services.AddMiddleware<MyScopeProvider>();
 
 !!! note "A `Use…` call names a store, not a transport"
     Every middleware above ships in `KnightBus.Core` or a monitoring package — **no transport package
-    contains one**. `UseRedisAttachments()` registers the Redis-backed attachment store and the core
-    `AttachmentMiddleware`; it does not make attachments a Redis feature, and it does not require the
-    Redis transport. The same goes for the saga stores and the Blob lock manager. Middleware is
-    registered per host and runs on **every** listener, whatever transport the message arrived on, so
-    attachments over NATS backed by Blob Storage — or any other combination — need no special
-    handling.
+    contains one**. `UseBlobStorageAttachments()` registers the Blob-backed attachment store and the
+    core `AttachmentMiddleware`; it does not make attachments a Storage Queues feature, and it does
+    not require that transport. The same goes for the saga stores and the Blob lock manager.
+    Middleware is registered per host and runs on **every** listener, whatever transport the message
+    arrived on, so attachments over NATS backed by Blob Storage — or any other combination — need no
+    special handling.
 
     One of them does depend on the transport for its *effect*, not its registration:
     `ExtendMessageLockDurationMiddleware` only renews a lock when the message state handler

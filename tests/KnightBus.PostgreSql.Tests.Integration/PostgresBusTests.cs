@@ -637,7 +637,7 @@ WHERE message_id = {message[0].Id}"
 
 public class TestCommand : IPostgresCommand
 {
-    public string MessageBody { get; set; }
+    public string MessageBody { get; set; } = null!;
 }
 
 public class BusTestEvent : IPostgresEvent

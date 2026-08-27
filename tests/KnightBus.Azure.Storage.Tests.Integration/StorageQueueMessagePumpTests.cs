@@ -14,8 +14,8 @@ namespace KnightBus.Azure.Storage.Tests.Integration;
 
 public class StorageQueueMessagePumpTests
 {
-    private StorageQueueClient _storageQueueClient;
-    private StorageQueueMessagePump _pump;
+    private StorageQueueClient _storageQueueClient = null!;
+    private StorageQueueMessagePump _pump = null!;
 
     [SetUp]
     public void SetUp()
@@ -70,5 +70,5 @@ public class TestCommandMessageMapping : IMessageMapping<TestCommand>
 
 public class TestCommand : IStorageQueueCommand
 {
-    public string Message { get; set; }
+    public string Message { get; set; } = null!;
 }

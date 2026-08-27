@@ -18,7 +18,7 @@ public class RedisConfiguration : IRedisConfiguration
         ConnectionString = connectionString;
     }
 
-    public string ConnectionString { get; set; }
+    public string? ConnectionString { get; set; }
     public IMessageSerializer MessageSerializer { get; set; } = new NewtonsoftSerializer();
     public int DatabaseId { get; set; }
 }

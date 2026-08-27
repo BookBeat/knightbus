@@ -81,8 +81,8 @@ internal class Program
 
     class SampleStorageBusMessage : IStorageQueueCommand, ICommandWithAttachment
     {
-        public string Message { get; set; }
-        public IMessageAttachment Attachment { get; set; }
+        public string Message { get; set; } = null!;
+        public IMessageAttachment? Attachment { get; set; }
     }
 
     class SampleStorageBusMessageMapping : IMessageMapping<SampleStorageBusMessage>
@@ -93,7 +93,7 @@ internal class Program
     class SampleSagaStartMessage : IStorageQueueCommand
     {
         public string Id { get; set; } = "c1e06984-d946-4c70-a8aa-e32e44c6407e";
-        public string Message { get; set; }
+        public string Message { get; set; } = null!;
     }
 
     class SampleSagaStartMessageMapping : IMessageMapping<SampleSagaStartMessage>
@@ -128,7 +128,7 @@ internal class Program
             CancellationToken cancellationToken
         )
         {
-            using (var streamReader = new StreamReader(message.Attachment.Stream))
+            using (var streamReader = new StreamReader(message.Attachment!.Stream))
             {
                 Console.WriteLine($"Received command: '{message.Message}'");
                 Console.WriteLine($"Attach file contents:'{streamReader.ReadToEnd()}'");

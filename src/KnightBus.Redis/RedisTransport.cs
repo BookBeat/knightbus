@@ -1,4 +1,5 @@
-﻿using KnightBus.Core;
+﻿using System;
+using KnightBus.Core;
 using StackExchange.Redis;
 
 namespace KnightBus.Redis;
@@ -10,7 +11,10 @@ public class RedisTransport : ITransport
 
     public RedisTransport(IRedisConfiguration configuration)
     {
-        var multiplexer = ConnectionMultiplexer.Connect(configuration.ConnectionString);
+        var multiplexer = ConnectionMultiplexer.Connect(
+            configuration.ConnectionString
+                ?? throw new InvalidOperationException("ConnectionString must be configured")
+        );
         TransportChannelFactories = new ITransportChannelFactory[]
         {
             new RedisCommandChannelFactory(configuration, multiplexer),

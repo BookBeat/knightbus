@@ -8,7 +8,7 @@ namespace KnightBus.PostgreSql;
 public class PostgresChannelReceiver<T> : IChannelReceiver
     where T : class, IPostgresCommand
 {
-    private PostgresQueueClient<T> _queueClient;
+    private PostgresQueueClient<T> _queueClient = null!;
     private readonly NpgsqlDataSource _npgsqlDataSource;
     private readonly IMessageProcessor _processor;
     private readonly IHostConfiguration _hostConfiguration;

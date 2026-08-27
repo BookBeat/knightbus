@@ -7,6 +7,6 @@ namespace KnightBus.Core;
 /// </summary>
 public interface ITransportConfiguration
 {
-    string ConnectionString { get; set; }
+    string? ConnectionString { get; set; }
     IMessageSerializer MessageSerializer { get; set; }
 }

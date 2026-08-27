@@ -10,12 +10,13 @@ namespace KnightBus.Core;
 
 internal class AttachmentTypeMapping : JsonConverter<IMessageAttachment>
 {
-    public override IMessageAttachment Read(
+    public override IMessageAttachment? Read(
         ref Utf8JsonReader reader,
         Type typeToConvert,
         JsonSerializerOptions options
     )
     {
+        //Attachments are never serialized; AttachmentMiddleware re-hydrates them
         return null;
     }
 
@@ -33,7 +34,7 @@ public class MicrosoftJsonSerializer : IMessageSerializer
 {
     private readonly JsonSerializerOptions _options;
 
-    public MicrosoftJsonSerializer(JsonSerializerOptions options = null)
+    public MicrosoftJsonSerializer(JsonSerializerOptions? options = null)
     {
         _options = options ?? new JsonSerializerOptions();
         _options.Converters.Add(new AttachmentTypeMapping());
@@ -47,17 +48,17 @@ public class MicrosoftJsonSerializer : IMessageSerializer
 
     public T Deserialize<T>(ReadOnlySpan<byte> serialized)
     {
-        return JsonSerializer.Deserialize<T>(serialized, _options);
+        return JsonSerializer.Deserialize<T>(serialized, _options)!;
     }
 
     public T Deserialize<T>(ReadOnlyMemory<byte> serialized)
     {
-        return JsonSerializer.Deserialize<T>(serialized.Span, _options);
+        return JsonSerializer.Deserialize<T>(serialized.Span, _options)!;
     }
 
     public Task<T> Deserialize<T>(Stream serialized)
     {
-        return JsonSerializer.DeserializeAsync<T>(serialized, _options).AsTask();
+        return JsonSerializer.DeserializeAsync<T>(serialized, _options).AsTask()!;
     }
 
     public string ContentType => "application/json";

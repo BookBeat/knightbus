@@ -15,13 +15,13 @@ namespace KnightBus.Host.Tests.Unit;
 [TestFixture]
 public class StandardMessagePipelineTests
 {
-    private IMessageProcessor _messageProcessor;
-    private Mock<IMessageStateHandler<TestCommandOne>> _stateHandler;
-    private Mock<ICountable> _countable;
-    private Mock<ILogger> _logger;
-    private Mock<IDependencyInjection> _messageHandlerProvider;
-    private Mock<IPipelineInformation> _pipelineInformation;
-    private Mock<IHostConfiguration> _hostConfiguration;
+    private IMessageProcessor _messageProcessor = null!;
+    private Mock<IMessageStateHandler<TestCommandOne>> _stateHandler = null!;
+    private Mock<ICountable> _countable = null!;
+    private Mock<ILogger> _logger = null!;
+    private Mock<IDependencyInjection> _messageHandlerProvider = null!;
+    private Mock<IPipelineInformation> _pipelineInformation = null!;
+    private Mock<IHostConfiguration> _hostConfiguration = null!;
 
     [SetUp]
     public void Setup()
@@ -115,10 +115,10 @@ public class StandardMessagePipelineTests
                     It.Is<EventId>(eventId => eventId.Id == 0),
                     It.Is<It.IsAnyType>(
                         (@object, @type) =>
-                            @object.ToString().StartsWith("Error processing message")
+                            @object.ToString()!.StartsWith("Error processing message")
                     ),
                     It.IsAny<Exception>(),
-                    It.IsAny<Func<It.IsAnyType, Exception, string>>()
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()
                 ),
             Times.Once
         );
