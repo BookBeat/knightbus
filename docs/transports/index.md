@@ -30,7 +30,7 @@ What the transport itself can do:
 | Cancel deferred message | ✅ | — | — | — | — |
 | Dead letter queue | ✅ | ✅ | ✅ | ✅ | — |
 | Management API | ✅ | ✅ | ✅ | ✅ | — |
-| Message lock extension | — | ✅ | — | — | — |
+| Message lock extension | — | ✅ | ✅ | — | — |
 | Carries attachments | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Default serializer | Newtonsoft | Newtonsoft | System.Text.Json | Newtonsoft | Newtonsoft |
 
@@ -70,9 +70,8 @@ One row in the first table is a real coupling.
 
 **Message lock extension** is about the receive side. `ExtendMessageLockDurationMiddleware` is a core
 middleware you may register on any host, but it can only renew a lock the transport lets it renew:
-the message state handler has to implement `IMessageLockHandler<T>`, which today only Storage Queues
-does. Elsewhere the middleware is inert — and on PostgreSQL, implementing `IExtendMessageLockTimeout`
-is worse than inert, see
+the message state handler has to implement `IMessageLockHandler<T>`, which Storage Queues and
+PostgreSQL do. Elsewhere the middleware is inert, see
 [extending the lock](../concepts/processors.md#long-running-work-extending-the-lock).
 
 ## Choosing one
@@ -80,10 +79,11 @@ is worse than inert, see
 - **Azure Service Bus** — the most capable option. Native dead-lettering, topics with subscriptions,
   deferred and cancellable messages. Choose it when you want the broker to do the work and you are
   already on Azure.
-- **Azure Storage Queues** — cheap, simple and durable, and the only transport that can extend a
-  message lock mid-processing. Good for long-running low-throughput work. Commands only.
+- **Azure Storage Queues** — cheap, simple and durable, and can extend a message lock
+  mid-processing. Good for long-running low-throughput work. Commands only.
 - **PostgreSQL** — no extra infrastructure if you already run Postgres, and transactional with your
-  own data. Polling-based, so latency is bounded by the polling delay.
+  own data. Can extend a message lock mid-processing. Polling-based, so latency is bounded by the
+  polling delay.
 - **Redis** — the highest-throughput option, using a circular-list pattern so messages are not lost
   in transit. Choose it for high-volume work where a few seconds of durability risk is acceptable.
 - **NATS** — the only transport with request/response and streaming responses. Choose it when you

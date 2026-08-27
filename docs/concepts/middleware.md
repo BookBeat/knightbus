@@ -157,7 +157,7 @@ services.AddMiddleware<MyScopeProvider>();
 
     One of them does depend on the transport for its *effect*, not its registration:
     `ExtendMessageLockDurationMiddleware` only renews a lock when the message state handler
-    implements `IMessageLockHandler<T>` (today only Storage Queues).
+    implements `IMessageLockHandler<T>` (today Storage Queues and PostgreSQL).
     See the [transport matrix](../transports/index.md#feature-matrix).
 
 ## See also

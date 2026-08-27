@@ -36,7 +36,7 @@ public class PostgresMessagePump<T> : GenericMessagePump<PostgresMessage<T>, IMe
     {
         return _queueClient.GetMessagesAsync(
             count,
-            lockDuration.HasValue ? (int)lockDuration.Value.TotalSeconds : 0,
+            lockDuration ?? TimeSpan.Zero,
             CancellationToken.None
         );
     }

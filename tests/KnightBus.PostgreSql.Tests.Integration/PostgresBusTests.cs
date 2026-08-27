@@ -381,6 +381,62 @@ DROP TABLE IF EXISTS knightbus.t_bus_test_topic;"
     }
 
     [Test]
+    public async Task GetMessages_sub_second_visibility_timeout_is_not_truncated()
+    {
+        await _postgresBus.SendAsync<TestCommand>(
+            [new TestCommand { MessageBody = "lock me briefly" }],
+            default
+        );
+
+        var message = _postgresQueueClient
+            .GetMessagesAsync(1, TimeSpan.FromMilliseconds(500), default)
+            .ToBlockingEnumerable()
+            .Single();
+
+        var lockedForUnderASecond = (bool)
+            (
+                await PostgresSetup
+                    .DataSource.CreateCommand(
+                        @$"
+SELECT visibility_timeout > clock_timestamp()
+   AND visibility_timeout <= clock_timestamp() + interval '500 milliseconds'
+FROM knightbus.q_{AutoMessageMapper.GetQueueName<TestCommand>()}
+WHERE message_id = {message.Id}"
+                    )
+                    .ExecuteScalarAsync()
+            )!;
+
+        lockedForUnderASecond.Should().BeTrue();
+    }
+
+    [Test]
+    public async Task SetVisibilityTimeout_with_a_cancelled_token_throws_and_leaves_the_message()
+    {
+        await _postgresBus.SendAsync<TestCommand>(
+            [new TestCommand { MessageBody = "cancelled" }],
+            default
+        );
+        var message = _postgresQueueClient
+            .GetMessagesAsync(1, 0, default)
+            .ToBlockingEnumerable()
+            .Single();
+        var cancelled = new CancellationToken(canceled: true);
+
+        await _postgresQueueClient
+            .Awaiting(c =>
+                c.SetVisibilityTimeoutAsync(message, TimeSpan.FromSeconds(30), cancelled)
+            )
+            .Should()
+            .ThrowAsync<OperationCanceledException>();
+
+        var messages = _postgresQueueClient
+            .GetMessagesAsync(1, 0, default)
+            .ToBlockingEnumerable()
+            .ToList();
+        messages.Should().ContainSingle();
+    }
+
+    [Test]
     public async Task Complete()
     {
         await _postgresBus.SendAsync<TestCommand>(

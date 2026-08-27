@@ -1,5 +1,11 @@
 # CHANGELOG
 
+# 2026-08-27
+
+### KnightBus.PostgreSql 4.2.0
+* `PostgresMessageStateHandler` implements `IMessageLockHandler<T>`, so `ExtendMessageLockDurationMiddleware` renews message locks on this transport and `IExtendMessageLockTimeout` settings are now supported here. A renewal pushes `visibility_timeout` forward and only applies while the consumer still holds the row; once another consumer has fetched it, the renewal is a no-op
+* The fetch lock is passed to the queue client as a `TimeSpan` instead of whole seconds, so a fractional `MessageLockTimeout` or `ExtensionDuration` no longer truncates — a value under one second used to become a zero-second lock. `PostgresBaseClient.GetMessagesAsync` gained a `TimeSpan` overload; the `int` one remains
+
 # 2026-08-26
 
 ### Nullable reference types enabled across all packages

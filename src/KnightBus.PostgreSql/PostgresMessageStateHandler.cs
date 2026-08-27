@@ -4,7 +4,7 @@ using Npgsql;
 
 namespace KnightBus.PostgreSql;
 
-public class PostgresMessageStateHandler<T> : IMessageStateHandler<T>
+public class PostgresMessageStateHandler<T> : IMessageStateHandler<T>, IMessageLockHandler<T>
     where T : class, IMessage
 {
     private readonly PostgresBaseClient<T> _queueClient;
@@ -55,4 +55,9 @@ public class PostgresMessageStateHandler<T> : IMessageStateHandler<T>
     }
 
     public IDependencyInjection MessageScope { get; set; }
+
+    public Task SetLockDuration(TimeSpan timeout, CancellationToken cancellationToken)
+    {
+        return _queueClient.SetVisibilityTimeoutAsync(_message, timeout, cancellationToken);
+    }
 }

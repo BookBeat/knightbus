@@ -24,6 +24,16 @@ public class GenericMessagePumpTests
         public int DeadLetterDeliveryLimit => 1;
     }
 
+    private class ExtendingLockPumpSettings : IProcessingSettings, IExtendMessageLockTimeout
+    {
+        public int MaxConcurrentCalls => 1;
+        public int PrefetchCount => 0;
+        public TimeSpan MessageLockTimeout => TimeSpan.FromMinutes(10);
+        public int DeadLetterDeliveryLimit => 1;
+        public TimeSpan ExtensionDuration => TimeSpan.FromMinutes(2);
+        public TimeSpan ExtensionInterval => TimeSpan.FromSeconds(10);
+    }
+
     private class RecordingLogger : ILogger
     {
         public readonly ConcurrentQueue<(
@@ -62,14 +72,16 @@ public class GenericMessagePumpTests
         public int CreateChannelInvocations => _createChannelInvocations;
         public int GetMessagesInvocations => _getMessagesInvocations;
         public int CleanupResourcesInvocations => _cleanupResourcesInvocations;
+        public TimeSpan? LastLockDuration { get; private set; }
 
         public TestMessagePump(
             ILogger log,
             Func<Task>? createChannel = null,
             Func<Task>? cleanupResources = null,
-            TimeSpan? pollingDelay = null
+            TimeSpan? pollingDelay = null,
+            IProcessingSettings? settings = null
         )
-            : base(new TestPumpSettings(), log)
+            : base(settings ?? new TestPumpSettings(), log)
         {
             _createChannel = createChannel;
             _cleanupResources = cleanupResources;
@@ -82,6 +94,7 @@ public class GenericMessagePumpTests
         )
         {
             Interlocked.Increment(ref _getMessagesInvocations);
+            LastLockDuration = lockDuration;
             if (!_channelCreated)
                 throw new ChannelMissingException();
             await Task.CompletedTask;
@@ -166,6 +179,37 @@ public class GenericMessagePumpTests
 
         pump.CleanupResourcesInvocations.Should()
             .Be(1, "a pump sleeping in its polling delay must exit promptly on shutdown");
+    }
+
+    [Test]
+    public async Task Should_fetch_with_the_message_lock_timeout_by_default()
+    {
+        //arrange
+        var pump = new TestMessagePump(new RecordingLogger());
+
+        //act
+        await pump.PumpAsync<TestCommand>((_, _) => Task.CompletedTask, CancellationToken.None);
+
+        //assert
+        pump.LastLockDuration.Should().Be(new TestPumpSettings().MessageLockTimeout);
+    }
+
+    [Test]
+    public async Task Should_fetch_with_the_extension_duration_when_settings_extend_the_lock()
+    {
+        //arrange
+        var settings = new ExtendingLockPumpSettings();
+        var pump = new TestMessagePump(new RecordingLogger(), settings: settings);
+
+        //act
+        await pump.PumpAsync<TestCommand>((_, _) => Task.CompletedTask, CancellationToken.None);
+
+        //assert
+        pump.LastLockDuration.Should()
+            .Be(
+                settings.ExtensionDuration,
+                "the transport lock is the short renewable one, not the total processing budget"
+            );
     }
 
     [Test]

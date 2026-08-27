@@ -161,10 +161,7 @@ parameterless constructor.
 !!! warning "`IExtendMessageLockTimeout` needs two more things"
     Implementing it is not sufficient. You must also register the middleware yourself —
     `services.AddMiddleware<ExtendMessageLockDurationMiddleware>()` — and the transport must support
-    changing a lock mid-flight, which only **Azure Storage Queues** does.
-
-    On **PostgreSQL** it is actively harmful rather than inert: the fetch lock is shortened to
-    `ExtensionDuration` with nothing able to renew it, causing duplicate processing. See
+    changing a lock mid-flight, which **Azure Storage Queues** and **PostgreSQL** do. See
     [long-running work](../concepts/processors.md#long-running-work-extending-the-lock).
 
 Schedules are configured by their own type rather than by settings:
@@ -253,7 +250,7 @@ as anywhere else. Only queue management is transport-specific. See the
 | `No transport found for {type}` at startup | Missing `UseTransport<T>()` for that message's transport. |
 | `No queue name mapping exists for {type}` | Mapping missing, or not in the same assembly as the message. |
 | Host fails: no `ISingletonLockManager` | `ISingletonProcessor` or `UseScheduling()` without a lock manager. |
-| Lock extension has no effect | Middleware not registered, or transport is not Azure Storage Queues. |
+| Lock extension has no effect | Middleware not registered, or the transport cannot renew a lock (Storage Queues and PostgreSQL can). |
 | Attachment is null on receive | No attachment provider on the receiving host. |
 | Dead letter hook never fires | Transport's own delivery limit is lower than `DeadLetterDeliveryLimit`. |
 | `WRONGTYPE` from the Redis saga store | Saga keys written by KnightBus.Redis 15.x or earlier; delete `sagas:*` before upgrading. |

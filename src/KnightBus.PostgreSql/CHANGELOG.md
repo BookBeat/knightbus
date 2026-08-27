@@ -1,5 +1,8 @@
 # KnightBus.PostgreSql Changelog
 
+# 4.2.0
+(minor): Implement `IMessageLockHandler<T>` on `PostgresMessageStateHandler` so `ExtendMessageLockDurationMiddleware` can renew message locks. The fetch lock is passed as a `TimeSpan`, so fractional durations no longer truncate to whole seconds.
+
 # 4.1.0
 (minor): Nullable reference types are enabled repository-wide, so this package no longer sets
 `<Nullable>` itself. `PostgresConfiguration.ConnectionString` is now `string?` rather than

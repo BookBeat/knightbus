@@ -81,9 +81,9 @@ not appear as queues in their own right.
 
 ## Long-running work
 
-This is the only transport that can extend a message lock while your handler runs, which makes it the
-right choice for work measured in minutes or hours. Implement `IExtendMessageLockTimeout` on your
-settings and register the middleware:
+This transport can extend a message lock while your handler runs, which makes it a good choice for
+work measured in minutes or hours. Implement `IExtendMessageLockTimeout` on your settings and register
+the middleware:
 
 ```csharp
 public class LongRunningSettings : IProcessingSettings, IExtendMessageLockTimeout
@@ -108,10 +108,8 @@ becomes visible again after `ExtensionDuration` rather than after the full four 
 
 The middleware itself is a `KnightBus.Core` type rather than a Storage Queues one: it is registered
 per host and runs on every listener. What it cannot do elsewhere is *renew* — that needs the message
-state handler to implement `IMessageLockHandler<T>`, which today is this transport alone. On other
-transports it passes messages through untouched, with one exception: on PostgreSQL, implementing
-`IExtendMessageLockTimeout` shortens the fetch lock with nothing able to renew it, which causes
-duplicate processing.
+state handler to implement `IMessageLockHandler<T>`, which today this transport and PostgreSQL do. On
+other transports it passes messages through untouched.
 
 ## Attachments
 

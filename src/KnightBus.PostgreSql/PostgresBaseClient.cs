@@ -27,9 +27,18 @@ public class PostgresBaseClient<T>
         _queueName = queueName;
     }
 
-    public async IAsyncEnumerable<PostgresMessage<T>> GetMessagesAsync(
+    public IAsyncEnumerable<PostgresMessage<T>> GetMessagesAsync(
         int count,
         int visibilityTimeout,
+        CancellationToken ct
+    )
+    {
+        return GetMessagesAsync(count, TimeSpan.FromSeconds(visibilityTimeout), ct);
+    }
+
+    public async IAsyncEnumerable<PostgresMessage<T>> GetMessagesAsync(
+        int count,
+        TimeSpan visibilityTimeout,
         [EnumeratorCancellation] CancellationToken ct
     )
     {
@@ -59,9 +68,7 @@ UPDATE {SchemaName}.{_prefix}_{_queueName} t
         );
 
         command.Parameters.Add(new NpgsqlParameter<int> { TypedValue = count });
-        command.Parameters.Add(
-            new NpgsqlParameter<TimeSpan> { TypedValue = TimeSpan.FromSeconds(visibilityTimeout) }
-        );
+        command.Parameters.Add(new NpgsqlParameter<TimeSpan> { TypedValue = visibilityTimeout });
 
         await command.PrepareAsync(ct);
 
@@ -128,6 +135,26 @@ WHERE message_id = ($2);
         );
         command.Parameters.Add(new NpgsqlParameter<long> { Value = message.Id });
         await command.ExecuteNonQueryAsync().ConfigureAwait(false);
+    }
+
+    public async Task SetVisibilityTimeoutAsync(
+        PostgresMessage<T> message,
+        TimeSpan timeout,
+        CancellationToken ct
+    )
+    {
+        //read_count changes on every fetch, so only the consumer that fetched the row can extend its lock
+        await using var command = _npgsqlDataSource.CreateCommand(
+            @$"
+UPDATE {SchemaName}.{_prefix}_{_queueName}
+SET visibility_timeout = clock_timestamp() + ($1)
+WHERE message_id = ($2) AND read_count = ($3);
+"
+        );
+        command.Parameters.Add(new NpgsqlParameter<TimeSpan> { TypedValue = timeout });
+        command.Parameters.Add(new NpgsqlParameter<long> { TypedValue = message.Id });
+        command.Parameters.Add(new NpgsqlParameter<int> { TypedValue = message.ReadCount });
+        await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
 
     public async Task DeadLetterMessageAsync(PostgresMessage<T> message)

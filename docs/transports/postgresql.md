@@ -146,6 +146,18 @@ sagas whose messages travel over PostgreSQL can use any other store.
     `MaxConcurrentCalls => 1` or use the Blob or Redis store. See
     [saga concurrency](../features/sagas.md#concurrency).
 
+## Long-running work
+
+The transport can extend a message lock while your handler runs. Implement `IExtendMessageLockTimeout`
+on your processing settings and register `ExtendMessageLockDurationMiddleware` — see
+[extending the lock](../concepts/processors.md#long-running-work-extending-the-lock) for the settings
+and the registration.
+
+Each renewal pushes the row's `visibility_timeout` forward by `ExtensionDuration`. Every fetch
+increments `read_count`, and a renewal whose `read_count` no longer matches is a no-op, so a consumer
+cannot extend a lock another consumer has since taken. A renewal after the lock has lapsed still
+succeeds as long as nobody else has fetched the row.
+
 ## Limitations
 
 One behaviour specific to this transport is worth knowing before you choose it:
