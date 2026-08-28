@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
@@ -66,7 +67,11 @@ internal class JobExecutor<T, TProcessor> : IJob
                 )
                 using (var scopedDependencyInjection = _dependencyInjection.GetScope())
                 {
-                    var processor = scopedDependencyInjection.GetInstance<IProcessSchedule<T>>();
+                    // Multiple processors may share the same schedule; resolve the one this job was created for
+                    var processor = scopedDependencyInjection
+                        .GetInstances<IProcessSchedule<T>>()
+                        .OfType<TProcessor>()
+                        .First();
                     await processor.ProcessAsync(linkedTokenSource.Token).ConfigureAwait(false);
                 }
             }
