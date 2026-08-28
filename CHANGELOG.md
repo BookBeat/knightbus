@@ -1,5 +1,10 @@
 # CHANGELOG
 
+# 2026-08-28
+
+### KnightBus.Schedule 15.3.1
+* Fixed: when multiple processors implemented `IProcessSchedule<T>` for the same schedule, every trigger executed only the last-registered processor (once per registration) and the others never ran. Each scheduled job now resolves the specific processor it was created for
+
 # 2026-08-27
 
 ### KnightBus.PostgreSql 4.2.0

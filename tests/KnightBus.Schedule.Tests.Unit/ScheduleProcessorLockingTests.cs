@@ -80,7 +80,8 @@ public class ScheduleProcessorLockingTests
 
         public IEnumerable<T> GetInstances<T>()
         {
-            throw new NotImplementedException();
+            if (_processor is T instance)
+                yield return instance;
         }
 
         public IEnumerable<Type> GetOpenGenericRegistrations(Type openGeneric)
