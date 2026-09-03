@@ -26,7 +26,7 @@
     <PackageVersion Include="NewRelic.Agent.Api" Version="10.54.0" />
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageVersion Include="OpenTelemetry.Api" Version="1.18.0" />
-    <PackageVersion Include="Quartz" Version="3.19.1" />
+    <PackageVersion Include="Quartz" Version="3.20.1" />
     <!--
       Held on 2.x. The 3.x API mirrors 2.13.17, but it defaults to RESP3 and raises the floor
       in the published KnightBus.Redis package, forcing consumers off 2.x — its own release.
