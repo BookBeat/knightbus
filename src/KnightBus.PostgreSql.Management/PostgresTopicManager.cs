@@ -19,19 +19,33 @@ public class PostgresTopicManager : IQueueManager
     public async Task<IEnumerable<QueueProperties>> List(CancellationToken ct)
     {
         var topics = await _managementClient.ListTopics(ct);
-        return topics.Select(t => new QueueProperties(
-            t.Name,
-            new PostgresSubscriptionManager(t.Name, _managementClient, _configuration),
-            false,
-            QueueType.Topic
-        ));
+        var result = new List<QueueProperties>();
+        foreach (var t in topics)
+        {
+            // Table names are read back from the database, but anything KnightBus could not
+            // have created is skipped rather than interpolated into SQL further down.
+            if (!PostgresQueueName.TryCreate(t.Name, out var topic))
+                continue;
+
+            result.Add(
+                new QueueProperties(
+                    topic.Value,
+                    new PostgresSubscriptionManager(topic, _managementClient, _configuration),
+                    false,
+                    QueueType.Topic
+                )
+            );
+        }
+
+        return result;
     }
 
     public Task<QueueProperties> Get(string path, CancellationToken ct)
     {
+        var topicName = PostgresQueueName.Create(path);
         var topic = new QueueProperties(
-            path,
-            new PostgresSubscriptionManager(path, _managementClient, _configuration),
+            topicName.Value,
+            new PostgresSubscriptionManager(topicName, _managementClient, _configuration),
             false,
             QueueType.Topic
         );
