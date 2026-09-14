@@ -26,7 +26,7 @@ public class PostgresSubscriptionManagerTests : QueueManagerTests<PostgresTestEv
             _eventSubscription
         );
         QueueManager = new PostgresSubscriptionManager(
-            AutoMessageMapper.GetQueueName<PostgresTestEvent>(),
+            PostgresQueueName.Create(AutoMessageMapper.GetQueueName<PostgresTestEvent>()),
             _postgresManagementClient,
             new PostgresConfiguration { MessageSerializer = new MicrosoftJsonSerializer() }
         );

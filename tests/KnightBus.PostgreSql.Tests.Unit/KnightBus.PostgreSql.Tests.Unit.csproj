@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FluentAssertions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\KnightBus.PostgreSql.Management\KnightBus.PostgreSql.Management.csproj" />
+    <ProjectReference Include="..\..\src\KnightBus.PostgreSql\KnightBus.PostgreSql.csproj" />
+  </ItemGroup>
+</Project>

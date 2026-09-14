@@ -6,12 +6,12 @@ namespace KnightBus.PostgreSql.Management;
 
 public class PostgresSubscriptionManager : IQueueManager
 {
-    private readonly string _topic;
+    private readonly PostgresQueueName _topic;
     private readonly PostgresManagementClient _managementClient;
     private readonly IMessageSerializer _messageSerializer;
 
     public PostgresSubscriptionManager(
-        string topic,
+        PostgresQueueName topic,
         PostgresManagementClient managementClient,
         IPostgresConfiguration configuration
     )
@@ -24,7 +24,7 @@ public class PostgresSubscriptionManager : IQueueManager
     public async Task<IEnumerable<QueueProperties>> List(CancellationToken ct)
     {
         var queues = await _managementClient.ListSubscriptions(_topic, ct);
-        return queues.Select(q => new SubscriptionQueueProperties(q.Name, this, _topic, false)
+        return queues.Select(q => new SubscriptionQueueProperties(q.Name, this, _topic.Value, false)
         {
             ActiveMessageCount = q.ActiveMessagesCount,
             DeadLetterMessageCount = q.DeadLetterMessagesCount,

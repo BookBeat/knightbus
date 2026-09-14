@@ -79,7 +79,7 @@ SELECT COUNT(*) FROM {SchemaName}.{DlQueuePrefix}_{queueMetadata.Name};"
     }
 
     public async Task<List<PostgresQueueMetadata>> ListSubscriptions(
-        string topic,
+        PostgresQueueName topic,
         CancellationToken ct
     )
     {
@@ -219,7 +219,7 @@ WHERE queue_name = ($1);"
     }
 
     public async Task<PostgresQueueMetadata> GetSubscription(
-        string topic,
+        PostgresQueueName topic,
         PostgresQueueName subscription,
         CancellationToken ct
     )
@@ -318,7 +318,7 @@ LIMIT ($1);
     }
 
     public async IAsyncEnumerable<PostgresMessage<DictionaryMessage>> PeekMessagesAsync(
-        string topic,
+        PostgresQueueName topic,
         PostgresQueueName subscription,
         int count,
         [EnumeratorCancellation] CancellationToken ct
@@ -367,7 +367,7 @@ LIMIT ($1);
     }
 
     public async IAsyncEnumerable<PostgresMessage<DictionaryMessage>> PeekDeadLettersAsync(
-        string topic,
+        PostgresQueueName topic,
         PostgresQueueName subscription,
         int count,
         [EnumeratorCancellation] CancellationToken ct
@@ -425,7 +425,7 @@ FROM deleted_rows;
     }
 
     public async IAsyncEnumerable<PostgresMessage<DictionaryMessage>> ReadDeadLettersAsync(
-        string topic,
+        PostgresQueueName topic,
         PostgresQueueName subscription,
         int count,
         [EnumeratorCancellation] CancellationToken ct
@@ -491,7 +491,7 @@ SELECT COUNT(*) FROM inserted_rows;
     }
 
     public async Task<long> RequeueDeadLettersAsync(
-        string topic,
+        PostgresQueueName topic,
         PostgresQueueName subscription,
         int count,
         CancellationToken ct
@@ -555,7 +555,7 @@ WHERE queue_name = ($1);
     }
 
     public async Task DeleteSubscription(
-        string topic,
+        PostgresQueueName topic,
         PostgresQueueName subscription,
         CancellationToken ct
     )

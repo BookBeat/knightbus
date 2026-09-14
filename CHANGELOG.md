@@ -1,5 +1,21 @@
 # CHANGELOG
 
+# 2026-09-14
+Fixed SQL injection through topic names in the PostgreSQL management transport. Topic names reached
+string-concatenated table identifiers without passing the `PostgresQueueName` allow-list, so a caller
+that controls the topic name (for example a management API exposing it as a route segment) could
+break out of the identifier and run arbitrary SQL.
+
+### KnightBus.PostgreSql 4.4.0
+* `PostgresQueueName` now rejects empty names and gained `TryCreate`
+### KnightBus.PostgreSql.Management 5.0.0
+* **Breaking:** the `topic` parameters on `PostgresManagementClient` and the `PostgresSubscriptionManager`
+  constructor take `PostgresQueueName` instead of `string`, so the type system enforces validation
+* `PostgresTopicManager.Get` validates the topic name and throws `ArgumentException` for invalid names
+* `PostgresTopicManager.List` skips tables whose names KnightBus could not have created
+### KnightBus.PostgreSql.Management.Extensions.Azure 4.0.0
+* Bump version to pick up the fix
+
 # 2026-08-28
 
 ### KnightBus.Schedule 15.3.1

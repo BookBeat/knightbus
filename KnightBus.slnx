@@ -40,6 +40,7 @@
     <Project Path="src/KnightBus.PostgreSql.Management.Extensions.Azure/KnightBus.PostgreSql.Management.Extensions.Azure.csproj" />
     <Project Path="src/KnightBus.PostgreSql.Messages/KnightBus.PostgreSql.Messages.csproj" />
     <Project Path="tests/KnightBus.PostgreSql.Tests.Integration/KnightBus.PostgreSql.Tests.Integration.csproj" />
+    <Project Path="tests/KnightBus.PostgreSql.Tests.Unit/KnightBus.PostgreSql.Tests.Unit.csproj" />
   </Folder>
   <Folder Name="/Transports/Redis/">
     <Project Path="src/KnightBus.Redis/KnightBus.Redis.csproj" />
