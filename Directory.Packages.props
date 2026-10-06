@@ -79,7 +79,7 @@
   <!-- Sample-only -->
   <ItemGroup>
     <!-- Travels with Aspire.AppHost.Sdk, pinned in the AspireHost csproj. -->
-    <PackageVersion Include="Aspire.Hosting.Azure.ServiceBus" Version="13.5.3" />
+    <PackageVersion Include="Aspire.Hosting.Azure.ServiceBus" Version="13.6.0" />
     <PackageVersion Include="OpenTelemetry" Version="1.18.0" />
     <PackageVersion Include="OpenTelemetry.Exporter.Console" Version="1.18.0" />
     <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.18.0" />
