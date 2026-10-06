@@ -91,7 +91,8 @@ DROP TABLE IF EXISTS knightbus.t_bus_test_topic;"
                 .DataSource.CreateCommand(
                     $"SELECT COUNT(*) FROM knightbus.q_{AutoMessageMapper.GetQueueName<TestCommand>()};"
                 )
-                .ExecuteScalarAsync() ?? 0
+                .ExecuteScalarAsync()
+            ?? 0
         );
 
         messagesCount.Should().Be(2);
@@ -118,7 +119,8 @@ DROP TABLE IF EXISTS knightbus.t_bus_test_topic;"
                 .DataSource.CreateCommand(
                     $"SELECT COUNT(*) FROM knightbus.q_{AutoMessageMapper.GetQueueName<TestCommand>()};"
                 )
-                .ExecuteScalarAsync() ?? 0
+                .ExecuteScalarAsync()
+            ?? 0
         );
 
         messagesCount.Should().Be(100_000);
