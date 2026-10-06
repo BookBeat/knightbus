@@ -11,6 +11,7 @@
     <NoWarn>$(NoWarn);ASPIRE010</NoWarn>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <ProjectReference Include="../KnightBus.Samples.Azure.ServiceBus.Producer/KnightBus.Samples.Azure.ServiceBus.Producer.csproj" />
     <ProjectReference Include="../KnightBus.Samples.Azure.ServiceBus/KnightBus.Samples.Azure.ServiceBus.csproj" />
     <PackageReference Include="Aspire.Hosting.Azure.ServiceBus" />
