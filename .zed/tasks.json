@@ -1,4 +1,3 @@
-// Zed tasks, mirroring .vscode/tasks.json. Run them with `task: spawn` (alt-shift-t).
 [
   {
     "label": "build",
@@ -8,7 +7,6 @@
     "tags": ["build"]
   },
   {
-    // The integration suites start their dependencies with Testcontainers, so Docker must be running.
     "label": "test",
     "command": "dotnet",
     "args": ["test", "KnightBus.slnx", "--no-build"],
