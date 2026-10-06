@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
+using AwesomeAssertions;
 using KnightBus.Core.DefaultMiddlewares;
 using Moq;
 using NUnit.Framework;

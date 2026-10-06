@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
+using AwesomeAssertions;
 using KnightBus.Core.Sagas;
 using KnightBus.Core.Sagas.Exceptions;
 using NUnit.Framework;

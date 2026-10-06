@@ -7,7 +7,7 @@
     <IsTestSuite>false</IsTestSuite>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="AwesomeAssertions" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\KnightBus.Core.Management\KnightBus.Core.Management.csproj" />

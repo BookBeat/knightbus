@@ -1,5 +1,13 @@
 # CHANGELOG
 
+# 2026-10-06
+
+### Test suites moved to AwesomeAssertions
+Every test project now uses `AwesomeAssertions` 9.6.0, the Apache-2.0 fork of FluentAssertions, in
+place of `FluentAssertions` 7.x. This removes the `[7.2.0,8.0.0)` pin that guarded against the
+FluentAssertions v8 licence change. The test projects are all `IsPackable=false`, so no published
+package changes.
+
 # 2026-09-14
 Fixed SQL injection through topic names in the PostgreSQL management transport. Topic names reached
 string-concatenated table identifiers without passing the `PostgresQueueName` allow-list, so a caller

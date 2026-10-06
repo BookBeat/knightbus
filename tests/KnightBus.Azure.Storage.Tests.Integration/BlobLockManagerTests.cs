@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
+using AwesomeAssertions;
 using Azure;
-using FluentAssertions;
 using KnightBus.Azure.Storage.Singleton;
 using Microsoft.Extensions.Logging;
 using Moq;

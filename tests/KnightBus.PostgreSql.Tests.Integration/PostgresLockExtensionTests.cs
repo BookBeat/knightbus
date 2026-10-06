@@ -1,4 +1,4 @@
-using FluentAssertions;
+using AwesomeAssertions;
 using KnightBus.Core;
 using KnightBus.Core.DefaultMiddlewares;
 using KnightBus.Core.DependencyInjection;

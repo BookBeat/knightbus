@@ -1,5 +1,5 @@
 ﻿using System;
-using FluentAssertions;
+using AwesomeAssertions;
 using KnightBus.Core.Exceptions;
 using KnightBus.Messages;
 using NUnit.Framework;

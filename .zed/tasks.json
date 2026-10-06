@@ -1,0 +1,28 @@
+[
+  {
+    "label": "build",
+    "command": "dotnet",
+    "args": ["build", "KnightBus.slnx"],
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "tags": ["build"]
+  },
+  {
+    "label": "test",
+    "command": "dotnet",
+    "args": ["test", "KnightBus.slnx", "--no-build"],
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "tags": ["test"]
+  },
+  {
+    "label": "format",
+    "command": "dotnet",
+    "args": ["csharpier", "format", "."],
+    "cwd": "$ZED_WORKTREE_ROOT"
+  },
+  {
+    "label": "format check",
+    "command": "dotnet",
+    "args": ["csharpier", "check", "."],
+    "cwd": "$ZED_WORKTREE_ROOT"
+  }
+]

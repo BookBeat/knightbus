@@ -1,5 +1,5 @@
 ﻿using System;
-using FluentAssertions;
+using AwesomeAssertions;
 using KnightBus.Core;
 using KnightBus.Messages;
 using Moq;

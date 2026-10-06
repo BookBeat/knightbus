@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+﻿using AwesomeAssertions;
 using KnightBus.Azure.Storage.Messages;
 using KnightBus.Core;
 using KnightBus.Messages;

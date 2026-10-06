@@ -1,6 +1,6 @@
 ﻿using System.Globalization;
 using System.Text.Json;
-using FluentAssertions;
+using AwesomeAssertions;
 using KnightBus.Core;
 using KnightBus.Core.PreProcessors;
 using KnightBus.Messages;
