@@ -11,6 +11,9 @@
     <NoWarn>$(NoWarn);ASPIRE010</NoWarn>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="OpenTelemetry" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
     <ProjectReference Include="../KnightBus.Samples.Azure.ServiceBus.Producer/KnightBus.Samples.Azure.ServiceBus.Producer.csproj" />
     <ProjectReference Include="../KnightBus.Samples.Azure.ServiceBus/KnightBus.Samples.Azure.ServiceBus.csproj" />
     <PackageReference Include="Aspire.Hosting.Azure.ServiceBus" />
