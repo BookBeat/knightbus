@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
+using AwesomeAssertions;
 using KnightBus.Messages;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;

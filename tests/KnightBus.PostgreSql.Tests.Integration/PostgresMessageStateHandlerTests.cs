@@ -1,4 +1,4 @@
-using FluentAssertions;
+using AwesomeAssertions;
 using KnightBus.Core;
 using KnightBus.PostgreSql.Management;
 using KnightBus.Shared.Tests.Integration;

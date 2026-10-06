@@ -5,9 +5,9 @@ using System.Net.Mime;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using AwesomeAssertions;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Specialized;
-using FluentAssertions;
 using KnightBus.Core;
 using NUnit.Framework;
 

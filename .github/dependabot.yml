@@ -21,7 +21,6 @@ updates:
           - "NUnit*"
           - "Microsoft.NET.Test.Sdk"
           - "Moq"
-          - "FluentAssertions"
           - "AwesomeAssertions"
           - "Testcontainers*"
 

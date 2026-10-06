@@ -1,6 +1,6 @@
 ﻿using System;
 using System.IO;
-using FluentAssertions;
+using AwesomeAssertions;
 using KnightBus.Messages;
 using KnightBus.Newtonsoft;
 using NUnit.Framework;

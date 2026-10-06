@@ -4,7 +4,7 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
+using AwesomeAssertions;
 using KnightBus.Core.DefaultMiddlewares;
 using KnightBus.Messages;
 using Microsoft.Extensions.Logging;

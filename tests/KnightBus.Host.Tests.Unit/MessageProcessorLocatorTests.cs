@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Linq;
-using FluentAssertions;
+using AwesomeAssertions;
 using KnightBus.Core;
 using KnightBus.Core.DependencyInjection;
 using KnightBus.Core.Singleton;

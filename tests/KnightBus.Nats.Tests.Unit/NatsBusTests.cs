@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
+using AwesomeAssertions;
 using KnightBus.Core.PreProcessors;
 using Moq;
 using NATS.Client;

@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+﻿using AwesomeAssertions;
 using KnightBus.Core.Sagas;
 using KnightBus.Messages;
 using NUnit.Framework;
