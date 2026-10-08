@@ -83,6 +83,24 @@ public static class StorageExtensions
         return services;
     }
 
+    /// <summary>
+    /// Spreads the singleton locks over the hosts instead of letting the first host take them all,
+    /// see <see cref="SingletonPlacementOptions"/>. Hosts in one group must run the same singleton
+    /// processors.
+    /// </summary>
+    public static IServiceCollection UseBlobStorageSingletonPlacement(
+        this IServiceCollection services,
+        Action<SingletonPlacementOptions>? configure = null
+    )
+    {
+        var options = new SingletonPlacementOptions();
+        configure?.Invoke(options);
+        options.Validate();
+        services.AddSingleton(options);
+        services.AddSingleton<ISingletonPlacement, BlobSingletonPlacement>();
+        return services;
+    }
+
     public static IServiceCollection UseBlobStorageSagas(this IServiceCollection services)
     {
         services.EnableSagas<BlobSagaStore>();

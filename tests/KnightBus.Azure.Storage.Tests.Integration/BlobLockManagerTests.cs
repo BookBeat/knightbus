@@ -1,8 +1,10 @@
 ﻿using System;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using AwesomeAssertions;
 using Azure;
+using Azure.Storage.Blobs;
 using KnightBus.Azure.Storage.Singleton;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -37,6 +39,36 @@ public class BlobLockManagerTests
         handle.Should().NotBeNull("Lock should be acquired");
         handle.LeaseId.Should().NotBeNullOrWhiteSpace();
         handle.LockId.Should().NotBeNullOrWhiteSpace();
+    }
+
+    [Test]
+    [Parallelizable]
+    public async Task Should_record_the_holding_host_in_blob_metadata()
+    {
+        //arrange
+        var scheme = new DefaultBlobLockScheme();
+        var lockManager = new BlobLockManager(StorageSetup.ConnectionString, scheme);
+        await lockManager.InitializeAsync();
+        var lockId = Guid.NewGuid().ToString();
+        //act
+        var handle = await lockManager.TryLockAsync(
+            lockId,
+            TimeSpan.FromMinutes(1),
+            CancellationToken.None
+        );
+        //assert
+        handle.Should().NotBeNull("Lock should be acquired");
+        var blob = new BlobContainerClient(
+            StorageSetup.ConnectionString,
+            scheme.ContainerName
+        ).GetBlobClient(Path.Combine(scheme.Directory, lockId));
+        var metadata = (await blob.GetPropertiesAsync()).Value.Metadata;
+        metadata["FunctionInstance"].Should().Be(lockId);
+        metadata["HostName"].Should().Be(Environment.MachineName);
+        DateTimeOffset
+            .Parse(metadata["AcquiredAtUtc"])
+            .Should()
+            .BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromMinutes(1));
     }
 
     [Test]

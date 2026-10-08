@@ -12,7 +12,7 @@ using KnightBus.Core.Singleton;
 
 namespace KnightBus.Azure.Storage.Singleton;
 
-internal class BlobLockManager : ISingletonLockManager
+internal class BlobLockManager : ISingletonLockManager, ISingletonLockInspector
 {
     private readonly IStorageBusConfiguration _configuration;
     private BlobContainerClient _client = null!;
@@ -41,6 +41,22 @@ internal class BlobLockManager : ISingletonLockManager
         }
 
         return Task.CompletedTask;
+    }
+
+    public async Task<bool> IsHeldAsync(string lockId, CancellationToken cancellationToken)
+    {
+        var blob = _client.GetBlobClient(Path.Combine(_lockScheme.Directory, lockId));
+        try
+        {
+            var properties = await blob.GetPropertiesAsync(cancellationToken: cancellationToken)
+                .ConfigureAwait(false);
+            return properties.Value.LeaseState == LeaseState.Leased;
+        }
+        catch (RequestFailedException exception) when (exception.Status == 404)
+        {
+            //The blob is created the first time the lock is taken
+            return false;
+        }
     }
 
     public async Task<ISingletonLockHandle?> TryLockAsync(
@@ -83,7 +99,13 @@ internal class BlobLockManager : ISingletonLockManager
     )
     {
         await blob.SetMetadataAsync(
-            new Dictionary<string, string> { { "FunctionInstance", functionInstanceId } },
+            new Dictionary<string, string>
+            {
+                { "FunctionInstance", functionInstanceId },
+                //Who holds the lock, so the current distribution can be read from storage
+                { "HostName", Environment.MachineName },
+                { "AcquiredAtUtc", DateTimeOffset.UtcNow.ToString("O") },
+            },
             new BlobRequestConditions { LeaseId = leaseId },
             cancellationToken
         );
