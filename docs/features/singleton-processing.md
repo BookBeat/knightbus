@@ -80,6 +80,12 @@ and registration throws. Schedule locks are not affected, they keep their own fi
 Events get one lock per subscription, so two subscriptions on the same event each process singly but
 independently of one another.
 
+## Spreading the locks over hosts
+
+Every lock is an independent race, so the instance that starts first takes all of them. If the
+singleton workload is heavy, see [singleton placement](singleton-placement.md) for how to spread the
+locks over the running instances.
+
 ## Behaviour during shutdown
 
 Singleton locks are released only **after** in-flight messages have drained, not when the stop signal

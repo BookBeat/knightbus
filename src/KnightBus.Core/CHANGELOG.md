@@ -5,6 +5,14 @@
   duration and renewal interval of singleton processors configurable. The defaults are unchanged.
   Instances waiting for a lock now add up to 20% random extra wait (`PollJitter`) so they do not poll
   in lock-step. Schedule locks keep their fixed timing
+* Singleton locks can be spread over the hosts instead of piling up on the first one to start, see
+  `docs/features/singleton-placement.md`. It is opt in: nothing changes unless an
+  `ISingletonPlacement` is registered (`UseBlobStorageSingletonPlacement` in
+  `KnightBus.Azure.Storage`). New public types: `ISingletonPlacement`, `SingletonPlacementOptions`,
+  `SingletonAssignment`, `ISingletonLockInspector` and `IDrainableChannelReceiver`
+* `ErrorHandlingMiddleware` logs a handler that was stopped by its cancellation token (a shutdown, a
+  lost lock or a lock hand-over) at Information instead of Error. The message is still abandoned. A
+  cancellation that did not come from the token, such as a timeout, is still an error
 
 # 18.4.0
 * `Microsoft.Extensions.DependencyInjection.Abstractions`, `Microsoft.Extensions.Logging.Abstractions`

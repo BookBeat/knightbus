@@ -12,6 +12,25 @@ instance waits between attempts to take a singleton lock, so instances that star
 poll in lock-step. The wait is never shorter than before, so failover is not faster, and it can be up
 to 20% slower. Set `PollJitter` to 0 to keep the exact old timing. Schedule locks are not affected.
 
+### Singleton placement: spreading singleton locks over the running instances
+Every singleton lock was an independent race, so the instance that started first took all of them and
+kept them. Placement spreads the locks over the live instances, keeps heavy processors apart, and
+hands locks over when instances join or leave. It is opt in; see
+[Spreading singleton locks over hosts](https://bookbeat.github.io/knightbus/features/singleton-placement/).
+
+- `KnightBus.Core` 18.5.0: `ISingletonPlacement`, `SingletonPlacementOptions`, `SingletonAssignment`,
+  `ISingletonLockInspector` and `IDrainableChannelReceiver`. `GenericMessagePump` can stop fetching
+  while running messages finish. A handler stopped by its cancellation token is logged at Information
+  instead of Error, and the message is still abandoned.
+- `KnightBus.Azure.Storage` 18.4.0: `UseBlobStorageSingletonPlacement`, member leases for the group,
+  and lock inspection. The storage queue receiver can drain. Lock blobs record `HostName` and
+  `AcquiredAtUtc` in their metadata.
+- `KnightBus.Azure.ServiceBus` 24.3.0: the receivers can drain.
+- `KnightBus.Host` 18.4.0: the host joins the placement group before the receivers start and leaves it
+  first on shutdown.
+
+Nothing changes for an application that does not register a placement.
+
 # 2026-10-06
 
 ### Test suites moved to AwesomeAssertions
