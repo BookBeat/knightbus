@@ -119,6 +119,112 @@ public class TransportStarterFactoryTests
         var singletonReceiver = (SingletonChannelReceiver)result;
         singletonReceiver.LockId.Should().Contain("test-sub");
     }
+
+    [Test]
+    public void Should_apply_singleton_options_to_the_receiver()
+    {
+        //act
+        var receiver = CreateSingletonReceiver(services =>
+            services.ConfigureSingletons(options =>
+            {
+                options.PollInterval = TimeSpan.FromSeconds(30);
+                options.PollJitter = 0.5;
+                options.LockDuration = TimeSpan.FromSeconds(90);
+                options.RenewalInterval = TimeSpan.FromSeconds(10);
+            })
+        );
+
+        //assert
+        receiver.TimerInterval.Should().Be(TimeSpan.FromSeconds(30));
+        receiver.PollJitter.Should().Be(0.5);
+        receiver.LockDuration.Should().Be(TimeSpan.FromSeconds(90));
+        receiver.LockRefreshInterval.Should().Be(TimeSpan.FromSeconds(10));
+    }
+
+    [Test]
+    public void Should_keep_the_established_lock_timing_without_options()
+    {
+        //act
+        var receiver = CreateSingletonReceiver();
+
+        //assert: the durations are what they were before the options existed, only jitter is new
+        receiver.TimerInterval.Should().Be(TimeSpan.FromMinutes(1));
+        receiver.LockDuration.Should().Be(TimeSpan.FromMinutes(1));
+        receiver.LockRefreshInterval.Should().Be(TimeSpan.FromSeconds(19));
+        receiver.PollJitter.Should().Be(0.2);
+    }
+
+    [Test]
+    public void Should_reject_a_lock_duration_that_expires_between_renewals()
+    {
+        //act
+        var configure = () =>
+            new ServiceCollection().ConfigureSingletons(options =>
+            {
+                options.LockDuration = TimeSpan.FromSeconds(10);
+                options.RenewalInterval = TimeSpan.FromSeconds(19);
+            });
+
+        //assert
+        configure
+            .Should()
+            .Throw<ArgumentException>()
+            .WithMessage("*LockDuration*RenewalInterval*");
+    }
+
+    private static SingletonChannelReceiver CreateSingletonReceiver(
+        Action<IServiceCollection>? configure = null
+    )
+    {
+        var config = new Mock<ITransportConfiguration>();
+        config.Setup(x => x.MessageSerializer).Returns(new MicrosoftJsonSerializer());
+        var channel = new Mock<ITransportChannelFactory>();
+        channel.Setup(x => x.CanCreate(typeof(TestEvent))).Returns(true);
+        channel.Setup(x => x.Configuration).Returns(config.Object);
+        var underlyingReceiver = new Mock<IChannelReceiver>();
+        underlyingReceiver
+            .Setup(x => x.Settings)
+            .Returns(
+                new SingletonProcessingSettings
+                {
+                    MessageLockTimeout = TimeSpan.FromMinutes(1),
+                    DeadLetterDeliveryLimit = 1,
+                }
+            );
+        channel
+            .Setup(x =>
+                x.Create(
+                    typeof(TestEvent),
+                    It.IsAny<TestSubscription>(),
+                    It.IsAny<IProcessingSettings>(),
+                    It.IsAny<IMessageSerializer>(),
+                    It.IsAny<IHostConfiguration>(),
+                    It.IsAny<IMessageProcessor>()
+                )
+            )
+            .Returns(underlyingReceiver.Object);
+
+        var collection = new ServiceCollection();
+        collection.UseSingletonLocks(Mock.Of<ISingletonLockManager>());
+        configure?.Invoke(collection);
+
+        var starter = new TransportStarterFactory(
+            new[] { channel.Object },
+            new HostConfiguration
+            {
+                DependencyInjection = new MicrosoftDependencyInjection(
+                    collection.BuildServiceProvider()
+                ),
+                Log = Mock.Of<ILogger>(),
+            }
+        );
+        return (SingletonChannelReceiver)
+            starter.CreateChannelReceiver(
+                new EventProcessorFactory(),
+                typeof(IProcessEvent<TestEvent, TestSubscription, TestTopicSettings>),
+                typeof(SingletonEventProcessor)
+            );
+    }
 }
 
 public class JsonProcessor : IProcessCommand<TestCommand, TestMessageSettings>

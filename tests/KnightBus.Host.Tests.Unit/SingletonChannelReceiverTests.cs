@@ -16,6 +16,33 @@ namespace KnightBus.Host.Tests.Unit;
 public class SingletonChannelReceiverTests
 {
     [Test]
+    public void Should_wait_exactly_the_interval_without_jitter()
+    {
+        SingletonChannelReceiver
+            .NextPollDelay(TimeSpan.FromSeconds(60), 0)
+            .Should()
+            .Be(TimeSpan.FromSeconds(60));
+    }
+
+    [Test]
+    public void Should_spread_the_wait_over_the_jitter_share_and_never_shorten_it()
+    {
+        //arrange
+        var interval = TimeSpan.FromSeconds(60);
+        var random = new Random(1234);
+
+        //act
+        var delays = Enumerable
+            .Range(0, 1000)
+            .Select(_ => SingletonChannelReceiver.NextPollDelay(interval, 0.2, random))
+            .ToList();
+
+        //assert: between 60 s and 72 s, and not all the same so hosts drift apart
+        delays.Should().OnlyContain(d => d >= interval && d <= interval * 1.2);
+        delays.Distinct().Count().Should().BeGreaterThan(900);
+    }
+
+    [Test]
     public async Task Should_only_start_one_queue_reader()
     {
         //arrange

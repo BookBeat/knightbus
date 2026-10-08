@@ -21,6 +21,9 @@ internal class SingletonChannelReceiver : IChannelReceiver
     internal TimeSpan LockDuration { get; set; } = TimeSpan.FromMinutes(1);
     internal TimeSpan LockRefreshInterval { get; set; } = TimeSpan.FromSeconds(19);
 
+    //Share of TimerInterval added at random to each wait, 0 means a fixed interval
+    internal double PollJitter { get; set; }
+
     //Written by the lock-lost watcher thread and read by the timer loop
     private volatile bool _lockPollingEnabled = false;
 
@@ -66,8 +69,16 @@ internal class SingletonChannelReceiver : IChannelReceiver
                 await AcquireLock(cancellationToken).ConfigureAwait(false);
             }
 
-            await Task.Delay(TimerInterval, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(NextPollDelay(TimerInterval, PollJitter), cancellationToken)
+                .ConfigureAwait(false);
         }
+    }
+
+    internal static TimeSpan NextPollDelay(TimeSpan interval, double jitter, Random? random = null)
+    {
+        if (jitter <= 0)
+            return interval;
+        return interval + interval * ((random ?? Random.Shared).NextDouble() * jitter);
     }
 
     private async Task AcquireLock(CancellationToken cancellationToken)

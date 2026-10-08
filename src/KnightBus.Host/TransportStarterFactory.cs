@@ -101,13 +101,23 @@ internal class TransportStarterFactory
                 lockId = $"{lockId}:{subscription.Name}";
             }
 
+            var options =
+                _configuration.DependencyInjection.GetInstances<SingletonOptions>().LastOrDefault()
+                ?? new SingletonOptions();
+
             var singletonStarter = new SingletonChannelReceiver(
                 channelReceiver,
                 lockManager,
                 _configuration.Log,
                 lockId,
                 _teardownToken
-            );
+            )
+            {
+                TimerInterval = options.PollInterval,
+                PollJitter = options.PollJitter,
+                LockDuration = options.LockDuration,
+                LockRefreshInterval = options.RenewalInterval,
+            };
             return singletonStarter;
         }
 

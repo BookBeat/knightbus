@@ -1,5 +1,11 @@
 # KnightBus.Core Changelog
 
+# Unreleased
+* `SingletonOptions` and `IServiceCollection.ConfigureSingletons(...)` make the poll interval, lock
+  duration and renewal interval of singleton processors configurable. The defaults are unchanged.
+  Instances waiting for a lock now add up to 20% random extra wait (`PollJitter`) so they do not poll
+  in lock-step. Schedule locks keep their fixed timing
+
 # 18.4.0
 * `Microsoft.Extensions.DependencyInjection.Abstractions`, `Microsoft.Extensions.Logging.Abstractions`
   and `System.Text.Json` move to 9.0.19 on `net9.0` and 10.0.11 on `net10.0`, raising the floor

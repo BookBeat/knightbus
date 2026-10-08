@@ -1,4 +1,5 @@
-﻿using KnightBus.Core.Singleton;
+﻿using System;
+using KnightBus.Core.Singleton;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace KnightBus.Core;
@@ -48,6 +49,21 @@ public static class HostConfigurationExtensions
     )
     {
         services.AddSingleton(lockManager);
+        return services;
+    }
+
+    /// <summary>
+    /// Changes the lock timing of <see cref="ISingletonProcessor"/> receivers, see <see cref="SingletonOptions"/>
+    /// </summary>
+    public static IServiceCollection ConfigureSingletons(
+        this IServiceCollection services,
+        Action<SingletonOptions> configure
+    )
+    {
+        var options = new SingletonOptions();
+        configure(options);
+        options.Validate();
+        services.AddSingleton(options);
         return services;
     }
 }
