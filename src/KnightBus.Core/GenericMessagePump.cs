@@ -19,6 +19,9 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
     protected readonly IProcessingSettings Settings;
     protected readonly ILogger Log;
     private readonly SemaphoreSlim _maxConcurrent;
+    private readonly int _maxConcurrentCalls;
+    private volatile bool _fetchingStopped;
+    private int _activePumps;
     private Task? _runningTask;
     private CancellationTokenSource _pumpDelayCancellationTokenSource = new();
     private CancellationToken _pumpCancellationToken = CancellationToken.None;
@@ -28,6 +31,7 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
     {
         Settings = settings;
         Log = log;
+        _maxConcurrentCalls = Settings.MaxConcurrentCalls;
         _maxConcurrent = new SemaphoreSlim(
             Settings.MaxConcurrentCalls,
             Settings.MaxConcurrentCalls
@@ -94,7 +98,44 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Stops fetching new messages and completes when the ones already being processed have
+    /// finished. Those are not cancelled.
+    /// </summary>
+    public async Task StopFetchingAsync(CancellationToken cancellationToken)
+    {
+        _fetchingStopped = true;
+        //A fetch that started before the flag was set can still dispatch a message, so wait for
+        //the pump itself to be idle as well as for the handlers
+        while (
+            Volatile.Read(ref _activePumps) > 0 || _maxConcurrent.CurrentCount < _maxConcurrentCalls
+        )
+        {
+            await Task.Delay(TimeSpan.FromMilliseconds(50), cancellationToken)
+                .ConfigureAwait(false);
+        }
+    }
+
     public async Task<bool> PumpAsync<TMessage>(
+        Func<TInternalRepresentation, CancellationToken, Task> action,
+        CancellationToken cancellationToken
+    )
+        where TMessage : TMessageInterface
+    {
+        if (_fetchingStopped)
+            return false;
+        Interlocked.Increment(ref _activePumps);
+        try
+        {
+            return await PumpOnceAsync<TMessage>(action, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            Interlocked.Decrement(ref _activePumps);
+        }
+    }
+
+    private async Task<bool> PumpOnceAsync<TMessage>(
         Func<TInternalRepresentation, CancellationToken, Task> action,
         CancellationToken cancellationToken
     )

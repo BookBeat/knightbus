@@ -31,7 +31,15 @@ public class ErrorHandlingMiddleware : IMessageProcessorMiddleware
         }
         catch (Exception e)
         {
-            _log.LogError(e, "Error processing message {@" + typeof(T).Name + "}", message);
+            //A handler stopped on purpose, by a shutdown or a hand-over of a singleton lock, is not
+            //an error. The message is still abandoned so that it is delivered again
+            if (e is OperationCanceledException && cancellationToken.IsCancellationRequested)
+                _log.LogInformation(
+                    "Processing of message {@" + typeof(T).Name + "} was cancelled",
+                    message
+                );
+            else
+                _log.LogError(e, "Error processing message {@" + typeof(T).Name + "}", message);
             try
             {
                 await messageStateHandler.AbandonByErrorAsync(e).ConfigureAwait(false);

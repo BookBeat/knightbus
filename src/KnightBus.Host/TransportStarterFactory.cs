@@ -105,12 +105,25 @@ internal class TransportStarterFactory
                 _configuration.DependencyInjection.GetInstances<SingletonOptions>().LastOrDefault()
                 ?? new SingletonOptions();
 
+            var placement = _configuration
+                .DependencyInjection.GetInstances<ISingletonPlacement>()
+                .LastOrDefault();
+            var placementOptions = _configuration
+                .DependencyInjection.GetInstances<SingletonPlacementOptions>()
+                .LastOrDefault();
+            if (placement != null && placementOptions != null)
+                placement.Register(lockId!, placementOptions.WeightOf(type));
+            else
+                placement = null;
+
             var singletonStarter = new SingletonChannelReceiver(
                 channelReceiver,
                 lockManager,
                 _configuration.Log,
                 lockId,
-                _teardownToken
+                _teardownToken,
+                placement,
+                placementOptions
             )
             {
                 TimerInterval = options.PollInterval,

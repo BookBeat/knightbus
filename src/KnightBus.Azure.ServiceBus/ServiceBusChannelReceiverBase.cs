@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace KnightBus.Azure.ServiceBus;
 
-internal abstract class ServiceBusChannelReceiverBase<T> : IChannelReceiver
+internal abstract class ServiceBusChannelReceiverBase<T> : IDrainableChannelReceiver
     where T : class, IMessage
 {
     private readonly IServiceBusConfiguration _configuration;
@@ -44,6 +44,13 @@ internal abstract class ServiceBusChannelReceiverBase<T> : IChannelReceiver
     }
 
     public IProcessingSettings Settings { get; set; }
+
+    public async Task StopFetchingAsync(CancellationToken cancellationToken)
+    {
+        //Stops the processor from taking messages and waits for the running handlers to finish
+        if (_client != null)
+            await _client.StopProcessingAsync(cancellationToken).ConfigureAwait(false);
+    }
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
