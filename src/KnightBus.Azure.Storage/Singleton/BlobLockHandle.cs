@@ -23,6 +23,9 @@ internal class BlobLockHandle : ISingletonLockHandle
         LockId = lockId;
         _leasePeriod = leasePeriod;
         Blob = blob;
+        //Acquiring the lease counts as a renewal, so the lease can be judged expired
+        //even when the very first renewal fails
+        _lastRenewal = DateTimeOffset.UtcNow;
     }
 
     public string LeaseId { get; }
@@ -46,6 +49,18 @@ internal class BlobLockHandle : ISingletonLockHandle
         {
             if (exception.IsServerSideError())
             {
+                if (DateTimeOffset.UtcNow - _lastRenewal >= _leasePeriod)
+                {
+                    //The lease has run out on the server, so another instance may hold the lock.
+                    //Retrying would only keep this holder processing without a lock
+                    log.LogError(
+                        exception,
+                        "Singleton lock renewal for blob '{LockId}' kept failing and the lease period has elapsed, giving up the lock",
+                        LockId
+                    );
+                    throw;
+                }
+
                 log.LogWarning(
                     exception,
                     string.Format(
