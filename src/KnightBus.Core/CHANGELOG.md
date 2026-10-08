@@ -1,6 +1,6 @@
 # KnightBus.Core Changelog
 
-# Unreleased
+# 18.5.0
 * `SingletonOptions` and `IServiceCollection.ConfigureSingletons(...)` make the poll interval, lock
   duration and renewal interval of singleton processors configurable. The defaults are unchanged.
   Instances waiting for a lock now add up to 20% random extra wait (`PollJitter`) so they do not poll

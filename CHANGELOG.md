@@ -1,5 +1,17 @@
 # CHANGELOG
 
+# 2026-10-08
+
+### Singleton lock timing is configurable, and waiting hosts poll with jitter
+`KnightBus.Core` 18.5.0 adds `SingletonOptions` and `services.ConfigureSingletons(...)` for the poll
+interval, lock duration and renewal interval of singleton processors. The defaults are the values that
+were hardcoded before: 1 minute, 1 minute and 19 seconds.
+
+`KnightBus.Host` 18.4.0 uses them, and adds up to 20% random extra wait (`PollJitter`) to the time an
+instance waits between attempts to take a singleton lock, so instances that started together no longer
+poll in lock-step. The wait is never shorter than before, so failover is not faster, and it can be up
+to 20% slower. Set `PollJitter` to 0 to keep the exact old timing. Schedule locks are not affected.
+
 # 2026-10-06
 
 ### Test suites moved to AwesomeAssertions
