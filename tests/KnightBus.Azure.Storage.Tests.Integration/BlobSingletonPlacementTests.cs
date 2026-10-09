@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using AwesomeAssertions;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
+using Azure.Storage.Blobs.Specialized;
 using KnightBus.Azure.Storage.Singleton;
 using KnightBus.Core.Singleton;
 using NUnit.Framework;
@@ -167,6 +168,92 @@ public class BlobSingletonPlacementTests
             .Select(l => placement.Advise(l)!.PreferredHost)
             .Should()
             .OnlyContain(h => h == placement.HostId);
+
+        await placement.StopAsync(CancellationToken.None);
+    }
+
+    [Test]
+    public async Task Should_remove_an_unleased_member_blob_only_after_it_has_been_unleased_for_a_while()
+    {
+        //arrange: the blob was written long ago, but only now loses its lease
+        var time = new ManualTimeProvider();
+        var group = NewGroup();
+        var placement = Create(group, time);
+        await placement.StartAsync(CancellationToken.None);
+        var stale = new BlobContainerClient(
+            StorageSetup.ConnectionString,
+            new DefaultBlobLockScheme().ContainerName
+        ).GetBlobClient($"locks/_members/{group}/other-host");
+        await stale.UploadAsync(BinaryData.FromObjectAsJson(new Dictionary<string, int>()), true);
+
+        //act
+        await placement.RefreshAsync(CancellationToken.None);
+        time.Advance(TimeSpan.FromMinutes(9));
+        await placement.RefreshAsync(CancellationToken.None);
+
+        //assert
+        (await stale.ExistsAsync())
+            .Value.Should()
+            .BeTrue("it has not been unleased for 10 minutes");
+        time.Advance(TimeSpan.FromMinutes(2));
+        await placement.RefreshAsync(CancellationToken.None);
+        (await stale.ExistsAsync()).Value.Should().BeFalse();
+
+        await placement.StopAsync(CancellationToken.None);
+    }
+
+    [Test]
+    public async Task Should_rejoin_the_group_when_the_member_lease_is_lost()
+    {
+        //arrange
+        var group = NewGroup();
+        var placement = Create(group);
+        await placement.StartAsync(CancellationToken.None);
+        var member = new BlobContainerClient(
+            StorageSetup.ConnectionString,
+            new DefaultBlobLockScheme().ContainerName
+        ).GetBlobClient($"locks/_members/{group}/{placement.HostId}");
+
+        //act: another host removes the blob once the lease has lapsed
+        await member.GetBlobLeaseClient().BreakAsync(TimeSpan.Zero);
+        await member.DeleteIfExistsAsync();
+        var rejoined = false;
+        for (var i = 0; i < 40 && !rejoined; i++)
+        {
+            await Task.Delay(1000);
+            await placement.RejoinIfLostAsync(CancellationToken.None);
+            rejoined =
+                await member.ExistsAsync()
+                && (await member.GetPropertiesAsync()).Value.LeaseState == LeaseState.Leased;
+        }
+
+        //assert
+        rejoined.Should().BeTrue();
+
+        await placement.StopAsync(CancellationToken.None);
+    }
+
+    [Test]
+    public async Task Should_name_the_member_blob_with_forward_slashes()
+    {
+        var group = NewGroup();
+        var placement = Create(group);
+        await placement.StartAsync(CancellationToken.None);
+
+        var names = new BlobContainerClient(
+            StorageSetup.ConnectionString,
+            new DefaultBlobLockScheme().ContainerName
+        )
+            .GetBlobs(BlobTraits.None, BlobStates.None, "locks", CancellationToken.None)
+            .Select(b => b.Name)
+            .Where(n => n.Contains(group))
+            .ToList();
+
+        names
+            .Should()
+            .ContainSingle()
+            .Which.Should()
+            .Be($"locks/_members/{group}/{placement.HostId}");
 
         await placement.StopAsync(CancellationToken.None);
     }

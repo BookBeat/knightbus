@@ -24,7 +24,10 @@ hands locks over when instances join or leave. It is opt in; see
   instead of Error, and the message is still abandoned.
 - `KnightBus.Azure.Storage` 18.4.0: `UseBlobStorageSingletonPlacement`, member leases for the group,
   and lock inspection. The storage queue receiver can drain. Lock blobs record `HostName` and
-  `AcquiredAtUtc` in their metadata.
+  `AcquiredAtUtc` in their metadata. A host whose member lease lapses rejoins the group, and a member
+  blob is only removed after it has been unleased for 10 minutes. Lock blob names always use `/`, so
+  on Windows they no longer contain a backslash, which would have kept Windows hosts from seeing each
+  other.
 - `KnightBus.Azure.ServiceBus` 24.3.0: the receivers can drain.
 - `KnightBus.Host` 18.4.0: the host joins the placement group before the receivers start and leaves it
   first on shutdown.

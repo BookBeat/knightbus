@@ -30,6 +30,10 @@ internal class BlobLockManager : ISingletonLockManager, ISingletonLockInspector
         _lockScheme = lockScheme ?? new DefaultBlobLockScheme();
     }
 
+    //Path.Combine would use the separator of the operating system, and blob names always use '/'
+    internal static string BlobName(IBlobLockScheme lockScheme, string lockId) =>
+        $"{lockScheme.Directory.TrimEnd('/')}/{lockId}";
+
     public Task InitializeAsync()
     {
         if (_client == null)
@@ -45,7 +49,7 @@ internal class BlobLockManager : ISingletonLockManager, ISingletonLockInspector
 
     public async Task<bool> IsHeldAsync(string lockId, CancellationToken cancellationToken)
     {
-        var blob = _client.GetBlobClient(Path.Combine(_lockScheme.Directory, lockId));
+        var blob = _client.GetBlobClient(BlobName(_lockScheme, lockId));
         try
         {
             var properties = await blob.GetPropertiesAsync(cancellationToken: cancellationToken)
@@ -65,7 +69,7 @@ internal class BlobLockManager : ISingletonLockManager, ISingletonLockInspector
         CancellationToken cancellationToken
     )
     {
-        var blob = _client.GetBlobClient(Path.Combine(_lockScheme.Directory, lockId));
+        var blob = _client.GetBlobClient(BlobName(_lockScheme, lockId));
 
         var lease = await TryAcquireLeaseAsync(blob, lockPeriod, cancellationToken)
             .ConfigureAwait(false);

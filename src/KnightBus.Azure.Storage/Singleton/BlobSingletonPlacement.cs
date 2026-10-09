@@ -47,6 +47,8 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
     private Task? _refreshLoop;
     private Snapshot? _snapshot;
     private readonly Dictionary<string, long> _liveSince = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, long> _unleasedSince = new(StringComparer.Ordinal);
+    private string _memberId = null!;
 
     public BlobSingletonPlacement(
         IStorageBusConfiguration configuration,
@@ -80,12 +82,23 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
         );
         _memberPrefix = $"{_lockScheme.Directory}/_members/{_options.Group}/";
 
-        //Content first, then the lease: the lease is what makes the member count as alive
-        var memberId = $"_members/{_options.Group}/{HostId}";
-        var blob = _container.GetBlobClient($"{_lockScheme.Directory}/{memberId}");
+        _memberId = $"_members/{_options.Group}/{HostId}";
         await _container
             .CreateIfNotExistsAsync(cancellationToken: cancellationToken)
             .ConfigureAwait(false);
+
+        _lifetime = new CancellationTokenSource();
+        await JoinAsync(cancellationToken).ConfigureAwait(false);
+
+        await RefreshAsync(cancellationToken).ConfigureAwait(false);
+        var token = _lifetime.Token;
+        _refreshLoop = Task.Run(() => RefreshLoop(token), CancellationToken.None);
+    }
+
+    private async Task JoinAsync(CancellationToken cancellationToken)
+    {
+        //Content first, then the lease: the lease is what makes the member count as alive
+        var blob = _container.GetBlobClient(BlobLockManager.BlobName(_lockScheme, _memberId));
         await blob.UploadAsync(
                 BinaryData.FromObjectAsJson(_locks.ToDictionary(x => x.Key, x => x.Value)),
                 overwrite: true,
@@ -95,22 +108,29 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
 
         var handle =
             await _lockManager
-                .TryLockAsync(memberId, MemberLeaseDuration, cancellationToken)
+                .TryLockAsync(_memberId, MemberLeaseDuration, cancellationToken)
                 .ConfigureAwait(false)
-            ?? throw new InvalidOperationException($"Could not lease the member blob {memberId}");
+            ?? throw new InvalidOperationException($"Could not lease the member blob {_memberId}");
 
-        _lifetime = new CancellationTokenSource();
         _memberLease = new SingletonTimerScope(
             _log,
             handle,
             true,
             MemberRenewalInterval,
-            CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token)
+            CancellationTokenSource.CreateLinkedTokenSource(_lifetime!.Token)
         );
+    }
 
-        await RefreshAsync(cancellationToken).ConfigureAwait(false);
-        var token = _lifetime.Token;
-        _refreshLoop = Task.Run(() => RefreshLoop(token), CancellationToken.None);
+    //The renewal stops for good when the lease is lost, for example after a long pause or an
+    //outage, and other hosts may have removed the member blob since
+    internal async Task RejoinIfLostAsync(CancellationToken cancellationToken)
+    {
+        if (_memberLease is not { Completion.IsCompleted: true })
+            return;
+        _log.LogWarning("Lost the member lease of host {HostId}, rejoining", HostId);
+        _memberLease.Dispose();
+        _memberLease = null;
+        await JoinAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)
@@ -169,6 +189,7 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
             try
             {
                 await Task.Delay(_options.RefreshInterval, cancellationToken).ConfigureAwait(false);
+                await RejoinIfLostAsync(cancellationToken).ConfigureAwait(false);
                 await RefreshAsync(cancellationToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -194,6 +215,7 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
     {
         var live = new List<(string HostId, string Name, string ETag)>();
         var abandoned = new List<string>();
+        var unleased = new HashSet<string>(StringComparer.Ordinal);
         await foreach (
             var item in _container
                 .GetBlobsAsync(BlobTraits.None, BlobStates.None, _memberPrefix, cancellationToken)
@@ -203,12 +225,19 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
             var hostId = item.Name[_memberPrefix.Length..];
             if (item.Properties.LeaseState == LeaseState.Leased)
                 live.Add((hostId, item.Name, item.Properties.ETag?.ToString() ?? string.Empty));
-            else if (
-                item.Properties.LastModified < DateTimeOffset.UtcNow - AbandonedMemberAge
-                && hostId != HostId
-            )
-                abandoned.Add(item.Name);
+            else if (hostId != HostId)
+            {
+                //Lease operations do not change LastModified, so the time unleased is tracked here
+                unleased.Add(item.Name);
+                var since = _unleasedSince.GetValueOrDefault(item.Name, _time.GetTimestamp());
+                _unleasedSince[item.Name] = since;
+                if (_time.GetElapsedTime(since) >= AbandonedMemberAge)
+                    abandoned.Add(item.Name);
+            }
         }
+
+        foreach (var name in _unleasedSince.Keys.Where(k => !unleased.Contains(k)).ToList())
+            _unleasedSince.Remove(name);
 
         var hosts = new List<SingletonHostInfo>();
         foreach (var (hostId, name, etag) in live.Where(x => x.HostId != HostId))
