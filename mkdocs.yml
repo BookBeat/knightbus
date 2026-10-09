@@ -123,6 +123,7 @@ nav:
       - Attachments: features/attachments.md
       - Scheduling: features/scheduling.md
       - Singleton processing: features/singleton-processing.md
+      - Singleton placement: features/singleton-placement.md
       - Errors and dead-lettering: features/error-handling.md
       - Management API: features/management.md
   - Monitoring: monitoring.md

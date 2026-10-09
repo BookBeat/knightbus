@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
 using KnightBus.Core.DependencyInjection;
+using KnightBus.Core.Singleton;
 using KnightBus.Host.MessageProcessing;
 using KnightBus.Host.Singleton;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,6 +25,7 @@ public class KnightBusHost : IHostedService
     internal InFlightMessageTracker InFlightTracker { get; }
     internal List<IChannelReceiver> Receivers { get; } = new();
     internal List<IPlugin> Plugins { get; } = new();
+    private ISingletonPlacement? _placement;
     internal CancellationToken TeardownToken => _teardownToken.Token;
 
     public KnightBusHost(
@@ -68,6 +70,26 @@ public class KnightBusHost : IHostedService
                 _teardownToken.Token
             );
             Receivers.AddRange(locator.CreateReceivers());
+
+            //Join the group before the receivers start, so they get advice on which locks to take.
+            //Without it they compete for the locks as they always did
+            _placement = _configuration
+                .DependencyInjection.GetInstances<ISingletonPlacement>()
+                .LastOrDefault();
+            if (_placement != null)
+            {
+                try
+                {
+                    await _placement.StartAsync(combinedToken.Token).ConfigureAwait(false);
+                }
+                catch (Exception e) when (e is not OperationCanceledException)
+                {
+                    _configuration.Log.LogError(
+                        e,
+                        "Could not join the singleton placement group, the singleton locks are not spread over the hosts"
+                    );
+                }
+            }
             _configuration.Log.LogInformation("Starting receivers");
             foreach (var receiver in Receivers)
             {
@@ -99,6 +121,20 @@ public class KnightBusHost : IHostedService
             "KnightBus received stop signal, initiating shutdown... "
         );
         _shutdownToken.Cancel();
+
+        //Leave the group right away: the other hosts can then start counting on the locks this one
+        //is about to release, instead of leaving them alone for the grace period
+        if (_placement != null)
+        {
+            try
+            {
+                await _placement.StopAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception e) when (e is not OperationCanceledException)
+            {
+                _configuration.Log.LogWarning(e, "Could not leave the singleton placement group");
+            }
+        }
 
         //Signal stoppable plugins right away so they stop accepting new work while the
         //pipeline drains, their completion is awaited after the drain

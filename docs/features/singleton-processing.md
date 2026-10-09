@@ -57,12 +57,34 @@ Whatever you wrote for the first two is ignored, so there is no point tuning the
 processor's settings type. If that settings type is shared with non-singleton processors, they are
 unaffected — the override applies to the wrapped listener only.
 
-Instances that do not hold the lock poll for it roughly once a minute, so failover after an instance
-disappears is not instant. The lock itself is taken for a minute and renewed every 19 seconds while
-held.
+Instances that do not hold the lock poll for it roughly once a minute, with up to 20% random extra
+wait so instances that started together do not poll in lock-step. Failover after an instance
+disappears is therefore not instant. The lock itself is taken for a minute and renewed every 19
+seconds while held.
+
+The timing can be changed for all singleton processors of a host:
+
+```csharp
+services.ConfigureSingletons(options =>
+{
+    options.PollInterval = TimeSpan.FromSeconds(20); // default 1 minute
+    options.PollJitter = 0.2;                        // default 0.2, 0 disables it
+    options.LockDuration = TimeSpan.FromSeconds(60); // default 1 minute
+    options.RenewalInterval = TimeSpan.FromSeconds(19); // default 19 seconds
+});
+```
+
+`LockDuration` must be longer than `RenewalInterval`, otherwise the lock expires between renewals
+and registration throws. Schedule locks are not affected, they keep their own fixed timing.
 
 Events get one lock per subscription, so two subscriptions on the same event each process singly but
 independently of one another.
+
+## Spreading the locks over hosts
+
+Every lock is an independent race, so the instance that starts first takes all of them. If the
+singleton workload is heavy, see [singleton placement](singleton-placement.md) for how to spread the
+locks over the running instances.
 
 ## Behaviour during shutdown
 
