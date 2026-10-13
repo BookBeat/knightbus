@@ -65,8 +65,11 @@ public class SingletonRebalanceSimulationTests
 
         //one host leaves, like a pod being replaced: its locks are released and the others take them over
         await others[0].Leave();
-        //its locks go to the preferred hosts at once; locks that had to move between the remaining hosts
-        //wait out the hand-over interval so that nothing moves back and forth
+        //its locks go to the preferred hosts at once. The time must not jump while one is still free,
+        //or a host that is not preferred has seen it free for the whole grace period and takes it
+        await Eventually(() => world.HoldersByHost().Values.Sum() == LockIds.Length, world);
+        //locks that had to move between the remaining hosts wait out the hand-over interval so that
+        //nothing moves back and forth
         world.Time.Advance(TimeSpan.FromMinutes(11));
         await Eventually(() => world.HoldsWhatIsPreferred(), world);
 
