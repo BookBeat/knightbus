@@ -1,5 +1,14 @@
 # CHANGELOG
 
+# 2026-10-08
+
+### Singleton lock holder stops when the lease can no longer be renewed
+`KnightBus.Azure.Storage` 18.3.1. `BlobLockHandle` kept reporting a renewal as a transient failure
+for as long as the storage service returned 5xx errors, so a holder whose lease had already expired
+kept processing while another instance could take the lock. Once the lease period has passed since
+the last successful renewal the handle now throws, which cancels the singleton scope and releases the
+receiver.
+
 # 2026-10-06
 
 ### Test suites moved to AwesomeAssertions
