@@ -352,7 +352,7 @@ public class SingletonPlacementReceiverTests
 
         public Task InitializeAsync() => Task.CompletedTask;
 
-        public Task<bool> IsHeldAsync(string lockId, CancellationToken cancellationToken) =>
+        public Task<bool> IsLockedAsync(string lockId, CancellationToken cancellationToken) =>
             Task.FromResult(_holders.ContainsKey(lockId));
 
         public Task<ISingletonLockHandle?> TryLockAsync(

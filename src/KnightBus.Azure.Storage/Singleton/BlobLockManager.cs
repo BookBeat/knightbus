@@ -47,7 +47,7 @@ internal class BlobLockManager : ISingletonLockManager, ISingletonLockInspector
         return Task.CompletedTask;
     }
 
-    public async Task<bool> IsHeldAsync(string lockId, CancellationToken cancellationToken)
+    public async Task<bool> IsLockedAsync(string lockId, CancellationToken cancellationToken)
     {
         var blob = _client.GetBlobClient(BlobName(_lockScheme, lockId));
         try

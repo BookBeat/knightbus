@@ -126,7 +126,7 @@ internal class SingletonChannelReceiver : IChannelReceiver
             return false;
         try
         {
-            if (await inspector.IsHeldAsync(_lockId, cancellationToken).ConfigureAwait(false))
+            if (await inspector.IsLockedAsync(_lockId, cancellationToken).ConfigureAwait(false))
             {
                 _freeSince = null;
                 return false;

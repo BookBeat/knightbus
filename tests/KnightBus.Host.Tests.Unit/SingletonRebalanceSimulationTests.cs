@@ -164,7 +164,7 @@ public class SingletonRebalanceSimulationTests
             );
         }
 
-        public bool IsHeld(string lockId) => _holders.ContainsKey(lockId);
+        public bool IsLocked(string lockId) => _holders.ContainsKey(lockId);
 
         public bool TryTake(string lockId, string host)
         {
@@ -249,8 +249,8 @@ public class SingletonRebalanceSimulationTests
     {
         public Task InitializeAsync() => Task.CompletedTask;
 
-        public Task<bool> IsHeldAsync(string lockId, CancellationToken cancellationToken) =>
-            Task.FromResult(world.IsHeld(lockId));
+        public Task<bool> IsLockedAsync(string lockId, CancellationToken cancellationToken) =>
+            Task.FromResult(world.IsLocked(lockId));
 
         public Task<ISingletonLockHandle?> TryLockAsync(
             string lockId,

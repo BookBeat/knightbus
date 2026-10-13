@@ -13,5 +13,5 @@ public interface ISingletonLockInspector
     /// <summary>
     /// True when someone holds the lock right now
     /// </summary>
-    Task<bool> IsHeldAsync(string lockId, CancellationToken cancellationToken);
+    Task<bool> IsLockedAsync(string lockId, CancellationToken cancellationToken);
 }
