@@ -103,8 +103,8 @@ A hand-over stops fetching new messages, lets the message being processed finish
 handler must therefore tolerate cancellation, as it already has to on shutdown.
 
 Stopping the fetch without cancelling the running message needs support from the receiver
-(`IDrainableChannelReceiver`). The Azure Storage queue and Azure Service Bus receivers have it.
-Receivers without it, today Redis, PostgreSQL and NATS, cancel the running message straight away.
+(`IDrainableChannelReceiver`). The Azure Storage queue receiver has it. Receivers without it, today
+Azure Service Bus, Redis, PostgreSQL and NATS, cancel the running message straight away.
 
 A cancelled message is abandoned and delivered again. The delivery counts against the processor's
 `DeadLetterDeliveryLimit`, because the transport counts every delivery and KnightBus cannot take one

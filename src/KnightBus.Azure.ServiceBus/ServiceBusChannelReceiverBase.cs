@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace KnightBus.Azure.ServiceBus;
 
-internal abstract class ServiceBusChannelReceiverBase<T> : IDrainableChannelReceiver
+internal abstract class ServiceBusChannelReceiverBase<T> : IChannelReceiver
     where T : class, IMessage
 {
     private readonly IServiceBusConfiguration _configuration;
@@ -20,7 +20,6 @@ internal abstract class ServiceBusChannelReceiverBase<T> : IDrainableChannelRece
     private CancellationToken _cancellationToken;
     private ServiceBusProcessor _client = null!;
     private int _deadLetterLimit;
-    private volatile bool _fetchingStopped;
     protected readonly IClientFactory ClientFactory;
     protected readonly ServiceBusAdministrationClient ManagementClient;
 
@@ -45,14 +44,6 @@ internal abstract class ServiceBusChannelReceiverBase<T> : IDrainableChannelRece
     }
 
     public IProcessingSettings Settings { get; set; }
-
-    public async Task StopFetchingAsync(CancellationToken cancellationToken)
-    {
-        //Stops the processor from taking messages and waits for the running handlers to finish
-        _fetchingStopped = true;
-        if (_client != null)
-            await _client.StopProcessingAsync(cancellationToken).ConfigureAwait(false);
-    }
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
@@ -118,14 +109,10 @@ internal abstract class ServiceBusChannelReceiverBase<T> : IDrainableChannelRece
                 _deadLetterLimit,
                 _hostConfiguration.DependencyInjection
             );
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken);
-            //The SDK cancels this token when processing stops, which must not cancel the
-            //message a drain is waiting for. It is still honoured for a lost message lock.
-            await using var lockLost = arg.CancellationToken.Register(() =>
-            {
-                if (!_fetchingStopped)
-                    cts.Cancel();
-            });
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(
+                _cancellationToken,
+                arg.CancellationToken
+            );
             await _processor.ProcessAsync(stateHandler, cts.Token).ConfigureAwait(false);
         }
         catch (Exception e)

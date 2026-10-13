@@ -73,20 +73,6 @@
               "RequiresDuplicateDetection": false,
               "RequiresSession": false
             }
-          },
-          {
-            "Name": "drain-commands",
-            "Properties": {
-              "DeadLetteringOnMessageExpiration": false,
-              "DefaultMessageTimeToLive": "PT1H",
-              "DuplicateDetectionHistoryTimeWindow": "PT20S",
-              "ForwardDeadLetteredMessagesTo": "",
-              "ForwardTo": "",
-              "LockDuration": "PT1M",
-              "MaxDeliveryCount": 10,
-              "RequiresDuplicateDetection": false,
-              "RequiresSession": false
-            }
           }
         ],
         "Topics": [
@@ -146,29 +132,6 @@
             "Subscriptions": [
               {
                 "Name": "host-sub",
-                "Properties": {
-                  "DeadLetteringOnMessageExpiration": false,
-                  "DefaultMessageTimeToLive": "PT1H",
-                  "LockDuration": "PT1M",
-                  "MaxDeliveryCount": 10,
-                  "ForwardDeadLetteredMessagesTo": "",
-                  "ForwardTo": "",
-                  "RequiresSession": false
-                },
-                "Rules": []
-              }
-            ]
-          },
-          {
-            "Name": "drain-events",
-            "Properties": {
-              "DefaultMessageTimeToLive": "PT1H",
-              "DuplicateDetectionHistoryTimeWindow": "PT20S",
-              "RequiresDuplicateDetection": false
-            },
-            "Subscriptions": [
-              {
-                "Name": "drain-sub",
                 "Properties": {
                   "DeadLetteringOnMessageExpiration": false,
                   "DefaultMessageTimeToLive": "PT1H",
