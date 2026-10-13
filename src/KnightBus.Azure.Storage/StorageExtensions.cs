@@ -77,38 +77,17 @@ public static class StorageExtensions
         return services.UseBlobStorageLockManager();
     }
 
+    /// <summary>
+    /// Uses blob leases as singleton locks. The locks are also spread over the hosts instead of
+    /// letting the first host take them all, see <see cref="ISingletonWeight"/>. To keep the old
+    /// behaviour, remove the <see cref="ISingletonPlacement"/> registration.
+    /// </summary>
     public static IServiceCollection UseBlobStorageLockManager(this IServiceCollection services)
     {
         services.AddSingleton<ISingletonLockManager, BlobLockManager>();
-        return services;
-    }
-
-    /// <summary>
-    /// Uses the blob lock manager and spreads the singleton locks over the hosts instead of letting
-    /// the first host take them all, see <see cref="SingletonPlacementOptions"/>. Hosts in one group
-    /// must run the same singleton processors.
-    /// </summary>
-    public static IServiceCollection UseBlobStorageLockManager(
-        this IServiceCollection services,
-        Action<SingletonPlacementOptions> configurePlacement
-    )
-    {
-        var options = new SingletonPlacementOptions();
-        configurePlacement(options);
-        options.Validate();
-        services.AddSingleton(options);
+        services.AddSingleton(new SingletonPlacementOptions());
         services.AddSingleton<ISingletonPlacement, BlobSingletonPlacement>();
-        return services.UseBlobStorageLockManager();
-    }
-
-    public static IServiceCollection UseBlobStorageLockManager(
-        this IServiceCollection services,
-        IBlobLockScheme lockScheme,
-        Action<SingletonPlacementOptions> configurePlacement
-    )
-    {
-        services.AddSingleton(lockScheme);
-        return services.UseBlobStorageLockManager(configurePlacement);
+        return services;
     }
 
     public static IServiceCollection UseBlobStorageSagas(this IServiceCollection services)

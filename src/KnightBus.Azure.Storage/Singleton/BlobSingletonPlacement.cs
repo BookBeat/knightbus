@@ -75,6 +75,9 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
+        //A host without singleton processors has nothing to place and must not count as a member
+        if (_locks.IsEmpty)
+            return;
         await _lockManager.InitializeAsync().ConfigureAwait(false);
         _container = AzureStorageClientFactory.CreateBlobContainerClient(
             _configuration,

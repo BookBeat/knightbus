@@ -1,17 +1,14 @@
 using System;
-using System.Collections.Generic;
 
 namespace KnightBus.Core.Singleton;
 
 /// <summary>
-/// Settings for spreading singleton locks over the hosts, see <see cref="ISingletonPlacement"/>.
-/// The timing and balancing settings are internal on purpose: their defaults are part of the design
-/// and are not meant to be tuned per application.
+/// The timing and balancing settings for spreading singleton locks over the hosts, see
+/// <see cref="ISingletonPlacement"/>. Their defaults are part of the design and are not meant to be
+/// tuned per application.
 /// </summary>
-public class SingletonPlacementOptions
+internal class SingletonPlacementOptions
 {
-    private readonly Dictionary<Type, int> _weights = new();
-
     /// <summary>
     /// How often a host looks at who else is a member
     /// </summary>
@@ -52,23 +49,6 @@ public class SingletonPlacementOptions
     /// <see cref="StaleAfter"/>, or three refresh intervals when it is not set
     /// </summary>
     internal TimeSpan EffectiveStaleAfter => StaleAfter ?? RefreshInterval * 3;
-
-    /// <summary>
-    /// Declares how heavy a singleton processor is relative to the others, so heavy ones are kept
-    /// on different hosts. Processors without a declared weight count as 1.
-    /// </summary>
-    public SingletonPlacementOptions Weight<TProcessor>(int weight)
-    {
-        if (weight < 1)
-            throw new ArgumentOutOfRangeException(nameof(weight), weight, "Must be at least 1");
-        _weights[typeof(TProcessor)] = weight;
-        return this;
-    }
-
-    /// <summary>
-    /// The declared weight of a processor type, 1 when none was declared
-    /// </summary>
-    internal int WeightOf(Type processorType) => _weights.GetValueOrDefault(processorType, 1);
 
     /// <summary>
     /// Throws when the combination of settings cannot work

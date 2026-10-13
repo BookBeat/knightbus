@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AwesomeAssertions;
@@ -172,8 +173,64 @@ public class TransportStarterFactoryTests
             .WithMessage("*LockDuration*RenewalInterval*");
     }
 
+    [Test]
+    public void Should_register_the_singleton_weight_from_the_processing_settings()
+    {
+        //arrange
+        var placement = new Mock<ISingletonPlacement>();
+
+        //act
+        CreateSingletonReceiver(
+            services =>
+            {
+                services.AddSingleton(placement.Object);
+                services.AddSingleton(new SingletonPlacementOptions());
+            },
+            typeof(WeightedSingletonEventProcessor)
+        );
+
+        //assert
+        placement.Verify(x => x.Register(It.Is<string>(id => id.Contains("test-sub")), 10));
+    }
+
+    [Test]
+    public void Should_count_a_singleton_without_a_declared_weight_as_one()
+    {
+        //arrange
+        var placement = new Mock<ISingletonPlacement>();
+
+        //act
+        CreateSingletonReceiver(services =>
+        {
+            services.AddSingleton(placement.Object);
+            services.AddSingleton(new SingletonPlacementOptions());
+        });
+
+        //assert
+        placement.Verify(x => x.Register(It.IsAny<string>(), 1));
+    }
+
+    [Test]
+    public void Should_reject_a_singleton_weight_below_one()
+    {
+        //act
+        var create = () =>
+            CreateSingletonReceiver(
+                services =>
+                {
+                    services.AddSingleton(Mock.Of<ISingletonPlacement>());
+                    services.AddSingleton(new SingletonPlacementOptions());
+                },
+                typeof(ZeroWeightSingletonEventProcessor)
+            );
+
+        //assert
+        create.Should().Throw<InvalidOperationException>().WithMessage("*at least 1*");
+    }
+
     private static SingletonChannelReceiver CreateSingletonReceiver(
-        Action<IServiceCollection>? configure = null
+        Action<IServiceCollection>? configure = null,
+        Type? processor = null
     )
     {
         var config = new Mock<ITransportConfiguration>();
@@ -218,11 +275,17 @@ public class TransportStarterFactoryTests
                 Log = Mock.Of<ILogger>(),
             }
         );
+        processor ??= typeof(SingletonEventProcessor);
+        var processorInterface = processor
+            .GetInterfaces()
+            .Single(i =>
+                i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IProcessEvent<,,>)
+            );
         return (SingletonChannelReceiver)
             starter.CreateChannelReceiver(
                 new EventProcessorFactory(),
-                typeof(IProcessEvent<TestEvent, TestSubscription, TestTopicSettings>),
-                typeof(SingletonEventProcessor)
+                processorInterface,
+                processor
             );
     }
 }
@@ -243,4 +306,30 @@ public class SingletonEventProcessor
     {
         return Task.CompletedTask;
     }
+}
+
+public class WeightedTopicSettings : TestTopicSettings, ISingletonWeight
+{
+    public int Weight => 10;
+}
+
+public class ZeroWeightTopicSettings : TestTopicSettings, ISingletonWeight
+{
+    public int Weight => 0;
+}
+
+public class WeightedSingletonEventProcessor
+    : IProcessEvent<TestEvent, TestSubscription, WeightedTopicSettings>,
+        ISingletonProcessor
+{
+    public Task ProcessAsync(TestEvent message, CancellationToken cancellationToken) =>
+        Task.CompletedTask;
+}
+
+public class ZeroWeightSingletonEventProcessor
+    : IProcessEvent<TestEvent, TestSubscription, ZeroWeightTopicSettings>,
+        ISingletonProcessor
+{
+    public Task ProcessAsync(TestEvent message, CancellationToken cancellationToken) =>
+        Task.CompletedTask;
 }

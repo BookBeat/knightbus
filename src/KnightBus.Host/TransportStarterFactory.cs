@@ -68,7 +68,7 @@ internal class TransportStarterFactory
             _configuration,
             pipeline.GetPipeline(processorInstance)
         );
-        return WrapSingletonReceiver(starter, processor, eventSubscription);
+        return WrapSingletonReceiver(starter, processor, eventSubscription, processingSettings);
     }
 
     private IMessageSerializer GetSerializer(
@@ -83,10 +83,22 @@ internal class TransportStarterFactory
         return channelFactory.Configuration.MessageSerializer;
     }
 
+    private static int WeightOf(IProcessingSettings settings, Type processor)
+    {
+        if (settings is not ISingletonWeight weighted)
+            return 1;
+        if (weighted.Weight < 1)
+            throw new InvalidOperationException(
+                $"The singleton weight of {processor.Name} must be at least 1, it is {weighted.Weight}"
+            );
+        return weighted.Weight;
+    }
+
     private IChannelReceiver WrapSingletonReceiver(
         IChannelReceiver channelReceiver,
         Type type,
-        IEventSubscription? subscription
+        IEventSubscription? subscription,
+        IProcessingSettings processingSettings
     )
     {
         if (typeof(ISingletonProcessor).IsAssignableFrom(type))
@@ -112,7 +124,7 @@ internal class TransportStarterFactory
                 .DependencyInjection.GetInstances<SingletonPlacementOptions>()
                 .LastOrDefault();
             if (placement != null && placementOptions != null)
-                placement.Register(lockId!, placementOptions.WeightOf(type));
+                placement.Register(lockId!, WeightOf(processingSettings, type));
             else
                 placement = null;
 
