@@ -7,9 +7,9 @@
   in lock-step. Schedule locks keep their fixed timing
 * Singleton locks can be spread over the hosts instead of piling up on the first one to start, see
   `docs/features/singleton-placement.md`. It is opt in: nothing changes unless an
-  `ISingletonPlacement` is registered (`UseBlobStorageSingletonPlacement` in
-  `KnightBus.Azure.Storage`). New public types: `ISingletonPlacement`, `SingletonPlacementOptions`,
-  `SingletonAssignment`, `ISingletonLockInspector` and `IDrainableChannelReceiver`
+  `ISingletonPlacement` is registered (`UseBlobStorageLockManager` with placement
+  options in `KnightBus.Azure.Storage`). New public types: `ISingletonPlacement`,
+  `SingletonPlacementOptions`, `SingletonAssignment`, `ISingletonLockInspector` and `IDrainableChannelReceiver`
 * `ErrorHandlingMiddleware` logs a handler that was stopped by its cancellation token (a shutdown, a
   lost lock or a lock hand-over) at Information instead of Error. The message is still abandoned. A
   cancellation that did not come from the token, such as a timeout, is still an error

@@ -8,7 +8,7 @@ the others sit idle. If that workload is heavy, such as a batch re-index, the ho
 also the one that runs out of memory.
 
 Singleton placement spreads the locks over the live instances. It is opt in: nothing changes unless a
-placement is registered.
+placement is configured.
 
 ## Enabling it
 
@@ -17,8 +17,7 @@ Placement needs the blob lock manager, because it uses blob leases to tell which
 ```csharp
 services
     .UseBlobStorage(storageConnectionString)
-    .UseBlobStorageLockManager()
-    .UseBlobStorageSingletonPlacement(options =>
+    .UseBlobStorageLockManager(options =>
     {
         // Instances only coordinate with instances in the same group.
         options.Group = "my-worker";
