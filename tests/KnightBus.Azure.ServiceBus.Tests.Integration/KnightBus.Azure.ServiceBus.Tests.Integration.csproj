@@ -5,6 +5,7 @@
 
   <ItemGroup>
     <PackageReference Include="AwesomeAssertions" />
+    <PackageReference Include="Testcontainers.MsSql" />
     <PackageReference Include="Testcontainers.ServiceBus" />
   </ItemGroup>
 
