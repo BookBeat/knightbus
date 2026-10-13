@@ -160,6 +160,10 @@ services
     .UseBlobStorageLockManager();
 ```
 
+The blob lock manager also spreads the singleton locks over the running instances, instead of letting
+the first instance to start take them all. See [singleton placement](../features/singleton-placement.md)
+for how it works, how to declare a heavy processor and how to switch it off.
+
 Locks are blobs under `knight-data/locks`. To change that, implement `IBlobLockScheme`:
 
 ```csharp

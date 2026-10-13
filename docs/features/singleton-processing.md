@@ -82,9 +82,9 @@ independently of one another.
 
 ## Spreading the locks over hosts
 
-Every lock is an independent race, so the instance that starts first takes all of them. If the
-singleton workload is heavy, see [singleton placement](singleton-placement.md) for how to spread the
-locks over the running instances.
+Without placement every lock is an independent race, so the instance that starts first takes all of
+them. With the blob lock manager the locks are spread over the running instances, see
+[singleton placement](singleton-placement.md), which also covers how to switch that off.
 
 ## Behaviour during shutdown
 
