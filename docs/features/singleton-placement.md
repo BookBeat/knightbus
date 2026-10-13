@@ -7,26 +7,41 @@ rolling deploy or a scale-out, hold nothing, and the whole singleton workload ru
 the others sit idle. If that workload is heavy, such as a batch re-index, the host that hoards it is
 also the one that runs out of memory.
 
-Singleton placement spreads the locks over the live instances. It is opt in: nothing changes unless a
-placement is configured.
+Singleton placement spreads the locks over the live instances. With Azure Blob Storage locks it is on
+by default.
 
 ## Enabling it
 
-Placement needs the blob lock manager, because it uses blob leases to tell which instances are alive:
+Placement uses blob leases to tell which instances are alive, so it comes with the blob lock manager
+and needs nothing else:
 
 ```csharp
 services
     .UseBlobStorage(storageConnectionString)
-    .UseBlobStorageLockManager(options =>
-    {
-        // Say which processors are heavy, so they are kept on different instances.
-        options.Weight<RebuildSearchIndexProcessor>(10);
-        options.Weight<RebuildRecommendationsProcessor>(10);
-    });
+    .UseBlobStorageLockManager();
 ```
 
-Instances that use the same lock scheme (container and directory) coordinate with each other, so they
-should run the same singleton processors. Processors without a declared weight count as 1.
+Instances that use the same lock scheme (container and directory) coordinate with each other, so
+they should run the same singleton processors. A host without singleton processors does not take
+part.
+
+To keep the old behaviour, where the first instance takes every lock, remove the placement
+registration: `services.RemoveAll<ISingletonPlacement>()`.
+
+## Declaring a heavy processor
+
+Hash spread alone does not keep two heavy processors apart. Say how heavy a processor is by
+implementing `ISingletonWeight` on its processing settings. Processors without it count as 1:
+
+```csharp
+public class RebuildSearchIndexSettings : IProcessingSettings, ISingletonWeight
+{
+    public int Weight => 10;
+    // ...
+}
+```
+
+The weight must be at least 1.
 
 ## What it does
 
@@ -115,11 +130,9 @@ processor with a limit of 1 or 2 should not take long to process a message.
 On shutdown an instance leaves the member list first, so the others start counting on its locks while it
 drains, and releases its own locks as it always did.
 
-## Options
+## Fixed behaviour
 
-The only option is `Weight<TProcessor>(n)`, how heavy a processor is relative to the others (default 1).
-
-Everything else is fixed: instances read the member list every 20 seconds and stop giving
+The timing is fixed and not configurable: instances read the member list every 20 seconds and stop giving
 advice when it could not be read for three refreshes, the slack over the fair share is 0.25, an
 instance must have been a member for 2 minutes before locks are handed to it, a lock must have been
 seen free for 2 minutes before an instance that is not preferred takes it, and a lock is held for at

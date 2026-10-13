@@ -314,6 +314,42 @@ public class BlobSingletonPlacementTests
         placement.Advise("Lock0").Should().BeNull("stopped");
     }
 
+    [Test]
+    public async Task Should_not_join_when_the_host_has_no_singleton_processors()
+    {
+        //arrange
+        var scheme = NewScheme();
+        var withoutLocks = new BlobSingletonPlacement(
+            new StorageBusConfiguration(StorageSetup.ConnectionString),
+            new SingletonPlacementOptions(),
+            scheme
+        );
+        var withLocks = Create(scheme);
+        await withLocks.StartAsync(CancellationToken.None);
+
+        //act
+        await withoutLocks.StartAsync(CancellationToken.None);
+        await withLocks.RefreshAsync(CancellationToken.None);
+
+        //assert
+        Locks
+            .Select(l => withLocks.Advise(l)!.PreferredHost)
+            .Should()
+            .OnlyContain(h => h == withLocks.HostId);
+        var members = new BlobContainerClient(StorageSetup.ConnectionString, scheme.ContainerName)
+            .GetBlobs(
+                BlobTraits.None,
+                BlobStates.None,
+                $"{scheme.Directory}/_members/",
+                CancellationToken.None
+            )
+            .ToList();
+        members.Should().ContainSingle();
+
+        await withoutLocks.StopAsync(CancellationToken.None);
+        await withLocks.StopAsync(CancellationToken.None);
+    }
+
     private sealed class ManualTimeProvider : TimeProvider
     {
         private long _ticks;

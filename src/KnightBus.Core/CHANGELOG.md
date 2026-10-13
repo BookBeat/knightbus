@@ -6,10 +6,11 @@
   Instances waiting for a lock now add up to 20% random extra wait (`PollJitter`) so they do not poll
   in lock-step. Schedule locks keep their fixed timing
 * Singleton locks can be spread over the hosts instead of piling up on the first one to start, see
-  `docs/features/singleton-placement.md`. It is opt in: nothing changes unless an
-  `ISingletonPlacement` is registered (`UseBlobStorageLockManager` with placement
-  options in `KnightBus.Azure.Storage`). New public types: `ISingletonPlacement`,
-  `SingletonPlacementOptions`, `SingletonAssignment`, `ISingletonLockInspector` and `IDrainableChannelReceiver`
+  `docs/features/singleton-placement.md`. Nothing changes unless an `ISingletonPlacement` is
+  registered, which `UseBlobStorageLockManager` in `KnightBus.Azure.Storage` now does. A processor
+  declares how heavy it is by implementing `ISingletonWeight` on its processing settings. New public
+  types: `ISingletonPlacement`, `ISingletonWeight`, `SingletonAssignment`, `ISingletonLockInspector`
+  and `IDrainableChannelReceiver`
 * `ErrorHandlingMiddleware` logs a handler that was stopped by its cancellation token (a shutdown, a
   lost lock or a lock hand-over) at Information instead of Error. The message is still abandoned. A
   cancellation that did not come from the token, such as a timeout, is still an error
