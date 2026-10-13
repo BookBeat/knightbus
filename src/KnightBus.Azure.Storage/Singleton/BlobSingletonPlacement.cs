@@ -80,9 +80,8 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
             _configuration,
             _lockScheme.ContainerName
         );
-        _memberPrefix = $"{_lockScheme.Directory}/_members/{_options.Group}/";
-
-        _memberId = $"_members/{_options.Group}/{HostId}";
+        _memberPrefix = $"{_lockScheme.Directory}/_members/";
+        _memberId = $"_members/{HostId}";
         await _container
             .CreateIfNotExistsAsync(cancellationToken: cancellationToken)
             .ConfigureAwait(false);
@@ -199,11 +198,7 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
             catch (Exception e)
             {
                 //The previous snapshot stays until it goes stale, then the advice stops
-                _log.LogWarning(
-                    e,
-                    "Could not read the singleton placement group {Group}",
-                    _options.Group
-                );
+                _log.LogWarning(e, "Could not read the singleton placement members");
             }
         }
     }

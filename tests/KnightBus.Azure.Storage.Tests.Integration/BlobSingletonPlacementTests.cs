@@ -22,14 +22,13 @@ public class BlobSingletonPlacementTests
         .ToArray();
 
     private static BlobSingletonPlacement Create(
-        string group,
+        IBlobLockScheme scheme,
         TimeProvider? time = null,
         Action<SingletonPlacementOptions>? configure = null
     )
     {
         var options = new SingletonPlacementOptions
         {
-            Group = group,
             //The background loop is not what is under test, the tests call RefreshAsync themselves
             RefreshInterval = TimeSpan.FromMinutes(10),
         };
@@ -37,7 +36,7 @@ public class BlobSingletonPlacementTests
         var placement = new BlobSingletonPlacement(
             new StorageBusConfiguration(StorageSetup.ConnectionString),
             options,
-            new DefaultBlobLockScheme(),
+            scheme,
             timeProvider: time
         );
         foreach (var lockId in Locks)
@@ -45,15 +44,22 @@ public class BlobSingletonPlacementTests
         return placement;
     }
 
-    private static string NewGroup() => $"test-{Guid.NewGuid():N}";
+    //Each test gets its own lock directory, which is what separates the hosts of one test from another
+    private static IBlobLockScheme NewScheme() => new TestLockScheme($"locks-{Guid.NewGuid():N}");
+
+    private sealed class TestLockScheme(string directory) : IBlobLockScheme
+    {
+        public string ContainerName { get; } = new DefaultBlobLockScheme().ContainerName;
+        public string Directory { get; } = directory;
+    }
 
     [Test]
     public async Task Should_agree_with_the_other_hosts_in_the_group_on_every_lock()
     {
         //arrange
-        var group = NewGroup();
-        var first = Create(group);
-        var second = Create(group);
+        var scheme = NewScheme();
+        var first = Create(scheme);
+        var second = Create(scheme);
         await first.StartAsync(CancellationToken.None);
         await second.StartAsync(CancellationToken.None);
 
@@ -83,11 +89,11 @@ public class BlobSingletonPlacementTests
     }
 
     [Test]
-    public async Task Should_not_see_hosts_in_another_group()
+    public async Task Should_not_see_hosts_with_another_lock_scheme()
     {
         //arrange
-        var one = Create(NewGroup());
-        var other = Create(NewGroup());
+        var one = Create(NewScheme());
+        var other = Create(NewScheme());
         await one.StartAsync(CancellationToken.None);
         await other.StartAsync(CancellationToken.None);
 
@@ -105,9 +111,9 @@ public class BlobSingletonPlacementTests
     public async Task Should_drop_a_host_that_leaves_the_group()
     {
         //arrange
-        var group = NewGroup();
-        var staying = Create(group);
-        var leaving = Create(group);
+        var scheme = NewScheme();
+        var staying = Create(scheme);
+        var leaving = Create(scheme);
         await staying.StartAsync(CancellationToken.None);
         await leaving.StartAsync(CancellationToken.None);
         await staying.RefreshAsync(CancellationToken.None);
@@ -125,14 +131,11 @@ public class BlobSingletonPlacementTests
             .Select(l => staying.Advise(l)!.PreferredHost)
             .Should()
             .OnlyContain(h => h == staying.HostId);
-        var remaining = new BlobContainerClient(
-            StorageSetup.ConnectionString,
-            new DefaultBlobLockScheme().ContainerName
-        )
+        var remaining = new BlobContainerClient(StorageSetup.ConnectionString, scheme.ContainerName)
             .GetBlobs(
                 BlobTraits.None,
                 BlobStates.None,
-                $"locks/_members/{group}/",
+                $"{scheme.Directory}/_members/",
                 CancellationToken.None
             )
             .Select(b => b.Name)
@@ -146,15 +149,15 @@ public class BlobSingletonPlacementTests
     public async Task Should_not_count_a_member_blob_whose_lease_is_gone()
     {
         //arrange: what a crashed host leaves behind once its lease has expired
-        var group = NewGroup();
-        var placement = Create(group);
+        var scheme = NewScheme();
+        var placement = Create(scheme);
         await placement.StartAsync(CancellationToken.None);
         var container = new BlobContainerClient(
             StorageSetup.ConnectionString,
-            new DefaultBlobLockScheme().ContainerName
+            scheme.ContainerName
         );
         await container
-            .GetBlobClient($"locks/_members/{group}/crashed-host")
+            .GetBlobClient($"{scheme.Directory}/_members/crashed-host")
             .UploadAsync(
                 BinaryData.FromObjectAsJson(Locks.ToDictionary(l => l, _ => 1)),
                 overwrite: true
@@ -177,13 +180,13 @@ public class BlobSingletonPlacementTests
     {
         //arrange: the blob was written long ago, but only now loses its lease
         var time = new ManualTimeProvider();
-        var group = NewGroup();
-        var placement = Create(group, time);
+        var scheme = NewScheme();
+        var placement = Create(scheme, time);
         await placement.StartAsync(CancellationToken.None);
         var stale = new BlobContainerClient(
             StorageSetup.ConnectionString,
-            new DefaultBlobLockScheme().ContainerName
-        ).GetBlobClient($"locks/_members/{group}/other-host");
+            scheme.ContainerName
+        ).GetBlobClient($"{scheme.Directory}/_members/other-host");
         await stale.UploadAsync(BinaryData.FromObjectAsJson(new Dictionary<string, int>()), true);
 
         //act
@@ -206,13 +209,13 @@ public class BlobSingletonPlacementTests
     public async Task Should_rejoin_the_group_when_the_member_lease_is_lost()
     {
         //arrange
-        var group = NewGroup();
-        var placement = Create(group);
+        var scheme = NewScheme();
+        var placement = Create(scheme);
         await placement.StartAsync(CancellationToken.None);
         var member = new BlobContainerClient(
             StorageSetup.ConnectionString,
-            new DefaultBlobLockScheme().ContainerName
-        ).GetBlobClient($"locks/_members/{group}/{placement.HostId}");
+            scheme.ContainerName
+        ).GetBlobClient($"{scheme.Directory}/_members/{placement.HostId}");
 
         //act: another host removes the blob once the lease has lapsed
         await member.GetBlobLeaseClient().BreakAsync(TimeSpan.Zero);
@@ -236,24 +239,20 @@ public class BlobSingletonPlacementTests
     [Test]
     public async Task Should_name_the_member_blob_with_forward_slashes()
     {
-        var group = NewGroup();
-        var placement = Create(group);
+        var scheme = NewScheme();
+        var placement = Create(scheme);
         await placement.StartAsync(CancellationToken.None);
 
-        var names = new BlobContainerClient(
-            StorageSetup.ConnectionString,
-            new DefaultBlobLockScheme().ContainerName
-        )
-            .GetBlobs(BlobTraits.None, BlobStates.None, "locks", CancellationToken.None)
+        var names = new BlobContainerClient(StorageSetup.ConnectionString, scheme.ContainerName)
+            .GetBlobs(BlobTraits.None, BlobStates.None, scheme.Directory, CancellationToken.None)
             .Select(b => b.Name)
-            .Where(n => n.Contains(group))
             .ToList();
 
         names
             .Should()
             .ContainSingle()
             .Which.Should()
-            .Be($"locks/_members/{group}/{placement.HostId}");
+            .Be($"{scheme.Directory}/_members/{placement.HostId}");
 
         await placement.StopAsync(CancellationToken.None);
     }
@@ -263,9 +262,9 @@ public class BlobSingletonPlacementTests
     {
         //arrange
         var time = new ManualTimeProvider();
-        var group = NewGroup();
-        var first = Create(group, time);
-        var second = Create(group);
+        var scheme = NewScheme();
+        var first = Create(scheme, time);
+        var second = Create(scheme);
         await first.StartAsync(CancellationToken.None);
         time.Advance(TimeSpan.FromMinutes(3));
         await second.StartAsync(CancellationToken.None);
@@ -289,7 +288,7 @@ public class BlobSingletonPlacementTests
     {
         //arrange
         var time = new ManualTimeProvider();
-        var placement = Create(NewGroup(), time, o => o.StaleAfter = TimeSpan.FromMinutes(30));
+        var placement = Create(NewScheme(), time, o => o.StaleAfter = TimeSpan.FromMinutes(30));
         await placement.StartAsync(CancellationToken.None);
         placement.Advise("Lock0").Should().NotBeNull();
 
@@ -305,7 +304,7 @@ public class BlobSingletonPlacementTests
     [Test]
     public async Task Should_give_no_advice_for_unknown_locks_or_before_it_has_started()
     {
-        var placement = Create(NewGroup());
+        var placement = Create(NewScheme());
         placement.Advise("Lock0").Should().BeNull("not started");
 
         await placement.StartAsync(CancellationToken.None);
