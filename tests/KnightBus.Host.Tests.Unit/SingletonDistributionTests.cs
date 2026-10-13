@@ -77,11 +77,14 @@ public class SingletonDistributionTests
         //act: let the waiting host poll many times while the holder keeps renewing
         await firstReceiver.StartAsync(cts.Token);
         await secondReceiver.StartAsync(cts.Token);
-        await Task.Delay(1000);
+        //a loaded machine can stall the polling, so wait for the attempts instead of a fixed time
+        var deadline = DateTime.UtcNow.AddSeconds(30);
+        while (second.FailedAttempts <= 5 && DateTime.UtcNow < deadline)
+            await Task.Delay(50);
 
         //assert: no matter how long the second host waits, it never gets the lock
-        storage.Holders["Processor"].Should().Be("host-0");
         second.FailedAttempts.Should().BeGreaterThan(5);
+        storage.Holders["Processor"].Should().Be("host-0");
 
         cts.Cancel();
     }
