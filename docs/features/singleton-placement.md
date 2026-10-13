@@ -1,15 +1,19 @@
 # Spreading singleton locks over hosts
 
-[Singleton processors](singleton-processing.md) run on one instance at a time, guarded by a lock per
-processor. Without placement every lock is an independent race, and the instance that starts first
-wins all of them and keeps them for as long as it lives. Instances that start later, for example
-during a rolling deploy or a scale-out, hold nothing, and the whole singleton workload runs on one
-host while the others sit idle. If that workload is heavy, such as a batch re-index, the host that
-hoards it is also the one that runs out of memory.
+Singleton placement spreads the [singleton processor](singleton-processing.md) locks over the
+running instances, so that one instance does not end up running all of them.
 
-Singleton placement spreads the locks over the live instances. It is part of the Azure Blob Storage
-lock manager, so every service that uses `UseBlobStorageLockManager()` gets it without any
-configuration.
+!!! note "Enabled by default"
+    Placement is enabled by default when you use the Azure Blob Storage lock manager
+    (`UseBlobStorageLockManager()`). No configuration is needed, and it can be
+    [switched off](#opting-out).
+
+A singleton processor runs on one instance at a time, guarded by a lock per processor. Without
+placement every lock is an independent race, and the instance that starts first wins all of them and
+keeps them for as long as it lives. Instances that start later, for example during a rolling deploy
+or a scale-out, hold nothing, and the whole singleton workload runs on one host while the others sit
+idle. If that workload is heavy, such as a batch re-index, the host that hoards it is also the one
+that runs out of memory.
 
 ## Setup
 
