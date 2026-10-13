@@ -46,8 +46,10 @@ public static class SingletonAssignment
         //deploy) takes the largest, which is the same on every host
         var weights = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (var host in hosts)
-        foreach (var (lockId, weight) in host.Locks)
-            weights[lockId] = Math.Max(weights.GetValueOrDefault(lockId), Math.Max(1, weight));
+        {
+            foreach (var (lockId, weight) in host.Locks)
+                weights[lockId] = Math.Max(weights.GetValueOrDefault(lockId), Math.Max(1, weight));
+        }
 
         var total = weights.Values.Sum(w => (long)w);
         //A host is saturated once it holds an average share. Saturated hosts, typically the ones
@@ -102,18 +104,23 @@ public static class SingletonAssignment
         //FNV-1a over lockId, a separator and hostId, then a finalizer to spread the bits
         const ulong offset = 14695981039346656037;
         const ulong prime = 1099511628211;
-        var hash = offset;
-        foreach (var b in Encoding.UTF8.GetBytes(lockId))
-            hash = (hash ^ b) * prime;
-        hash = (hash ^ 0) * prime;
-        foreach (var b in Encoding.UTF8.GetBytes(hostId))
-            hash = (hash ^ b) * prime;
+        //The multiplications are meant to wrap around
+        unchecked
+        {
+            var hash = offset;
+            foreach (var b in Encoding.UTF8.GetBytes(lockId))
+                hash = (hash ^ b) * prime;
+            //A zero byte as separator, so that ("ab", "c") and ("a", "bc") differ
+            hash *= prime;
+            foreach (var b in Encoding.UTF8.GetBytes(hostId))
+                hash = (hash ^ b) * prime;
 
-        hash ^= hash >> 33;
-        hash *= 0xff51afd7ed558ccd;
-        hash ^= hash >> 33;
-        hash *= 0xc4ceb9fe1a85ec53;
-        hash ^= hash >> 33;
-        return hash;
+            hash ^= hash >> 33;
+            hash *= 0xff51afd7ed558ccd;
+            hash ^= hash >> 33;
+            hash *= 0xc4ceb9fe1a85ec53;
+            hash ^= hash >> 33;
+            return hash;
+        }
     }
 }
