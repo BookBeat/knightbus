@@ -30,6 +30,17 @@ instance waits between attempts to take a singleton lock, so instances that star
 poll in lock-step. The wait is never shorter than before, so failover is not faster, and it can be up
 to 20% slower. Set `PollJitter` to 0 to keep the exact old timing. Schedule locks are not affected.
 
+### Singleton placement: letting a hand-over wait for the running message
+A receiver that can stop fetching without cancelling the messages it is processing lets a singleton
+lock be handed over without cancelling work that is about to finish. The hand-over waits for up to
+the processor's `MessageLockTimeout`, then cancels.
+
+- `KnightBus.Core` 18.6.0: `IDrainableChannelReceiver` and `GenericMessagePump.StopFetchingAsync`.
+- `KnightBus.Azure.Storage` 18.5.0: the storage queue receiver can drain.
+- `KnightBus.Host` 18.5.0: a hand-over drains receivers that can.
+
+Receivers that cannot drain, today Redis, PostgreSQL and NATS, are cancelled straight away as before.
+
 ### Singleton placement: spreading singleton locks over the running instances
 Every singleton lock was an independent race, so the instance that started first took all of them and
 kept them. Placement spreads the locks over the live instances, keeps heavy processors apart, and

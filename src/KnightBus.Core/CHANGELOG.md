@@ -1,5 +1,11 @@
 # KnightBus.Core Changelog
 
+# 18.6.0
+* `IDrainableChannelReceiver`, for receivers that can stop fetching while the messages they are
+  processing finish, and `GenericMessagePump.StopFetchingAsync`. A singleton lock hand-over uses it to
+  wait for the running message, for up to the processor's `MessageLockTimeout`, before cancelling it.
+  Receivers that do not implement it are cancelled straight away, as before
+
 # 18.5.0
 * `SingletonOptions` and `IServiceCollection.ConfigureSingletons(...)` make the poll interval, lock
   duration and renewal interval of singleton processors configurable. The defaults are unchanged.
