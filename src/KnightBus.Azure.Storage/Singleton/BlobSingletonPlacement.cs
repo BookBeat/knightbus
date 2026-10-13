@@ -28,7 +28,6 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
     //A member blob left behind by a host that died is removed once it has been unleased this long
     private static readonly TimeSpan AbandonedMemberAge = TimeSpan.FromMinutes(10);
 
-    private readonly IStorageBusConfiguration _configuration;
     private readonly IBlobLockScheme _lockScheme;
     private readonly SingletonPlacementOptions _options;
     private readonly ILogger _log;
@@ -40,15 +39,15 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
         (string ETag, IReadOnlyDictionary<string, int> Locks)
     > _contentCache = new();
 
-    private BlobContainerClient _container = null!;
-    private string _memberPrefix = null!;
+    private readonly BlobContainerClient _container;
+    private readonly string _memberPrefix;
+    private readonly string _memberId;
     private CancellationTokenSource? _lifetime;
     private SingletonTimerScope? _memberLease;
     private Task? _refreshLoop;
     private Snapshot? _snapshot;
     private readonly Dictionary<string, long> _liveSince = new(StringComparer.Ordinal);
     private readonly Dictionary<string, long> _unleasedSince = new(StringComparer.Ordinal);
-    private string _memberId = null!;
 
     public BlobSingletonPlacement(
         IStorageBusConfiguration configuration,
@@ -60,13 +59,18 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
     {
         options.Validate();
         _time = timeProvider ?? TimeProvider.System;
-        _configuration = configuration;
         _options = options;
         _lockScheme = lockScheme ?? new DefaultBlobLockScheme();
         _log = log ?? Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance;
         _lockManager = new BlobLockManager(configuration, _lockScheme);
         HostId =
             $"{Environment.MachineName}-{Convert.ToHexString(RandomNumberGenerator.GetBytes(3)).ToLowerInvariant()}";
+        _container = AzureStorageClientFactory.CreateBlobContainerClient(
+            configuration,
+            _lockScheme.ContainerName
+        );
+        _memberPrefix = $"{_lockScheme.Directory}/_members/";
+        _memberId = $"_members/{HostId}";
     }
 
     public string HostId { get; }
@@ -79,25 +83,20 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
         if (_locks.IsEmpty)
             return;
         await _lockManager.InitializeAsync().ConfigureAwait(false);
-        _container = AzureStorageClientFactory.CreateBlobContainerClient(
-            _configuration,
-            _lockScheme.ContainerName
-        );
-        _memberPrefix = $"{_lockScheme.Directory}/_members/";
-        _memberId = $"_members/{HostId}";
         await _container
             .CreateIfNotExistsAsync(cancellationToken: cancellationToken)
             .ConfigureAwait(false);
 
-        _lifetime = new CancellationTokenSource();
-        await JoinAsync(cancellationToken).ConfigureAwait(false);
+        var lifetime = new CancellationTokenSource();
+        _lifetime = lifetime;
+        await JoinAsync(lifetime.Token, cancellationToken).ConfigureAwait(false);
 
         await RefreshAsync(cancellationToken).ConfigureAwait(false);
-        var token = _lifetime.Token;
+        var token = lifetime.Token;
         _refreshLoop = Task.Run(() => RefreshLoop(token), CancellationToken.None);
     }
 
-    private async Task JoinAsync(CancellationToken cancellationToken)
+    private async Task JoinAsync(CancellationToken lifetime, CancellationToken cancellationToken)
     {
         //Content first, then the lease: the lease is what makes the member count as alive
         var blob = _container.GetBlobClient(BlobLockManager.BlobName(_lockScheme, _memberId));
@@ -119,7 +118,7 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
             handle,
             true,
             MemberRenewalInterval,
-            CancellationTokenSource.CreateLinkedTokenSource(_lifetime!.Token)
+            CancellationTokenSource.CreateLinkedTokenSource(lifetime)
         );
     }
 
@@ -127,12 +126,13 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
     //outage, and other hosts may have removed the member blob since
     internal async Task RejoinIfLostAsync(CancellationToken cancellationToken)
     {
-        if (_memberLease is not { Completion.IsCompleted: true })
+        var lifetime = _lifetime;
+        if (lifetime == null || _memberLease is not { Completion.IsCompleted: true })
             return;
         _log.LogWarning("Lost the member lease of host {HostId}, rejoining", HostId);
         _memberLease.Dispose();
         _memberLease = null;
-        await JoinAsync(cancellationToken).ConfigureAwait(false);
+        await JoinAsync(lifetime.Token, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)
