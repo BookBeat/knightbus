@@ -87,8 +87,18 @@ locks as it does without placement.
 - Each lock blob records who holds it in its metadata: `LockId`, `HostName` (the machine name, the
   pod name in Kubernetes) and `AcquiredAtUtc`. Listing the lock blobs with their metadata shows the
   current distribution.
-- A holder that gives a lock up logs `Singleton Processor with name {ProcessorName} hands its lock
-  over to {Host}` at Information.
+- The logs name the host in each of these events, at Information. The host id is the machine name
+  plus a short suffix that changes with every process start, the same id the other hosts see:
+    - `Host {HostId} joined the singleton placement with {LockCount} singleton processors` and
+      `Host {HostId} left the singleton placement`, at startup and shutdown.
+    - `Starting Singleton Processor with name {ProcessorName} on host {HostId}` when a host acquires
+      a lock.
+    - `Singleton Processor with name {ProcessorName} on host {HostId} hands its lock over to
+      {PreferredHost}` when a holder gives a lock up for another host.
+    - `Releasing lock {LockId} held by host {HostId}` when a lock is released, for example on
+      shutdown.
+    - `Singleton Processor with name {ProcessorName} lost its lock on host {HostId}` when a lock
+      is lost.
 
 ## How it works
 
