@@ -37,6 +37,10 @@ internal class SingletonChannelReceiver : IChannelReceiver
     //Set when the lock is released on purpose, so the watcher does not report it as lost
     private volatile bool _handingOver;
 
+    //How long a handing over host waits for the wrapped receiver to unwind after cancelling it,
+    //so the next holder does not start while the previous handlers are still running
+    private static readonly TimeSpan UnwindTimeout = TimeSpan.FromSeconds(10);
+
     //Written by the lock-lost watcher thread and read by the timer loop
     private volatile bool _lockPollingEnabled = false;
 
@@ -167,8 +171,46 @@ internal class SingletonChannelReceiver : IChannelReceiver
         var scope = _singletonScope!;
         _handingOver = true;
 
+        //Let the message being processed finish without taking new ones. It may take as long as
+        //the message lock lasts, which the transport enforces anyway.
+        if (_channelReceiver is IDrainableChannelReceiver drainable)
+        {
+            var drainTimeout = Settings.MessageLockTimeout;
+            using var drain = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            drain.CancelAfter(drainTimeout);
+            try
+            {
+                await drainable.StopFetchingAsync(drain.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                _log.LogWarning(
+                    "Singleton Processor with name {ProcessorName} did not finish its message in {Timeout}, cancelling it",
+                    _lockId,
+                    drainTimeout
+                );
+            }
+        }
+
         //Stop the wrapped receiver and whatever it is still running, then give the lock up
         TryCancel(receiverSource);
+        if (_channelReceiver is IDrainableChannelReceiver unwinding)
+        {
+            using var unwind = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            unwind.CancelAfter(UnwindTimeout);
+            try
+            {
+                await unwinding.StopFetchingAsync(unwind.Token).ConfigureAwait(false);
+            }
+            catch (Exception e)
+                when (e is not OperationCanceledException
+                    || !cancellationToken.IsCancellationRequested
+                )
+            {
+                //The wrapped receiver may already be closed, the lock is released either way
+            }
+        }
+
         TryCancel(scopeSource);
         await scope.Completion.WaitAsync(cancellationToken).ConfigureAwait(false);
     }

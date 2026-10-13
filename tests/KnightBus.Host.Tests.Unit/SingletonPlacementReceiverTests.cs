@@ -35,10 +35,21 @@ public class SingletonPlacementReceiverTests
         public readonly CancellationTokenSource Shutdown = new();
         public SingletonChannelReceiver Receiver { get; }
 
-        public Fixture(SingletonPlacementOptions? options = null, bool inspectable = true)
+        public Fixture(
+            SingletonPlacementOptions? options = null,
+            bool drainable = true,
+            bool inspectable = true,
+            TimeSpan? lockTimeout = null
+        )
         {
+            Inner.Drainable = drainable;
+            //A hand-over lets the running message finish for as long as its lock lasts
+            Inner.Settings = new SingletonProcessingSettings
+            {
+                MessageLockTimeout = lockTimeout ?? TimeSpan.FromMinutes(5),
+            };
             Receiver = new SingletonChannelReceiver(
-                Inner,
+                drainable ? Inner : new NonDrainable(Inner),
                 inspectable ? Locks : new NotInspectable(Locks),
                 Mock.Of<ILogger>(),
                 Lock,
@@ -171,6 +182,7 @@ public class SingletonPlacementReceiverTests
         await Eventually(() => f.Locks.Holder(Lock) == null);
 
         //assert: the receiver was stopped before the lock was released
+        f.Inner.StopFetchingCalls.Should().BeGreaterThan(0);
         f.Inner.Token!.Value.IsCancellationRequested.Should().BeTrue();
         //and it leaves the lock alone for the grace period so the other host gets there first
         await Task.Delay(200);
@@ -189,6 +201,7 @@ public class SingletonPlacementReceiverTests
         await Task.Delay(300);
 
         f.Locks.Holder(Lock).Should().Be(Me);
+        f.Inner.StopFetchingCalls.Should().Be(0);
     }
 
     [Test]
@@ -206,9 +219,71 @@ public class SingletonPlacementReceiverTests
     }
 
     [Test]
-    public async Task Should_cancel_the_receiver_and_release_the_lock_on_a_hand_over()
+    public async Task Should_let_the_running_message_finish_before_cancelling_it()
     {
+        //arrange
         await using var f = new Fixture();
+        f.Placement.Prefer(Lock, Me, self: true);
+        await f.Start();
+        f.Inner.HoldDrain = new TaskCompletionSource();
+        f.Time.Advance(TimeSpan.FromMinutes(11));
+
+        //act
+        f.Placement.Prefer(Lock, Other, self: false, memberFor: TimeSpan.FromMinutes(3));
+        await Eventually(() => f.Inner.StopFetchingCalls == 1);
+        await Task.Delay(200);
+
+        //assert: still draining, so nothing has been cancelled or released
+        f.Inner.Token!.Value.IsCancellationRequested.Should().BeFalse();
+        f.Locks.Holder(Lock).Should().Be(Me);
+
+        f.Inner.HoldDrain.SetResult();
+        await Eventually(() => f.Locks.Holder(Lock) == null);
+        f.Inner.Token!.Value.IsCancellationRequested.Should().BeTrue();
+    }
+
+    [Test]
+    public async Task Should_cancel_a_message_that_outlasts_its_message_lock()
+    {
+        //arrange
+        await using var f = new Fixture(lockTimeout: TimeSpan.FromMilliseconds(150));
+        f.Placement.Prefer(Lock, Me, self: true);
+        await f.Start();
+        f.Inner.HoldDrain = new TaskCompletionSource(); //never completes
+        f.Time.Advance(TimeSpan.FromMinutes(11));
+
+        //act
+        f.Placement.Prefer(Lock, Other, self: false, memberFor: TimeSpan.FromMinutes(3));
+
+        //assert
+        await Eventually(() => f.Locks.Holder(Lock) == null);
+        f.Inner.Token!.Value.IsCancellationRequested.Should().BeTrue();
+    }
+
+    [Test]
+    public async Task Should_release_the_lock_when_the_host_stops_during_a_hand_over()
+    {
+        //arrange: a hand-over is waiting for a message that takes a long time
+        await using var f = new Fixture();
+        f.Placement.Prefer(Lock, Me, self: true);
+        await f.Start();
+        f.Inner.HoldDrain = new TaskCompletionSource(); //never completes
+        f.Time.Advance(TimeSpan.FromMinutes(11));
+        f.Placement.Prefer(Lock, Other, self: false, memberFor: TimeSpan.FromMinutes(3));
+        await Eventually(() => f.Inner.StopFetchingCalls == 1);
+        f.Locks.Holder(Lock).Should().Be(Me);
+
+        //act
+        f.Shutdown.Cancel();
+
+        //assert: stopping the host does not wait for the drain, the lock is given up
+        await Eventually(() => f.Locks.Holder(Lock) == null);
+    }
+
+    [Test]
+    public async Task Should_cancel_and_release_when_the_receiver_cannot_drain()
+    {
+        await using var f = new Fixture(drainable: false);
         f.Placement.Prefer(Lock, Me, self: true);
         await f.Start();
         f.Time.Advance(TimeSpan.FromMinutes(11));
@@ -216,6 +291,7 @@ public class SingletonPlacementReceiverTests
         f.Placement.Prefer(Lock, Other, self: false, memberFor: TimeSpan.FromMinutes(3));
 
         await Eventually(() => f.Locks.Holder(Lock) == null);
+        f.Inner.StopFetchingCalls.Should().Be(0);
         f.Inner.Token!.Value.IsCancellationRequested.Should().BeTrue();
     }
 
@@ -325,11 +401,15 @@ public class SingletonPlacementReceiverTests
         }
     }
 
-    private class FakeReceiver : IChannelReceiver
+    private class FakeReceiver : IDrainableChannelReceiver
     {
         private int _started;
+        private int _stopFetchingCalls;
+        public bool Drainable { get; set; } = true;
         public int Started => _started;
+        public int StopFetchingCalls => _stopFetchingCalls;
         public CancellationToken? Token { get; private set; }
+        public TaskCompletionSource? HoldDrain { get; set; }
         public IProcessingSettings Settings { get; set; } = new SingletonProcessingSettings();
 
         public Task StartAsync(CancellationToken cancellationToken)
@@ -337,6 +417,14 @@ public class SingletonPlacementReceiverTests
             Interlocked.Increment(ref _started);
             Token = cancellationToken;
             return Task.CompletedTask;
+        }
+
+        public async Task StopFetchingAsync(CancellationToken cancellationToken)
+        {
+            Interlocked.Increment(ref _stopFetchingCalls);
+            //A message that is cancelled unwinds, which is what the second call waits for
+            if (HoldDrain != null && Token?.IsCancellationRequested != true)
+                await HoldDrain.Task.WaitAsync(cancellationToken);
         }
     }
 
@@ -350,5 +438,18 @@ public class SingletonPlacementReceiverTests
             TimeSpan lockPeriod,
             CancellationToken cancellationToken
         ) => inner.TryLockAsync(lockId, lockPeriod, cancellationToken);
+    }
+
+    /// <summary>A receiver that only has the plain interface, like the transports that cannot drain</summary>
+    private sealed class NonDrainable(FakeReceiver inner) : IChannelReceiver
+    {
+        public IProcessingSettings Settings
+        {
+            get => inner.Settings;
+            set => inner.Settings = value;
+        }
+
+        public Task StartAsync(CancellationToken cancellationToken) =>
+            inner.StartAsync(cancellationToken);
     }
 }
