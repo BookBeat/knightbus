@@ -171,11 +171,13 @@ internal class SingletonChannelReceiver : IChannelReceiver
         var scope = _singletonScope!;
         _handingOver = true;
 
-        //Let the message being processed finish, up to the drain timeout, without taking new ones
+        //Let the message being processed finish without taking new ones. It may take as long as
+        //the message lock lasts, which the transport enforces anyway.
         if (_channelReceiver is IDrainableChannelReceiver drainable)
         {
+            var drainTimeout = Settings.MessageLockTimeout;
             using var drain = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            drain.CancelAfter(_placementOptions!.DrainTimeout);
+            drain.CancelAfter(drainTimeout);
             try
             {
                 await drainable.StopFetchingAsync(drain.Token).ConfigureAwait(false);
@@ -185,7 +187,7 @@ internal class SingletonChannelReceiver : IChannelReceiver
                 _log.LogWarning(
                     "Singleton Processor with name {ProcessorName} did not finish its message in {Timeout}, cancelling it",
                     _lockId,
-                    _placementOptions.DrainTimeout
+                    drainTimeout
                 );
             }
         }
