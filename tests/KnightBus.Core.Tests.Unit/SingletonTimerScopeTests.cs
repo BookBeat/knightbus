@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 using AwesomeAssertions;
@@ -57,6 +58,43 @@ public class SingletonTimerScopeTests
     }
 
     [Test]
+    public async Task Should_name_the_lock_and_the_host_when_releasing()
+    {
+        //arrange
+        var released = new TaskCompletionSource();
+        var handle = new Mock<ISingletonLockHandle>();
+        handle.Setup(x => x.LockId).Returns("the-lock");
+        handle
+            .Setup(x => x.RenewAsync(It.IsAny<ILogger>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        handle
+            .Setup(x => x.ReleaseAsync(It.IsAny<CancellationToken>()))
+            .Returns(() =>
+            {
+                released.TrySetResult();
+                return Task.CompletedTask;
+            });
+        var log = new ListLogger();
+        using var cts = new CancellationTokenSource();
+        var scope = new SingletonTimerScope(
+            log,
+            handle.Object,
+            true,
+            TimeSpan.FromSeconds(19),
+            cts,
+            "host-1"
+        );
+
+        //act
+        cts.Cancel();
+        await released.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await scope.Completion.WaitAsync(TimeSpan.FromSeconds(5));
+
+        //assert
+        log.Messages.Should().Contain("Releasing lock the-lock held by host host-1");
+    }
+
+    [Test]
     public async Task Should_not_return_from_dispose_while_release_is_in_flight()
     {
         //arrange
@@ -97,5 +135,23 @@ public class SingletonTimerScopeTests
             );
         releaseGate.TrySetResult();
         await disposeTask.WaitAsync(TimeSpan.FromSeconds(5));
+    }
+
+    private sealed class ListLogger : ILogger
+    {
+        public ConcurrentQueue<string> Messages { get; } = new();
+
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter
+        ) => Messages.Enqueue(formatter(state, exception));
     }
 }

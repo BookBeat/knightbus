@@ -92,6 +92,11 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
         await JoinAsync(lifetime.Token, cancellationToken).ConfigureAwait(false);
 
         await RefreshAsync(cancellationToken).ConfigureAwait(false);
+        _log.LogInformation(
+            "Host {HostId} joined the singleton placement with {LockCount} singleton processors",
+            HostId,
+            _locks.Count
+        );
         var token = lifetime.Token;
         _refreshLoop = Task.Run(() => RefreshLoop(token), CancellationToken.None);
     }
@@ -118,7 +123,8 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
             handle,
             true,
             MemberRenewalInterval,
-            CancellationTokenSource.CreateLinkedTokenSource(lifetime)
+            CancellationTokenSource.CreateLinkedTokenSource(lifetime),
+            HostId
         );
     }
 
@@ -165,6 +171,7 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
         _lifetime.Dispose();
         _lifetime = null;
         Volatile.Write(ref _snapshot, null);
+        _log.LogInformation("Host {HostId} left the singleton placement", HostId);
     }
 
     public SingletonPlacementAdvice? Advise(string lockId)

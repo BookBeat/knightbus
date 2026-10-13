@@ -8,6 +8,7 @@ using KnightBus.Core.PreProcessors;
 using KnightBus.Core.Sagas;
 using KnightBus.Core.Singleton;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace KnightBus.Azure.Storage;
 
@@ -86,7 +87,13 @@ public static class StorageExtensions
     {
         services.AddSingleton<ISingletonLockManager, BlobLockManager>();
         services.AddSingleton(new SingletonPlacementOptions());
-        services.AddSingleton<ISingletonPlacement, BlobSingletonPlacement>();
+        //The plain ILogger is not registered, so the logger is passed on explicitly
+        services.AddSingleton<ISingletonPlacement>(provider => new BlobSingletonPlacement(
+            provider.GetRequiredService<IStorageBusConfiguration>(),
+            provider.GetRequiredService<SingletonPlacementOptions>(),
+            provider.GetService<IBlobLockScheme>(),
+            provider.GetService<ILogger<BlobSingletonPlacement>>()
+        ));
         return services;
     }
 
