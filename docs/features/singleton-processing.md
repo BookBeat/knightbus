@@ -75,7 +75,7 @@ services.ConfigureSingletons(options =>
 ```
 
 `LockDuration` must be longer than `RenewalInterval`, otherwise the lock expires between renewals
-and registration throws. Schedule locks are not affected, they keep their own fixed timing.
+and registration throws. Schedule locks use their own fixed timing.
 
 Events get one lock per subscription, so two subscriptions on the same event each process singly but
 independently of one another.
