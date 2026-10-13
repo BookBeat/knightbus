@@ -11,9 +11,6 @@
   declares how heavy it is by implementing `ISingletonWeight` on its processing settings. New public
   types: `ISingletonPlacement`, `ISingletonWeight`, `SingletonAssignment` and
   `ISingletonLockInspector`
-* `ErrorHandlingMiddleware` logs a handler that was stopped by its cancellation token (a shutdown, a
-  lost lock or a lock hand-over) at Information instead of Error. The message is still abandoned. A
-  cancellation that did not come from the token, such as a timeout, is still an error
 
 # 18.4.0
 * `Microsoft.Extensions.DependencyInjection.Abstractions`, `Microsoft.Extensions.Logging.Abstractions`

@@ -111,7 +111,7 @@ state during a rolling deploy, and do not move back and forth.
 
 A hand-over cancels the receiver, and with it the message being processed, then releases the lock.
 The handler is stopped through its cancellation token, so every handler must tolerate cancellation,
-as it already has to on shutdown. A handler that is slow to react to cancellation may still be
+as it already has to on shutdown. The cancellation is logged like any other cancelled handler. A handler that is slow to react to cancellation may still be
 winding down when the next holder takes the lock, as when a lock is lost.
 
 A cancelled message is abandoned and delivered again. The delivery counts against the processor's

@@ -37,8 +37,7 @@ hands locks over when instances join or leave. It is on by default with the blob
 [Spreading singleton locks over hosts](https://bookbeat.github.io/knightbus/features/singleton-placement/).
 
 - `KnightBus.Core` 18.5.0: `ISingletonPlacement`, `ISingletonWeight`, `SingletonAssignment`
-  and `ISingletonLockInspector`. A handler stopped by its cancellation token is logged at
-  Information instead of Error, and the message is still abandoned.
+  and `ISingletonLockInspector`.
 - `KnightBus.Azure.Storage` 18.4.0: `UseBlobStorageLockManager` now also spreads the singleton locks
   over the hosts, which changes which instance runs a singleton processor after an upgrade. Remove
   the `ISingletonPlacement` registration to keep the old behaviour. Lock blobs record `LockId`, `HostName` and `AcquiredAtUtc` in their metadata, `LockId`
