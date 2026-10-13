@@ -13,7 +13,7 @@ using KnightBus.Messages;
 
 namespace KnightBus.Azure.Storage;
 
-internal class StorageQueueChannelReceiver<T> : IDrainableChannelReceiver
+internal class StorageQueueChannelReceiver<T> : IChannelReceiver
     where T : class, IStorageQueueCommand
 {
     private IStorageQueueClient _storageQueueClient = null!;
@@ -44,9 +44,6 @@ internal class StorageQueueChannelReceiver<T> : IDrainableChannelReceiver
         _processor = processor;
         _hostConfiguration = hostConfiguration;
     }
-
-    public Task StopFetchingAsync(CancellationToken cancellationToken) =>
-        _messagePump?.StopFetchingAsync(cancellationToken) ?? Task.CompletedTask;
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {

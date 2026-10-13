@@ -36,14 +36,12 @@ kept them. Placement spreads the locks over the live instances, keeps heavy proc
 hands locks over when instances join or leave. It is on by default with the blob lock manager; see
 [Spreading singleton locks over hosts](https://bookbeat.github.io/knightbus/features/singleton-placement/).
 
-- `KnightBus.Core` 18.5.0: `ISingletonPlacement`, `ISingletonWeight`, `SingletonAssignment`,
-  `ISingletonLockInspector` and `IDrainableChannelReceiver`. `GenericMessagePump` can stop fetching
-  while running messages finish. A handler stopped by its cancellation token is logged at Information
-  instead of Error, and the message is still abandoned.
+- `KnightBus.Core` 18.5.0: `ISingletonPlacement`, `ISingletonWeight`, `SingletonAssignment`
+  and `ISingletonLockInspector`. A handler stopped by its cancellation token is logged at
+  Information instead of Error, and the message is still abandoned.
 - `KnightBus.Azure.Storage` 18.4.0: `UseBlobStorageLockManager` now also spreads the singleton locks
   over the hosts, which changes which instance runs a singleton processor after an upgrade. Remove
-  the `ISingletonPlacement` registration to keep the old behaviour. The storage queue receiver can
-  drain. Lock blobs record `LockId`, `HostName` and `AcquiredAtUtc` in their metadata, `LockId`
+  the `ISingletonPlacement` registration to keep the old behaviour. Lock blobs record `LockId`, `HostName` and `AcquiredAtUtc` in their metadata, `LockId`
   replacing the unused `FunctionInstance`. A host whose member lease lapses rejoins the member list,
   and a member blob is only removed after it has been unleased for 10 minutes. Lock blob names
   always use `/`, so on Windows they no longer contain a backslash, which would have kept Windows

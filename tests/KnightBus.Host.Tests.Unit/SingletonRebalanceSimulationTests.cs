@@ -276,14 +276,11 @@ public class SingletonRebalanceSimulationTests
         }
     }
 
-    private sealed class Inner : IDrainableChannelReceiver
+    private sealed class Inner : IChannelReceiver
     {
-        public IProcessingSettings Settings { get; set; } =
-            new SingletonProcessingSettings { MessageLockTimeout = TimeSpan.FromSeconds(5) };
+        public IProcessingSettings Settings { get; set; } = new SingletonProcessingSettings();
 
         public Task StartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
-
-        public Task StopFetchingAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
 
     private sealed class ManualTime : TimeProvider

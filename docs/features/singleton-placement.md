@@ -91,7 +91,7 @@ light processors and two of weight 10:
 
 The two heavy locks never shared an instance. A cap bounds the largest load, not the smallest, so
 with any slack one instance of 11 typically has no work. Every move is a hand-over, which
-costs a drain and possibly a cancellation, so the slack favours stability.
+cancels the message being processed, so the slack favours stability.
 
 ### Taking a lock
 
@@ -109,26 +109,21 @@ instance has been a member for 2 minutes and the lock has been held for 10 minut
 Both exist so that locks do not move to an instance that is about to be replaced, which is the normal
 state during a rolling deploy, and do not move back and forth.
 
-A hand-over stops fetching new messages and lets the message being processed finish, for up to the
-processor's `MessageLockTimeout`, which is the longest a message may be in flight anyway. Then it
-cancels the handler, waits briefly for it to unwind and releases the lock. A handler that stays
-within its message lock is never cancelled by a hand-over, but every handler must still tolerate
-cancellation, as it already has to on shutdown.
-
-Stopping the fetch without cancelling the running message needs support from the receiver
-(`IDrainableChannelReceiver`). The Azure Storage queue receiver has it. Receivers without it, today
-Azure Service Bus, Redis, PostgreSQL and NATS, cancel the running message straight away.
+A hand-over cancels the receiver, and with it the message being processed, then releases the lock.
+The handler is stopped through its cancellation token, so every handler must tolerate cancellation,
+as it already has to on shutdown. A handler that is slow to react to cancellation may still be
+winding down when the next holder takes the lock, as when a lock is lost.
 
 A cancelled message is abandoned and delivered again. The delivery counts against the processor's
 `DeadLetterDeliveryLimit`, because the transport counts every delivery and KnightBus cannot take one
 back, and a message is dead-lettered when its delivery count exceeds the limit. This only matters if
-one message is cancelled repeatedly, which the 10 minute hold and the wait for the message lock make unlikely, but a
-processor with a limit of 1 or 2 should not take long to process a message.
+one message is cancelled repeatedly, which the 10 minute hold makes unlikely, but a processor with a
+limit of 1 or 2 should not take long to process a message.
 
 ### Leaving
 
 On shutdown an instance leaves the member list first, so the others start counting on its locks while it
-drains, and releases its own locks as it always did.
+finishes its messages, and releases its own locks as it always did.
 
 ## Fixed behaviour
 
