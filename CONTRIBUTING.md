@@ -31,7 +31,11 @@ dotnet test
 
 The integration suites start their own dependencies with
 [Testcontainers](https://dotnet.testcontainers.org), so Docker needs to be running, but you do not
-need to start anything yourself.
+need to start anything yourself. The Service Bus suite runs the
+[Service Bus emulator](https://learn.microsoft.com/azure/service-bus-messaging/overview-emulator)
+and accepts its [licence](https://github.com/Azure/azure-service-bus-emulator-installer/blob/main/EMULATOR_EULA.txt)
+when it starts the container. The transport's administration client cannot reach the emulator's
+management port, so every queue and topic a test uses is declared in that suite's `Config.json`.
 
 ## Dependencies
 

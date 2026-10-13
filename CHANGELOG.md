@@ -1,5 +1,16 @@
 # CHANGELOG
 
+# 2026-10-13
+
+### Service Bus integration tests on the emulator
+`KnightBus.Azure.ServiceBus` gets an integration suite, `KnightBus.Azure.ServiceBus.Tests.Integration`,
+that runs on the Service Bus emulator through Testcontainers, so the transport can be tested
+without an Azure namespace. It covers sending, publishing, scheduling, settlement through the shared
+message state handler suite, the queue and subscription managers, and a host that processes and
+dead-letters messages. Creating missing entities is not covered: the administration client shares the
+data-plane connection string and cannot reach the emulator's management port. No package versions
+change; `KnightBus.Azure.ServiceBus` only gains an `InternalsVisibleTo` for the suite.
+
 # 2026-10-08
 
 ### Singleton lock holder stops when the lease can no longer be renewed
