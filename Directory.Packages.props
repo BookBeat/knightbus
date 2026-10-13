@@ -74,6 +74,7 @@
     <PackageVersion Include="Testcontainers.MsSql" Version="4.14.0" />
     <PackageVersion Include="Testcontainers.PostgreSql" Version="4.14.0" />
     <PackageVersion Include="Testcontainers.Redis" Version="4.14.0" />
+    <PackageVersion Include="Testcontainers.ServiceBus" Version="4.14.0" />
   </ItemGroup>
 
   <!-- Sample-only -->

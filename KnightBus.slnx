@@ -20,6 +20,7 @@
     <Project Path="src/KnightBus.Azure.ServiceBus/KnightBus.Azure.ServiceBus.csproj" />
     <Project Path="src/KnightBus.Azure.ServiceBus.Management/KnightBus.Azure.ServiceBus.Management.csproj" />
     <Project Path="src/KnightBus.Azure.ServiceBus.Messages/KnightBus.Azure.ServiceBus.Messages.csproj" />
+    <Project Path="tests/KnightBus.Azure.ServiceBus.Tests.Integration/KnightBus.Azure.ServiceBus.Tests.Integration.csproj" />
   </Folder>
   <Folder Name="/Transports/AzureStorage/">
     <Project Path="src/KnightBus.Azure.Storage/KnightBus.Azure.Storage.csproj" />
