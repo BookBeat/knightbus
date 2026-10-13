@@ -53,32 +53,32 @@ internal class SingletonPlacementOptions
     /// <summary>
     /// Throws when the combination of settings cannot work
     /// </summary>
-    internal void Validate()
+    internal void Validate(string paramName)
     {
         if (RefreshInterval <= TimeSpan.Zero)
             throw new ArgumentOutOfRangeException(
-                "options",
+                paramName,
                 RefreshInterval,
                 $"{nameof(RefreshInterval)} must be positive"
             );
         if (EffectiveStaleAfter <= RefreshInterval)
             throw new ArgumentException(
                 $"{nameof(StaleAfter)} must be longer than {nameof(RefreshInterval)}, or the advice is dropped between refreshes",
-                "options"
+                paramName
             );
         if (StabilityWindow < TimeSpan.Zero || TakeoverGrace < TimeSpan.Zero)
             throw new ArgumentOutOfRangeException(
-                "options",
+                paramName,
                 $"{nameof(StabilityWindow)} and {nameof(TakeoverGrace)} must not be negative"
             );
         if (HandoffInterval < TimeSpan.Zero)
             throw new ArgumentOutOfRangeException(
-                "options",
+                paramName,
                 $"{nameof(HandoffInterval)} must not be negative"
             );
         if (Epsilon < 0)
             throw new ArgumentOutOfRangeException(
-                "options",
+                paramName,
                 Epsilon,
                 $"{nameof(Epsilon)} must not be negative"
             );

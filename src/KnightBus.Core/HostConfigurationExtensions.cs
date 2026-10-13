@@ -62,7 +62,7 @@ public static class HostConfigurationExtensions
     {
         var options = new SingletonOptions();
         configure(options);
-        options.Validate();
+        options.Validate(nameof(configure));
         services.AddSingleton(options);
         return services;
     }

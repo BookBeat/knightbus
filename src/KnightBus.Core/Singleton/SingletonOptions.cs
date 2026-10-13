@@ -31,30 +31,30 @@ public class SingletonOptions
     /// </summary>
     public TimeSpan RenewalInterval { get; set; } = TimeSpan.FromSeconds(19);
 
-    internal void Validate()
+    internal void Validate(string paramName)
     {
         if (PollInterval <= TimeSpan.Zero)
             throw new ArgumentOutOfRangeException(
-                "options",
+                paramName,
                 PollInterval,
                 $"{nameof(PollInterval)} must be positive"
             );
         if (PollJitter < 0 || PollJitter > 1)
             throw new ArgumentOutOfRangeException(
-                "options",
+                paramName,
                 PollJitter,
                 $"{nameof(PollJitter)} must be between 0 and 1"
             );
         if (RenewalInterval <= TimeSpan.Zero)
             throw new ArgumentOutOfRangeException(
-                "options",
+                paramName,
                 RenewalInterval,
                 $"{nameof(RenewalInterval)} must be positive"
             );
         if (LockDuration <= RenewalInterval)
             throw new ArgumentException(
                 $"{nameof(LockDuration)} ({LockDuration}) must be longer than {nameof(RenewalInterval)} ({RenewalInterval}), or the lock expires between renewals",
-                "options"
+                paramName
             );
     }
 }
