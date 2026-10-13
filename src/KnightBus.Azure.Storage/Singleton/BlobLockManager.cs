@@ -98,14 +98,14 @@ internal class BlobLockManager : ISingletonLockManager, ISingletonLockInspector
     private static async Task WriteLeaseBlobMetadata(
         BlobBaseClient blob,
         string leaseId,
-        string functionInstanceId,
+        string lockId,
         CancellationToken cancellationToken
     )
     {
         await blob.SetMetadataAsync(
             new Dictionary<string, string>
             {
-                { "FunctionInstance", functionInstanceId },
+                { "LockId", lockId },
                 //Who holds the lock, so the current distribution can be read from storage
                 { "HostName", Environment.MachineName },
                 { "AcquiredAtUtc", DateTimeOffset.UtcNow.ToString("O") },
