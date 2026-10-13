@@ -261,6 +261,26 @@ public class SingletonPlacementReceiverTests
     }
 
     [Test]
+    public async Task Should_release_the_lock_when_the_host_stops_during_a_hand_over()
+    {
+        //arrange: a hand-over is waiting for a message that takes a long time
+        await using var f = new Fixture();
+        f.Placement.Prefer(Lock, Me, self: true);
+        await f.Start();
+        f.Inner.HoldDrain = new TaskCompletionSource(); //never completes
+        f.Time.Advance(TimeSpan.FromMinutes(11));
+        f.Placement.Prefer(Lock, Other, self: false, memberFor: TimeSpan.FromMinutes(3));
+        await Eventually(() => f.Inner.StopFetchingCalls == 1);
+        f.Locks.Holder(Lock).Should().Be(Me);
+
+        //act
+        f.Shutdown.Cancel();
+
+        //assert: stopping the host does not wait for the drain, the lock is given up
+        await Eventually(() => f.Locks.Holder(Lock) == null);
+    }
+
+    [Test]
     public async Task Should_cancel_and_release_when_the_receiver_cannot_drain()
     {
         await using var f = new Fixture(drainable: false);
