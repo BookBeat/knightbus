@@ -1,11 +1,11 @@
 # Spreading singleton locks over hosts
 
 [Singleton processors](singleton-processing.md) run on one instance at a time, guarded by a lock per
-processor. By default every lock is an independent race, and the instance that starts first wins all
-of them and keeps them for as long as it lives. Instances that start later, for example during a
-rolling deploy or a scale-out, hold nothing, and the whole singleton workload runs on one host while
-the others sit idle. If that workload is heavy, such as a batch re-index, the host that hoards it is
-also the one that runs out of memory.
+processor. Without placement every lock is an independent race, and the instance that starts first
+wins all of them and keeps them for as long as it lives. Instances that start later, for example
+during a rolling deploy or a scale-out, hold nothing, and the whole singleton workload runs on one
+host while the others sit idle. If that workload is heavy, such as a batch re-index, the host that
+hoards it is also the one that runs out of memory.
 
 Singleton placement spreads the locks over the live instances. It comes with the Azure Blob Storage
 lock manager and is on by default there.
@@ -32,7 +32,7 @@ services
 
 ### Switching it off
 
-To keep the old behaviour, where the first instance takes every lock, remove the placement
+To run without placement, where the first instance to start takes every lock, remove the placement
 registration after the lock manager has been registered:
 
 ```csharp
@@ -72,10 +72,10 @@ public class RebuildSearchIndexSettings : IProcessingSettings, ISingletonWeight
 - When an instance leaves or dies, the others take its locks over.
 - Two heavy processors are not placed on the same instance while an empty one exists.
 
-Placement is advisory. The lock itself still decides who may process, so a mistake in placement can
+Placement is advisory. The lock itself decides who may process, so a mistake in placement can
 make the distribution worse but can never make two instances process the same singleton. If the
 placement cannot read the member list, it stops giving advice and every instance competes for the
-locks as it did before.
+locks as it does without placement.
 
 ## Seeing what it does
 
@@ -124,7 +124,7 @@ drain and possibly a cancellation, so the slack favours stability.
 
 ### Taking a lock
 
-- An instance that is the preferred holder takes the lock as soon as it is free, as before.
+- An instance that is the preferred holder takes the lock as soon as it is free.
 - An instance that is not the preferred holder leaves the lock alone. It takes it only if it has
   seen the lock free for a whole 2 minutes, which covers a preferred instance that is alive but not
   taking the lock. Seeing a lock free needs a lock manager that can inspect a lock without taking it
@@ -142,7 +142,7 @@ A hand-over stops fetching new messages and lets the message being processed fin
 processor's `MessageLockTimeout`, which is the longest a message may be in flight anyway. Then it
 cancels the handler, waits briefly for it to unwind and releases the lock. A handler that stays
 within its message lock is never cancelled by a hand-over, but every handler must still tolerate
-cancellation, as it already has to on shutdown. The cancellation is logged like any other cancelled
+cancellation, as it has to on shutdown too. The cancellation is logged like any other cancelled
 handler.
 
 Stopping the fetch without cancelling the running message needs support from the receiver
@@ -158,7 +158,7 @@ unlikely, but a processor with a limit of 1 or 2 should not take long to process
 ### Leaving
 
 On shutdown an instance leaves the member list first, so the others start counting on its locks
-while it drains, and releases its own locks as it always did.
+while it drains, and then releases its own locks.
 
 ## Fixed behaviour
 
