@@ -24,7 +24,6 @@ public class SingletonPlacementReceiverTests
         TakeoverGrace = TimeSpan.FromMinutes(2),
         StabilityWindow = TimeSpan.FromMinutes(2),
         HandoffInterval = TimeSpan.FromMinutes(10),
-        DrainTimeout = TimeSpan.FromMinutes(5),
     };
 
     private sealed class Fixture : IAsyncDisposable
@@ -39,10 +38,16 @@ public class SingletonPlacementReceiverTests
         public Fixture(
             SingletonPlacementOptions? options = null,
             bool drainable = true,
-            bool inspectable = true
+            bool inspectable = true,
+            TimeSpan? lockTimeout = null
         )
         {
             Inner.Drainable = drainable;
+            //A hand-over lets the running message finish for as long as its lock lasts
+            Inner.Settings = new SingletonProcessingSettings
+            {
+                MessageLockTimeout = lockTimeout ?? TimeSpan.FromMinutes(5),
+            };
             Receiver = new SingletonChannelReceiver(
                 drainable ? Inner : new NonDrainable(Inner),
                 inspectable ? Locks : new NotInspectable(Locks),
@@ -238,17 +243,10 @@ public class SingletonPlacementReceiverTests
     }
 
     [Test]
-    public async Task Should_cancel_a_message_that_outlasts_the_drain_timeout()
+    public async Task Should_cancel_a_message_that_outlasts_its_message_lock()
     {
         //arrange
-        var options = new SingletonPlacementOptions
-        {
-            StabilityWindow = Options.StabilityWindow,
-            HandoffInterval = Options.HandoffInterval,
-            TakeoverGrace = Options.TakeoverGrace,
-            DrainTimeout = TimeSpan.FromMilliseconds(150),
-        };
-        await using var f = new Fixture(options);
+        await using var f = new Fixture(lockTimeout: TimeSpan.FromMilliseconds(150));
         f.Placement.Prefer(Lock, Me, self: true);
         await f.Start();
         f.Inner.HoldDrain = new TaskCompletionSource(); //never completes

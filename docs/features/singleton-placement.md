@@ -94,9 +94,11 @@ instance has been a member for 2 minutes and the lock has been held for 10 minut
 Both exist so that locks do not move to an instance that is about to be replaced, which is the normal
 state during a rolling deploy, and do not move back and forth.
 
-A hand-over stops fetching new messages, lets the message being processed finish for up to
-`DrainTimeout`, then cancels the handler, waits briefly for it to unwind and releases the lock. Every
-handler must therefore tolerate cancellation, as it already has to on shutdown.
+A hand-over stops fetching new messages and lets the message being processed finish, for up to the
+processor's `MessageLockTimeout`, which is the longest a message may be in flight anyway. Then it
+cancels the handler, waits briefly for it to unwind and releases the lock. A handler that stays
+within its message lock is never cancelled by a hand-over, but every handler must still tolerate
+cancellation, as it already has to on shutdown.
 
 Stopping the fetch without cancelling the running message needs support from the receiver
 (`IDrainableChannelReceiver`). The Azure Storage queue receiver has it. Receivers without it, today
@@ -105,7 +107,7 @@ Azure Service Bus, Redis, PostgreSQL and NATS, cancel the running message straig
 A cancelled message is abandoned and delivered again. The delivery counts against the processor's
 `DeadLetterDeliveryLimit`, because the transport counts every delivery and KnightBus cannot take one
 back, and a message is dead-lettered when its delivery count exceeds the limit. This only matters if
-one message is cancelled repeatedly, which the 10 minute hold and `DrainTimeout` make unlikely, but a
+one message is cancelled repeatedly, which the 10 minute hold and the wait for the message lock make unlikely, but a
 processor with a limit of 1 or 2 should not take long to process a message.
 
 ### Leaving
@@ -115,12 +117,9 @@ drains, and releases its own locks as it always did.
 
 ## Options
 
-| Option | Default | Meaning |
-| --- | --- | --- |
-| `DrainTimeout` | 5 min | How long a hand-over waits for the running message before cancelling it |
-| `Weight<TProcessor>(n)` | 1 | How heavy a processor is relative to the others |
+The only option is `Weight<TProcessor>(n)`, how heavy a processor is relative to the others (default 1).
 
-The rest of the behaviour is fixed: instances read the member list every 20 seconds and stop giving
+Everything else is fixed: instances read the member list every 20 seconds and stop giving
 advice when it could not be read for three refreshes, the slack over the fair share is 0.25, an
 instance must have been a member for 2 minutes before locks are handed to it, a lock must have been
 seen free for 2 minutes before an instance that is not preferred takes it, and a lock is held for at

@@ -33,7 +33,6 @@ public class SingletonRebalanceSimulationTests
         StabilityWindow = TimeSpan.FromMinutes(2),
         TakeoverGrace = TimeSpan.FromMinutes(2),
         HandoffInterval = TimeSpan.FromMinutes(10),
-        DrainTimeout = TimeSpan.FromSeconds(5),
     };
 
     [Test]
@@ -279,7 +278,8 @@ public class SingletonRebalanceSimulationTests
 
     private sealed class Inner : IDrainableChannelReceiver
     {
-        public IProcessingSettings Settings { get; set; } = new SingletonProcessingSettings();
+        public IProcessingSettings Settings { get; set; } =
+            new SingletonProcessingSettings { MessageLockTimeout = TimeSpan.FromSeconds(5) };
 
         public Task StartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 

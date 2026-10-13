@@ -49,11 +49,6 @@ public class SingletonPlacementOptions
     internal TimeSpan HandoffInterval { get; set; } = TimeSpan.FromMinutes(10);
 
     /// <summary>
-    /// How long a handing over host lets the message it is processing finish before it cancels it
-    /// </summary>
-    public TimeSpan DrainTimeout { get; set; } = TimeSpan.FromMinutes(5);
-
-    /// <summary>
     /// <see cref="StaleAfter"/>, or three refresh intervals when it is not set
     /// </summary>
     internal TimeSpan EffectiveStaleAfter => StaleAfter ?? RefreshInterval * 3;
@@ -93,7 +88,7 @@ public class SingletonPlacementOptions
             );
         if (StabilityWindow < TimeSpan.Zero || TakeoverGrace < TimeSpan.Zero)
             throw new ArgumentOutOfRangeException(nameof(StabilityWindow), "Must not be negative");
-        if (HandoffInterval < TimeSpan.Zero || DrainTimeout < TimeSpan.Zero)
+        if (HandoffInterval < TimeSpan.Zero)
             throw new ArgumentOutOfRangeException(nameof(HandoffInterval), "Must not be negative");
         if (Epsilon < 0)
             throw new ArgumentOutOfRangeException(nameof(Epsilon), Epsilon, "Must not be negative");
