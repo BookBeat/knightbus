@@ -57,20 +57,30 @@ internal class SingletonPlacementOptions
     {
         if (RefreshInterval <= TimeSpan.Zero)
             throw new ArgumentOutOfRangeException(
-                nameof(RefreshInterval),
+                "options",
                 RefreshInterval,
-                "Must be positive"
+                $"{nameof(RefreshInterval)} must be positive"
             );
         if (EffectiveStaleAfter <= RefreshInterval)
             throw new ArgumentException(
                 $"{nameof(StaleAfter)} must be longer than {nameof(RefreshInterval)}, or the advice is dropped between refreshes",
-                nameof(StaleAfter)
+                "options"
             );
         if (StabilityWindow < TimeSpan.Zero || TakeoverGrace < TimeSpan.Zero)
-            throw new ArgumentOutOfRangeException(nameof(StabilityWindow), "Must not be negative");
+            throw new ArgumentOutOfRangeException(
+                "options",
+                $"{nameof(StabilityWindow)} and {nameof(TakeoverGrace)} must not be negative"
+            );
         if (HandoffInterval < TimeSpan.Zero)
-            throw new ArgumentOutOfRangeException(nameof(HandoffInterval), "Must not be negative");
+            throw new ArgumentOutOfRangeException(
+                "options",
+                $"{nameof(HandoffInterval)} must not be negative"
+            );
         if (Epsilon < 0)
-            throw new ArgumentOutOfRangeException(nameof(Epsilon), Epsilon, "Must not be negative");
+            throw new ArgumentOutOfRangeException(
+                "options",
+                Epsilon,
+                $"{nameof(Epsilon)} must not be negative"
+            );
     }
 }

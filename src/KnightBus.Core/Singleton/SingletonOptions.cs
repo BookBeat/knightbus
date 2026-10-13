@@ -35,26 +35,26 @@ public class SingletonOptions
     {
         if (PollInterval <= TimeSpan.Zero)
             throw new ArgumentOutOfRangeException(
-                nameof(PollInterval),
+                "options",
                 PollInterval,
-                "Must be positive"
+                $"{nameof(PollInterval)} must be positive"
             );
         if (PollJitter < 0 || PollJitter > 1)
             throw new ArgumentOutOfRangeException(
-                nameof(PollJitter),
+                "options",
                 PollJitter,
-                "Must be between 0 and 1"
+                $"{nameof(PollJitter)} must be between 0 and 1"
             );
         if (RenewalInterval <= TimeSpan.Zero)
             throw new ArgumentOutOfRangeException(
-                nameof(RenewalInterval),
+                "options",
                 RenewalInterval,
-                "Must be positive"
+                $"{nameof(RenewalInterval)} must be positive"
             );
         if (LockDuration <= RenewalInterval)
             throw new ArgumentException(
                 $"{nameof(LockDuration)} ({LockDuration}) must be longer than {nameof(RenewalInterval)} ({RenewalInterval}), or the lock expires between renewals",
-                nameof(LockDuration)
+                "options"
             );
     }
 }

@@ -139,7 +139,7 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
     {
         if (_lifetime == null)
             return;
-        _lifetime.Cancel();
+        await _lifetime.CancelAsync().ConfigureAwait(false);
         if (_refreshLoop != null)
             await _refreshLoop.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
         if (_memberLease != null)
