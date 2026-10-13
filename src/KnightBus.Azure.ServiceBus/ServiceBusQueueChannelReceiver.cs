@@ -8,6 +8,7 @@ using KnightBus.Messages;
 using Microsoft.Extensions.Logging;
 
 [assembly: InternalsVisibleTo("BB.Common.KnightBus.Tests.Unit")]
+[assembly: InternalsVisibleTo("KnightBus.Azure.ServiceBus.Tests.Integration")]
 
 namespace KnightBus.Azure.ServiceBus;
 

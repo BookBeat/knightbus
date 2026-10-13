@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AwesomeAssertions" />
+    <PackageReference Include="Testcontainers.ServiceBus" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\KnightBus.Shared.Tests.Integration\KnightBus.Shared.Tests.Integration.csproj" />
+    <ProjectReference Include="..\..\src\KnightBus.Azure.ServiceBus.Management\KnightBus.Azure.ServiceBus.Management.csproj" />
+    <ProjectReference Include="..\..\src\KnightBus.Azure.ServiceBus\KnightBus.Azure.ServiceBus.csproj" />
+    <ProjectReference Include="..\..\src\KnightBus.Host\KnightBus.Host.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Config.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
