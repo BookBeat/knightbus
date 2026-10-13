@@ -7,13 +7,14 @@ during a rolling deploy or a scale-out, hold nothing, and the whole singleton wo
 host while the others sit idle. If that workload is heavy, such as a batch re-index, the host that
 hoards it is also the one that runs out of memory.
 
-Singleton placement spreads the locks over the live instances. It comes with the Azure Blob Storage
-lock manager and is on by default there.
+Singleton placement spreads the locks over the live instances. It is part of the Azure Blob Storage
+lock manager, so every service that uses `UseBlobStorageLockManager()` gets it without any
+configuration.
 
-## Enabling it
+## Setup
 
-Placement uses blob leases to tell which instances are alive, so it comes with the blob lock manager
-and needs nothing else:
+Placement uses blob leases to tell which instances are alive, so there is nothing to set up beyond
+the blob lock manager:
 
 ```csharp
 services
@@ -30,7 +31,7 @@ services
   `{lock directory}/_members/` in the lock container. A storage role that is limited to the lock
   blobs needs to allow that too.
 
-### Switching it off
+### Opting out
 
 To run without placement, where the first instance to start takes every lock, remove the placement
 registration after the lock manager has been registered:
