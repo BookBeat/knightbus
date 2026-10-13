@@ -84,21 +84,31 @@ public static class StorageExtensions
     }
 
     /// <summary>
-    /// Spreads the singleton locks over the hosts instead of letting the first host take them all,
-    /// see <see cref="SingletonPlacementOptions"/>. Hosts in one group must run the same singleton
-    /// processors.
+    /// Uses the blob lock manager and spreads the singleton locks over the hosts instead of letting
+    /// the first host take them all, see <see cref="SingletonPlacementOptions"/>. Hosts in one group
+    /// must run the same singleton processors.
     /// </summary>
-    public static IServiceCollection UseBlobStorageSingletonPlacement(
+    public static IServiceCollection UseBlobStorageLockManager(
         this IServiceCollection services,
-        Action<SingletonPlacementOptions>? configure = null
+        Action<SingletonPlacementOptions> configurePlacement
     )
     {
         var options = new SingletonPlacementOptions();
-        configure?.Invoke(options);
+        configurePlacement(options);
         options.Validate();
         services.AddSingleton(options);
         services.AddSingleton<ISingletonPlacement, BlobSingletonPlacement>();
-        return services;
+        return services.UseBlobStorageLockManager();
+    }
+
+    public static IServiceCollection UseBlobStorageLockManager(
+        this IServiceCollection services,
+        IBlobLockScheme lockScheme,
+        Action<SingletonPlacementOptions> configurePlacement
+    )
+    {
+        services.AddSingleton(lockScheme);
+        return services.UseBlobStorageLockManager(configurePlacement);
     }
 
     public static IServiceCollection UseBlobStorageSagas(this IServiceCollection services)
