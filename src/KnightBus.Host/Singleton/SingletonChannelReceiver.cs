@@ -13,11 +13,16 @@ internal class SingletonChannelReceiver : IChannelReceiver
     private readonly ISingletonLockManager _lockManager;
     private readonly ILogger _log;
     private readonly CancellationToken? _teardownToken;
-    private readonly ISingletonPlacement? _placement;
-    private readonly SingletonPlacementOptions? _placementOptions;
+    private readonly PlacementContext? _placement;
     private SingletonTimerScope? _singletonScope;
     private CancellationTokenSource? _scopeTokenSource;
     private CancellationTokenSource? _receiverTokenSource;
+
+    private sealed record PlacementContext(
+        ISingletonPlacement Placement,
+        SingletonPlacementOptions Options
+    );
+
     private readonly string _lockId;
     internal string LockId => _lockId;
     public IProcessingSettings Settings { get; set; }
@@ -60,8 +65,10 @@ internal class SingletonChannelReceiver : IChannelReceiver
         SingletonPlacementOptions? placementOptions = null
     )
     {
-        _placement = placement;
-        _placementOptions = placementOptions;
+        _placement =
+            placement != null && placementOptions != null
+                ? new PlacementContext(placement, placementOptions)
+                : null;
         _channelReceiver = channelReceiver;
         _lockManager = lockManager;
         _log = log;
@@ -108,8 +115,8 @@ internal class SingletonChannelReceiver : IChannelReceiver
     /// </summary>
     private async Task<bool> MayTryToAcquire(CancellationToken cancellationToken)
     {
-        var advice = _placement?.Advise(_lockId);
-        if (advice == null || advice.PreferredIsSelf)
+        var advice = _placement?.Placement.Advise(_lockId);
+        if (_placement == null || advice == null || advice.PreferredIsSelf)
         {
             _freeSince = null;
             return true;
@@ -136,19 +143,22 @@ internal class SingletonChannelReceiver : IChannelReceiver
         }
 
         _freeSince ??= Time.GetTimestamp();
-        return Time.GetElapsedTime(_freeSince.Value) >= _placementOptions!.TakeoverGrace;
+        return Time.GetElapsedTime(_freeSince.Value) >= _placement.Options.TakeoverGrace;
     }
 
     private async Task HandOverIfNotPreferred(CancellationToken cancellationToken)
     {
-        if (_placement == null || _placementOptions == null || _scopeTokenSource == null)
+        var scopeSource = _scopeTokenSource;
+        var receiverSource = _receiverTokenSource;
+        var scope = _singletonScope;
+        if (_placement == null || scopeSource == null || receiverSource == null || scope == null)
             return;
-        var advice = _placement.Advise(_lockId);
+        var advice = _placement.Placement.Advise(_lockId);
         if (advice == null || advice.PreferredIsSelf)
             return;
         if (
-            advice.PreferredHostMemberFor < _placementOptions.StabilityWindow
-            || Time.GetElapsedTime(_acquiredAt) < _placementOptions.HandoffInterval
+            advice.PreferredHostMemberFor < _placement.Options.StabilityWindow
+            || Time.GetElapsedTime(_acquiredAt) < _placement.Options.HandoffInterval
         )
             return;
 
@@ -157,14 +167,16 @@ internal class SingletonChannelReceiver : IChannelReceiver
             _lockId,
             advice.PreferredHost
         );
-        await HandOver(cancellationToken).ConfigureAwait(false);
+        await HandOver(scopeSource, receiverSource, scope, cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task HandOver(CancellationToken cancellationToken)
+    private async Task HandOver(
+        CancellationTokenSource scopeSource,
+        CancellationTokenSource receiverSource,
+        SingletonTimerScope scope,
+        CancellationToken cancellationToken
+    )
     {
-        var scopeSource = _scopeTokenSource!;
-        var receiverSource = _receiverTokenSource!;
-        var scope = _singletonScope!;
         _handingOver = true;
 
         //Stop the wrapped receiver and whatever it is still running, then give the lock up
