@@ -35,12 +35,16 @@ public class SingletonPlacementReceiverTests
         public readonly CancellationTokenSource Shutdown = new();
         public SingletonChannelReceiver Receiver { get; }
 
-        public Fixture(SingletonPlacementOptions? options = null, bool inspectable = true)
+        public Fixture(
+            SingletonPlacementOptions? options = null,
+            bool inspectable = true,
+            ILogger? log = null
+        )
         {
             Receiver = new SingletonChannelReceiver(
                 Inner,
                 inspectable ? Locks : new NotInspectable(Locks),
-                Mock.Of<ILogger>(),
+                log ?? Mock.Of<ILogger>(),
                 Lock,
                 null,
                 Placement,
@@ -175,6 +179,28 @@ public class SingletonPlacementReceiverTests
         //and it leaves the lock alone for the grace period so the other host gets there first
         await Task.Delay(200);
         f.Locks.Holder(Lock).Should().BeNull();
+    }
+
+    [Test]
+    public async Task Should_name_the_host_when_it_takes_and_hands_over_a_lock()
+    {
+        //arrange
+        var log = new ListLogger();
+        await using var f = new Fixture(log: log);
+        f.Placement.Prefer(Lock, Me, self: true);
+        await f.Start();
+        f.Time.Advance(TimeSpan.FromMinutes(11));
+
+        //act
+        f.Placement.Prefer(Lock, Other, self: false, memberFor: TimeSpan.FromMinutes(3));
+        await Eventually(() => f.Locks.Holder(Lock) == null);
+
+        //assert
+        log.Messages.Should()
+            .Contain($"Starting Singleton Processor with name {Lock} on host {Me}")
+            .And.Contain(
+                $"Singleton Processor with name {Lock} on host {Me} hands its lock over to {Other}"
+            );
     }
 
     [Test]
@@ -350,5 +376,23 @@ public class SingletonPlacementReceiverTests
             TimeSpan lockPeriod,
             CancellationToken cancellationToken
         ) => inner.TryLockAsync(lockId, lockPeriod, cancellationToken);
+    }
+
+    private sealed class ListLogger : ILogger
+    {
+        public ConcurrentQueue<string> Messages { get; } = new();
+
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter
+        ) => Messages.Enqueue(formatter(state, exception));
     }
 }

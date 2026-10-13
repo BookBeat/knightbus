@@ -25,6 +25,9 @@ internal class SingletonChannelReceiver : IChannelReceiver
 
     private readonly string _lockId;
     internal string LockId => _lockId;
+
+    //Identifies this host in the logs, the same id the other hosts see in the placement
+    private string HostId => _placement?.Placement.HostId ?? Environment.MachineName;
     public IProcessingSettings Settings { get; set; }
     internal TimeSpan TimerInterval { get; set; } = TimeSpan.FromMinutes(1);
     internal TimeSpan LockDuration { get; set; } = TimeSpan.FromMinutes(1);
@@ -163,8 +166,9 @@ internal class SingletonChannelReceiver : IChannelReceiver
             return;
 
         _log.LogInformation(
-            "Singleton Processor with name {ProcessorName} hands its lock over to {Host}",
+            "Singleton Processor with name {ProcessorName} on host {HostId} hands its lock over to {PreferredHost}",
             _lockId,
+            HostId,
             advice.PreferredHost
         );
         await HandOver(scopeSource, receiverSource, scope, cancellationToken).ConfigureAwait(false);
@@ -235,9 +239,14 @@ internal class SingletonChannelReceiver : IChannelReceiver
                 lockHandle,
                 true,
                 LockRefreshInterval,
-                scopeTokenSource
+                scopeTokenSource,
+                HostId
             );
-            _log.LogInformation("Starting Singleton Processor with name {ProcessorName}", _lockId);
+            _log.LogInformation(
+                "Starting Singleton Processor with name {ProcessorName} on host {HostId}",
+                _lockId,
+                HostId
+            );
             await _channelReceiver.StartAsync(receiverTokenSource.Token).ConfigureAwait(false);
             _lockPollingEnabled = false;
 
@@ -256,8 +265,9 @@ internal class SingletonChannelReceiver : IChannelReceiver
                             _lockPollingEnabled = true;
                             if (!_handingOver)
                                 _log.LogInformation(
-                                    "Singleton Processor with name {ProcessorName} lost its lock",
-                                    _lockId
+                                    "Singleton Processor with name {ProcessorName} lost its lock on host {HostId}",
+                                    _lockId,
+                                    HostId
                                 );
                         }
                     },
