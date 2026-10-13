@@ -20,6 +20,7 @@ internal abstract class ServiceBusChannelReceiverBase<T> : IDrainableChannelRece
     private CancellationToken _cancellationToken;
     private ServiceBusProcessor _client = null!;
     private int _deadLetterLimit;
+    private volatile bool _fetchingStopped;
     protected readonly IClientFactory ClientFactory;
     protected readonly ServiceBusAdministrationClient ManagementClient;
 
@@ -48,6 +49,7 @@ internal abstract class ServiceBusChannelReceiverBase<T> : IDrainableChannelRece
     public async Task StopFetchingAsync(CancellationToken cancellationToken)
     {
         //Stops the processor from taking messages and waits for the running handlers to finish
+        _fetchingStopped = true;
         if (_client != null)
             await _client.StopProcessingAsync(cancellationToken).ConfigureAwait(false);
     }
@@ -116,10 +118,14 @@ internal abstract class ServiceBusChannelReceiverBase<T> : IDrainableChannelRece
                 _deadLetterLimit,
                 _hostConfiguration.DependencyInjection
             );
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(
-                _cancellationToken,
-                arg.CancellationToken
-            );
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken);
+            //The SDK cancels this token when processing stops, which must not cancel the
+            //message a drain is waiting for. It is still honoured for a lost message lock.
+            await using var lockLost = arg.CancellationToken.Register(() =>
+            {
+                if (!_fetchingStopped)
+                    cts.Cancel();
+            });
             await _processor.ProcessAsync(stateHandler, cts.Token).ConfigureAwait(false);
         }
         catch (Exception e)

@@ -4,6 +4,8 @@
 ### Added
 - The queue and topic receivers implement `IDrainableChannelReceiver`, so a singleton lock can be
   handed over without cancelling the message being processed. Requires `KnightBus.Core` 18.5.0
+- Stopping the processor no longer cancels the token of a message being handled, which the
+  Service Bus SDK does on its own. The token is still cancelled when the message lock is lost
 
 ## 24.2.0
 ### Changed
