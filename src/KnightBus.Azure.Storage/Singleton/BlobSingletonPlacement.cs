@@ -57,7 +57,7 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
         TimeProvider? timeProvider = null
     )
     {
-        options.Validate();
+        options.Validate(nameof(options));
         _time = timeProvider ?? TimeProvider.System;
         _options = options;
         _lockScheme = lockScheme ?? new DefaultBlobLockScheme();
