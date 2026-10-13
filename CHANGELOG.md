@@ -41,12 +41,12 @@ hands locks over when instances join or leave. It is opt in; see
   while running messages finish. A handler stopped by its cancellation token is logged at Information
   instead of Error, and the message is still abandoned.
 - `KnightBus.Azure.Storage` 18.4.0: `UseBlobStorageLockManager` overloads taking placement options,
-  member leases for the group, and lock inspection. The storage queue receiver can drain. Lock blobs
+  member leases for the hosts, and lock inspection. The storage queue receiver can drain. Lock blobs
   record `LockId`, `HostName` and `AcquiredAtUtc` in their metadata, `LockId` replacing the unused
-  `FunctionInstance`. A host whose member lease lapses rejoins the group, and a member blob is only
+  `FunctionInstance`. A host whose member lease lapses rejoins the member list, and a member blob is only
   removed after it has been unleased for 10 minutes. Lock blob names always use `/`, so on Windows
   they no longer contain a backslash, which would have kept Windows hosts from seeing each other.
-- `KnightBus.Host` 18.4.0: the host joins the placement group before the receivers start and leaves it
+- `KnightBus.Host` 18.4.0: the host joins the placement before the receivers start and leaves it
   first on shutdown.
 
 Nothing changes for an application that does not register a placement.

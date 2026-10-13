@@ -1,57 +1,52 @@
 using System;
 using System.Collections.Generic;
-using System.Reflection;
 
 namespace KnightBus.Core.Singleton;
 
 /// <summary>
-/// Settings for spreading singleton locks over the hosts, see <see cref="ISingletonPlacement"/>
+/// Settings for spreading singleton locks over the hosts, see <see cref="ISingletonPlacement"/>.
+/// The timing and balancing settings are internal on purpose: their defaults are part of the design
+/// and are not meant to be tuned per application.
 /// </summary>
 public class SingletonPlacementOptions
 {
     private readonly Dictionary<Type, int> _weights = new();
 
     /// <summary>
-    /// Hosts only coordinate with hosts in the same group, so it must name a set of hosts that run
-    /// the same singleton processors. Defaults to the name of the entry assembly.
+    /// How often a host looks at who else is a member
     /// </summary>
-    public string Group { get; set; } = Assembly.GetEntryAssembly()?.GetName().Name ?? "default";
+    internal TimeSpan RefreshInterval { get; set; } = TimeSpan.FromSeconds(20);
 
     /// <summary>
-    /// How often a host looks at who else is in the group
-    /// </summary>
-    public TimeSpan RefreshInterval { get; set; } = TimeSpan.FromSeconds(20);
-
-    /// <summary>
-    /// The advice is dropped when the group could not be read for this long, which makes the host
+    /// The advice is dropped when the members could not be read for this long, which makes the host
     /// act as if there were no placement. Defaults to three refresh intervals.
     /// </summary>
-    public TimeSpan? StaleAfter { get; set; }
+    internal TimeSpan? StaleAfter { get; set; }
 
     /// <summary>
     /// How far above its fair share a host may go before the next ranked host is used, see
     /// <see cref="SingletonAssignment.Compute"/>
     /// </summary>
-    public double Epsilon { get; set; } = 0.25;
+    internal double Epsilon { get; set; } = 0.25;
 
     /// <summary>
     /// How long a host must have been a member before locks are handed over to it. During a rolling
     /// deploy the group changes many times in a row, and locks should not move to a host that is
     /// about to be replaced.
     /// </summary>
-    public TimeSpan StabilityWindow { get; set; } = TimeSpan.FromMinutes(2);
+    internal TimeSpan StabilityWindow { get; set; } = TimeSpan.FromMinutes(2);
 
     /// <summary>
     /// How long a host that is not the preferred holder leaves a lock alone before it tries to take
     /// it anyway, which covers a preferred host that is alive but not running the processor
     /// </summary>
-    public TimeSpan TakeoverGrace { get; set; } = TimeSpan.FromMinutes(2);
+    internal TimeSpan TakeoverGrace { get; set; } = TimeSpan.FromMinutes(2);
 
     /// <summary>
     /// The shortest time a host holds a lock before it hands it over, which keeps a lock from moving
     /// back and forth while the group is changing
     /// </summary>
-    public TimeSpan HandoffInterval { get; set; } = TimeSpan.FromMinutes(10);
+    internal TimeSpan HandoffInterval { get; set; } = TimeSpan.FromMinutes(10);
 
     /// <summary>
     /// How long a handing over host lets the message it is processing finish before it cancels it
@@ -61,7 +56,7 @@ public class SingletonPlacementOptions
     /// <summary>
     /// <see cref="StaleAfter"/>, or three refresh intervals when it is not set
     /// </summary>
-    public TimeSpan EffectiveStaleAfter => StaleAfter ?? RefreshInterval * 3;
+    internal TimeSpan EffectiveStaleAfter => StaleAfter ?? RefreshInterval * 3;
 
     /// <summary>
     /// Declares how heavy a singleton processor is relative to the others, so heavy ones are kept
@@ -78,15 +73,13 @@ public class SingletonPlacementOptions
     /// <summary>
     /// The declared weight of a processor type, 1 when none was declared
     /// </summary>
-    public int WeightOf(Type processorType) => _weights.GetValueOrDefault(processorType, 1);
+    internal int WeightOf(Type processorType) => _weights.GetValueOrDefault(processorType, 1);
 
     /// <summary>
     /// Throws when the combination of settings cannot work
     /// </summary>
-    public void Validate()
+    internal void Validate()
     {
-        if (string.IsNullOrWhiteSpace(Group))
-            throw new ArgumentException("Must not be empty", nameof(Group));
         if (RefreshInterval <= TimeSpan.Zero)
             throw new ArgumentOutOfRangeException(
                 nameof(RefreshInterval),

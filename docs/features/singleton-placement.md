@@ -19,17 +19,14 @@ services
     .UseBlobStorage(storageConnectionString)
     .UseBlobStorageLockManager(options =>
     {
-        // Instances only coordinate with instances in the same group.
-        options.Group = "my-worker";
-
         // Say which processors are heavy, so they are kept on different instances.
         options.Weight<RebuildSearchIndexProcessor>(10);
         options.Weight<RebuildRecommendationsProcessor>(10);
     });
 ```
 
-Every instance in a group must run the same singleton processors. The group defaults to the name of
-the entry assembly. Processors without a declared weight count as 1.
+Instances that use the same lock scheme (container and directory) coordinate with each other, so they
+should run the same singleton processors. Processors without a declared weight count as 1.
 
 ## What it does
 
@@ -41,15 +38,15 @@ the entry assembly. Processors without a declared weight count as 1.
 
 Placement is advisory. The lock itself still decides who may process, so a mistake in placement can
 make the distribution worse but can never make two instances process the same singleton. If the
-placement cannot read the group, it stops giving advice and every instance competes for the locks as
+placement cannot read the member list, it stops giving advice and every instance competes for the locks as
 it did before.
 
 ## How it works
 
 ### Membership
 
-Each instance keeps a lease on its own member blob, `{lock directory}/_members/{group}/{host id}`, and
-lists the member blobs of its group once per refresh interval. An instance is alive while its blob is
+Each instance keeps a lease on its own member blob, `{lock directory}/_members/{host id}`, and
+lists the member blobs in that directory every 20 seconds. An instance is alive while its blob is
 leased. The storage service decides that, so the clocks of the instances never need to agree. The
 member blob holds the processors the instance can run and their weights. The host id is the machine
 name (the pod name in Kubernetes) plus a random suffix per process start, so a restarted process is a
@@ -61,7 +58,7 @@ Every instance computes the same assignment from the same members, so no coordin
 are taken heaviest first. For each lock the instances are ranked by a stable hash of the lock id and
 the instance id (rendezvous hashing), and the first instance in the ranking that still has room gets
 it. An instance has room while it holds less than an average share, and the cap on what it may hold
-is its fair share of the weight that is left, plus some slack (`Epsilon`).
+is its fair share of the weight that is left, plus some slack .
 
 - Rendezvous hashing keeps a lock where it is when other instances join or leave: only about 1/N of
   the locks move.
@@ -69,23 +66,23 @@ is its fair share of the weight that is left, plus some slack (`Epsilon`).
   A lock heavier than the cap still gets placed, on an instance that holds nothing yet.
 - A lock is only assigned to an instance that can run it.
 
-`Epsilon` trades balance against movement. Measured over many random sets of 11 instances with 17
+The slack trades balance against movement. Measured over many random sets of 11 instances with 17
 light processors and two of weight 10:
 
-| `Epsilon` | Instances without work | Locks moved needlessly when an instance leaves | Locks moved when an instance joins |
+| Slack | Instances without work | Locks moved needlessly when an instance leaves | Locks moved when an instance joins |
 | --- | --- | --- | --- |
-| 0 | 0.0 | 3.6 of 19 | 3.2 |
-| 0.25 (default) | 1.0 | 0.8 of 19 | 2.3 |
+| 0% | 0.0 | 3.6 of 19 | 3.2 |
+| 25% (used) | 1.0 | 0.8 of 19 | 2.3 |
 
 The two heavy locks never shared an instance. A cap bounds the largest load, not the smallest, so
-with `Epsilon` above 0 one instance of 11 typically has no work. Every move is a hand-over, which
-costs a drain and possibly a cancellation, so the default favours stability.
+with any slack one instance of 11 typically has no work. Every move is a hand-over, which
+costs a drain and possibly a cancellation, so the slack favours stability.
 
 ### Taking a lock
 
 - An instance that is the preferred holder takes the lock as soon as it is free, as before.
 - An instance that is not the preferred holder leaves the lock alone. It takes it only if it has seen
-  the lock free for a whole `TakeoverGrace`, which covers a preferred instance that is alive but not
+  the lock free for a whole 2 minutes, which covers a preferred instance that is alive but not
   taking the lock. Seeing a lock free needs a lock manager that can inspect a lock without taking it
   (`ISingletonLockInspector`, which the blob lock manager implements). The grace is measured from when
   the lock was first seen free, not from when the instance started waiting.
@@ -93,7 +90,7 @@ costs a drain and possibly a cancellation, so the default favours stability.
 ### Handing a lock over
 
 An instance that holds a lock it is not the preferred holder of hands it over once the preferred
-instance has been a member for `StabilityWindow` and the lock has been held for `HandoffInterval`.
+instance has been a member for 2 minutes and the lock has been held for 10 minutes.
 Both exist so that locks do not move to an instance that is about to be replaced, which is the normal
 state during a rolling deploy, and do not move back and forth.
 
@@ -108,51 +105,26 @@ Azure Service Bus, Redis, PostgreSQL and NATS, cancel the running message straig
 A cancelled message is abandoned and delivered again. The delivery counts against the processor's
 `DeadLetterDeliveryLimit`, because the transport counts every delivery and KnightBus cannot take one
 back, and a message is dead-lettered when its delivery count exceeds the limit. This only matters if
-one message is cancelled repeatedly, which `HandoffInterval` and `DrainTimeout` make unlikely, but a
+one message is cancelled repeatedly, which the 10 minute hold and `DrainTimeout` make unlikely, but a
 processor with a limit of 1 or 2 should not take long to process a message.
 
 ### Leaving
 
-On shutdown an instance leaves the group first, so the others start counting on its locks while it
+On shutdown an instance leaves the member list first, so the others start counting on its locks while it
 drains, and releases its own locks as it always did.
 
 ## Options
 
 | Option | Default | Meaning |
 | --- | --- | --- |
-| `Group` | entry assembly name | Instances coordinate only within a group |
-| `RefreshInterval` | 20 s | How often an instance reads who else is in the group |
-| `StaleAfter` | 3 × `RefreshInterval` | If the group cannot be read for this long, placement stops giving advice |
-| `Epsilon` | 0.25 | Slack over the fair share, see above |
-| `StabilityWindow` | 2 min | How long an instance must have been a member before locks are handed to it |
-| `TakeoverGrace` | 2 min | How long a lock must be seen free before an instance that is not preferred takes it |
-| `HandoffInterval` | 10 min | The shortest time a lock is held before it is handed over |
 | `DrainTimeout` | 5 min | How long a hand-over waits for the running message before cancelling it |
 | `Weight<TProcessor>(n)` | 1 | How heavy a processor is relative to the others |
 
+The rest of the behaviour is fixed: instances read the member list every 20 seconds and stop giving
+advice when it could not be read for three refreshes, the slack over the fair share is 0.25, an
+instance must have been a member for 2 minutes before locks are handed to it, a lock must have been
+seen free for 2 minutes before an instance that is not preferred takes it, and a lock is held for at
+least 10 minutes before it is handed over.
+
 How quickly a lock moves is bounded by the singleton poll interval as well, see
 [singleton processing](singleton-processing.md#what-the-marker-changes) and `ConfigureSingletons`.
-
-## Seeing where the locks are
-
-The blob lease of each lock records the holding instance in its metadata (`HostName`, which is the
-machine name, and `AcquiredAtUtc`), so the current distribution can be read from the lock container
-without any other tooling. Placement logs when it hands a lock over.
-
-## Alternatives that were considered
-
-| Option | Why not |
-| --- | --- |
-| Cap the number of locks per instance in a custom lock manager | Needs the number of instances from somewhere, gives no stable ownership, and never hands a lock off, so a new instance gets nothing until someone dies |
-| Plain rendezvous hashing | Stable but unbalanced for few locks, and cannot keep heavy locks apart. It is the ranking inside the chosen design |
-| Greedy assignment by weight | The best balance, but every membership change reshuffles most locks |
-| A leader that computes the assignment | Needs leader election, which is itself a lock, and a leader failure stalls re-assignment |
-| Broker sessions as the singleton | Only covers one transport and is a much larger change to the programming model |
-| Placement from measured load | Needs a trusted, comparable load signal. Declared weights approximate it |
-
-## Known limits
-
-- Schedules (`IProcessSchedule`) are not placed. A schedule trigger is short and normally only sends a
-  command, so the work lands on the message processors, which are placed.
-- Only the blob lock manager supports placement.
-- Instances that run different sets of singleton processors must be in different groups.
