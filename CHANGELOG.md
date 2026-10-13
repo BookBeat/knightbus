@@ -30,6 +30,18 @@ instance waits between attempts to take a singleton lock, so instances that star
 poll in lock-step. The wait is never shorter than before, so failover is not faster, and it can be up
 to 20% slower. Set `PollJitter` to 0 to keep the exact old timing. Schedule locks are not affected.
 
+### Singleton placement: letting a hand-over wait for the running message
+A receiver that can stop fetching without cancelling the messages it is processing lets a singleton
+lock be handed over without cancelling work that is about to finish. The hand-over waits for up to
+the processor's `MessageLockTimeout`, then cancels.
+
+- `KnightBus.Core` 18.6.0: `IDrainableChannelReceiver` and `GenericMessagePump.StopFetchingAsync`.
+- `KnightBus.Azure.Storage` 18.5.0: the storage queue receiver can drain.
+- `KnightBus.Azure.ServiceBus` 24.3.0: the queue and topic receivers can drain.
+- `KnightBus.Host` 18.5.0: a hand-over drains receivers that can.
+
+Receivers that cannot drain, today Redis, PostgreSQL and NATS, are cancelled straight away as before.
+
 ### Singleton placement: spreading singleton locks over the running instances
 Every singleton lock was an independent race, so the instance that started first took all of them and
 kept them. Placement spreads the locks over the live instances, keeps heavy processors apart, and
@@ -48,7 +60,6 @@ hands locks over when instances join or leave. It is on by default with the blob
   and a member blob is only removed after it has been unleased for 10 minutes. Lock blob names
   always use `/`, so on Windows they no longer contain a backslash, which would have kept Windows
   hosts from seeing each other.
-- `KnightBus.Azure.ServiceBus` 24.3.0: the receivers can drain.
 - `KnightBus.Host` 18.4.0: the host joins the placement before the receivers start and leaves it
   first on shutdown.
 
