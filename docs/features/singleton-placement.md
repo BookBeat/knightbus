@@ -113,7 +113,8 @@ A hand-over stops fetching new messages and lets the message being processed fin
 processor's `MessageLockTimeout`, which is the longest a message may be in flight anyway. Then it
 cancels the handler, waits briefly for it to unwind and releases the lock. A handler that stays
 within its message lock is never cancelled by a hand-over, but every handler must still tolerate
-cancellation, as it already has to on shutdown.
+cancellation, as it already has to on shutdown. The cancellation is logged like any other
+cancelled handler.
 
 Stopping the fetch without cancelling the running message needs support from the receiver
 (`IDrainableChannelReceiver`). The Azure Storage queue and Azure Service Bus receivers have it.
