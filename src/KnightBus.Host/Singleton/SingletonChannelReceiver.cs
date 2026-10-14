@@ -138,7 +138,8 @@ internal class SingletonChannelReceiver : IChannelReceiver
                 return false;
             }
         }
-        catch (Exception e) when (e is not OperationCanceledException)
+        catch (Exception e)
+            when (e is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
             _log.LogWarning(e, "Could not tell whether {ProcessorName} is locked", _lockId);
             _freeSince = null;

@@ -300,7 +300,8 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
             _contentCache[hostId] = (etag, locks);
             return locks;
         }
-        catch (Exception e) when (e is not OperationCanceledException)
+        catch (Exception e)
+            when (e is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
             //A member that cannot be read is left out of this round rather than failing the refresh
             _log.LogWarning(e, "Could not read the member blob {Member}", name);
@@ -317,7 +318,8 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
                 .DeleteIfExistsAsync(cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
         }
-        catch (Exception e) when (e is not OperationCanceledException)
+        catch (Exception e)
+            when (e is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
             //Leased again or removed by another host in the meantime
             _log.LogDebug(e, "Could not remove the abandoned member blob {Member}", name);
