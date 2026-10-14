@@ -121,6 +121,21 @@ public class KnightBusHost : IHostedService
         _configuration.Log.LogInformation("KnightBus started");
     }
 
+    private async Task LeavePlacementAsync(CancellationToken cancellationToken)
+    {
+        if (_placement == null)
+            return;
+        try
+        {
+            await _placement.StopAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception e)
+            when (e is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
+        {
+            _configuration.Log.LogWarning(e, "Could not leave the singleton placement group");
+        }
+    }
+
     public async Task StopAsync(CancellationToken cancellationToken)
     {
         _configuration.Log.LogInformation(
@@ -129,21 +144,9 @@ public class KnightBusHost : IHostedService
         _shutdownToken.Cancel();
 
         //Leave the group right away: the other hosts can then start counting on the locks this one
-        //is about to release, instead of leaving them alone for the grace period
-        if (_placement != null)
-        {
-            try
-            {
-                await _placement.StopAsync(cancellationToken).ConfigureAwait(false);
-            }
-            catch (Exception e)
-                when (e is not OperationCanceledException
-                    || !cancellationToken.IsCancellationRequested
-                )
-            {
-                _configuration.Log.LogWarning(e, "Could not leave the singleton placement group");
-            }
-        }
+        //is about to release, instead of leaving them alone for the grace period. It runs alongside
+        //the drain, so slow storage does not hold the rest of the shutdown up
+        var leaving = LeavePlacementAsync(cancellationToken);
 
         //Signal stoppable plugins right away so they stop accepting new work while the
         //pipeline drains, their completion is awaited after the drain
@@ -186,6 +189,7 @@ public class KnightBusHost : IHostedService
             .OfType<SingletonChannelReceiver>()
             .Select(receiver => receiver.TeardownCompletion)
             .Concat(pluginStops)
+            .Append(leaving)
             .ToArray();
         if (teardowns.Length > 0)
         {

@@ -76,7 +76,7 @@ public class SingletonPlacementReceiverTests
     public async Task Should_take_the_lock_right_away_when_this_host_is_preferred()
     {
         await using var f = new Fixture();
-        f.Placement.Prefer(Lock, Me, self: true);
+        f.Placement.Prefer(Lock, Me);
 
         await f.Start();
 
@@ -110,7 +110,7 @@ public class SingletonPlacementReceiverTests
         f.Receiver.TimerInterval = TimeSpan.FromMinutes(1);
         f.Receiver.PreferredPollInterval = TimeSpan.FromMilliseconds(20);
         f.Locks.Take(Lock, Other);
-        f.Placement.Prefer(Lock, Me, self: true);
+        f.Placement.Prefer(Lock, Me);
         await f.Start();
         await Eventually(() => f.Locks.Attempts >= 2);
 
@@ -129,7 +129,7 @@ public class SingletonPlacementReceiverTests
         f.Receiver.TimerInterval = TimeSpan.FromMinutes(1);
         f.Receiver.PreferredPollInterval = TimeSpan.FromMilliseconds(20);
         f.Locks.Take(Lock, Other);
-        f.Placement.Prefer(Lock, Other, self: false);
+        f.Placement.Prefer(Lock, Other);
 
         //act
         await f.Start();
@@ -157,7 +157,7 @@ public class SingletonPlacementReceiverTests
     {
         //arrange
         await using var f = new Fixture();
-        f.Placement.Prefer(Lock, Other, self: false);
+        f.Placement.Prefer(Lock, Other);
 
         //act: the lock is free, but another host should have it
         await f.Start();
@@ -173,7 +173,7 @@ public class SingletonPlacementReceiverTests
     {
         //arrange
         await using var f = new Fixture();
-        f.Placement.Prefer(Lock, Other, self: false);
+        f.Placement.Prefer(Lock, Other);
         await f.Start();
 
         //act
@@ -187,10 +187,10 @@ public class SingletonPlacementReceiverTests
     [Test]
     public async Task Should_measure_the_grace_period_from_when_the_lock_became_free()
     {
-        //arrange: another host holds the lock for a long time while it is the one that should not have it
+        //arrange: another host holds the lock for a long time, and a third host should have it
         await using var f = new Fixture();
         f.Locks.Take(Lock, Other);
-        f.Placement.Prefer(Lock, Me, self: false);
+        f.Placement.Prefer(Lock, "third");
         await f.Start();
         f.Time.Advance(TimeSpan.FromHours(1));
         await Task.Delay(100);
@@ -211,7 +211,7 @@ public class SingletonPlacementReceiverTests
         //arrange: a lock manager that cannot be inspected
         var f = new Fixture(inspectable: false);
         await using var _ = f;
-        f.Placement.Prefer(Lock, Other, self: false);
+        f.Placement.Prefer(Lock, Other);
 
         //act
         await f.Start();
@@ -227,12 +227,12 @@ public class SingletonPlacementReceiverTests
     {
         //arrange: this host holds the lock, then another host becomes the preferred one
         await using var f = new Fixture();
-        f.Placement.Prefer(Lock, Me, self: true);
+        f.Placement.Prefer(Lock, Me);
         await f.Start();
         f.Time.Advance(TimeSpan.FromMinutes(11));
 
         //act
-        f.Placement.Prefer(Lock, Other, self: false);
+        f.Placement.Prefer(Lock, Other);
         await Eventually(() => f.Locks.Holder(Lock) == null);
 
         //assert: the receiver was stopped before the lock was released
@@ -249,12 +249,12 @@ public class SingletonPlacementReceiverTests
         //arrange
         var log = new ListLogger();
         await using var f = new Fixture(log: log);
-        f.Placement.Prefer(Lock, Me, self: true);
+        f.Placement.Prefer(Lock, Me);
         await f.Start();
         f.Time.Advance(TimeSpan.FromMinutes(11));
 
         //act
-        f.Placement.Prefer(Lock, Other, self: false);
+        f.Placement.Prefer(Lock, Other);
         await Eventually(() => f.Locks.Holder(Lock) == null);
 
         //assert
@@ -275,7 +275,7 @@ public class SingletonPlacementReceiverTests
     {
         //arrange: a message that keeps running after it is cancelled
         await using var f = new Fixture();
-        f.Placement.Prefer(Lock, Me, self: true);
+        f.Placement.Prefer(Lock, Me);
         await f.Start();
         var message = f.InFlight.ProcessAsync(
             Mock.Of<IMessageStateHandler<TestCommand>>(),
@@ -284,7 +284,7 @@ public class SingletonPlacementReceiverTests
         f.Time.Advance(TimeSpan.FromMinutes(11));
 
         //act
-        f.Placement.Prefer(Lock, Other, self: false);
+        f.Placement.Prefer(Lock, Other);
         await Eventually(() => f.Inner.Token!.Value.IsCancellationRequested);
         await Task.Delay(300);
 
@@ -296,11 +296,11 @@ public class SingletonPlacementReceiverTests
     }
 
     [Test]
-    public async Task Should_hand_over_once_the_message_lock_has_run_out()
+    public async Task Should_keep_the_lock_for_as_long_as_a_cancelled_message_keeps_running()
     {
-        //arrange: a message that never stops
-        await using var f = new Fixture(lockTimeout: TimeSpan.FromMilliseconds(200));
-        f.Placement.Prefer(Lock, Me, self: true);
+        //arrange: a message that ignores its cancellation for longer than its message lock
+        await using var f = new Fixture(lockTimeout: TimeSpan.FromMilliseconds(100));
+        f.Placement.Prefer(Lock, Me);
         await f.Start();
         _ = f.InFlight.ProcessAsync(
             Mock.Of<IMessageStateHandler<TestCommand>>(),
@@ -309,9 +309,13 @@ public class SingletonPlacementReceiverTests
         f.Time.Advance(TimeSpan.FromMinutes(11));
 
         //act
-        f.Placement.Prefer(Lock, Other, self: false);
+        f.Placement.Prefer(Lock, Other);
+        await Eventually(() => f.Inner.Token!.Value.IsCancellationRequested);
+        await Task.Delay(500);
 
-        //assert: the transport has given the message to someone else by then anyway
+        //assert: the next holder must not start while the message is still running
+        f.Locks.Holder(Lock).Should().Be(Me);
+        f.Processor.Gate.SetResult();
         await Eventually(() => f.Locks.Holder(Lock) == null);
     }
 
@@ -319,11 +323,11 @@ public class SingletonPlacementReceiverTests
     public async Task Should_not_hand_over_a_lock_it_has_only_just_taken()
     {
         await using var f = new Fixture();
-        f.Placement.Prefer(Lock, Me, self: true);
+        f.Placement.Prefer(Lock, Me);
         await f.Start();
         f.Time.Advance(TimeSpan.FromMinutes(1));
 
-        f.Placement.Prefer(Lock, Other, self: false);
+        f.Placement.Prefer(Lock, Other);
         await Task.Delay(300);
 
         f.Locks.Holder(Lock).Should().Be(Me);
@@ -334,13 +338,13 @@ public class SingletonPlacementReceiverTests
     {
         //arrange
         await using var f = new Fixture();
-        f.Placement.Prefer(Lock, Me, self: true);
+        f.Placement.Prefer(Lock, Me);
         await f.Start();
         f.Inner.HoldDrain = new TaskCompletionSource();
         f.Time.Advance(TimeSpan.FromMinutes(11));
 
         //act
-        f.Placement.Prefer(Lock, Other, self: false);
+        f.Placement.Prefer(Lock, Other);
         await Eventually(() => f.Inner.StopFetchingCalls == 1);
         await Task.Delay(200);
 
@@ -358,13 +362,13 @@ public class SingletonPlacementReceiverTests
     {
         //arrange
         await using var f = new Fixture(lockTimeout: TimeSpan.FromMilliseconds(150));
-        f.Placement.Prefer(Lock, Me, self: true);
+        f.Placement.Prefer(Lock, Me);
         await f.Start();
         f.Inner.HoldDrain = new TaskCompletionSource(); //never completes
         f.Time.Advance(TimeSpan.FromMinutes(11));
 
         //act
-        f.Placement.Prefer(Lock, Other, self: false);
+        f.Placement.Prefer(Lock, Other);
 
         //assert
         await Eventually(() => f.Locks.Holder(Lock) == null);
@@ -376,11 +380,11 @@ public class SingletonPlacementReceiverTests
     {
         //arrange: a hand-over is waiting for a message that takes a long time
         await using var f = new Fixture();
-        f.Placement.Prefer(Lock, Me, self: true);
+        f.Placement.Prefer(Lock, Me);
         await f.Start();
         f.Inner.HoldDrain = new TaskCompletionSource(); //never completes
         f.Time.Advance(TimeSpan.FromMinutes(11));
-        f.Placement.Prefer(Lock, Other, self: false);
+        f.Placement.Prefer(Lock, Other);
         await Eventually(() => f.Inner.StopFetchingCalls == 1);
         f.Locks.Holder(Lock).Should().Be(Me);
 
@@ -395,11 +399,11 @@ public class SingletonPlacementReceiverTests
     public async Task Should_cancel_and_release_when_the_receiver_cannot_drain()
     {
         await using var f = new Fixture(drainable: false);
-        f.Placement.Prefer(Lock, Me, self: true);
+        f.Placement.Prefer(Lock, Me);
         await f.Start();
         f.Time.Advance(TimeSpan.FromMinutes(11));
 
-        f.Placement.Prefer(Lock, Other, self: false);
+        f.Placement.Prefer(Lock, Other);
 
         await Eventually(() => f.Locks.Holder(Lock) == null);
         f.Inner.StopFetchingCalls.Should().Be(0);
@@ -411,7 +415,7 @@ public class SingletonPlacementReceiverTests
     {
         //arrange: the placement lost sight of the group while this host holds the lock
         await using var f = new Fixture();
-        f.Placement.Prefer(Lock, Me, self: true);
+        f.Placement.Prefer(Lock, Me);
         await f.Start();
         f.Time.Advance(TimeSpan.FromMinutes(11));
 
@@ -447,12 +451,11 @@ public class SingletonPlacementReceiverTests
 
     private sealed class FakePlacement : ISingletonPlacement
     {
-        private readonly ConcurrentDictionary<string, SingletonPlacementAdvice> _advice = new();
+        private readonly ConcurrentDictionary<string, string> _advice = new();
 
         public string HostId => Me;
 
-        public void Prefer(string lockId, string host, bool self) =>
-            _advice[lockId] = new SingletonPlacementAdvice(host, self);
+        public void Prefer(string lockId, string host) => _advice[lockId] = host;
 
         public void Clear(string lockId) => _advice.TryRemove(lockId, out _);
 
@@ -463,7 +466,7 @@ public class SingletonPlacementReceiverTests
 
         public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
-        public SingletonPlacementAdvice? Advise(string lockId) =>
+        public string? Advise(string lockId) =>
             _advice.TryGetValue(lockId, out var advice) ? advice : null;
     }
 

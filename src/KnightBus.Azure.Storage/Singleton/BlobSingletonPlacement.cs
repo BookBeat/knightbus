@@ -104,8 +104,13 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
                 _locks.Count
             );
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            //Nothing stops the member lease renewal once the start is abandoned
+            await lifetime.CancelAsync().ConfigureAwait(false);
+            throw;
+        }
         catch (Exception e)
-            when (e is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
             _log.LogWarning(
                 e,
@@ -166,13 +171,19 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
         if (_lifetime == null)
             return;
         await _lifetime.CancelAsync().ConfigureAwait(false);
+        //The waits give up with the stop token: the lease runs out by itself if it is not released
         if (_refreshLoop != null)
-            await _refreshLoop.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+            await _refreshLoop
+                .WaitAsync(cancellationToken)
+                .ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
         if (_memberLease != null)
         {
             //Cancelling the scope releases the lease; wait for that so the others see us leave
-            await _memberLease.Completion.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
-            _memberLease.Dispose();
+            await _memberLease
+                .Completion.WaitAsync(cancellationToken)
+                .ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+            if (_memberLease.Completion.IsCompleted)
+                _memberLease.Dispose();
         }
 
         try
@@ -194,14 +205,14 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
         _log.LogInformation("Host {HostId} left the singleton placement", HostId);
     }
 
-    public SingletonPlacementAdvice? Advise(string lockId)
+    public string? Advise(string lockId)
     {
         var snapshot = Volatile.Read(ref _snapshot);
         if (snapshot == null || _time.GetElapsedTime(snapshot.TakenAt) > StaleAfter)
             return null;
         if (!snapshot.Assignment.TryGetValue(lockId, out var preferred))
             return null;
-        return new SingletonPlacementAdvice(preferred, preferred == HostId);
+        return preferred;
     }
 
     private async Task RefreshLoop(CancellationToken cancellationToken)

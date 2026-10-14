@@ -181,12 +181,11 @@ public class SingletonRebalanceSimulationTests
             );
         }
 
-        public SingletonPlacementAdvice? Advise(string self, string lockId)
+        public string? Advise(string self, string lockId)
         {
             if (!_members.ContainsKey(self))
                 return null;
-            var preferred = Preferred()[lockId];
-            return new SingletonPlacementAdvice(preferred, preferred == self);
+            return Preferred()[lockId];
         }
 
         public bool IsLocked(string lockId) => _holders.ContainsKey(lockId);
@@ -266,7 +265,7 @@ public class SingletonRebalanceSimulationTests
 
         public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
-        public SingletonPlacementAdvice? Advise(string lockId) => world.Advise(self, lockId);
+        public string? Advise(string lockId) => world.Advise(self, lockId);
     }
 
     private sealed class Locks(World world, string host)

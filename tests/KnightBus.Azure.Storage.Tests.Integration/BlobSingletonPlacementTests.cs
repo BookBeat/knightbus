@@ -75,14 +75,10 @@ public class BlobSingletonPlacementTests
         //assert
         foreach (var lockId in Locks)
         {
-            var a = first.Advise(lockId)!;
-            var b = second.Advise(lockId)!;
-            a.PreferredHost.Should().Be(b.PreferredHost, lockId);
-            a.PreferredIsSelf.Should().Be(a.PreferredHost == first.HostId);
-            b.PreferredIsSelf.Should().Be(b.PreferredHost == second.HostId);
+            first.Advise(lockId).Should().Be(second.Advise(lockId), lockId);
         }
         Locks
-            .Select(l => first.Advise(l)!.PreferredHost)
+            .Select(l => first.Advise(l))
             .Distinct()
             .Should()
             .BeEquivalentTo(
@@ -107,7 +103,7 @@ public class BlobSingletonPlacementTests
         await one.RefreshAsync(CancellationToken.None);
 
         //assert
-        Locks.Select(l => one.Advise(l)!.PreferredHost).Should().OnlyContain(h => h == one.HostId);
+        Locks.Select(l => one.Advise(l)).Should().OnlyContain(h => h == one.HostId);
 
         await one.StopAsync(CancellationToken.None);
         await other.StopAsync(CancellationToken.None);
@@ -124,7 +120,7 @@ public class BlobSingletonPlacementTests
         await leaving.StartAsync(LockWeights, CancellationToken.None);
         await staying.RefreshAsync(CancellationToken.None);
         Locks
-            .Select(l => staying.Advise(l)!.PreferredHost)
+            .Select(l => staying.Advise(l))
             .Should()
             .Contain(leaving.HostId, "the leaving host had a share before it left");
 
@@ -133,10 +129,7 @@ public class BlobSingletonPlacementTests
         await staying.RefreshAsync(CancellationToken.None);
 
         //assert
-        Locks
-            .Select(l => staying.Advise(l)!.PreferredHost)
-            .Should()
-            .OnlyContain(h => h == staying.HostId);
+        Locks.Select(l => staying.Advise(l)).Should().OnlyContain(h => h == staying.HostId);
         var remaining = new BlobContainerClient(StorageSetup.ConnectionString, scheme.ContainerName)
             .GetBlobs(
                 BlobTraits.None,
@@ -166,7 +159,7 @@ public class BlobSingletonPlacementTests
         await second.StopAsync(CancellationToken.None);
 
         //assert: the hosts saw each other, and the one that left removed its member blob
-        Locks.Select(l => first.Advise(l)!.PreferredHost).Should().Contain(second.HostId);
+        Locks.Select(l => first.Advise(l)).Should().Contain(second.HostId);
         new BlobContainerClient(StorageSetup.ConnectionString, scheme.ContainerName)
             .GetBlobs(
                 BlobTraits.None,
@@ -205,10 +198,7 @@ public class BlobSingletonPlacementTests
         await placement.RefreshAsync(CancellationToken.None);
 
         //assert: without a lease it is not alive, so it gets no locks
-        Locks
-            .Select(l => placement.Advise(l)!.PreferredHost)
-            .Should()
-            .OnlyContain(h => h == placement.HostId);
+        Locks.Select(l => placement.Advise(l)).Should().OnlyContain(h => h == placement.HostId);
 
         await placement.StopAsync(CancellationToken.None);
     }
@@ -369,7 +359,7 @@ public class BlobSingletonPlacementTests
         (await member.GetPropertiesAsync())
             .Value.LeaseState.Should()
             .Be(LeaseState.Leased);
-        placement.Advise("Lock0")!.PreferredIsSelf.Should().BeTrue();
+        placement.Advise("Lock0").Should().Be(placement.HostId);
 
         await placement.StopAsync(CancellationToken.None);
     }
@@ -444,10 +434,7 @@ public class BlobSingletonPlacementTests
         await withLocks.RefreshAsync(CancellationToken.None);
 
         //assert
-        Locks
-            .Select(l => withLocks.Advise(l)!.PreferredHost)
-            .Should()
-            .OnlyContain(h => h == withLocks.HostId);
+        Locks.Select(l => withLocks.Advise(l)).Should().OnlyContain(h => h == withLocks.HostId);
         var members = new BlobContainerClient(StorageSetup.ConnectionString, scheme.ContainerName)
             .GetBlobs(
                 BlobTraits.None,
