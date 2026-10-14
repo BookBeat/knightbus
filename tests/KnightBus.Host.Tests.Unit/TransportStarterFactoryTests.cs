@@ -122,6 +122,64 @@ public class TransportStarterFactoryTests
     }
 
     [Test]
+    public void Should_count_the_messages_a_singleton_is_handling()
+    {
+        //arrange
+        var config = new Mock<ITransportConfiguration>();
+        config.Setup(x => x.MessageSerializer).Returns(new MicrosoftJsonSerializer());
+        var channel = new Mock<ITransportChannelFactory>();
+        channel.Setup(x => x.CanCreate(typeof(TestEvent))).Returns(true);
+        channel.Setup(x => x.Configuration).Returns(config.Object);
+        var underlyingReceiver = new Mock<IChannelReceiver>();
+        underlyingReceiver
+            .Setup(x => x.Settings)
+            .Returns(new SingletonProcessingSettings { DeadLetterDeliveryLimit = 1 });
+        channel
+            .Setup(x =>
+                x.Create(
+                    typeof(TestEvent),
+                    It.IsAny<TestSubscription>(),
+                    It.IsAny<IProcessingSettings>(),
+                    It.IsAny<IMessageSerializer>(),
+                    It.IsAny<IHostConfiguration>(),
+                    It.IsAny<IMessageProcessor>()
+                )
+            )
+            .Returns(underlyingReceiver.Object);
+        var collection = new ServiceCollection();
+        collection.UseSingletonLocks(Mock.Of<ISingletonLockManager>());
+        var starter = new TransportStarterFactory(
+            new[] { channel.Object },
+            new HostConfiguration
+            {
+                DependencyInjection = new MicrosoftDependencyInjection(
+                    collection.BuildServiceProvider()
+                ),
+                Log = Mock.Of<ILogger>(),
+            }
+        );
+
+        //act
+        starter.CreateChannelReceiver(
+            new EventProcessorFactory(),
+            typeof(IProcessEvent<TestEvent, TestSubscription, TestTopicSettings>),
+            typeof(SingletonEventProcessor)
+        );
+
+        //assert: a hand-over keeps the lock until these messages have stopped
+        channel.Verify(x =>
+            x.Create(
+                typeof(TestEvent),
+                It.IsAny<TestSubscription>(),
+                It.IsAny<IProcessingSettings>(),
+                It.IsAny<IMessageSerializer>(),
+                It.IsAny<IHostConfiguration>(),
+                It.Is<IMessageProcessor>(p => p is InFlightMessages)
+            )
+        );
+    }
+
+    [Test]
     public void Should_apply_singleton_options_to_the_receiver()
     {
         //act

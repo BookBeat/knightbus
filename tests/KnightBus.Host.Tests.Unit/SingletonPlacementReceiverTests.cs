@@ -8,6 +8,7 @@ using AwesomeAssertions;
 using KnightBus.Core;
 using KnightBus.Core.Singleton;
 using KnightBus.Host.Singleton;
+using KnightBus.Messages;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
@@ -28,6 +29,8 @@ public class SingletonPlacementReceiverTests
         public readonly InMemoryLocks Locks = new();
         public readonly FakeReceiver Inner = new();
         public readonly CancellationTokenSource Shutdown = new();
+        public readonly GatedProcessor Processor = new();
+        public readonly InFlightMessages InFlight;
         public SingletonChannelReceiver Receiver { get; }
 
         public Fixture(
@@ -38,6 +41,7 @@ public class SingletonPlacementReceiverTests
         )
         {
             Inner.Drainable = drainable;
+            InFlight = new InFlightMessages(Processor);
             //A hand-over lets the running message finish for as long as its lock lasts
             Inner.Settings = new SingletonProcessingSettings
             {
@@ -49,7 +53,8 @@ public class SingletonPlacementReceiverTests
                 log ?? Mock.Of<ILogger>(),
                 Lock,
                 null,
-                Placement
+                Placement,
+                InFlight
             )
             {
                 TimerInterval = TimeSpan.FromMilliseconds(20),
@@ -226,6 +231,51 @@ public class SingletonPlacementReceiverTests
                 $"Singleton Processor with name {Lock} on host {Me} stopped holding its lock"
             )
         );
+    }
+
+    [Test]
+    public async Task Should_keep_the_lock_until_the_cancelled_message_has_stopped()
+    {
+        //arrange: a message that keeps running after it is cancelled
+        await using var f = new Fixture();
+        f.Placement.Prefer(Lock, Me, self: true);
+        await f.Start();
+        var message = f.InFlight.ProcessAsync(
+            Mock.Of<IMessageStateHandler<TestCommand>>(),
+            CancellationToken.None
+        );
+        f.Time.Advance(TimeSpan.FromMinutes(11));
+
+        //act
+        f.Placement.Prefer(Lock, Other, self: false);
+        await Eventually(() => f.Inner.Token!.Value.IsCancellationRequested);
+        await Task.Delay(300);
+
+        //assert: the receiver is stopped, but the lock stays until the message is done
+        f.Locks.Holder(Lock).Should().Be(Me);
+        f.Processor.Gate.SetResult();
+        await message;
+        await Eventually(() => f.Locks.Holder(Lock) == null);
+    }
+
+    [Test]
+    public async Task Should_hand_over_once_the_message_lock_has_run_out()
+    {
+        //arrange: a message that never stops
+        await using var f = new Fixture(lockTimeout: TimeSpan.FromMilliseconds(200));
+        f.Placement.Prefer(Lock, Me, self: true);
+        await f.Start();
+        _ = f.InFlight.ProcessAsync(
+            Mock.Of<IMessageStateHandler<TestCommand>>(),
+            CancellationToken.None
+        );
+        f.Time.Advance(TimeSpan.FromMinutes(11));
+
+        //act
+        f.Placement.Prefer(Lock, Other, self: false);
+
+        //assert: the transport has given the message to someone else by then anyway
+        await Eventually(() => f.Locks.Holder(Lock) == null);
     }
 
     [Test]
@@ -500,5 +550,17 @@ public class SingletonPlacementReceiverTests
             Exception? exception,
             Func<TState, Exception?, string> formatter
         ) => Messages.Enqueue(formatter(state, exception));
+    }
+
+    //Handles a message until the gate opens, whatever its cancellation token says
+    private sealed class GatedProcessor : IMessageProcessor
+    {
+        public TaskCompletionSource Gate { get; } = new();
+
+        public Task ProcessAsync<T>(
+            IMessageStateHandler<T> messageStateHandler,
+            CancellationToken cancellationToken
+        )
+            where T : class, IMessage => Gate.Task;
     }
 }
