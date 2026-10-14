@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -31,7 +30,7 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
     private readonly ILogger _log;
     private readonly BlobLockManager _lockManager;
     private readonly TimeProvider _time;
-    private readonly ConcurrentDictionary<string, int> _locks = new(StringComparer.Ordinal);
+    private IReadOnlyDictionary<string, int> _locks = new Dictionary<string, int>();
     private readonly Dictionary<
         string,
         (string ETag, IReadOnlyDictionary<string, int> Locks)
@@ -76,13 +75,15 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
     //compete for the locks as they do without placement
     internal TimeSpan StaleAfter { get; init; } = TimeSpan.FromMinutes(1);
 
-    public void Register(string lockId, int weight) => _locks[lockId] = Math.Max(1, weight);
-
-    public async Task StartAsync(CancellationToken cancellationToken)
+    public async Task StartAsync(
+        IReadOnlyDictionary<string, int> locks,
+        CancellationToken cancellationToken
+    )
     {
         //A host without singleton processors has nothing to place and must not count as a member
-        if (_locks.IsEmpty)
+        if (locks.Count == 0)
             return;
+        _locks = locks.ToDictionary(x => x.Key, x => Math.Max(1, x.Value), StringComparer.Ordinal);
         await _lockManager.InitializeAsync().ConfigureAwait(false);
         await _container
             .CreateIfNotExistsAsync(cancellationToken: cancellationToken)
@@ -107,7 +108,7 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
         //Content first, then the lease: the lease is what makes the member count as alive
         var blob = _container.GetBlobClient(BlobLockManager.BlobName(_lockScheme, _memberId));
         await blob.UploadAsync(
-                BinaryData.FromObjectAsJson(_locks.ToDictionary(x => x.Key, x => x.Value)),
+                BinaryData.FromObjectAsJson(_locks),
                 overwrite: true,
                 cancellationToken
             )
@@ -247,7 +248,7 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
         }
 
         //This host is always a member of its own view, even if the listing is behind
-        hosts.Add(new SingletonHostInfo(HostId, _locks.ToDictionary(x => x.Key, x => x.Value)));
+        hosts.Add(new SingletonHostInfo(HostId, _locks));
 
         var ids = hosts.Select(h => h.HostId).ToHashSet(StringComparer.Ordinal);
         foreach (var gone in _contentCache.Keys.Where(k => !ids.Contains(k)).ToList())

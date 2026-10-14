@@ -120,7 +120,6 @@ internal class TransportStarterFactory
             var placement = _configuration
                 .DependencyInjection.GetInstances<ISingletonPlacement>()
                 .LastOrDefault();
-            placement?.Register(lockId, WeightOf(processingSettings, type));
 
             var singletonStarter = new SingletonChannelReceiver(
                 channelReceiver,
@@ -135,6 +134,7 @@ internal class TransportStarterFactory
                 PollJitter = options.PollJitter,
                 LockDuration = options.LockDuration,
                 LockRefreshInterval = options.RenewalInterval,
+                Weight = WeightOf(processingSettings, type),
             };
             return singletonStarter;
         }

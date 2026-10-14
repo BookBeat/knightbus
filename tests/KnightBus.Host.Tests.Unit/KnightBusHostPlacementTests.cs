@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using AwesomeAssertions;
@@ -35,7 +36,12 @@ public class KnightBusHostPlacementTests
         //arrange: an operation that timed out reports the same exception type as a cancelled one
         var placement = new Mock<ISingletonPlacement>();
         placement
-            .Setup(x => x.StartAsync(It.IsAny<CancellationToken>()))
+            .Setup(x =>
+                x.StartAsync(
+                    It.IsAny<IReadOnlyDictionary<string, int>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
             .ThrowsAsync(new TaskCanceledException("timeout"));
         var host = CreateHost(placement.Object);
 
@@ -44,7 +50,14 @@ public class KnightBusHostPlacementTests
 
         //assert
         await start.Should().NotThrowAsync();
-        placement.Verify(x => x.StartAsync(It.IsAny<CancellationToken>()), Times.Once);
+        placement.Verify(
+            x =>
+                x.StartAsync(
+                    It.IsAny<IReadOnlyDictionary<string, int>>(),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Once
+        );
         await host.StopAsync(CancellationToken.None);
     }
 
@@ -55,9 +68,14 @@ public class KnightBusHostPlacementTests
         using var cts = new CancellationTokenSource();
         var placement = new Mock<ISingletonPlacement>();
         placement
-            .Setup(x => x.StartAsync(It.IsAny<CancellationToken>()))
+            .Setup(x =>
+                x.StartAsync(
+                    It.IsAny<IReadOnlyDictionary<string, int>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
             .Returns(
-                async (CancellationToken token) =>
+                async (IReadOnlyDictionary<string, int> _, CancellationToken token) =>
                 {
                     await cts.CancelAsync();
                     token.ThrowIfCancellationRequested();

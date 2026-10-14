@@ -2,10 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using AwesomeAssertions;
-using KnightBus.Core.Singleton;
+using KnightBus.Azure.Storage.Singleton;
 using NUnit.Framework;
 
-namespace KnightBus.Core.Tests.Unit;
+namespace KnightBus.Azure.Storage.Tests.Unit;
 
 [TestFixture]
 public class SingletonAssignmentTests

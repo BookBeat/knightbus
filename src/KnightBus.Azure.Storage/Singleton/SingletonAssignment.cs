@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace KnightBus.Core.Singleton;
+namespace KnightBus.Azure.Storage.Singleton;
 
 /// <summary>
 /// A live host and the singleton locks it can run, with the weight of each lock.
 /// </summary>
-public sealed record SingletonHostInfo(string HostId, IReadOnlyDictionary<string, int> Locks);
+internal sealed record SingletonHostInfo(string HostId, IReadOnlyDictionary<string, int> Locks);
 
 /// <summary>
 /// Decides which host should hold which singleton lock. Every host computes the same answer from
@@ -20,7 +20,7 @@ public sealed record SingletonHostInfo(string HostId, IReadOnlyDictionary<string
 /// others join or leave. A load cap on top of the ranking keeps heavy locks apart and stops one host
 /// ending up with a disproportionate share.
 /// </remarks>
-public static class SingletonAssignment
+internal static class SingletonAssignment
 {
     /// <summary>
     /// Returns the preferred host for every lock that at least one host can run.
@@ -30,7 +30,7 @@ public static class SingletonAssignment
     /// How far above its fair share a host may go before the next ranked host is used. 0 spreads
     /// as evenly as the weights allow, larger values favour stability over balance.
     /// </param>
-    public static IReadOnlyDictionary<string, string> Compute(
+    internal static IReadOnlyDictionary<string, string> Compute(
         IReadOnlyCollection<SingletonHostInfo> hosts,
         double epsilon = 0.25
     )
