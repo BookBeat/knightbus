@@ -21,6 +21,14 @@ public class BlobSingletonPlacementTests
         .Select(i => $"Lock{i}")
         .ToArray();
 
+    private static readonly IReadOnlyDictionary<string, int> LockWeights = Locks.ToDictionary(
+        l => l,
+        _ => 1
+    );
+
+    private static readonly IReadOnlyDictionary<string, int> NoLocks =
+        new Dictionary<string, int>();
+
     //Every placement is a host of its own, so each gets its own id within the one test process
     private static BlobSingletonPlacement Create(
         IBlobLockScheme scheme,
@@ -39,8 +47,6 @@ public class BlobSingletonPlacementTests
             RefreshInterval = TimeSpan.FromMinutes(10),
             StaleAfter = staleAfter ?? TimeSpan.FromMinutes(30),
         };
-        foreach (var lockId in Locks)
-            placement.Register(lockId, 1);
         return placement;
     }
 
@@ -60,8 +66,8 @@ public class BlobSingletonPlacementTests
         var scheme = NewScheme();
         var first = Create(scheme);
         var second = Create(scheme);
-        await first.StartAsync(CancellationToken.None);
-        await second.StartAsync(CancellationToken.None);
+        await first.StartAsync(LockWeights, CancellationToken.None);
+        await second.StartAsync(LockWeights, CancellationToken.None);
 
         //act: the first host started before the second joined, so it has to look again
         await first.RefreshAsync(CancellationToken.None);
@@ -94,8 +100,8 @@ public class BlobSingletonPlacementTests
         //arrange
         var one = Create(NewScheme());
         var other = Create(NewScheme());
-        await one.StartAsync(CancellationToken.None);
-        await other.StartAsync(CancellationToken.None);
+        await one.StartAsync(LockWeights, CancellationToken.None);
+        await other.StartAsync(LockWeights, CancellationToken.None);
 
         //act
         await one.RefreshAsync(CancellationToken.None);
@@ -114,8 +120,8 @@ public class BlobSingletonPlacementTests
         var scheme = NewScheme();
         var staying = Create(scheme);
         var leaving = Create(scheme);
-        await staying.StartAsync(CancellationToken.None);
-        await leaving.StartAsync(CancellationToken.None);
+        await staying.StartAsync(LockWeights, CancellationToken.None);
+        await leaving.StartAsync(LockWeights, CancellationToken.None);
         await staying.RefreshAsync(CancellationToken.None);
         Locks
             .Select(l => staying.Advise(l)!.PreferredHost)
@@ -151,7 +157,7 @@ public class BlobSingletonPlacementTests
         //arrange: what a crashed host leaves behind once its lease has expired
         var scheme = NewScheme();
         var placement = Create(scheme);
-        await placement.StartAsync(CancellationToken.None);
+        await placement.StartAsync(LockWeights, CancellationToken.None);
         var container = new BlobContainerClient(
             StorageSetup.ConnectionString,
             scheme.ContainerName
@@ -182,7 +188,7 @@ public class BlobSingletonPlacementTests
         var time = new ManualTimeProvider();
         var scheme = NewScheme();
         var placement = Create(scheme, time);
-        await placement.StartAsync(CancellationToken.None);
+        await placement.StartAsync(LockWeights, CancellationToken.None);
         var stale = new BlobContainerClient(
             StorageSetup.ConnectionString,
             scheme.ContainerName
@@ -211,7 +217,7 @@ public class BlobSingletonPlacementTests
         //arrange
         var scheme = NewScheme();
         var placement = Create(scheme);
-        await placement.StartAsync(CancellationToken.None);
+        await placement.StartAsync(LockWeights, CancellationToken.None);
         var member = new BlobContainerClient(
             StorageSetup.ConnectionString,
             scheme.ContainerName
@@ -241,7 +247,7 @@ public class BlobSingletonPlacementTests
     {
         var scheme = NewScheme();
         var placement = Create(scheme);
-        await placement.StartAsync(CancellationToken.None);
+        await placement.StartAsync(LockWeights, CancellationToken.None);
 
         var names = new BlobContainerClient(StorageSetup.ConnectionString, scheme.ContainerName)
             .GetBlobs(BlobTraits.None, BlobStates.None, scheme.Directory, CancellationToken.None)
@@ -263,7 +269,7 @@ public class BlobSingletonPlacementTests
         //arrange
         var time = new ManualTimeProvider();
         var placement = Create(NewScheme(), time, staleAfter: TimeSpan.FromMinutes(30));
-        await placement.StartAsync(CancellationToken.None);
+        await placement.StartAsync(LockWeights, CancellationToken.None);
         placement.Advise("Lock0").Should().NotBeNull();
 
         //act: no refresh succeeds for longer than the stale limit
@@ -281,7 +287,7 @@ public class BlobSingletonPlacementTests
         var placement = Create(NewScheme());
         placement.Advise("Lock0").Should().BeNull("not started");
 
-        await placement.StartAsync(CancellationToken.None);
+        await placement.StartAsync(LockWeights, CancellationToken.None);
         placement.Advise("Unregistered").Should().BeNull();
 
         await placement.StopAsync(CancellationToken.None);
@@ -299,10 +305,10 @@ public class BlobSingletonPlacementTests
             hostId: $"host-{Guid.NewGuid():N}"
         );
         var withLocks = Create(scheme);
-        await withLocks.StartAsync(CancellationToken.None);
+        await withLocks.StartAsync(LockWeights, CancellationToken.None);
 
         //act
-        await withoutLocks.StartAsync(CancellationToken.None);
+        await withoutLocks.StartAsync(NoLocks, CancellationToken.None);
         await withLocks.RefreshAsync(CancellationToken.None);
 
         //assert

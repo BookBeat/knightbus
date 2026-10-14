@@ -80,7 +80,10 @@ public class KnightBusHost : IHostedService
             {
                 try
                 {
-                    await _placement.StartAsync(combinedToken.Token).ConfigureAwait(false);
+                    var locks = new Dictionary<string, int>(StringComparer.Ordinal);
+                    foreach (var singleton in Receivers.OfType<SingletonChannelReceiver>())
+                        locks[singleton.LockId] = singleton.Weight;
+                    await _placement.StartAsync(locks, combinedToken.Token).ConfigureAwait(false);
                 }
                 catch (Exception e)
                     when (e is not OperationCanceledException
