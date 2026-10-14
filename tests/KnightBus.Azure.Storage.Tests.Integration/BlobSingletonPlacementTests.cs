@@ -314,6 +314,42 @@ public class BlobSingletonPlacementTests
     }
 
     [Test]
+    public async Task Should_join_later_when_joining_at_start_fails()
+    {
+        //arrange: something else holds this host's member blob, so the first join fails
+        var scheme = NewScheme();
+        var placement = Create(scheme);
+        var member = new BlobContainerClient(
+            StorageSetup.ConnectionString,
+            scheme.ContainerName
+        ).GetBlobClient($"{scheme.Directory}/_members/{placement.HostId}");
+        await member.GetParentBlobContainerClient().CreateIfNotExistsAsync();
+        await member.UploadAsync(BinaryData.FromString("{}"));
+        var blocker = member.GetBlobLeaseClient();
+        await blocker.AcquireAsync(TimeSpan.FromSeconds(60));
+
+        //act
+        var start = () => placement.StartAsync(LockWeights, CancellationToken.None);
+
+        //assert: starting does not fail, and the host gives no advice until it has joined
+        await start.Should().NotThrowAsync();
+        placement.Advise("Lock0").Should().BeNull();
+
+        //act: what the refresh loop does once the blob is free again
+        await blocker.ReleaseAsync();
+        await placement.RejoinIfLostAsync(CancellationToken.None);
+        await placement.RefreshAsync(CancellationToken.None);
+
+        //assert
+        (await member.GetPropertiesAsync())
+            .Value.LeaseState.Should()
+            .Be(LeaseState.Leased);
+        placement.Advise("Lock0")!.PreferredIsSelf.Should().BeTrue();
+
+        await placement.StopAsync(CancellationToken.None);
+    }
+
+    [Test]
     public async Task Should_name_the_member_blob_with_forward_slashes()
     {
         var scheme = NewScheme();
