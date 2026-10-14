@@ -80,6 +80,24 @@ public class SingletonPlacementReceiverTests
     }
 
     [Test]
+    public async Task Should_keep_polling_after_the_lock_manager_fails()
+    {
+        //arrange: another host holds the lock, and the next attempts fail
+        await using var f = new Fixture();
+        f.Locks.Take(Lock, Other);
+        await f.Start();
+        f.Locks.FailNext(3);
+
+        //act: the other host goes away once the failures are over
+        await Eventually(() => f.Locks.Attempts >= 5);
+        f.Locks.ReleaseFor(Lock);
+
+        //assert
+        await Eventually(() => f.Locks.Holder(Lock) == Me);
+        f.Inner.Started.Should().Be(1);
+    }
+
+    [Test]
     public async Task Should_take_the_lock_right_away_when_there_is_no_advice()
     {
         //arrange: the placement could not read the group
@@ -120,8 +138,8 @@ public class SingletonPlacementReceiverTests
         f.Time.Advance(TimeSpan.FromMinutes(2));
         await Eventually(() => f.Locks.Holder(Lock) == Me);
 
-        //assert
-        f.Inner.Started.Should().Be(1);
+        //assert: the receiver starts right after the lock is taken
+        await Eventually(() => f.Inner.Started == 1);
     }
 
     [Test]
@@ -366,7 +384,11 @@ public class SingletonPlacementReceiverTests
     {
         private readonly ConcurrentDictionary<string, string> _holders = new();
         private int _attempts;
+        private int _failuresLeft;
         public int Attempts => _attempts;
+
+        //The next attempts throw, like a storage error that outlasts the SDK's retries
+        public void FailNext(int attempts) => Volatile.Write(ref _failuresLeft, attempts);
 
         public void Take(string lockId, string host) => _holders[lockId] = host;
 
@@ -387,6 +409,8 @@ public class SingletonPlacementReceiverTests
         )
         {
             Interlocked.Increment(ref _attempts);
+            if (Interlocked.Decrement(ref _failuresLeft) >= 0)
+                throw new InvalidOperationException("storage unavailable");
             return Task.FromResult<ISingletonLockHandle?>(
                 _holders.TryAdd(lockId, Me) ? new Handle(this, lockId) : null
             );
