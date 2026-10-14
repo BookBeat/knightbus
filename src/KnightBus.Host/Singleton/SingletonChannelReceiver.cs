@@ -35,10 +35,6 @@ internal class SingletonChannelReceiver : IChannelReceiver
     //which covers a preferred host that is alive but not taking the lock
     internal TimeSpan TakeoverGrace { get; set; } = TimeSpan.FromMinutes(2);
 
-    //How long the preferred host must have been a member before a lock is handed to it, so locks do
-    //not move to a host that is about to be replaced during a rolling deploy
-    internal TimeSpan StabilityWindow { get; set; } = TimeSpan.FromMinutes(2);
-
     //The shortest time a lock is held before it is handed over, so locks do not move back and forth
     internal TimeSpan HandoffInterval { get; set; } = TimeSpan.FromMinutes(10);
 
@@ -162,10 +158,7 @@ internal class SingletonChannelReceiver : IChannelReceiver
         var advice = _placement.Advise(_lockId);
         if (advice == null || advice.PreferredIsSelf)
             return;
-        if (
-            advice.PreferredHostMemberFor < StabilityWindow
-            || Time.GetElapsedTime(_acquiredAt) < HandoffInterval
-        )
+        if (Time.GetElapsedTime(_acquiredAt) < HandoffInterval)
             return;
 
         _log.LogInformation(

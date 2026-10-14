@@ -44,7 +44,6 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
     private SingletonTimerScope? _memberLease;
     private Task? _refreshLoop;
     private Snapshot? _snapshot;
-    private readonly Dictionary<string, long> _liveSince = new(StringComparer.Ordinal);
     private readonly Dictionary<string, long> _unleasedSince = new(StringComparer.Ordinal);
 
     public BlobSingletonPlacement(
@@ -183,11 +182,7 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
             return null;
         if (!snapshot.Assignment.TryGetValue(lockId, out var preferred))
             return null;
-
-        var memberFor = snapshot.LiveSince.TryGetValue(preferred, out var since)
-            ? _time.GetElapsedTime(since)
-            : TimeSpan.Zero;
-        return new SingletonPlacementAdvice(preferred, preferred == HostId, memberFor);
+        return new SingletonPlacementAdvice(preferred, preferred == HostId);
     }
 
     private async Task RefreshLoop(CancellationToken cancellationToken)
@@ -255,23 +250,13 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
         //This host is always a member of its own view, even if the listing is behind
         hosts.Add(new SingletonHostInfo(HostId, _locks.ToDictionary(x => x.Key, x => x.Value)));
 
-        var now = _time.GetTimestamp();
         var ids = hosts.Select(h => h.HostId).ToHashSet(StringComparer.Ordinal);
-        foreach (var gone in _liveSince.Keys.Where(k => !ids.Contains(k)).ToList())
-        {
-            _liveSince.Remove(gone);
+        foreach (var gone in _contentCache.Keys.Where(k => !ids.Contains(k)).ToList())
             _contentCache.Remove(gone);
-        }
-        foreach (var id in ids)
-            _liveSince.TryAdd(id, now);
 
         Volatile.Write(
             ref _snapshot,
-            new Snapshot(
-                SingletonAssignment.Compute(hosts),
-                new Dictionary<string, long>(_liveSince),
-                now
-            )
+            new Snapshot(SingletonAssignment.Compute(hosts), _time.GetTimestamp())
         );
 
         foreach (var name in abandoned)
@@ -325,14 +310,9 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
         }
     }
 
-    private sealed class Snapshot(
-        IReadOnlyDictionary<string, string> assignment,
-        IReadOnlyDictionary<string, long> liveSince,
-        long takenAt
-    )
+    private sealed class Snapshot(IReadOnlyDictionary<string, string> assignment, long takenAt)
     {
         public long TakenAt { get; } = takenAt;
         public IReadOnlyDictionary<string, string> Assignment { get; } = assignment;
-        public IReadOnlyDictionary<string, long> LiveSince { get; } = liveSince;
     }
 }

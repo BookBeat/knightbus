@@ -150,7 +150,7 @@ public class SingletonPlacementReceiverTests
     }
 
     [Test]
-    public async Task Should_hand_the_lock_over_once_the_preferred_host_has_settled()
+    public async Task Should_hand_the_lock_over_once_it_has_been_held_long_enough()
     {
         //arrange: this host holds the lock, then another host becomes the preferred one
         await using var f = new Fixture();
@@ -159,7 +159,7 @@ public class SingletonPlacementReceiverTests
         f.Time.Advance(TimeSpan.FromMinutes(11));
 
         //act
-        f.Placement.Prefer(Lock, Other, self: false, memberFor: TimeSpan.FromMinutes(3));
+        f.Placement.Prefer(Lock, Other, self: false);
         await Eventually(() => f.Locks.Holder(Lock) == null);
 
         //assert: the receiver was stopped before the lock was released
@@ -180,7 +180,7 @@ public class SingletonPlacementReceiverTests
         f.Time.Advance(TimeSpan.FromMinutes(11));
 
         //act
-        f.Placement.Prefer(Lock, Other, self: false, memberFor: TimeSpan.FromMinutes(3));
+        f.Placement.Prefer(Lock, Other, self: false);
         await Eventually(() => f.Locks.Holder(Lock) == null);
 
         //assert
@@ -192,20 +192,6 @@ public class SingletonPlacementReceiverTests
     }
 
     [Test]
-    public async Task Should_not_hand_over_to_a_host_that_has_only_just_joined()
-    {
-        await using var f = new Fixture();
-        f.Placement.Prefer(Lock, Me, self: true);
-        await f.Start();
-        f.Time.Advance(TimeSpan.FromMinutes(11));
-
-        f.Placement.Prefer(Lock, Other, self: false, memberFor: TimeSpan.FromSeconds(30));
-        await Task.Delay(300);
-
-        f.Locks.Holder(Lock).Should().Be(Me);
-    }
-
-    [Test]
     public async Task Should_not_hand_over_a_lock_it_has_only_just_taken()
     {
         await using var f = new Fixture();
@@ -213,7 +199,7 @@ public class SingletonPlacementReceiverTests
         await f.Start();
         f.Time.Advance(TimeSpan.FromMinutes(1));
 
-        f.Placement.Prefer(Lock, Other, self: false, memberFor: TimeSpan.FromMinutes(5));
+        f.Placement.Prefer(Lock, Other, self: false);
         await Task.Delay(300);
 
         f.Locks.Holder(Lock).Should().Be(Me);
@@ -227,7 +213,7 @@ public class SingletonPlacementReceiverTests
         await f.Start();
         f.Time.Advance(TimeSpan.FromMinutes(11));
 
-        f.Placement.Prefer(Lock, Other, self: false, memberFor: TimeSpan.FromMinutes(3));
+        f.Placement.Prefer(Lock, Other, self: false);
 
         await Eventually(() => f.Locks.Holder(Lock) == null);
         f.Inner.Token!.Value.IsCancellationRequested.Should().BeTrue();
@@ -278,8 +264,8 @@ public class SingletonPlacementReceiverTests
 
         public string HostId => Me;
 
-        public void Prefer(string lockId, string host, bool self, TimeSpan? memberFor = null) =>
-            _advice[lockId] = new SingletonPlacementAdvice(host, self, memberFor ?? TimeSpan.Zero);
+        public void Prefer(string lockId, string host, bool self) =>
+            _advice[lockId] = new SingletonPlacementAdvice(host, self);
 
         public void Clear(string lockId) => _advice.TryRemove(lockId, out _);
 

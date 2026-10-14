@@ -258,32 +258,6 @@ public class BlobSingletonPlacementTests
     }
 
     [Test]
-    public async Task Should_report_how_long_the_preferred_host_has_been_a_member()
-    {
-        //arrange
-        var time = new ManualTimeProvider();
-        var scheme = NewScheme();
-        var first = Create(scheme, time);
-        var second = Create(scheme);
-        await first.StartAsync(CancellationToken.None);
-        time.Advance(TimeSpan.FromMinutes(3));
-        await second.StartAsync(CancellationToken.None);
-
-        //act
-        await first.RefreshAsync(CancellationToken.None);
-        time.Advance(TimeSpan.FromSeconds(30));
-
-        //assert: the host that was there from the start has been a member longer than the newcomer
-        var own = Locks.Select(l => first.Advise(l)!).First(a => a.PreferredIsSelf);
-        var theirs = Locks.Select(l => first.Advise(l)!).First(a => !a.PreferredIsSelf);
-        own.PreferredHostMemberFor.Should().Be(TimeSpan.FromMinutes(3.5));
-        theirs.PreferredHostMemberFor.Should().Be(TimeSpan.FromSeconds(30));
-
-        await first.StopAsync(CancellationToken.None);
-        await second.StopAsync(CancellationToken.None);
-    }
-
-    [Test]
     public async Task Should_stop_advising_when_the_group_has_not_been_read_for_too_long()
     {
         //arrange
