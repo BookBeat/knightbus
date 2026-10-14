@@ -82,7 +82,10 @@ public class KnightBusHost : IHostedService
                 {
                     await _placement.StartAsync(combinedToken.Token).ConfigureAwait(false);
                 }
-                catch (Exception e) when (e is not OperationCanceledException)
+                catch (Exception e)
+                    when (e is not OperationCanceledException
+                        || !combinedToken.IsCancellationRequested
+                    )
                 {
                     _configuration.Log.LogError(
                         e,
@@ -130,7 +133,10 @@ public class KnightBusHost : IHostedService
             {
                 await _placement.StopAsync(cancellationToken).ConfigureAwait(false);
             }
-            catch (Exception e) when (e is not OperationCanceledException)
+            catch (Exception e)
+                when (e is not OperationCanceledException
+                    || !cancellationToken.IsCancellationRequested
+                )
             {
                 _configuration.Log.LogWarning(e, "Could not leave the singleton placement group");
             }
