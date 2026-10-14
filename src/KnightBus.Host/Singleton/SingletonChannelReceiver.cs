@@ -14,9 +14,17 @@ internal class SingletonChannelReceiver : IChannelReceiver
     private readonly ILogger _log;
     private readonly CancellationToken? _teardownToken;
     private readonly ISingletonPlacement? _placement;
-    private SingletonTimerScope? _singletonScope;
-    private CancellationTokenSource? _scopeTokenSource;
-    private CancellationTokenSource? _receiverTokenSource;
+
+    //The lock this receiver holds. Only the polling loop changes it, after StartAsync has made the
+    //first attempt, so the state of one acquisition is never mixed with the next
+    private volatile Held? _held;
+
+    private sealed record Held(
+        SingletonTimerScope Scope,
+        CancellationTokenSource ReceiverSource,
+        CancellationTokenSource ScopeSource,
+        long AcquiredAt
+    );
 
     private readonly string _lockId;
     internal string LockId => _lockId;
@@ -45,23 +53,12 @@ internal class SingletonChannelReceiver : IChannelReceiver
 
     //When the lock was first seen free while another host is the one that should hold it
     private long? _freeSince;
-    private long _acquiredAt;
-
-    //Set when the lock is released on purpose, so the watcher does not report it as lost
-    private volatile bool _handingOver;
-
-    //Written by the lock-lost watcher thread and read by the timer loop
-    private volatile bool _lockPollingEnabled = false;
-
-    //Incremented for every successful lock acquisition, so a stale watcher from a previous
-    //acquisition cannot re-enable polling after the lock has already been re-acquired
-    private int _acquisitionGeneration;
     private Task? _pollingLoop;
 
     /// <summary>
     /// Completes when the lock held by this receiver has been released
     /// </summary>
-    internal Task TeardownCompletion => _singletonScope?.Completion ?? Task.CompletedTask;
+    internal Task TeardownCompletion => _held?.Scope.Completion ?? Task.CompletedTask;
 
     public SingletonChannelReceiver(
         IChannelReceiver channelReceiver,
@@ -92,18 +89,49 @@ internal class SingletonChannelReceiver : IChannelReceiver
     {
         while (!cancellationToken.IsCancellationRequested)
         {
-            if (_lockPollingEnabled)
+            try
             {
-                await AcquireLock(cancellationToken).ConfigureAwait(false);
+                await PollOnce(cancellationToken).ConfigureAwait(false);
+                await Task.Delay(NextPollDelay(TimerInterval, PollJitter), cancellationToken)
+                    .ConfigureAwait(false);
             }
-            else
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                await HandOverIfNotPreferred(cancellationToken).ConfigureAwait(false);
+                return;
             }
-
-            await Task.Delay(NextPollDelay(TimerInterval, PollJitter), cancellationToken)
-                .ConfigureAwait(false);
+            catch (Exception e)
+            {
+                //A failed attempt must not end the loop, or this host never takes the lock again
+                _log.LogError(
+                    e,
+                    "Singleton Processor with name {ProcessorName} on host {HostId} failed to check its lock",
+                    _lockId,
+                    HostId
+                );
+                await Task.Delay(NextPollDelay(TimerInterval, PollJitter), cancellationToken)
+                    .ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+            }
         }
+    }
+
+    private async Task PollOnce(CancellationToken cancellationToken)
+    {
+        var held = _held;
+        if (held is { Scope.Completion.IsCompleted: true })
+        {
+            //The scope ends by itself only when the lock could not be renewed
+            _log.LogInformation(
+                "Singleton Processor with name {ProcessorName} lost its lock on host {HostId}",
+                _lockId,
+                HostId
+            );
+            _held = held = null;
+        }
+
+        if (held == null)
+            await AcquireLock(cancellationToken).ConfigureAwait(false);
+        else if (!held.ScopeSource.IsCancellationRequested)
+            await HandOverIfNotPreferred(held, cancellationToken).ConfigureAwait(false);
     }
 
     internal static TimeSpan NextPollDelay(TimeSpan interval, double jitter, Random? random = null)
@@ -151,17 +179,14 @@ internal class SingletonChannelReceiver : IChannelReceiver
         return Time.GetElapsedTime(_freeSince.Value) >= TakeoverGrace;
     }
 
-    private async Task HandOverIfNotPreferred(CancellationToken cancellationToken)
+    private async Task HandOverIfNotPreferred(Held held, CancellationToken cancellationToken)
     {
-        var scopeSource = _scopeTokenSource;
-        var receiverSource = _receiverTokenSource;
-        var scope = _singletonScope;
-        if (_placement == null || scopeSource == null || receiverSource == null || scope == null)
+        if (_placement == null)
             return;
         var advice = _placement.Advise(_lockId);
         if (advice == null || advice.PreferredIsSelf)
             return;
-        if (Time.GetElapsedTime(_acquiredAt) < HandoffInterval)
+        if (Time.GetElapsedTime(held.AcquiredAt) < HandoffInterval)
             return;
 
         _log.LogInformation(
@@ -170,22 +195,16 @@ internal class SingletonChannelReceiver : IChannelReceiver
             HostId,
             advice.PreferredHost
         );
-        await HandOver(scopeSource, receiverSource, scope, cancellationToken).ConfigureAwait(false);
+        await HandOver(held, cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task HandOver(
-        CancellationTokenSource scopeSource,
-        CancellationTokenSource receiverSource,
-        SingletonTimerScope scope,
-        CancellationToken cancellationToken
-    )
+    private async Task HandOver(Held held, CancellationToken cancellationToken)
     {
-        _handingOver = true;
-
         //Stop the wrapped receiver and whatever it is still running, then give the lock up
-        TryCancel(receiverSource);
-        TryCancel(scopeSource);
-        await scope.Completion.WaitAsync(cancellationToken).ConfigureAwait(false);
+        TryCancel(held.ReceiverSource);
+        TryCancel(held.ScopeSource);
+        await held.Scope.Completion.WaitAsync(cancellationToken).ConfigureAwait(false);
+        _held = null;
     }
 
     private static void TryCancel(CancellationTokenSource source)
@@ -203,10 +222,7 @@ internal class SingletonChannelReceiver : IChannelReceiver
     private async Task AcquireLock(CancellationToken cancellationToken)
     {
         if (!await MayTryToAcquire(cancellationToken).ConfigureAwait(false))
-        {
-            _lockPollingEnabled = true;
             return;
-        }
 
         //Try and get the lock
         var lockHandle = await _lockManager
@@ -227,13 +243,8 @@ internal class SingletonChannelReceiver : IChannelReceiver
                 cancellationToken,
                 scopeTokenSource.Token
             );
-            var generation = Interlocked.Increment(ref _acquisitionGeneration);
-            _scopeTokenSource = scopeTokenSource;
-            _receiverTokenSource = receiverTokenSource;
-            _acquiredAt = Time.GetTimestamp();
             _freeSince = null;
-            _handingOver = false;
-            _singletonScope = new SingletonTimerScope(
+            var scope = new SingletonTimerScope(
                 _log,
                 lockHandle,
                 true,
@@ -241,57 +252,35 @@ internal class SingletonChannelReceiver : IChannelReceiver
                 scopeTokenSource
             );
             //The scope completes once the lock is released, or given up when the release failed
-            _singletonScope.Completion.ContinueWith(
+            _ = scope.Completion.ContinueWith(
                 _ =>
+                {
                     _log.LogInformation(
                         "Singleton Processor with name {ProcessorName} on host {HostId} stopped holding its lock",
                         _lockId,
                         HostId
-                    ),
+                    );
+                    receiverTokenSource.Dispose();
+                    scopeTokenSource.Dispose();
+                },
                 TaskScheduler.Default
             );
+            _held = new Held(scope, receiverTokenSource, scopeTokenSource, Time.GetTimestamp());
             _log.LogInformation(
                 "Starting Singleton Processor with name {ProcessorName} on host {HostId}",
                 _lockId,
                 HostId
             );
-            await _channelReceiver.StartAsync(receiverTokenSource.Token).ConfigureAwait(false);
-            _lockPollingEnabled = false;
-
-#pragma warning disable 4014
-            Task.Run(
-                    () =>
-                    {
-                        scopeTokenSource.Token.WaitHandle.WaitOne();
-                        //Stop signal received, restart the polling. A watcher that wakes late,
-                        //after the lock has already been re-acquired, must not restart it
-                        if (
-                            !cancellationToken.IsCancellationRequested
-                            && Volatile.Read(ref _acquisitionGeneration) == generation
-                        )
-                        {
-                            _lockPollingEnabled = true;
-                            if (!_handingOver)
-                                _log.LogInformation(
-                                    "Singleton Processor with name {ProcessorName} lost its lock on host {HostId}",
-                                    _lockId,
-                                    HostId
-                                );
-                        }
-                    },
-                    CancellationToken.None
-                )
-                .ContinueWith(t =>
-                {
-                    receiverTokenSource.Dispose();
-                    scopeTokenSource.Dispose();
-                });
-#pragma warning restore 4014
-        }
-        else
-        {
-            //someone else has locked this instance, start timer to make sure the owner hasn't died
-            _lockPollingEnabled = true;
+            try
+            {
+                await _channelReceiver.StartAsync(receiverTokenSource.Token).ConfigureAwait(false);
+            }
+            catch
+            {
+                //Holding the lock without processing would keep every other host out
+                TryCancel(scopeTokenSource);
+                throw;
+            }
         }
     }
 
