@@ -14,6 +14,7 @@ internal class SingletonChannelReceiver : IChannelReceiver
     private readonly ILogger _log;
     private readonly CancellationToken? _teardownToken;
     private readonly ISingletonPlacement? _placement;
+    private readonly InFlightMessages? _inFlight;
 
     //The lock this receiver holds. Only the polling loop changes it, after StartAsync has made the
     //first attempt, so the state of one acquisition is never mixed with the next
@@ -66,10 +67,12 @@ internal class SingletonChannelReceiver : IChannelReceiver
         ILogger log,
         string? lockId = null,
         CancellationToken? teardownToken = null,
-        ISingletonPlacement? placement = null
+        ISingletonPlacement? placement = null,
+        InFlightMessages? inFlight = null
     )
     {
         _placement = placement;
+        _inFlight = inFlight;
         _channelReceiver = channelReceiver;
         _lockManager = lockManager;
         _log = log;
@@ -200,8 +203,23 @@ internal class SingletonChannelReceiver : IChannelReceiver
 
     private async Task HandOver(Held held, CancellationToken cancellationToken)
     {
-        //Stop the wrapped receiver and whatever it is still running, then give the lock up
+        //Stop the wrapped receiver and whatever it is still running, then give the lock up. The lock
+        //is kept until the cancelled messages have stopped, or the next holder would process while
+        //they are still running. A message cannot outlast its message lock, after which the
+        //transport delivers it again anyway, so that bounds the wait
         TryCancel(held.ReceiverSource);
+        if (
+            _inFlight != null
+            && !await _inFlight
+                .WaitUntilIdleAsync(Settings.MessageLockTimeout, cancellationToken)
+                .ConfigureAwait(false)
+        )
+            _log.LogWarning(
+                "Singleton Processor with name {ProcessorName} on host {HostId} hands its lock over while a message has not stopped after {Timeout}",
+                _lockId,
+                HostId,
+                Settings.MessageLockTimeout
+            );
         TryCancel(held.ScopeSource);
         await held.Scope.Completion.WaitAsync(cancellationToken).ConfigureAwait(false);
         _held = null;

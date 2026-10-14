@@ -152,11 +152,12 @@ An instance that holds a lock it is not the preferred holder of hands it over on
 lock for 10 minutes, so that locks do not move back and forth while instances come and go, for
 example during a rolling deploy.
 
-A hand-over cancels the receiver, and with it the message being processed, then releases the lock.
-The handler is stopped through its cancellation token, so every handler must tolerate cancellation,
-as it has to on shutdown too. The cancellation is logged like any other cancelled handler. A
-handler that is slow to react to cancellation may still be winding down when the next holder takes
-the lock, as when a lock is lost.
+A hand-over cancels the receiver, and with it the message being processed, and keeps the lock until
+that message has stopped, so the next holder never starts while it is still running. The wait is
+bounded by the processor's `MessageLockTimeout`, after which the transport delivers the message
+again anyway. The handler is stopped through its cancellation token, so every handler must tolerate
+cancellation, as it has to on shutdown too. The cancellation is logged like any other cancelled
+handler.
 
 A cancelled message is abandoned and delivered again. The delivery counts against the processor's
 `DeadLetterDeliveryLimit`, because the transport counts every delivery and KnightBus cannot take one

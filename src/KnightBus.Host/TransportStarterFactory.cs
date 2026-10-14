@@ -60,15 +60,26 @@ internal class TransportStarterFactory
             _configuration.DependencyInjection.GetInstances<IMessageProcessorMiddleware>();
         var pipeline = new MiddlewarePipeline(middlewares, pipelineInformation, _configuration.Log);
         var serializer = GetSerializer(channelFactory, processorTypes.MessageType);
+        var messageProcessor = pipeline.GetPipeline(processorInstance);
+        //A singleton keeps its lock until the messages it is handling have stopped
+        var inFlight = typeof(ISingletonProcessor).IsAssignableFrom(processor)
+            ? new InFlightMessages(messageProcessor)
+            : null;
         var starter = channelFactory.Create(
             processorTypes.MessageType,
             eventSubscription,
             processingSettings,
             serializer,
             _configuration,
-            pipeline.GetPipeline(processorInstance)
+            inFlight ?? messageProcessor
         );
-        return WrapSingletonReceiver(starter, processor, eventSubscription, processingSettings);
+        return WrapSingletonReceiver(
+            starter,
+            processor,
+            eventSubscription,
+            processingSettings,
+            inFlight
+        );
     }
 
     private IMessageSerializer GetSerializer(
@@ -98,7 +109,8 @@ internal class TransportStarterFactory
         IChannelReceiver channelReceiver,
         Type type,
         IEventSubscription? subscription,
-        IProcessingSettings processingSettings
+        IProcessingSettings processingSettings,
+        InFlightMessages? inFlight
     )
     {
         if (typeof(ISingletonProcessor).IsAssignableFrom(type))
@@ -127,7 +139,8 @@ internal class TransportStarterFactory
                 _configuration.Log,
                 lockId,
                 _teardownToken,
-                placement
+                placement,
+                inFlight
             )
             {
                 TimerInterval = options.PollInterval,
