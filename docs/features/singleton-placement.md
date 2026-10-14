@@ -148,10 +148,9 @@ drain and possibly a cancellation, so the slack favours stability.
 
 ### Handing a lock over
 
-An instance that holds a lock it is not the preferred holder of hands it over once the preferred
-instance has been a member for 2 minutes and the lock has been held for 10 minutes. Both exist so
-that locks do not move to an instance that is about to be replaced, which is the normal state during
-a rolling deploy, and do not move back and forth.
+An instance that holds a lock it is not the preferred holder of hands it over once it has held the
+lock for 10 minutes, so that locks do not move back and forth while instances come and go, for
+example during a rolling deploy.
 
 A hand-over stops fetching new messages and lets the message being processed finish, for up to the
 processor's `MessageLockTimeout`, which is the longest a message may be in flight anyway. Then it
@@ -184,7 +183,6 @@ The timing is fixed and not configurable:
 | How often an instance reads the member list | 20 seconds |
 | Advice is dropped when the member list could not be read for | 3 refreshes |
 | Slack over the fair share | 25% |
-| How long an instance must have been a member before locks are handed to it | 2 minutes |
 | How long a lock must have been seen free before a non-preferred instance takes it | 2 minutes |
 | The shortest time a lock is held before it is handed over | 10 minutes |
 

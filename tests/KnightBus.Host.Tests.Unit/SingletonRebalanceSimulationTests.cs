@@ -38,7 +38,7 @@ public class SingletonRebalanceSimulationTests
         world.HoldersByHost().Should().ContainSingle().Which.Key.Should().Be("host-0");
         world.HoldersByHost()["host-0"].Should().Be(LockIds.Length);
 
-        //three more join, time passes until they are settled and the first host has held its locks long enough
+        //three more join, and time passes until the first host has held its locks long enough
         var others = new List<Host>
         {
             await world.StartHost("host-1"),
@@ -151,11 +151,7 @@ public class SingletonRebalanceSimulationTests
             if (!_members.ContainsKey(self))
                 return null;
             var preferred = Preferred()[lockId];
-            return new SingletonPlacementAdvice(
-                preferred,
-                preferred == self,
-                Time.GetElapsedTime(_members[preferred])
-            );
+            return new SingletonPlacementAdvice(preferred, preferred == self);
         }
 
         public bool IsLocked(string lockId) => _holders.ContainsKey(lockId);
