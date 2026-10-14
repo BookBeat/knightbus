@@ -41,12 +41,4 @@ public interface ISingletonPlacement
 
 /// <param name="PreferredHost">The host that should hold the lock</param>
 /// <param name="PreferredIsSelf">True when the preferred host is this one</param>
-/// <param name="PreferredHostMemberFor">
-/// How long the preferred host has been seen as a live member without a break. A host that has only
-/// just joined should not be handed locks before the group has settled.
-/// </param>
-public sealed record SingletonPlacementAdvice(
-    string PreferredHost,
-    bool PreferredIsSelf,
-    TimeSpan PreferredHostMemberFor
-);
+public sealed record SingletonPlacementAdvice(string PreferredHost, bool PreferredIsSelf);
