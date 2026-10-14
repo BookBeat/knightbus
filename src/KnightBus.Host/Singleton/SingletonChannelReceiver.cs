@@ -50,6 +50,10 @@ internal class SingletonChannelReceiver : IChannelReceiver
     //The shortest time a lock is held before it is handed over, so locks do not move back and forth
     internal TimeSpan HandoffInterval { get; set; } = TimeSpan.FromMinutes(10);
 
+    //How often a host looks for a lock it should hold but does not, so a lock that is handed over
+    //or released does not sit idle for a whole poll interval
+    internal TimeSpan PreferredPollInterval { get; set; } = TimeSpan.FromSeconds(5);
+
     internal TimeProvider Time { get; set; } = TimeProvider.System;
 
     //When the lock was first seen free while another host is the one that should hold it
@@ -95,7 +99,10 @@ internal class SingletonChannelReceiver : IChannelReceiver
             try
             {
                 await PollOnce(cancellationToken).ConfigureAwait(false);
-                await Task.Delay(NextPollDelay(TimerInterval, PollJitter), cancellationToken)
+                await Task.Delay(
+                        NextPollDelay(CurrentPollInterval(), PollJitter),
+                        cancellationToken
+                    )
                     .ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -111,7 +118,10 @@ internal class SingletonChannelReceiver : IChannelReceiver
                     _lockId,
                     HostId
                 );
-                await Task.Delay(NextPollDelay(TimerInterval, PollJitter), cancellationToken)
+                await Task.Delay(
+                        NextPollDelay(CurrentPollInterval(), PollJitter),
+                        cancellationToken
+                    )
                     .ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
             }
         }
@@ -136,6 +146,13 @@ internal class SingletonChannelReceiver : IChannelReceiver
         else if (!held.ScopeSource.IsCancellationRequested)
             await HandOverIfNotPreferred(held, cancellationToken).ConfigureAwait(false);
     }
+
+    private TimeSpan CurrentPollInterval() =>
+        _held == null
+        && _placement?.Advise(_lockId)?.PreferredIsSelf == true
+        && PreferredPollInterval < TimerInterval
+            ? PreferredPollInterval
+            : TimerInterval;
 
     internal static TimeSpan NextPollDelay(TimeSpan interval, double jitter, Random? random = null)
     {
