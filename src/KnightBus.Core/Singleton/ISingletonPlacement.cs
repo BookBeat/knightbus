@@ -29,12 +29,9 @@ public interface ISingletonPlacement
     Task StopAsync(CancellationToken cancellationToken);
 
     /// <summary>
-    /// The host that should hold the lock, or null when there is no reliable information, in which
-    /// case the caller should behave as if there were no placement
+    /// The id of the host that should hold the lock, compared with <see cref="HostId"/>, or null
+    /// when there is no reliable information, in which case the caller should behave as if there
+    /// were no placement
     /// </summary>
-    SingletonPlacementAdvice? Advise(string lockId);
+    string? Advise(string lockId);
 }
-
-/// <param name="PreferredHost">The host that should hold the lock</param>
-/// <param name="PreferredIsSelf">True when the preferred host is this one</param>
-public sealed record SingletonPlacementAdvice(string PreferredHost, bool PreferredIsSelf);
