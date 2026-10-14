@@ -13,21 +13,16 @@ internal class SingletonChannelReceiver : IChannelReceiver
     private readonly ISingletonLockManager _lockManager;
     private readonly ILogger _log;
     private readonly CancellationToken? _teardownToken;
-    private readonly PlacementContext? _placement;
+    private readonly ISingletonPlacement? _placement;
     private SingletonTimerScope? _singletonScope;
     private CancellationTokenSource? _scopeTokenSource;
     private CancellationTokenSource? _receiverTokenSource;
-
-    private sealed record PlacementContext(
-        ISingletonPlacement Placement,
-        SingletonPlacementOptions Options
-    );
 
     private readonly string _lockId;
     internal string LockId => _lockId;
 
     //Identifies this host in the logs, the same id the other hosts see in the placement
-    private string HostId => _placement?.Placement.HostId ?? Environment.MachineName;
+    private string HostId => _placement?.HostId ?? Environment.MachineName;
     public IProcessingSettings Settings { get; set; }
     internal TimeSpan TimerInterval { get; set; } = TimeSpan.FromMinutes(1);
     internal TimeSpan LockDuration { get; set; } = TimeSpan.FromMinutes(1);
@@ -35,6 +30,17 @@ internal class SingletonChannelReceiver : IChannelReceiver
 
     //Share of TimerInterval added at random to each wait, 0 means a fixed interval
     internal double PollJitter { get; set; }
+
+    //How long a lock must have been seen free before a host that is not the preferred one takes it,
+    //which covers a preferred host that is alive but not taking the lock
+    internal TimeSpan TakeoverGrace { get; set; } = TimeSpan.FromMinutes(2);
+
+    //How long the preferred host must have been a member before a lock is handed to it, so locks do
+    //not move to a host that is about to be replaced during a rolling deploy
+    internal TimeSpan StabilityWindow { get; set; } = TimeSpan.FromMinutes(2);
+
+    //The shortest time a lock is held before it is handed over, so locks do not move back and forth
+    internal TimeSpan HandoffInterval { get; set; } = TimeSpan.FromMinutes(10);
 
     internal TimeProvider Time { get; set; } = TimeProvider.System;
 
@@ -64,14 +70,10 @@ internal class SingletonChannelReceiver : IChannelReceiver
         ILogger log,
         string? lockId = null,
         CancellationToken? teardownToken = null,
-        ISingletonPlacement? placement = null,
-        SingletonPlacementOptions? placementOptions = null
+        ISingletonPlacement? placement = null
     )
     {
-        _placement =
-            placement != null && placementOptions != null
-                ? new PlacementContext(placement, placementOptions)
-                : null;
+        _placement = placement;
         _channelReceiver = channelReceiver;
         _lockManager = lockManager;
         _log = log;
@@ -118,8 +120,8 @@ internal class SingletonChannelReceiver : IChannelReceiver
     /// </summary>
     private async Task<bool> MayTryToAcquire(CancellationToken cancellationToken)
     {
-        var advice = _placement?.Placement.Advise(_lockId);
-        if (_placement == null || advice == null || advice.PreferredIsSelf)
+        var advice = _placement?.Advise(_lockId);
+        if (advice == null || advice.PreferredIsSelf)
         {
             _freeSince = null;
             return true;
@@ -147,7 +149,7 @@ internal class SingletonChannelReceiver : IChannelReceiver
         }
 
         _freeSince ??= Time.GetTimestamp();
-        return Time.GetElapsedTime(_freeSince.Value) >= _placement.Options.TakeoverGrace;
+        return Time.GetElapsedTime(_freeSince.Value) >= TakeoverGrace;
     }
 
     private async Task HandOverIfNotPreferred(CancellationToken cancellationToken)
@@ -157,12 +159,12 @@ internal class SingletonChannelReceiver : IChannelReceiver
         var scope = _singletonScope;
         if (_placement == null || scopeSource == null || receiverSource == null || scope == null)
             return;
-        var advice = _placement.Placement.Advise(_lockId);
+        var advice = _placement.Advise(_lockId);
         if (advice == null || advice.PreferredIsSelf)
             return;
         if (
-            advice.PreferredHostMemberFor < _placement.Options.StabilityWindow
-            || Time.GetElapsedTime(_acquiredAt) < _placement.Options.HandoffInterval
+            advice.PreferredHostMemberFor < StabilityWindow
+            || Time.GetElapsedTime(_acquiredAt) < HandoffInterval
         )
             return;
 

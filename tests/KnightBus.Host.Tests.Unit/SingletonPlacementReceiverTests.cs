@@ -19,13 +19,6 @@ public class SingletonPlacementReceiverTests
     private const string Me = "me";
     private const string Other = "other";
 
-    private static readonly SingletonPlacementOptions Options = new()
-    {
-        TakeoverGrace = TimeSpan.FromMinutes(2),
-        StabilityWindow = TimeSpan.FromMinutes(2),
-        HandoffInterval = TimeSpan.FromMinutes(10),
-    };
-
     private sealed class Fixture : IAsyncDisposable
     {
         public readonly ManualTime Time = new();
@@ -35,11 +28,7 @@ public class SingletonPlacementReceiverTests
         public readonly CancellationTokenSource Shutdown = new();
         public SingletonChannelReceiver Receiver { get; }
 
-        public Fixture(
-            SingletonPlacementOptions? options = null,
-            bool inspectable = true,
-            ILogger? log = null
-        )
+        public Fixture(bool inspectable = true, ILogger? log = null)
         {
             Receiver = new SingletonChannelReceiver(
                 Inner,
@@ -47,8 +36,7 @@ public class SingletonPlacementReceiverTests
                 log ?? Mock.Of<ILogger>(),
                 Lock,
                 null,
-                Placement,
-                options ?? Options
+                Placement
             )
             {
                 TimerInterval = TimeSpan.FromMilliseconds(20),

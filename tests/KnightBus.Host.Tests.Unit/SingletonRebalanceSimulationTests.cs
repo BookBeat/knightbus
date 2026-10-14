@@ -28,13 +28,6 @@ public class SingletonRebalanceSimulationTests
         .Select(i => $"Lock{i:D2}")
         .ToArray();
 
-    private static readonly SingletonPlacementOptions Options = new()
-    {
-        StabilityWindow = TimeSpan.FromMinutes(2),
-        TakeoverGrace = TimeSpan.FromMinutes(2),
-        HandoffInterval = TimeSpan.FromMinutes(10),
-    };
-
     [Test]
     public async Task Should_spread_the_locks_when_hosts_join_and_take_them_over_when_one_leaves()
     {
@@ -128,8 +121,7 @@ public class SingletonRebalanceSimulationTests
                             m,
                             LockIds.ToDictionary(l => l, _ => 1)
                         ))
-                        .ToList(),
-                    Options.Epsilon
+                        .ToList()
                 )
                 .ToDictionary(x => x.Key, x => x.Value);
 
@@ -211,8 +203,7 @@ public class SingletonRebalanceSimulationTests
                     Mock.Of<ILogger>(),
                     lockId,
                     null,
-                    new Placement(_world, _id),
-                    Options
+                    new Placement(_world, _id)
                 )
                 {
                     TimerInterval = TimeSpan.FromMilliseconds(20),
