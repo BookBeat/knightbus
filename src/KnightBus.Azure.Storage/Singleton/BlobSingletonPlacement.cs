@@ -87,26 +87,41 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
             return;
         _locks = locks.ToDictionary(x => x.Key, x => Math.Max(1, x.Value), StringComparer.Ordinal);
         await _lockManager.InitializeAsync().ConfigureAwait(false);
-        await _container
-            .CreateIfNotExistsAsync(cancellationToken: cancellationToken)
-            .ConfigureAwait(false);
-
         var lifetime = new CancellationTokenSource();
         _lifetime = lifetime;
-        await JoinAsync(lifetime.Token, cancellationToken).ConfigureAwait(false);
 
-        await RefreshAsync(cancellationToken).ConfigureAwait(false);
-        _log.LogInformation(
-            "Host {HostId} joined the singleton placement with {LockCount} singleton processors",
-            HostId,
-            _locks.Count
-        );
+        //Try once now so the receivers get advice from the start. A failure is not final: the
+        //refresh loop joins and refreshes again, and until then this host gets no advice and
+        //competes for the locks as it does without placement
+        try
+        {
+            await JoinAsync(lifetime.Token, cancellationToken).ConfigureAwait(false);
+            await RefreshAsync(cancellationToken).ConfigureAwait(false);
+            _log.LogInformation(
+                "Host {HostId} joined the singleton placement with {LockCount} singleton processors",
+                HostId,
+                _locks.Count
+            );
+        }
+        catch (Exception e)
+            when (e is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
+        {
+            _log.LogWarning(
+                e,
+                "Host {HostId} could not join the singleton placement yet, it keeps trying",
+                HostId
+            );
+        }
+
         var token = lifetime.Token;
         _refreshLoop = Task.Run(() => RefreshLoop(token), CancellationToken.None);
     }
 
     private async Task JoinAsync(CancellationToken lifetime, CancellationToken cancellationToken)
     {
+        await _container
+            .CreateIfNotExistsAsync(cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
         //Content first, then the lease: the lease is what makes the member count as alive
         var blob = _container.GetBlobClient(BlobLockManager.BlobName(_lockScheme, _memberId));
         await blob.UploadAsync(
