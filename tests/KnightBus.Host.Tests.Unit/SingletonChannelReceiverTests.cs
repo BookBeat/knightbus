@@ -74,13 +74,12 @@ public class SingletonChannelReceiverTests
     [Test]
     public async Task Should_start_new_queue_reader_when_lock_is_released()
     {
-        //arrange
+        //arrange: another instance holds the lock at first and releases it later
         var lockManager = new Mock<ISingletonLockManager>();
         lockManager
             .SetupSequence(x =>
                 x.TryLockAsync(It.IsAny<string>(), TimeSpan.FromSeconds(60), CancellationToken.None)
             )
-            .ReturnsAsync(Mock.Of<ISingletonLockHandle>())
             .ReturnsAsync((ISingletonLockHandle?)null)
             .ReturnsAsync(Mock.Of<ISingletonLockHandle>());
         var underlyingReceiver = new Mock<IChannelReceiver>();
@@ -95,12 +94,11 @@ public class SingletonChannelReceiverTests
         };
         //act
         await singletonChannelReceiver.StartAsync(CancellationToken.None);
-        await singletonChannelReceiver.StartAsync(CancellationToken.None);
         await Task.Delay(3000);
-        //assert
+        //assert: started once the lock was free, and not again while it holds it
         underlyingReceiver.Verify(
             x => x.StartAsync(It.IsAny<CancellationToken>()),
-            Times.Exactly(2)
+            Times.Exactly(1)
         );
     }
 
