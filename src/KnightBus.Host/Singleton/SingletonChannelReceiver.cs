@@ -21,6 +21,9 @@ internal class SingletonChannelReceiver : IChannelReceiver
     private readonly string _lockId;
     internal string LockId => _lockId;
 
+    //How heavy this processor is when the locks are spread over the hosts
+    internal int Weight { get; init; } = 1;
+
     //Identifies this host in the logs, the same id the other hosts see in the placement
     private string HostId => _placement?.HostId ?? Environment.MachineName;
     public IProcessingSettings Settings { get; set; }

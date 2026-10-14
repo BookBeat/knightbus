@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AwesomeAssertions;
+using KnightBus.Azure.Storage.Singleton;
 using KnightBus.Core;
 using KnightBus.Core.Singleton;
 using KnightBus.Host.Singleton;
@@ -258,9 +259,10 @@ public class SingletonRebalanceSimulationTests
     {
         public string HostId => self;
 
-        public void Register(string lockId, int weight) { }
-
-        public Task StartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+        public Task StartAsync(
+            IReadOnlyDictionary<string, int> locks,
+            CancellationToken cancellationToken
+        ) => Task.CompletedTask;
 
         public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 

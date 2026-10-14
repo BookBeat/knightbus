@@ -174,38 +174,23 @@ public class TransportStarterFactoryTests
     }
 
     [Test]
-    public void Should_register_the_singleton_weight_from_the_processing_settings()
+    public void Should_take_the_singleton_weight_from_the_processing_settings()
     {
-        //arrange
-        var placement = new Mock<ISingletonPlacement>();
-
         //act
-        CreateSingletonReceiver(
-            services =>
-            {
-                services.AddSingleton(placement.Object);
-            },
-            typeof(WeightedSingletonEventProcessor)
-        );
+        var receiver = CreateSingletonReceiver(processor: typeof(WeightedSingletonEventProcessor));
 
         //assert
-        placement.Verify(x => x.Register(It.Is<string>(id => id.Contains("test-sub")), 10));
+        receiver.Weight.Should().Be(10);
     }
 
     [Test]
     public void Should_count_a_singleton_without_a_declared_weight_as_one()
     {
-        //arrange
-        var placement = new Mock<ISingletonPlacement>();
-
         //act
-        CreateSingletonReceiver(services =>
-        {
-            services.AddSingleton(placement.Object);
-        });
+        var receiver = CreateSingletonReceiver();
 
         //assert
-        placement.Verify(x => x.Register(It.IsAny<string>(), 1));
+        receiver.Weight.Should().Be(1);
     }
 
     [Test]

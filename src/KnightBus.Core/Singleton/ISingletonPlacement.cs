@@ -1,4 +1,4 @@
-using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -17,15 +17,11 @@ public interface ISingletonPlacement
     string HostId { get; }
 
     /// <summary>
-    /// Announces a singleton lock this host can run and how heavy it is. Call before
-    /// <see cref="StartAsync"/>.
-    /// </summary>
-    void Register(string lockId, int weight);
-
-    /// <summary>
     /// Joins the group of hosts and starts following who else is in it
     /// </summary>
-    Task StartAsync(CancellationToken cancellationToken);
+    /// <param name="locks">The singleton locks this host can run, with how heavy each one is</param>
+    /// <param name="cancellationToken">Cancels joining</param>
+    Task StartAsync(IReadOnlyDictionary<string, int> locks, CancellationToken cancellationToken);
 
     /// <summary>
     /// Leaves the group, so the other hosts stop counting on this one

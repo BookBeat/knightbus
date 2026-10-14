@@ -9,8 +9,8 @@
   `docs/features/singleton-placement.md`. Nothing changes unless an `ISingletonPlacement` is
   registered, which `UseBlobStorageLockManager` in `KnightBus.Azure.Storage` now does. A processor
   declares how heavy it is by implementing `ISingletonWeight` on its processing settings. New public
-  types: `ISingletonPlacement`, `ISingletonWeight`, `SingletonAssignment` and
-  `ISingletonLockInspector`
+  types: `ISingletonWeight`, and for lock managers that place locks `ISingletonPlacement`,
+  `SingletonPlacementAdvice` and `ISingletonLockInspector`
 
 # 18.4.0
 * `Microsoft.Extensions.DependencyInjection.Abstractions`, `Microsoft.Extensions.Logging.Abstractions`
