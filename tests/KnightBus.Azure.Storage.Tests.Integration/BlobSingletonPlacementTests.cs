@@ -152,6 +152,38 @@ public class BlobSingletonPlacementTests
     }
 
     [Test]
+    public async Task Should_find_the_members_when_the_lock_directory_ends_with_a_slash()
+    {
+        //arrange
+        var scheme = new TestLockScheme($"locks-{Guid.NewGuid():N}/");
+        var first = Create(scheme);
+        var second = Create(scheme);
+        await first.StartAsync(LockWeights, CancellationToken.None);
+        await second.StartAsync(LockWeights, CancellationToken.None);
+
+        //act
+        await first.RefreshAsync(CancellationToken.None);
+        await second.StopAsync(CancellationToken.None);
+
+        //assert: the hosts saw each other, and the one that left removed its member blob
+        Locks.Select(l => first.Advise(l)!.PreferredHost).Should().Contain(second.HostId);
+        new BlobContainerClient(StorageSetup.ConnectionString, scheme.ContainerName)
+            .GetBlobs(
+                BlobTraits.None,
+                BlobStates.None,
+                $"{scheme.Directory.TrimEnd('/')}/_members/",
+                CancellationToken.None
+            )
+            .Select(b => b.Name)
+            .Should()
+            .ContainSingle()
+            .Which.Should()
+            .EndWith(first.HostId);
+
+        await first.StopAsync(CancellationToken.None);
+    }
+
+    [Test]
     public async Task Should_not_count_a_member_blob_whose_lease_is_gone()
     {
         //arrange: what a crashed host leaves behind once its lease has expired

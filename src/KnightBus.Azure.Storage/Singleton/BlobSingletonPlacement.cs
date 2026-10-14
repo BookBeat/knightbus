@@ -62,8 +62,10 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
             configuration,
             _lockScheme.ContainerName
         );
-        _memberPrefix = $"{_lockScheme.Directory}/_members/";
+        //Every member blob name is built like a lock blob name, so a directory written with or
+        //without a trailing '/' finds the same blobs
         _memberId = $"_members/{HostId}";
+        _memberPrefix = BlobLockManager.BlobName(_lockScheme, "_members/");
     }
 
     public string HostId { get; }
@@ -160,7 +162,7 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
         try
         {
             await _container
-                .GetBlobClient($"{_memberPrefix}{HostId}")
+                .GetBlobClient(BlobLockManager.BlobName(_lockScheme, _memberId))
                 .DeleteIfExistsAsync(cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
         }
