@@ -130,14 +130,15 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
     }
 
     //The renewal stops for good when the lease is lost, for example after a long pause or an
-    //outage, and other hosts may have removed the member blob since
+    //outage, and other hosts may have removed the member blob since. Without a lease the host
+    //keeps trying on every refresh, so a rejoin that fails during an outage is not the last one
     internal async Task RejoinIfLostAsync(CancellationToken cancellationToken)
     {
         var lifetime = _lifetime;
-        if (lifetime == null || _memberLease is not { Completion.IsCompleted: true })
+        if (lifetime == null || _memberLease is { Completion.IsCompleted: false })
             return;
-        _log.LogWarning("Lost the member lease of host {HostId}, rejoining", HostId);
-        _memberLease.Dispose();
+        _log.LogWarning("Host {HostId} has no member lease, rejoining the placement", HostId);
+        _memberLease?.Dispose();
         _memberLease = null;
         await JoinAsync(lifetime.Token, cancellationToken).ConfigureAwait(false);
     }

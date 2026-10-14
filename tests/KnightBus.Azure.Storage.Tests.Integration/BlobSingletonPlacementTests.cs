@@ -243,6 +243,45 @@ public class BlobSingletonPlacementTests
     }
 
     [Test]
+    public async Task Should_keep_trying_to_rejoin_after_a_failed_attempt()
+    {
+        //arrange: the member lease is lost, and something else holds the blob for now
+        var scheme = NewScheme();
+        var placement = Create(scheme);
+        await placement.StartAsync(LockWeights, CancellationToken.None);
+        var member = new BlobContainerClient(
+            StorageSetup.ConnectionString,
+            scheme.ContainerName
+        ).GetBlobClient($"{scheme.Directory}/_members/{placement.HostId}");
+        await member.GetBlobLeaseClient().BreakAsync(TimeSpan.Zero);
+        var blocker = member.GetBlobLeaseClient();
+        await blocker.AcquireAsync(TimeSpan.FromSeconds(60));
+
+        //act: wait until the renewal notices and the rejoin fails
+        var failed = false;
+        for (var i = 0; i < 40 && !failed; i++)
+        {
+            await Task.Delay(1000);
+            try
+            {
+                await placement.RejoinIfLostAsync(CancellationToken.None);
+            }
+            catch (Exception)
+            {
+                failed = true;
+            }
+        }
+        await blocker.ReleaseAsync();
+        await placement.RejoinIfLostAsync(CancellationToken.None);
+
+        //assert
+        failed.Should().BeTrue("the rejoin cannot succeed while the blob is held");
+        (await member.GetPropertiesAsync()).Value.LeaseState.Should().Be(LeaseState.Leased);
+
+        await placement.StopAsync(CancellationToken.None);
+    }
+
+    [Test]
     public async Task Should_name_the_member_blob_with_forward_slashes()
     {
         var scheme = NewScheme();
