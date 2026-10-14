@@ -21,24 +21,24 @@ public class BlobSingletonPlacementTests
         .Select(i => $"Lock{i}")
         .ToArray();
 
+    //Every placement is a host of its own, so each gets its own id within the one test process
     private static BlobSingletonPlacement Create(
         IBlobLockScheme scheme,
         TimeProvider? time = null,
-        Action<SingletonPlacementOptions>? configure = null
+        TimeSpan? staleAfter = null
     )
     {
-        var options = new SingletonPlacementOptions
+        var placement = new BlobSingletonPlacement(
+            new StorageBusConfiguration(StorageSetup.ConnectionString),
+            scheme,
+            timeProvider: time,
+            hostId: $"host-{Guid.NewGuid():N}"
+        )
         {
             //The background loop is not what is under test, the tests call RefreshAsync themselves
             RefreshInterval = TimeSpan.FromMinutes(10),
+            StaleAfter = staleAfter ?? TimeSpan.FromMinutes(30),
         };
-        configure?.Invoke(options);
-        var placement = new BlobSingletonPlacement(
-            new StorageBusConfiguration(StorageSetup.ConnectionString),
-            options,
-            scheme,
-            timeProvider: time
-        );
         foreach (var lockId in Locks)
             placement.Register(lockId, 1);
         return placement;
@@ -288,7 +288,7 @@ public class BlobSingletonPlacementTests
     {
         //arrange
         var time = new ManualTimeProvider();
-        var placement = Create(NewScheme(), time, o => o.StaleAfter = TimeSpan.FromMinutes(30));
+        var placement = Create(NewScheme(), time, staleAfter: TimeSpan.FromMinutes(30));
         await placement.StartAsync(CancellationToken.None);
         placement.Advise("Lock0").Should().NotBeNull();
 
@@ -321,8 +321,8 @@ public class BlobSingletonPlacementTests
         var scheme = NewScheme();
         var withoutLocks = new BlobSingletonPlacement(
             new StorageBusConfiguration(StorageSetup.ConnectionString),
-            new SingletonPlacementOptions(),
-            scheme
+            scheme,
+            hostId: $"host-{Guid.NewGuid():N}"
         );
         var withLocks = Create(scheme);
         await withLocks.StartAsync(CancellationToken.None);

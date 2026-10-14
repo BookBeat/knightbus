@@ -86,11 +86,9 @@ public static class StorageExtensions
     public static IServiceCollection UseBlobStorageLockManager(this IServiceCollection services)
     {
         services.AddSingleton<ISingletonLockManager, BlobLockManager>();
-        services.AddSingleton(new SingletonPlacementOptions());
         //The plain ILogger is not registered, so the logger is passed on explicitly
         services.AddSingleton<ISingletonPlacement>(provider => new BlobSingletonPlacement(
             provider.GetRequiredService<IStorageBusConfiguration>(),
-            provider.GetRequiredService<SingletonPlacementOptions>(),
             provider.GetService<IBlobLockScheme>(),
             provider.GetService<ILogger<BlobSingletonPlacement>>()
         ));

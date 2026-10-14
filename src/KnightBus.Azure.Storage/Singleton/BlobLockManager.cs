@@ -107,7 +107,7 @@ internal class BlobLockManager : ISingletonLockManager, ISingletonLockInspector
             {
                 { "LockId", lockId },
                 //Who holds the lock, so the current distribution can be read from storage
-                { "HostName", Environment.MachineName },
+                { "HostId", HostIdentity.Id },
                 { "AcquiredAtUtc", DateTimeOffset.UtcNow.ToString("O") },
             },
             new BlobRequestConditions { LeaseId = leaseId },

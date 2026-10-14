@@ -3,7 +3,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -29,7 +28,6 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
     private static readonly TimeSpan AbandonedMemberAge = TimeSpan.FromMinutes(10);
 
     private readonly IBlobLockScheme _lockScheme;
-    private readonly SingletonPlacementOptions _options;
     private readonly ILogger _log;
     private readonly BlobLockManager _lockManager;
     private readonly TimeProvider _time;
@@ -51,20 +49,17 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
 
     public BlobSingletonPlacement(
         IStorageBusConfiguration configuration,
-        SingletonPlacementOptions options,
         IBlobLockScheme? lockScheme = null,
         ILogger? log = null,
-        TimeProvider? timeProvider = null
+        TimeProvider? timeProvider = null,
+        string? hostId = null
     )
     {
-        options.Validate(nameof(options));
         _time = timeProvider ?? TimeProvider.System;
-        _options = options;
         _lockScheme = lockScheme ?? new DefaultBlobLockScheme();
         _log = log ?? Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance;
         _lockManager = new BlobLockManager(configuration, _lockScheme);
-        HostId =
-            $"{Environment.MachineName}-{Convert.ToHexString(RandomNumberGenerator.GetBytes(3)).ToLowerInvariant()}";
+        HostId = hostId ?? HostIdentity.Id;
         _container = AzureStorageClientFactory.CreateBlobContainerClient(
             configuration,
             _lockScheme.ContainerName
@@ -74,6 +69,13 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
     }
 
     public string HostId { get; }
+
+    //How often the member list is read
+    internal TimeSpan RefreshInterval { get; init; } = TimeSpan.FromSeconds(20);
+
+    //The advice is dropped when the member list could not be read for this long, and the hosts
+    //compete for the locks as they do without placement
+    internal TimeSpan StaleAfter { get; init; } = TimeSpan.FromMinutes(1);
 
     public void Register(string lockId, int weight) => _locks[lockId] = Math.Max(1, weight);
 
@@ -177,10 +179,7 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
     public SingletonPlacementAdvice? Advise(string lockId)
     {
         var snapshot = Volatile.Read(ref _snapshot);
-        if (
-            snapshot == null
-            || _time.GetElapsedTime(snapshot.TakenAt) > _options.EffectiveStaleAfter
-        )
+        if (snapshot == null || _time.GetElapsedTime(snapshot.TakenAt) > StaleAfter)
             return null;
         if (!snapshot.Assignment.TryGetValue(lockId, out var preferred))
             return null;
@@ -197,7 +196,7 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
         {
             try
             {
-                await Task.Delay(_options.RefreshInterval, cancellationToken).ConfigureAwait(false);
+                await Task.Delay(RefreshInterval, cancellationToken).ConfigureAwait(false);
                 await RejoinIfLostAsync(cancellationToken).ConfigureAwait(false);
                 await RefreshAsync(cancellationToken).ConfigureAwait(false);
             }
@@ -269,7 +268,7 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
         Volatile.Write(
             ref _snapshot,
             new Snapshot(
-                SingletonAssignment.Compute(hosts, _options.Epsilon),
+                SingletonAssignment.Compute(hosts),
                 new Dictionary<string, long>(_liveSince),
                 now
             )

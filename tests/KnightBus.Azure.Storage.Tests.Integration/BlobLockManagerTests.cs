@@ -64,7 +64,7 @@ public class BlobLockManagerTests
         ).GetBlobClient(Path.Combine(scheme.Directory, lockId));
         var metadata = (await blob.GetPropertiesAsync()).Value.Metadata;
         metadata["LockId"].Should().Be(lockId);
-        metadata["HostName"].Should().Be(Environment.MachineName);
+        metadata["HostId"].Should().Be(HostIdentity.Id);
         DateTimeOffset
             .Parse(metadata["AcquiredAtUtc"])
             .Should()
