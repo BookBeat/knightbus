@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using KnightBus.Core.Singleton;
@@ -231,7 +232,7 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
     internal async Task RefreshAsync(CancellationToken cancellationToken)
     {
         var live = new List<(string HostId, string Name, string ETag)>();
-        var abandoned = new List<string>();
+        var abandoned = new List<(string Name, ETag? ETag)>();
         var unleased = new HashSet<string>(StringComparer.Ordinal);
         await foreach (
             var item in _container
@@ -249,7 +250,7 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
                 var since = _unleasedSince.GetValueOrDefault(item.Name, _time.GetTimestamp());
                 _unleasedSince[item.Name] = since;
                 if (_time.GetElapsedTime(since) >= AbandonedMemberAge)
-                    abandoned.Add(item.Name);
+                    abandoned.Add((item.Name, item.Properties.ETag));
             }
         }
 
@@ -277,8 +278,8 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
             new Snapshot(SingletonAssignment.Compute(hosts), _time.GetTimestamp())
         );
 
-        foreach (var name in abandoned)
-            await TryDeleteAbandonedAsync(name, cancellationToken).ConfigureAwait(false);
+        foreach (var (name, etag) in abandoned)
+            await TryDeleteAbandonedAsync(name, etag, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<IReadOnlyDictionary<string, int>?> GetLocksAsync(
@@ -311,19 +312,30 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
         }
     }
 
-    private async Task TryDeleteAbandonedAsync(string name, CancellationToken cancellationToken)
+    //Only the blob as it was listed is removed. A host that rejoins writes its blob again before it
+    //leases it, and deleting it in between would make it lease an empty blob the others cannot read
+    internal async Task TryDeleteAbandonedAsync(
+        string name,
+        ETag? listedETag,
+        CancellationToken cancellationToken
+    )
     {
+        if (listedETag == null)
+            return;
         try
         {
             await _container
                 .GetBlobClient(name)
-                .DeleteIfExistsAsync(cancellationToken: cancellationToken)
+                .DeleteIfExistsAsync(
+                    conditions: new BlobRequestConditions { IfMatch = listedETag },
+                    cancellationToken: cancellationToken
+                )
                 .ConfigureAwait(false);
         }
         catch (Exception e)
             when (e is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
-            //Leased again or removed by another host in the meantime
+            //Written again, leased again or removed by another host in the meantime
             _log.LogDebug(e, "Could not remove the abandoned member blob {Member}", name);
         }
     }

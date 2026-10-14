@@ -244,6 +244,31 @@ public class BlobSingletonPlacementTests
     }
 
     [Test]
+    public async Task Should_not_remove_a_member_blob_that_was_written_again_after_the_listing()
+    {
+        //arrange: a sweeping host listed the blob as abandoned, then its owner rejoined and wrote it
+        var scheme = NewScheme();
+        var placement = Create(scheme);
+        var container = new BlobContainerClient(
+            StorageSetup.ConnectionString,
+            scheme.ContainerName
+        );
+        await container.CreateIfNotExistsAsync();
+        var member = container.GetBlobClient($"{scheme.Directory}/_members/rejoining-host");
+        var listed = (await member.UploadAsync(BinaryData.FromString("{}"))).Value.ETag;
+        await member.UploadAsync(BinaryData.FromString("{\"Lock0\":1}"), overwrite: true);
+
+        //act
+        await placement.TryDeleteAbandonedAsync(member.Name, listed, CancellationToken.None);
+
+        //assert
+        (await member.ExistsAsync())
+            .Value.Should()
+            .BeTrue();
+        (await member.DownloadContentAsync()).Value.Content.ToString().Should().Be("{\"Lock0\":1}");
+    }
+
+    [Test]
     public async Task Should_rejoin_the_group_when_the_member_lease_is_lost()
     {
         //arrange
