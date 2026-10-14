@@ -187,6 +187,9 @@ The timing is fixed and not configurable:
 | Slack over the fair share | 25% |
 | How long a lock must have been seen free before a non-preferred instance takes it | 2 minutes |
 | The shortest time a lock is held before it is handed over | 10 minutes |
+| How often an instance looks for a lock it should hold but does not | 5 seconds |
 
-How quickly a lock moves is bounded by the singleton poll interval as well, see [singleton
-processing](singleton-processing.md#what-the-marker-changes) and `ConfigureSingletons`.
+An instance that should hold a lock but does not looks for it every 5 seconds, so a lock that is
+handed over or released is picked up within seconds. Every other instance waits the singleton poll
+interval between attempts, see [singleton processing](singleton-processing.md#what-the-marker-changes)
+and `ConfigureSingletons`.

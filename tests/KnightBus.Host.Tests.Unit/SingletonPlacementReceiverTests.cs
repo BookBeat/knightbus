@@ -103,6 +103,43 @@ public class SingletonPlacementReceiverTests
     }
 
     [Test]
+    public async Task Should_look_for_a_lock_it_should_hold_more_often_than_the_poll_interval()
+    {
+        //arrange: another host holds the lock this one should have, and the poll interval is long
+        await using var f = new Fixture();
+        f.Receiver.TimerInterval = TimeSpan.FromMinutes(1);
+        f.Receiver.PreferredPollInterval = TimeSpan.FromMilliseconds(20);
+        f.Locks.Take(Lock, Other);
+        f.Placement.Prefer(Lock, Me, self: true);
+        await f.Start();
+        await Eventually(() => f.Locks.Attempts >= 2);
+
+        //act: the other host hands it over after this host has polled and is waiting again
+        f.Locks.ReleaseFor(Lock);
+
+        //assert: picked up well within one poll interval
+        await Eventually(() => f.Locks.Holder(Lock) == Me);
+    }
+
+    [Test]
+    public async Task Should_keep_the_poll_interval_for_a_lock_another_host_should_hold()
+    {
+        //arrange
+        await using var f = new Fixture();
+        f.Receiver.TimerInterval = TimeSpan.FromMinutes(1);
+        f.Receiver.PreferredPollInterval = TimeSpan.FromMilliseconds(20);
+        f.Locks.Take(Lock, Other);
+        f.Placement.Prefer(Lock, Other, self: false);
+
+        //act
+        await f.Start();
+        await Task.Delay(300);
+
+        //assert: only the attempt at start, nothing until the poll interval has passed
+        f.Locks.Attempts.Should().BeLessThanOrEqualTo(1);
+    }
+
+    [Test]
     public async Task Should_take_the_lock_right_away_when_there_is_no_advice()
     {
         //arrange: the placement could not read the group
