@@ -184,7 +184,6 @@ public class TransportStarterFactoryTests
             services =>
             {
                 services.AddSingleton(placement.Object);
-                services.AddSingleton(new SingletonPlacementOptions());
             },
             typeof(WeightedSingletonEventProcessor)
         );
@@ -203,7 +202,6 @@ public class TransportStarterFactoryTests
         CreateSingletonReceiver(services =>
         {
             services.AddSingleton(placement.Object);
-            services.AddSingleton(new SingletonPlacementOptions());
         });
 
         //assert
@@ -219,7 +217,6 @@ public class TransportStarterFactoryTests
                 services =>
                 {
                     services.AddSingleton(Mock.Of<ISingletonPlacement>());
-                    services.AddSingleton(new SingletonPlacementOptions());
                 },
                 typeof(ZeroWeightSingletonEventProcessor)
             );

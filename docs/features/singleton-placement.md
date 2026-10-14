@@ -84,8 +84,8 @@ locks as it does without placement.
 
 ## Seeing what it does
 
-- Each lock blob records who holds it in its metadata: `LockId`, `HostName` (the machine name, the
-  pod name in Kubernetes) and `AcquiredAtUtc`. Listing the lock blobs with their metadata shows the
+- Each lock blob records who holds it in its metadata: `LockId`, `HostId` (the same host id as in
+  the logs) and `AcquiredAtUtc`. Listing the lock blobs with their metadata shows the
   current distribution.
 - The logs name the host in each of these events, at Information. The host id is the machine name
   plus a short suffix that changes with every process start, the same id the other hosts see:
