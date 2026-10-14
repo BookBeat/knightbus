@@ -95,8 +95,8 @@ locks as it does without placement.
       a lock.
     - `Singleton Processor with name {ProcessorName} on host {HostId} hands its lock over to
       {PreferredHost}` when a holder gives a lock up for another host.
-    - `Releasing lock {LockId} held by host {HostId}` when a lock is released, for example on
-      shutdown.
+    - `Singleton Processor with name {ProcessorName} on host {HostId} stopped holding its lock`
+      whenever a host lets go of a lock: on shutdown, after a hand-over or when the lock is lost.
     - `Singleton Processor with name {ProcessorName} lost its lock on host {HostId}` when a lock
       is lost.
 

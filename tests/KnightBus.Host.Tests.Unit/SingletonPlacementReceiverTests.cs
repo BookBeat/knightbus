@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AwesomeAssertions;
@@ -170,7 +171,7 @@ public class SingletonPlacementReceiverTests
     }
 
     [Test]
-    public async Task Should_name_the_host_when_it_takes_and_hands_over_a_lock()
+    public async Task Should_name_the_host_when_it_takes_hands_over_and_lets_go_of_a_lock()
     {
         //arrange
         var log = new ListLogger();
@@ -189,6 +190,11 @@ public class SingletonPlacementReceiverTests
             .And.Contain(
                 $"Singleton Processor with name {Lock} on host {Me} hands its lock over to {Other}"
             );
+        await Eventually(() =>
+            log.Messages.Contains(
+                $"Singleton Processor with name {Lock} on host {Me} stopped holding its lock"
+            )
+        );
     }
 
     [Test]
