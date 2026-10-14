@@ -124,8 +124,7 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
             handle,
             true,
             MemberRenewalInterval,
-            CancellationTokenSource.CreateLinkedTokenSource(lifetime),
-            HostId
+            CancellationTokenSource.CreateLinkedTokenSource(lifetime)
         );
     }
 
