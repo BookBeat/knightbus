@@ -8,7 +8,6 @@ namespace KnightBus.Core.Singleton;
 public class SingletonTimerScope : IDisposable
 {
     private readonly ILogger _log;
-    private readonly string? _hostId;
     private readonly ISingletonLockHandle _lockHandle;
     private readonly bool _autoRelease; //clock drift makes triggers unstable for singleton use if the function is fast
     private readonly TimeSpan _renewalInterval;
@@ -29,19 +28,7 @@ public class SingletonTimerScope : IDisposable
         TimeSpan renewalInterval,
         CancellationTokenSource cancellationTokenSource
     )
-        : this(log, lockHandle, autoRelease, renewalInterval, cancellationTokenSource, null) { }
-
-    /// <param name="hostId">Names the host that holds the lock in the log messages</param>
-    public SingletonTimerScope(
-        ILogger log,
-        ISingletonLockHandle lockHandle,
-        bool autoRelease,
-        TimeSpan renewalInterval,
-        CancellationTokenSource cancellationTokenSource,
-        string? hostId
-    )
     {
-        _hostId = hostId;
         _log = log;
         _lockHandle = lockHandle;
         _autoRelease = autoRelease;
@@ -115,22 +102,13 @@ public class SingletonTimerScope : IDisposable
             return;
         try
         {
-            _log.LogInformation(
-                "Releasing lock {LockId} held by host {HostId}",
-                _lockHandle.LockId,
-                _hostId ?? Environment.MachineName
-            );
+            _log.LogInformation("Releasing lock {LockId}", _lockHandle.LockId);
             await _lockHandle.ReleaseAsync(CancellationToken.None).ConfigureAwait(false);
         }
         catch (Exception e)
         {
             //The lock will expire by itself when it cannot be released
-            _log.LogWarning(
-                e,
-                "Failed to release lock {LockId} held by host {HostId}",
-                _lockHandle.LockId,
-                _hostId ?? Environment.MachineName
-            );
+            _log.LogWarning(e, "Failed to release lock {LockId}", _lockHandle.LockId);
         }
     }
 

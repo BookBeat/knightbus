@@ -277,8 +277,17 @@ internal class SingletonChannelReceiver : IChannelReceiver
                 lockHandle,
                 true,
                 LockRefreshInterval,
-                scopeTokenSource,
-                HostId
+                scopeTokenSource
+            );
+            //The scope completes once the lock is released, or given up when the release failed
+            _singletonScope.Completion.ContinueWith(
+                _ =>
+                    _log.LogInformation(
+                        "Singleton Processor with name {ProcessorName} on host {HostId} stopped holding its lock",
+                        _lockId,
+                        HostId
+                    ),
+                TaskScheduler.Default
             );
             _log.LogInformation(
                 "Starting Singleton Processor with name {ProcessorName} on host {HostId}",

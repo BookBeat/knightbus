@@ -58,7 +58,7 @@ public class SingletonTimerScopeTests
     }
 
     [Test]
-    public async Task Should_name_the_lock_and_the_host_when_releasing()
+    public async Task Should_name_the_lock_when_releasing()
     {
         //arrange
         var released = new TaskCompletionSource();
@@ -81,8 +81,7 @@ public class SingletonTimerScopeTests
             handle.Object,
             true,
             TimeSpan.FromSeconds(19),
-            cts,
-            "host-1"
+            cts
         );
 
         //act
@@ -91,7 +90,7 @@ public class SingletonTimerScopeTests
         await scope.Completion.WaitAsync(TimeSpan.FromSeconds(5));
 
         //assert
-        log.Messages.Should().Contain("Releasing lock the-lock held by host host-1");
+        log.Messages.Should().Contain("Releasing lock the-lock");
     }
 
     [Test]
