@@ -154,9 +154,9 @@ example during a rolling deploy.
 
 A hand-over cancels the receiver, and with it the message being processed, and keeps the lock until
 that message has stopped, so the next holder never starts while it is still running. A handler that
-never reacts to cancellation keeps the lock where it is. The handler is stopped through its cancellation token, so every handler must tolerate
-cancellation, as it has to on shutdown too. The cancellation is logged like any other cancelled
-handler.
+never reacts to cancellation keeps the lock where it is. The handler is stopped through its
+cancellation token, so every handler must tolerate cancellation, as it has to on shutdown too. The
+cancellation is logged like any other cancelled handler.
 
 A cancelled message is abandoned and delivered again. The delivery counts against the processor's
 `DeadLetterDeliveryLimit`, because the transport counts every delivery and KnightBus cannot take one
