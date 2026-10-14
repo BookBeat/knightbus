@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
@@ -27,6 +26,15 @@ internal sealed class InFlightMessages(IMessageProcessor next) : IMessageProcess
         Interlocked.Increment(ref _count);
         try
         {
+            //A message that reaches the pipeline after the receiver was cancelled must not run: a
+            //hand-over that saw no message in flight may already have released the lock
+            if (cancellationToken.IsCancellationRequested)
+            {
+                await messageStateHandler
+                    .AbandonByErrorAsync(new OperationCanceledException(cancellationToken))
+                    .ConfigureAwait(false);
+                return;
+            }
             await next.ProcessAsync(messageStateHandler, cancellationToken).ConfigureAwait(false);
         }
         finally
@@ -36,21 +44,11 @@ internal sealed class InFlightMessages(IMessageProcessor next) : IMessageProcess
     }
 
     /// <summary>
-    /// Completes once no message is being handled, or returns false when that takes longer than
-    /// <paramref name="timeout"/>
+    /// Completes once no message is being handled
     /// </summary>
-    public async Task<bool> WaitUntilIdleAsync(
-        TimeSpan timeout,
-        CancellationToken cancellationToken
-    )
+    public async Task WaitUntilIdleAsync(CancellationToken cancellationToken)
     {
-        var started = Stopwatch.GetTimestamp();
         while (Count > 0)
-        {
-            if (Stopwatch.GetElapsedTime(started) >= timeout)
-                return false;
             await Task.Delay(PollInterval, cancellationToken).ConfigureAwait(false);
-        }
-        return true;
     }
 }

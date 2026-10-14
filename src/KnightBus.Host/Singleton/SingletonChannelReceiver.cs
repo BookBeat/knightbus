@@ -149,7 +149,8 @@ internal class SingletonChannelReceiver : IChannelReceiver
 
     private TimeSpan CurrentPollInterval() =>
         _held == null
-        && _placement?.Advise(_lockId)?.PreferredIsSelf == true
+        && _placement != null
+        && _placement.Advise(_lockId) == _placement.HostId
         && PreferredPollInterval < TimerInterval
             ? PreferredPollInterval
             : TimerInterval;
@@ -167,8 +168,8 @@ internal class SingletonChannelReceiver : IChannelReceiver
     /// </summary>
     private async Task<bool> MayTryToAcquire(CancellationToken cancellationToken)
     {
-        var advice = _placement?.Advise(_lockId);
-        if (advice == null || advice.PreferredIsSelf)
+        var preferred = _placement?.Advise(_lockId);
+        if (preferred == null || preferred == _placement!.HostId)
         {
             _freeSince = null;
             return true;
@@ -203,8 +204,8 @@ internal class SingletonChannelReceiver : IChannelReceiver
     {
         if (_placement == null)
             return;
-        var advice = _placement.Advise(_lockId);
-        if (advice == null || advice.PreferredIsSelf)
+        var preferred = _placement.Advise(_lockId);
+        if (preferred == null || preferred == _placement.HostId)
             return;
         if (Time.GetElapsedTime(held.AcquiredAt) < HandoffInterval)
             return;
@@ -213,7 +214,7 @@ internal class SingletonChannelReceiver : IChannelReceiver
             "Singleton Processor with name {ProcessorName} on host {HostId} hands its lock over to {PreferredHost}",
             _lockId,
             HostId,
-            advice.PreferredHost
+            preferred
         );
         await HandOver(held, cancellationToken).ConfigureAwait(false);
     }
@@ -241,23 +242,12 @@ internal class SingletonChannelReceiver : IChannelReceiver
             }
         }
 
-        //Stop the wrapped receiver and whatever it is still running, then give the lock up. The lock
-        //is kept until the cancelled messages have stopped, or the next holder would process while
-        //they are still running. A message cannot outlast its message lock, after which the
-        //transport delivers it again anyway, so that bounds the wait
+        //Stop the wrapped receiver and whatever it is still running, then give the lock up once the
+        //cancelled messages have stopped, or the next holder would process while they are still
+        //running. A handler that never stops keeps the lock where it is
         TryCancel(held.ReceiverSource);
-        if (
-            _inFlight != null
-            && !await _inFlight
-                .WaitUntilIdleAsync(Settings.MessageLockTimeout, cancellationToken)
-                .ConfigureAwait(false)
-        )
-            _log.LogWarning(
-                "Singleton Processor with name {ProcessorName} on host {HostId} hands its lock over while a message has not stopped after {Timeout}",
-                _lockId,
-                HostId,
-                Settings.MessageLockTimeout
-            );
+        if (_inFlight != null)
+            await _inFlight.WaitUntilIdleAsync(cancellationToken).ConfigureAwait(false);
         TryCancel(held.ScopeSource);
         await held.Scope.Completion.WaitAsync(cancellationToken).ConfigureAwait(false);
         _held = null;

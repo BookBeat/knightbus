@@ -39,7 +39,7 @@ public class SingletonOptions
                 PollInterval,
                 $"{nameof(PollInterval)} must be positive"
             );
-        if (PollJitter < 0 || PollJitter > 1)
+        if (!double.IsFinite(PollJitter) || PollJitter < 0 || PollJitter > 1)
             throw new ArgumentOutOfRangeException(
                 paramName,
                 PollJitter,

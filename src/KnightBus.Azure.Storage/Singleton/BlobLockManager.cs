@@ -69,6 +69,16 @@ internal class BlobLockManager : ISingletonLockManager, ISingletonLockInspector
         CancellationToken cancellationToken
     )
     {
+        //A blob lease lasts between 15 and 60 seconds, or until it is released
+        if (
+            lockPeriod != Timeout.InfiniteTimeSpan
+            && (lockPeriod < TimeSpan.FromSeconds(15) || lockPeriod > TimeSpan.FromSeconds(60))
+        )
+            throw new ArgumentOutOfRangeException(
+                nameof(lockPeriod),
+                lockPeriod,
+                "A blob lease lasts between 15 and 60 seconds, see SingletonOptions.LockDuration"
+            );
         var blob = _client.GetBlobClient(BlobName(_lockScheme, lockId));
 
         var lease = await TryAcquireLeaseAsync(blob, lockPeriod, cancellationToken)

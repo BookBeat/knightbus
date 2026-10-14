@@ -155,10 +155,9 @@ example during a rolling deploy.
 A hand-over stops fetching new messages and lets the message being processed finish, for up to the
 processor's `MessageLockTimeout`, which is the longest a message may be in flight anyway. Then it
 cancels the handler and keeps the lock until the handler has stopped, so the next holder never
-starts while it is still running. That wait is bounded by `MessageLockTimeout` as well, after which
-the transport delivers the message again anyway. A handler that stays within its message lock is
-never cancelled by a hand-over, but every handler must still tolerate cancellation, as it has to on
-shutdown too. The cancellation is logged like any other cancelled handler.
+starts while it is still running. A handler that never reacts to cancellation keeps the lock where
+it is. A handler that stays within its message lock is never cancelled by a hand-over, but every
+handler must still tolerate cancellation, as it has to on shutdown too. The cancellation is logged like any other cancelled handler.
 
 Stopping the fetch without cancelling the running message needs support from the receiver
 (`IDrainableChannelReceiver`). The Azure Storage queue receiver has it. Receivers without it, today
