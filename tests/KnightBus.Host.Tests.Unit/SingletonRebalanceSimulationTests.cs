@@ -81,6 +81,34 @@ public class SingletonRebalanceSimulationTests
         world.MaxConcurrentHolders.Should().Be(1, "a lock is never held by two hosts at once");
     }
 
+    [Test]
+    public async Task Should_leave_the_locks_where_they_are_while_the_hosts_stay_the_same()
+    {
+        //arrange: four hosts settle on the preferred distribution
+        var world = new World();
+        var hosts = new List<Host>();
+        for (var i = 0; i < 4; i++)
+            hosts.Add(await world.StartHost($"host-{i}"));
+        world.Time.Advance(TimeSpan.FromMinutes(11));
+        await Eventually(() => world.HoldsWhatIsPreferred(), world);
+        var settled = world.Holders();
+        var takes = world.Takes;
+
+        //act: an hour passes, well past the minimum hold, while every receiver keeps polling
+        for (var i = 0; i < 6; i++)
+        {
+            world.Time.Advance(TimeSpan.FromMinutes(11));
+            await Task.Delay(200);
+        }
+
+        //assert: the minimum hold is not a period, a lock on its preferred host never moves
+        world.Holders().Should().BeEquivalentTo(settled);
+        world.Takes.Should().Be(takes);
+
+        foreach (var host in hosts)
+            await host.Leave();
+    }
+
     private static async Task Eventually(Func<bool> condition, World world)
     {
         var deadline = DateTime.UtcNow.AddSeconds(20);
@@ -98,7 +126,13 @@ public class SingletonRebalanceSimulationTests
         private readonly ConcurrentDictionary<string, string> _holders = new();
         private readonly ConcurrentDictionary<string, long> _members = new();
         private int _maxConcurrentHolders = 1;
+        private int _takes;
         public int MaxConcurrentHolders => _maxConcurrentHolders;
+
+        //How many times a lock has been taken, so a lock that moves away and back is noticed too
+        public int Takes => Volatile.Read(ref _takes);
+
+        public Dictionary<string, string> Holders() => new(_holders);
 
         public async Task<Host> StartHost(string id)
         {
@@ -161,6 +195,7 @@ public class SingletonRebalanceSimulationTests
             var taken = _holders.TryAdd(lockId, host);
             if (taken)
             {
+                Interlocked.Increment(ref _takes);
                 var current = _holders.Count(x => x.Key == lockId);
                 int seen;
                 while (
