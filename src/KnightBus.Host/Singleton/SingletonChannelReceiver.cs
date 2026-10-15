@@ -313,10 +313,8 @@ internal class SingletonChannelReceiver : IChannelReceiver
                 cancellationToken,
                 scopeTokenSource.Token
             );
-            //A stopped receiver takes no new messages either
-            var fetchTokenSource = CancellationTokenSource.CreateLinkedTokenSource(
-                receiverTokenSource.Token
-            );
+            //Cancelled by a hand-over only, the receiver token stops fetching as well
+            var fetchTokenSource = new CancellationTokenSource();
             _freeSince = null;
             var scope = new SingletonTimerScope(
                 _log,
