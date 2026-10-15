@@ -196,7 +196,11 @@ public class GenericMessagePumpTests
         var pump = new TestMessagePump(new RecordingLogger());
 
         //act
-        await pump.PumpAsync<TestCommand>((_, _) => Task.CompletedTask, CancellationToken.None);
+        await pump.PumpAsync<TestCommand>(
+            (_, _) => Task.CompletedTask,
+            CancellationToken.None,
+            CancellationToken.None
+        );
 
         //assert
         pump.LastLockDuration.Should().Be(new TestPumpSettings().MessageLockTimeout);
@@ -210,7 +214,11 @@ public class GenericMessagePumpTests
         var pump = new TestMessagePump(new RecordingLogger(), settings: settings);
 
         //act
-        await pump.PumpAsync<TestCommand>((_, _) => Task.CompletedTask, CancellationToken.None);
+        await pump.PumpAsync<TestCommand>(
+            (_, _) => Task.CompletedTask,
+            CancellationToken.None,
+            CancellationToken.None
+        );
 
         //assert
         pump.LastLockDuration.Should()
@@ -233,6 +241,7 @@ public class GenericMessagePumpTests
         //act
         var result = await pump.PumpAsync<TestCommand>(
             (_, _) => Task.CompletedTask,
+            CancellationToken.None,
             CancellationToken.None
         );
 
@@ -424,7 +433,11 @@ public class GenericMessagePumpTests
                 messagesPerFetch: maxConcurrent
             );
 
-            await pump.PumpAsync<TestCommand>((_, _) => Task.CompletedTask, CancellationToken.None);
+            await pump.PumpAsync<TestCommand>(
+                (_, _) => Task.CompletedTask,
+                CancellationToken.None,
+                CancellationToken.None
+            );
 
             //All slots must eventually come back, no matter how the lock-timeout race played out
             var deadline = DateTime.UtcNow.AddSeconds(2);

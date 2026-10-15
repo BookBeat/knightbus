@@ -96,7 +96,13 @@ public class SingletonDistributionTests
     {
         var underlying = new Mock<IChannelReceiver>();
         underlying.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);
-        return new SingletonChannelReceiver(underlying.Object, manager, Mock.Of<ILogger>(), lockId)
+        return new SingletonChannelReceiver(
+            underlying.Object,
+            new InFlightMessages(Mock.Of<IMessageProcessor>()),
+            manager,
+            Mock.Of<ILogger>(),
+            lockId
+        )
         {
             TimerInterval = timerInterval ?? TimeSpan.FromMinutes(1),
             LockRefreshInterval = TimeSpan.FromMilliseconds(100),

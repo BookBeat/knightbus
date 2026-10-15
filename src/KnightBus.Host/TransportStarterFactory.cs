@@ -76,6 +76,8 @@ internal class TransportStarterFactory
             _configuration,
             inFlight ?? messageProcessor
         );
+        if (inFlight == null)
+            return starter;
         return WrapSingletonReceiver(
             starter,
             processor,
@@ -113,44 +115,38 @@ internal class TransportStarterFactory
         Type type,
         IEventSubscription? subscription,
         IProcessingSettings processingSettings,
-        InFlightMessages? inFlight
+        InFlightMessages inFlight
     )
     {
-        if (typeof(ISingletonProcessor).IsAssignableFrom(type))
+        var lockManager = _configuration.DependencyInjection.GetInstance<ISingletonLockManager>();
+        _configuration.Log.LogInformation("Setting {SettingName} in Singleton mode", type.Name);
+
+        var lockId = channelReceiver.GetType().FullName ?? channelReceiver.GetType().Name;
+        if (!string.IsNullOrWhiteSpace(subscription?.Name))
         {
-            var lockManager =
-                _configuration.DependencyInjection.GetInstance<ISingletonLockManager>();
-            _configuration.Log.LogInformation("Setting {SettingName} in Singleton mode", type.Name);
-
-            var lockId = channelReceiver.GetType().FullName ?? channelReceiver.GetType().Name;
-            if (!string.IsNullOrWhiteSpace(subscription?.Name))
-            {
-                lockId = $"{lockId}:{subscription.Name}";
-            }
-
-            var options =
-                _configuration.DependencyInjection.GetInstances<SingletonOptions>().LastOrDefault()
-                ?? new SingletonOptions();
-
-            var singletonStarter = new SingletonChannelReceiver(
-                channelReceiver,
-                lockManager,
-                _configuration.Log,
-                lockId,
-                _teardownToken,
-                _placement,
-                inFlight
-            )
-            {
-                TimerInterval = options.PollInterval,
-                PollJitter = options.PollJitter,
-                LockDuration = options.LockDuration,
-                LockRefreshInterval = options.RenewalInterval,
-                Weight = WeightOf(processingSettings, type),
-            };
-            return singletonStarter;
+            lockId = $"{lockId}:{subscription.Name}";
         }
 
-        return channelReceiver;
+        var options =
+            _configuration.DependencyInjection.GetInstances<SingletonOptions>().LastOrDefault()
+            ?? new SingletonOptions();
+
+        var singletonStarter = new SingletonChannelReceiver(
+            channelReceiver,
+            inFlight,
+            lockManager,
+            _configuration.Log,
+            lockId,
+            _teardownToken,
+            _placement
+        )
+        {
+            TimerInterval = options.PollInterval,
+            PollJitter = options.PollJitter,
+            LockDuration = options.LockDuration,
+            LockRefreshInterval = options.RenewalInterval,
+            Weight = WeightOf(processingSettings, type),
+        };
+        return singletonStarter;
     }
 }
