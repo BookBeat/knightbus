@@ -112,12 +112,13 @@ public class SingletonPlacementReceiverTests
         f.Locks.Take(Lock, Other);
         f.Placement.Prefer(Lock, Me);
         await f.Start();
-        await Eventually(() => f.Locks.Attempts >= 2);
+        await Eventually(() => f.Locks.Inspections >= 3);
 
         //act: the other host hands it over after this host has polled and is waiting again
         f.Locks.ReleaseFor(Lock);
 
-        //assert: picked up well within one poll interval
+        //assert: picked up well within one poll interval, without trying to take a held lock
+        f.Locks.Attempts.Should().Be(0);
         await Eventually(() => f.Locks.Holder(Lock) == Me);
     }
 

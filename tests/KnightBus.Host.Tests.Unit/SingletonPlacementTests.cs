@@ -63,30 +63,12 @@ public class SingletonPlacementTests
     }
 
     [Test]
-    public async Task Should_count_this_host_with_its_own_locks_when_the_members_are_behind()
+    public async Task Should_count_this_host_before_the_others_can_see_it()
     {
-        //arrange: the members still show this host without its locks
+        //arrange: this host has not reached the members yet
         var members = new Members();
         members.Join("other", Locks);
-        members.Join("me", NoLocks);
-        var placement = Create(new Membership(members, "me") { JoinsForReal = false });
-
-        //act
-        await placement.StartAsync(Locks, CancellationToken.None);
-
-        //assert
-        Locks.Keys.Select(placement.Advise).Should().Contain("me");
-
-        await placement.StopAsync(CancellationToken.None);
-    }
-
-    [Test]
-    public async Task Should_count_this_host_when_the_members_do_not_list_it()
-    {
-        //arrange
-        var members = new Members();
-        members.Join("other", Locks);
-        var placement = Create(new Membership(members, "me") { JoinsForReal = false });
+        var placement = Create(new Membership(members, "me"));
 
         //act
         await placement.StartAsync(Locks, CancellationToken.None);
@@ -269,7 +251,6 @@ public class SingletonPlacementTests
         public int StuckReads => _stuckReads;
         public volatile bool FailJoins;
         public volatile bool FailReads;
-        public bool JoinsForReal { get; init; } = true;
 
         //Reading the members waits for this, whatever its token says
         public volatile TaskCompletionSource? Stuck;
@@ -284,8 +265,7 @@ public class SingletonPlacementTests
             Interlocked.Increment(ref _joins);
             if (FailJoins)
                 throw new InvalidOperationException("join");
-            if (JoinsForReal)
-                members.Join(hostId, locks);
+            members.Join(hostId, locks);
             return Task.CompletedTask;
         }
 
@@ -300,7 +280,7 @@ public class SingletonPlacementTests
                 Interlocked.Increment(ref _stuckReads);
                 await stuck.Task;
             }
-            return members.All();
+            return members.All().Where(m => m.HostId != hostId).ToList();
         }
 
         public Task LeaveAsync(CancellationToken cancellationToken)

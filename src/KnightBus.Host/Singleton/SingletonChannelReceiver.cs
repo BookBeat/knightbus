@@ -173,17 +173,20 @@ internal class SingletonChannelReceiver : IChannelReceiver
     private async Task<bool> MayTryToAcquire(CancellationToken cancellationToken)
     {
         var preferred = _placement?.Advise(_lockId);
-        if (preferred == null || preferred == _placement!.HostId)
+        if (preferred == null)
         {
             _freeSince = null;
             return true;
         }
+        var isPreferred = preferred == _placement!.HostId;
 
-        //Another host should have it. Take it only when it has been free for the grace period,
-        //which means the preferred host is not taking it. Without a way to see whether the lock
-        //is held that cannot be known, so the lock is left to the preferred host
+        //Look before taking: the preferred host polls often while another host still holds the
+        //lock, and an attempt to take a held lock is a failed request. Another host takes it only
+        //when it has been free for the grace period, which means the preferred host is not taking
+        //it. Without a way to see whether the lock is held that cannot be known, so the lock is left
+        //to the preferred host
         if (_lockManager is not ISingletonLockInspector inspector)
-            return false;
+            return isPreferred;
         try
         {
             if (await inspector.IsLockedAsync(_lockId, cancellationToken).ConfigureAwait(false))
@@ -197,9 +200,14 @@ internal class SingletonChannelReceiver : IChannelReceiver
         {
             _log.LogWarning(e, "Could not tell whether {ProcessorName} is locked", _lockId);
             _freeSince = null;
-            return false;
+            return isPreferred;
         }
 
+        if (isPreferred)
+        {
+            _freeSince = null;
+            return true;
+        }
         _freeSince ??= Time.GetTimestamp();
         return Time.GetElapsedTime(_freeSince.Value) >= TakeoverGrace;
     }

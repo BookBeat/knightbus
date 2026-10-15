@@ -154,12 +154,8 @@ internal sealed class SingletonPlacement : ISingletonPlacement
     internal async Task RefreshAsync(CancellationToken cancellationToken)
     {
         var members = await _membership.GetMembersAsync(cancellationToken).ConfigureAwait(false);
-        //This host is always a member of its own view, with its own locks, even if the members
-        //read are behind
-        var hosts = members
-            .Where(m => m.HostId != HostId)
-            .Append(new SingletonMember(HostId, _locks))
-            .ToList();
+        //This host is always a member of its own view, even before the others can see it
+        var hosts = members.Append(new SingletonMember(HostId, _locks)).ToList();
         Volatile.Write(
             ref _snapshot,
             new Snapshot(SingletonAssignment.Compute(hosts), _time.GetTimestamp())

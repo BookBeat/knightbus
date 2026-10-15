@@ -22,7 +22,8 @@ public class SingletonOptions
 
     /// <summary>
     /// How long a lock is held without being renewed. Must be longer than
-    /// <see cref="RenewalInterval"/> with room for failed renewals.
+    /// <see cref="RenewalInterval"/> with room for failed renewals. The lock manager may limit it:
+    /// a blob lease lasts between 15 and 60 seconds.
     /// </summary>
     public TimeSpan LockDuration { get; set; } = TimeSpan.FromMinutes(1);
 
