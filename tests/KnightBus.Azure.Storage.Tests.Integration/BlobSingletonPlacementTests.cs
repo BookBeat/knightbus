@@ -234,6 +234,34 @@ public class BlobSingletonPlacementTests
     }
 
     [Test]
+    public async Task Should_start_the_time_unleased_over_when_a_member_blob_is_written_again()
+    {
+        //arrange: a member blob has been unleased for a long time
+        var time = new ManualTimeProvider();
+        var scheme = NewScheme();
+        var placement = Create(scheme, time);
+        await placement.StartAsync(LockWeights, CancellationToken.None);
+        var member = new BlobContainerClient(
+            StorageSetup.ConnectionString,
+            scheme.ContainerName
+        ).GetBlobClient($"{scheme.Directory}/_members/rejoining-host");
+        await member.UploadAsync(BinaryData.FromString("{}"), true);
+        await placement.RefreshAsync(CancellationToken.None);
+        time.Advance(TimeSpan.FromMinutes(11));
+
+        //act: its host rejoins, and has written the blob but not leased it yet
+        await member.UploadAsync(BinaryData.FromString("{\"Lock0\":1}"), true);
+        await placement.RefreshAsync(CancellationToken.None);
+
+        //assert
+        (await member.ExistsAsync())
+            .Value.Should()
+            .BeTrue();
+
+        await placement.StopAsync(CancellationToken.None);
+    }
+
+    [Test]
     public async Task Should_not_remove_a_member_blob_that_was_written_again_after_the_listing()
     {
         //arrange: a sweeping host listed the blob as abandoned, then its owner rejoined and wrote it

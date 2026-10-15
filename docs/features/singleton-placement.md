@@ -171,7 +171,8 @@ error.
 ### Leaving
 
 On shutdown an instance leaves the member list first, so the others start counting on its locks
-while it drains, and then releases its own locks.
+while it drains, and then releases its own locks. An instance that becomes the preferred holder of
+one of those locks takes it at its next poll, so within the singleton poll interval.
 
 ## Fixed behaviour
 
