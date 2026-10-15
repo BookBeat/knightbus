@@ -30,9 +30,10 @@ internal class BlobLockManager : ISingletonLockManager, ISingletonLockInspector
         _lockScheme = lockScheme ?? new DefaultBlobLockScheme();
     }
 
-    //Path.Combine would use the separator of the operating system, and blob names always use '/'
+    //Every blob is named the way lock blobs always have been, so hosts on different versions take
+    //the same lock blob during a rolling upgrade
     internal static string BlobName(IBlobLockScheme lockScheme, string lockId) =>
-        $"{lockScheme.Directory.TrimEnd('/')}/{lockId}";
+        Path.Combine(lockScheme.Directory, lockId);
 
     public Task InitializeAsync()
     {
