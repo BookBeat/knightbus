@@ -151,10 +151,6 @@ internal class SingletonChannelReceiver : IChannelReceiver
         }
         else if (held.ScopeSource.IsCancellationRequested)
             return;
-        else if (held.ReceiverSource.IsCancellationRequested)
-            //A hand-over that did not finish has already stopped the receiver, so it is finished
-            //whatever the advice says now
-            await HandOver(held, cancellationToken).ConfigureAwait(false);
         else
             await HandOverIfNotPreferred(held, cancellationToken).ConfigureAwait(false);
     }

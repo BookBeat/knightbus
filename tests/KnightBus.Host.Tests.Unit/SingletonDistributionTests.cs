@@ -15,9 +15,8 @@ using NUnit.Framework;
 namespace KnightBus.Host.Tests.Unit;
 
 /// <summary>
-/// Characterizes how singleton locks are distributed between hosts. These tests document the
-/// current behaviour (the first host to start takes every lock); when a distribution mechanism
-/// is introduced the assertions are expected to change.
+/// How singleton locks are distributed between hosts without placement: every lock is an
+/// independent race, so the first host to start takes every lock and keeps it.
 /// </summary>
 [TestFixture]
 public class SingletonDistributionTests

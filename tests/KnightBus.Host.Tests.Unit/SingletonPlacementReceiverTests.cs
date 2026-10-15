@@ -481,17 +481,6 @@ public class SingletonPlacementReceiverTests
         }
     }
 
-    private sealed class ManualTime : TimeProvider
-    {
-        private long _ticks;
-
-        public override long TimestampFrequency => TimeSpan.TicksPerSecond;
-
-        public override long GetTimestamp() => Interlocked.Read(ref _ticks);
-
-        public void Advance(TimeSpan by) => Interlocked.Add(ref _ticks, by.Ticks);
-    }
-
     private sealed class FakePlacement : ISingletonPlacement
     {
         private readonly ConcurrentDictionary<string, string> _advice = new();

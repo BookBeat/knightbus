@@ -86,7 +86,7 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
         //A host without singleton processors has nothing to place and must not count as a member
         if (locks.Count == 0)
             return;
-        _locks = locks.ToDictionary(x => x.Key, x => Math.Max(1, x.Value), StringComparer.Ordinal);
+        _locks = locks;
         await _lockManager.InitializeAsync().ConfigureAwait(false);
         var lifetime = new CancellationTokenSource();
         _lifetime = lifetime;
@@ -97,12 +97,12 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
         try
         {
             await JoinAsync(lifetime.Token, cancellationToken).ConfigureAwait(false);
-            await RefreshAsync(cancellationToken).ConfigureAwait(false);
             _log.LogInformation(
                 "Host {HostId} joined the singleton placement with {LockCount} singleton processors",
                 HostId,
                 _locks.Count
             );
+            await RefreshAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -110,11 +110,19 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
             await lifetime.CancelAsync().ConfigureAwait(false);
             throw;
         }
-        catch (Exception e)
+        catch (Exception e) when (_memberLease == null)
         {
             _log.LogWarning(
                 e,
                 "Host {HostId} could not join the singleton placement yet, it keeps trying",
+                HostId
+            );
+        }
+        catch (Exception e)
+        {
+            _log.LogWarning(
+                e,
+                "Host {HostId} could not read the singleton placement members yet, it keeps trying",
                 HostId
             );
         }

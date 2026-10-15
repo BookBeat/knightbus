@@ -88,11 +88,11 @@ its own check, such as an owner or version stored with the data it changes.
 
 ## Seeing what it does
 
-- Each lock blob records who holds it in its metadata: `LockId`, `HostId` (the same host id as in
-  the logs) and `AcquiredAtUtc`. Listing the lock blobs with their metadata shows the
-  current distribution.
+- Each lock blob records who holds it in its metadata: `LockId`, `HostId` and `AcquiredAtUtc`.
+  Listing the lock blobs with their metadata shows the current distribution.
 - The logs name the host in each of these events, at Information. The host id is the machine name
-  plus a short suffix that changes with every process start, the same id the other hosts see:
+  plus a short suffix that changes with every process start, the same id the other hosts see and
+  the lock metadata records. Without placement the logs name the machine only:
     - `Host {HostId} joined the singleton placement with {LockCount} singleton processors` and
       `Host {HostId} left the singleton placement`, at startup and shutdown.
     - `Starting Singleton Processor with name {ProcessorName} on host {HostId}` when a host acquires
@@ -129,17 +129,9 @@ may hold is its fair share of the weight that is left, plus some slack (25%).
   lock heavier than the cap still gets placed, on an instance that holds nothing yet.
 - A lock is only assigned to an instance that can run it.
 
-The slack trades balance against movement. Measured over many random sets of 11 instances with 17
-light processors and two of weight 10:
-
-| Slack | Instances without work | Locks moved needlessly when an instance leaves | Locks moved when an instance joins |
-| --- | --- | --- | --- |
-| 0% | 0.0 | 3.6 of 19 | 3.2 |
-| 25% (used) | 1.0 | 0.8 of 19 | 2.3 |
-
-The two heavy locks never shared an instance. A cap bounds the largest load, not the smallest, so
-with any slack one instance of 11 typically has no work. Every move is a hand-over, which costs a
-drain and possibly a cancellation, so the slack favours stability.
+The slack trades balance for stability. Every move is a hand-over, which costs a drain and possibly a
+cancellation, so the slack keeps locks where they are when an instance leaves, at the cost that a few
+instances may hold nothing: a cap bounds the largest load, not the smallest.
 
 ### Taking a lock
 
@@ -172,7 +164,9 @@ A cancelled message is abandoned and delivered again. The delivery counts agains
 `DeadLetterDeliveryLimit`, because the transport counts every delivery and KnightBus cannot take one
 back, and a message is dead-lettered when its delivery count exceeds the limit. This only matters if
 one message is cancelled repeatedly, which the 10 minute hold and the wait for the message lock make
-unlikely, but a processor with a limit of 1 or 2 should not take long to process a message.
+unlikely, but a processor with a limit of 1 or 2 should not take long to process a message. A message that reaches the processor after
+the receiver was cancelled is abandoned without running, with the cancellation recorded as its
+error.
 
 ### Leaving
 
@@ -186,13 +180,11 @@ The timing is fixed and not configurable:
 | What | Value |
 | --- | --- |
 | How often an instance reads the member list | 20 seconds |
-| Advice is dropped when the member list could not be read for | 3 refreshes |
+| Advice is dropped when the member list could not be read for | 1 minute |
 | Slack over the fair share | 25% |
 | How long a lock must have been seen free before a non-preferred instance takes it | 2 minutes |
 | The shortest time a lock is held before it is handed over | 10 minutes |
 | How often an instance looks for a lock it should hold but does not | 5 seconds |
 
-An instance that should hold a lock but does not looks for it every 5 seconds, so a lock that is
-handed over or released is picked up within seconds. Every other instance waits the singleton poll
-interval between attempts, see [singleton processing](singleton-processing.md#what-the-marker-changes)
-and `ConfigureSingletons`.
+Otherwise an instance waits the singleton poll interval between attempts, see
+[singleton processing](singleton-processing.md#what-the-marker-changes) and `ConfigureSingletons`.

@@ -22,6 +22,22 @@ public class StorageExtensionsTests
     }
 
     [Test]
+    public void Should_resolve_the_placement_registered_with_the_blob_lock_manager()
+    {
+        //arrange
+        var services = new ServiceCollection()
+            .UseBlobStorage("UseDevelopmentStorage=true")
+            .UseBlobStorageLockManager();
+
+        //act
+        using var provider = services.BuildServiceProvider();
+        var placement = provider.GetRequiredService<ISingletonPlacement>();
+
+        //assert
+        placement.HostId.Should().NotBeNullOrWhiteSpace();
+    }
+
+    [Test]
     public void Should_keep_the_lock_manager_when_placement_is_removed()
     {
         //act

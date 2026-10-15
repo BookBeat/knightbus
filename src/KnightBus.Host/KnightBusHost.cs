@@ -208,28 +208,25 @@ public class KnightBusHost : IHostedService
             .Concat(pluginStops)
             .Append(leaving)
             .ToArray();
-        if (teardowns.Length > 0)
+        var teardownBudget = _configuration.ShutdownGracePeriod - stopWatch.Elapsed;
+        if (teardownBudget < MinimumTeardownBudget)
+            teardownBudget = MinimumTeardownBudget;
+        try
         {
-            var teardownBudget = _configuration.ShutdownGracePeriod - stopWatch.Elapsed;
-            if (teardownBudget < MinimumTeardownBudget)
-                teardownBudget = MinimumTeardownBudget;
-            try
-            {
-                await Task.WhenAll(teardowns)
-                    .WaitAsync(teardownBudget, cancellationToken)
-                    .ConfigureAwait(false);
-            }
-            catch (TimeoutException e)
-            {
-                _configuration.Log.LogWarning(
-                    e,
-                    "KnightBus shutdown proceeding before all singleton locks were released and plugins stopped"
-                );
-            }
-            catch (OperationCanceledException)
-            {
-                //The runtime host gave up waiting for the shutdown
-            }
+            await Task.WhenAll(teardowns)
+                .WaitAsync(teardownBudget, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (TimeoutException e)
+        {
+            _configuration.Log.LogWarning(
+                e,
+                "KnightBus shutdown proceeding before all singleton locks were released and plugins stopped"
+            );
+        }
+        catch (OperationCanceledException)
+        {
+            //The runtime host gave up waiting for the shutdown
         }
 
         _configuration.Log.LogInformation("KnightBus shutdown completed");
