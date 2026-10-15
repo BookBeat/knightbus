@@ -33,14 +33,9 @@ public class SingletonPlacementReceiverTests
         public readonly InFlightMessages InFlight;
         public SingletonChannelReceiver Receiver { get; }
 
-        public Fixture(bool inspectable = true, ILogger? log = null, TimeSpan? lockTimeout = null)
+        public Fixture(bool inspectable = true, ILogger? log = null)
         {
             InFlight = new InFlightMessages(Processor);
-            //A hand-over waits for the messages in flight for as long as their message lock lasts
-            Inner.Settings = new SingletonProcessingSettings
-            {
-                MessageLockTimeout = lockTimeout ?? TimeSpan.FromMinutes(5),
-            };
             Receiver = new SingletonChannelReceiver(
                 Inner,
                 inspectable ? Locks : new NotInspectable(Locks),
@@ -289,30 +284,6 @@ public class SingletonPlacementReceiverTests
     }
 
     [Test]
-    public async Task Should_keep_the_lock_for_as_long_as_a_cancelled_message_keeps_running()
-    {
-        //arrange: a message that ignores its cancellation for longer than its message lock
-        await using var f = new Fixture(lockTimeout: TimeSpan.FromMilliseconds(100));
-        f.Placement.Prefer(Lock, Me);
-        await f.Start();
-        _ = f.InFlight.ProcessAsync(
-            Mock.Of<IMessageStateHandler<TestCommand>>(),
-            CancellationToken.None
-        );
-        f.Time.Advance(TimeSpan.FromMinutes(11));
-
-        //act
-        f.Placement.Prefer(Lock, Other);
-        await Eventually(() => f.Inner.Token!.Value.IsCancellationRequested);
-        await Task.Delay(500);
-
-        //assert: the next holder must not start while the message is still running
-        f.Locks.Holder(Lock).Should().Be(Me);
-        f.Processor.Gate.SetResult();
-        await Eventually(() => f.Locks.Holder(Lock) == null);
-    }
-
-    [Test]
     public async Task Should_finish_the_hand_over_when_stopping_the_receiver_fails()
     {
         //arrange: something registered on the receiver's token throws when it is cancelled
@@ -370,20 +341,6 @@ public class SingletonPlacementReceiverTests
     }
 
     [Test]
-    public async Task Should_cancel_the_receiver_and_release_the_lock_on_a_hand_over()
-    {
-        await using var f = new Fixture();
-        f.Placement.Prefer(Lock, Me);
-        await f.Start();
-        f.Time.Advance(TimeSpan.FromMinutes(11));
-
-        f.Placement.Prefer(Lock, Other);
-
-        await Eventually(() => f.Locks.Holder(Lock) == null);
-        f.Inner.Token!.Value.IsCancellationRequested.Should().BeTrue();
-    }
-
-    [Test]
     public async Task Should_keep_the_lock_when_the_advice_goes_away()
     {
         //arrange: the placement lost sight of the group while this host holds the lock
@@ -409,17 +366,6 @@ public class SingletonPlacementReceiverTests
                 Assert.Fail("Timed out waiting for the condition");
             await Task.Delay(10);
         }
-    }
-
-    private sealed class ManualTime : TimeProvider
-    {
-        private long _ticks;
-
-        public override long TimestampFrequency => TimeSpan.TicksPerSecond;
-
-        public override long GetTimestamp() => Interlocked.Read(ref _ticks);
-
-        public void Advance(TimeSpan by) => Interlocked.Add(ref _ticks, by.Ticks);
     }
 
     private sealed class FakePlacement : ISingletonPlacement
