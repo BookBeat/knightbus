@@ -120,7 +120,12 @@ internal abstract class ServiceBusChannelReceiverBase<T> : IChannelReceiver
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         Task OnLockLost(MessageLockLostEventArgs _)
         {
-            cts.Cancel();
+            //The SDK can still raise it while the handler returns and the source is disposed
+            try
+            {
+                cts.Cancel();
+            }
+            catch (ObjectDisposedException) { }
             return Task.CompletedTask;
         }
         //Listen before anything else: the SDK raises the event once and does not repeat it for a
