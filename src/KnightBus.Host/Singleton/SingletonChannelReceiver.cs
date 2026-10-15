@@ -58,7 +58,6 @@ internal class SingletonChannelReceiver : IChannelReceiver
 
     //When the lock was first seen free while another host is the one that should hold it
     private long? _freeSince;
-    private Task? _pollingLoop;
 
     /// <summary>
     /// Completes when the lock held by this receiver has been released
@@ -359,11 +358,6 @@ internal class SingletonChannelReceiver : IChannelReceiver
         await _lockManager.InitializeAsync().ConfigureAwait(false);
         await AcquireLock(cancellationToken).ConfigureAwait(false);
 
-#pragma warning disable 4014
-        _pollingLoop = Task.Run(
-            async () => await TimerLoop(cancellationToken),
-            CancellationToken.None
-        );
-#pragma warning restore 4014
+        _ = Task.Run(() => TimerLoop(cancellationToken), CancellationToken.None);
     }
 }
