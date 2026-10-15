@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -23,7 +22,8 @@ internal sealed class BlobSingletonMembership : ISingletonMembership
     private static readonly TimeSpan MemberLeaseDuration = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan MemberRenewalInterval = TimeSpan.FromSeconds(10);
 
-    //A member blob left behind by a host that died is removed once it has been unleased this long
+    //A member blob left behind by a host that died is removed once it is unleased and has not been
+    //written for this long
     private static readonly TimeSpan AbandonedMemberAge = TimeSpan.FromMinutes(10);
 
     private readonly IBlobLockScheme _lockScheme;
@@ -35,9 +35,6 @@ internal sealed class BlobSingletonMembership : ISingletonMembership
     private readonly string _memberId;
     private CancellationTokenSource? _lifetime;
     private SingletonTimerScope? _memberLease;
-    private readonly Dictionary<string, (ETag? ETag, long Since)> _unleasedSince = new(
-        StringComparer.Ordinal
-    );
 
     public BlobSingletonMembership(
         IStorageBusConfiguration configuration,
@@ -118,7 +115,6 @@ internal sealed class BlobSingletonMembership : ISingletonMembership
     {
         var live = new List<(string HostId, string Name)>();
         var abandoned = new List<(string Name, ETag? ETag)>();
-        var unleased = new HashSet<string>(StringComparer.Ordinal);
         await foreach (
             var item in _container
                 .GetBlobsAsync(BlobTraits.None, BlobStates.None, _memberPrefix, cancellationToken)
@@ -131,21 +127,11 @@ internal sealed class BlobSingletonMembership : ISingletonMembership
                 continue;
             if (item.Properties.LeaseState == LeaseState.Leased)
                 live.Add((hostId, item.Name));
-            else
-            {
-                //Lease operations do not change LastModified, so the time unleased is tracked here.
-                //A blob written again is a host rejoining, so its time starts over
-                unleased.Add(item.Name);
-                var etag = item.Properties.ETag;
-                if (!_unleasedSince.TryGetValue(item.Name, out var seen) || seen.ETag != etag)
-                    _unleasedSince[item.Name] = seen = (etag, _time.GetTimestamp());
-                if (_time.GetElapsedTime(seen.Since) >= AbandonedMemberAge)
-                    abandoned.Add((item.Name, etag));
-            }
+            //A blob is written only when its host joins, lease operations do not change LastModified.
+            //A host that rejoins writes its blob again before it leases it, which makes it recent
+            else if (_time.GetUtcNow() - item.Properties.LastModified >= AbandonedMemberAge)
+                abandoned.Add((item.Name, item.Properties.ETag));
         }
-
-        foreach (var name in _unleasedSince.Keys.Where(k => !unleased.Contains(k)).ToList())
-            _unleasedSince.Remove(name);
 
         var members = new List<SingletonMember>();
         foreach (var (hostId, name) in live)
