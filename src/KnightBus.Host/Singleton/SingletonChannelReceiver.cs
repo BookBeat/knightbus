@@ -14,7 +14,7 @@ internal class SingletonChannelReceiver : IChannelReceiver
     private readonly ILogger _log;
     private readonly CancellationToken? _teardownToken;
     private readonly ISingletonPlacement? _placement;
-    private readonly InFlightMessages? _inFlight;
+    private readonly InFlightMessages _inFlight;
 
     //The lock this receiver holds. Only the polling loop changes it, after StartAsync has made the
     //first attempt, so the state of one acquisition is never mixed with the next
@@ -67,12 +67,12 @@ internal class SingletonChannelReceiver : IChannelReceiver
 
     public SingletonChannelReceiver(
         IChannelReceiver channelReceiver,
+        InFlightMessages inFlight,
         ISingletonLockManager lockManager,
         ILogger log,
         string? lockId = null,
         CancellationToken? teardownToken = null,
-        ISingletonPlacement? placement = null,
-        InFlightMessages? inFlight = null
+        ISingletonPlacement? placement = null
     )
     {
         _placement = placement;
@@ -141,8 +141,7 @@ internal class SingletonChannelReceiver : IChannelReceiver
         {
             //The receiver was cancelled with the lock, but its handlers may still be running and
             //must not overlap with the ones a new receiver would start
-            if (_inFlight != null)
-                await _inFlight.WaitUntilIdleAsync(cancellationToken).ConfigureAwait(false);
+            await _inFlight.WaitUntilIdleAsync(cancellationToken).ConfigureAwait(false);
             await AcquireLock(cancellationToken).ConfigureAwait(false);
         }
         else if (held.ScopeSource.IsCancellationRequested)
@@ -237,10 +236,9 @@ internal class SingletonChannelReceiver : IChannelReceiver
         //message lock lasts, which the transport enforces anyway. A receiver that cannot stop
         //fetching on its own stops altogether
         TryCancel(held.FetchSource);
-        if (_inFlight != null)
+        var drainTimeout = Settings.MessageLockTimeout;
+        using (var drain = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
         {
-            var drainTimeout = Settings.MessageLockTimeout;
-            using var drain = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             drain.CancelAfter(drainTimeout);
             try
             {
@@ -260,8 +258,7 @@ internal class SingletonChannelReceiver : IChannelReceiver
         //cancelled messages have stopped, or the next holder would process while they are still
         //running. A handler that never stops keeps the lock where it is
         TryCancel(held.ReceiverSource);
-        if (_inFlight != null)
-            await _inFlight.WaitUntilIdleAsync(cancellationToken).ConfigureAwait(false);
+        await _inFlight.WaitUntilIdleAsync(cancellationToken).ConfigureAwait(false);
         TryCancel(held.ScopeSource);
         await held.Scope.Completion.WaitAsync(cancellationToken).ConfigureAwait(false);
         _held = null;

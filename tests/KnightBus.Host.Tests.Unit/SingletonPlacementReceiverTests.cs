@@ -43,12 +43,12 @@ public class SingletonPlacementReceiverTests
             };
             Receiver = new SingletonChannelReceiver(
                 Inner,
+                InFlight,
                 inspectable ? Locks : new NotInspectable(Locks),
                 log ?? Mock.Of<ILogger>(),
                 Lock,
                 null,
-                Placement,
-                InFlight
+                Placement
             )
             {
                 TimerInterval = TimeSpan.FromMilliseconds(20),

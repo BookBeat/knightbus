@@ -57,6 +57,7 @@ public class SingletonChannelReceiverTests
         underlyingReceiver.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);
         var singletonChannelReceiver = new SingletonChannelReceiver(
             underlyingReceiver.Object,
+            new InFlightMessages(Mock.Of<IMessageProcessor>()),
             lockManager.Object,
             Mock.Of<ILogger>()
         )
@@ -89,6 +90,7 @@ public class SingletonChannelReceiverTests
         underlyingReceiver.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);
         var singletonChannelReceiver = new SingletonChannelReceiver(
             underlyingReceiver.Object,
+            new InFlightMessages(Mock.Of<IMessageProcessor>()),
             lockManager.Object,
             Mock.Of<ILogger>()
         )
@@ -131,6 +133,7 @@ public class SingletonChannelReceiverTests
         underlyingReceiver.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);
         var singletonChannelReceiver = new SingletonChannelReceiver(
             underlyingReceiver.Object,
+            new InFlightMessages(Mock.Of<IMessageProcessor>()),
             lockManager.Object,
             Mock.Of<ILogger>()
         )
@@ -184,6 +187,7 @@ public class SingletonChannelReceiverTests
         underlyingReceiver.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);
         var singletonChannelReceiver = new SingletonChannelReceiver(
             underlyingReceiver.Object,
+            new InFlightMessages(Mock.Of<IMessageProcessor>()),
             lockManager.Object,
             Mock.Of<ILogger>()
         );
@@ -239,6 +243,7 @@ public class SingletonChannelReceiverTests
         using var teardown = new CancellationTokenSource();
         var singletonChannelReceiver = new SingletonChannelReceiver(
             underlyingReceiver.Object,
+            new InFlightMessages(Mock.Of<IMessageProcessor>()),
             lockManager.Object,
             Mock.Of<ILogger>(),
             teardownToken: teardown.Token
@@ -277,6 +282,7 @@ public class SingletonChannelReceiverTests
         //act
         var starter = new SingletonChannelReceiver(
             underlyingReceiver.Object,
+            new InFlightMessages(Mock.Of<IMessageProcessor>()),
             lockManager.Object,
             Mock.Of<ILogger>()
         )
@@ -301,6 +307,7 @@ public class SingletonChannelReceiverTests
         //act
         var starter = new SingletonChannelReceiver(
             underlyingReceiver.Object,
+            new InFlightMessages(Mock.Of<IMessageProcessor>()),
             lockManager.Object,
             Mock.Of<ILogger>()
         );
@@ -321,6 +328,7 @@ public class SingletonChannelReceiverTests
         //act
         var starter = new SingletonChannelReceiver(
             underlyingReceiver.Object,
+            new InFlightMessages(Mock.Of<IMessageProcessor>()),
             lockManager.Object,
             Mock.Of<ILogger>(),
             customLockId
@@ -347,12 +355,14 @@ public class SingletonChannelReceiverTests
         //act
         var starter1 = new SingletonChannelReceiver(
             underlyingReceiver1.Object,
+            new InFlightMessages(Mock.Of<IMessageProcessor>()),
             lockManager.Object,
             Mock.Of<ILogger>(),
             subscription1LockId
         );
         var starter2 = new SingletonChannelReceiver(
             underlyingReceiver2.Object,
+            new InFlightMessages(Mock.Of<IMessageProcessor>()),
             lockManager.Object,
             Mock.Of<ILogger>(),
             subscription2LockId

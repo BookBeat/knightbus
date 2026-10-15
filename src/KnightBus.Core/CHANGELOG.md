@@ -7,7 +7,7 @@
   receiver that cannot stop fetching on its own treats both alike. A singleton lock hand-over stops
   fetching first and waits for the running message, for up to the processor's `MessageLockTimeout`,
   before cancelling it
-* **Breaking:** `GenericMessagePump.StartAsync` takes the same two tokens. Once fetching stops the pump
+* **Breaking:** `GenericMessagePump.StartAsync` and `PumpAsync` take the same two tokens. Once fetching stops the pump
   fetches nothing more, even when it was waiting for room, and `CleanupResources` runs
 * A message the pump fetched while it was stopping is handed to the pipeline with a cancelled token,
   which gives it back to the queue, instead of staying invisible until its lock runs out. On

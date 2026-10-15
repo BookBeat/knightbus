@@ -165,6 +165,7 @@ public class KnightBusHostShutdownTests
         underlyingReceiver.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);
         var singletonReceiver = new Singleton.SingletonChannelReceiver(
             underlyingReceiver.Object,
+            new Singleton.InFlightMessages(Mock.Of<IMessageProcessor>()),
             lockManager.Object,
             Mock.Of<ILogger>(),
             teardownToken: host.TeardownToken

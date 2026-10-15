@@ -42,7 +42,11 @@ public class StorageQueueMessagePumpTests
 
         Task Function(StorageQueueMessage a, CancellationToken b) => Task.FromResult(invocations++);
         //act
-        await pump.PumpAsync<LongRunningTestCommand>(Function, CancellationToken.None);
+        await pump.PumpAsync<LongRunningTestCommand>(
+            Function,
+            CancellationToken.None,
+            CancellationToken.None
+        );
         await Task.Delay(100);
         //assert
         invocations.Should().Be(10);
@@ -76,8 +80,16 @@ public class StorageQueueMessagePumpTests
         }
 
         //act
-        await pump.PumpAsync<LongRunningTestCommand>(Function, CancellationToken.None);
-        var secondTask = pump.PumpAsync<LongRunningTestCommand>(Function, CancellationToken.None);
+        await pump.PumpAsync<LongRunningTestCommand>(
+            Function,
+            CancellationToken.None,
+            CancellationToken.None
+        );
+        var secondTask = pump.PumpAsync<LongRunningTestCommand>(
+            Function,
+            CancellationToken.None,
+            CancellationToken.None
+        );
         await Task.Delay(100);
         //assert
         invocations.Should().Be(1, "Max concurrent = 1, and Prefetch = 0");
@@ -114,7 +126,11 @@ public class StorageQueueMessagePumpTests
             return Task.FromException<Exception>(new Exception());
         };
         //act
-        await pump.PumpAsync<LongRunningTestCommand>(function, CancellationToken.None);
+        await pump.PumpAsync<LongRunningTestCommand>(
+            function,
+            CancellationToken.None,
+            CancellationToken.None
+        );
         await Task.Delay(100);
         //assert
         pump.AvailableThreads.Should().Be(1);
@@ -138,7 +154,11 @@ public class StorageQueueMessagePumpTests
         Func<StorageQueueMessage, CancellationToken, Task> function = (a, b) =>
             Task.FromResult(invokations++);
         //act
-        await pump.PumpAsync<LongRunningTestCommand>(function, CancellationToken.None);
+        await pump.PumpAsync<LongRunningTestCommand>(
+            function,
+            CancellationToken.None,
+            CancellationToken.None
+        );
         await Task.Delay(100);
         //assert
         invokations.Should().Be(1);
@@ -174,7 +194,11 @@ public class StorageQueueMessagePumpTests
         }
         //act
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
-        pump.PumpAsync<LongRunningTestCommand>(Function, CancellationToken.None);
+        pump.PumpAsync<LongRunningTestCommand>(
+            Function,
+            CancellationToken.None,
+            CancellationToken.None
+        );
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
         await Task.Delay(100);
         //assert
@@ -212,7 +236,11 @@ public class StorageQueueMessagePumpTests
         }
         //act
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
-        pump.PumpAsync<LongRunningTestCommand>(Function, CancellationToken.None);
+        pump.PumpAsync<LongRunningTestCommand>(
+            Function,
+            CancellationToken.None,
+            CancellationToken.None
+        );
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
         await Task.Delay(100);
         //assert
@@ -253,7 +281,11 @@ public class StorageQueueMessagePumpTests
         }
         //act
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
-        pump.PumpAsync<LongRunningTestCommand>(Function, CancellationToken.None);
+        pump.PumpAsync<LongRunningTestCommand>(
+            Function,
+            CancellationToken.None,
+            CancellationToken.None
+        );
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
         await Task.Delay(150);
         //assert
@@ -277,7 +309,11 @@ public class StorageQueueMessagePumpTests
         Task Function(StorageQueueMessage a, CancellationToken b) => Task.CompletedTask;
 
         //act
-        await pump.PumpAsync<LongRunningTestCommand>(Function, CancellationToken.None);
+        await pump.PumpAsync<LongRunningTestCommand>(
+            Function,
+            CancellationToken.None,
+            CancellationToken.None
+        );
 
         //assert
         _clientMock.Verify(x => x.CreateIfNotExistsAsync(), Times.Once);
@@ -299,7 +335,11 @@ public class StorageQueueMessagePumpTests
         Task Function(StorageQueueMessage a, CancellationToken b) => Task.CompletedTask;
 
         //act
-        await pump.PumpAsync<LongRunningTestCommand>(Function, CancellationToken.None);
+        await pump.PumpAsync<LongRunningTestCommand>(
+            Function,
+            CancellationToken.None,
+            CancellationToken.None
+        );
 
         //assert
         _clientMock.Verify(x => x.CreateIfNotExistsAsync(), Times.Never);

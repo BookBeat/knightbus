@@ -229,6 +229,7 @@ public class SingletonRebalanceSimulationTests
                 var inner = new Inner();
                 var receiver = new SingletonChannelReceiver(
                     inner,
+                    new InFlightMessages(Mock.Of<IMessageProcessor>()),
                     new Locks(_world, _id),
                     Mock.Of<ILogger>(),
                     lockId,

@@ -22,7 +22,6 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
     private Task? _runningTask;
     private CancellationTokenSource _pumpDelayCancellationTokenSource = new();
     private CancellationToken _pumpCancellationToken = CancellationToken.None;
-    private CancellationToken _stopFetching = CancellationToken.None;
     private string _queueName = null!;
 
     protected GenericMessagePump(IProcessingSettings settings, ILogger log)
@@ -52,7 +51,6 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
         where TMessage : TMessageInterface
     {
         _queueName = AutoMessageMapper.GetQueueName<TMessage>();
-        _stopFetching = stopFetching;
         var fetching = CancellationTokenSource.CreateLinkedTokenSource(
             stopFetching,
             cancellationToken
@@ -67,7 +65,7 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
                     try
                     {
                         if (
-                            !await PumpAsync<TMessage>(action, cancellationToken)
+                            !await PumpAsync<TMessage>(action, fetching.Token, cancellationToken)
                                 .ConfigureAwait(false)
                         )
                             await DelayPolling().ConfigureAwait(false);
@@ -104,24 +102,28 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Fetches once and hands the messages to <paramref name="action"/>
+    /// </summary>
+    /// <param name="action">The action to be executed for each message</param>
+    /// <param name="stopFetching">Ends the wait for room and stops the fetch. It must also fire when
+    /// <paramref name="cancellationToken"/> does, as the one <see cref="StartAsync{TMessage}"/> passes does</param>
+    /// <param name="cancellationToken">Cancels the messages being handled</param>
     public async Task<bool> PumpAsync<TMessage>(
         Func<TInternalRepresentation, CancellationToken, Task> action,
+        CancellationToken stopFetching,
         CancellationToken cancellationToken
     )
         where TMessage : TMessageInterface
     {
         var messageCount = 0;
-        using var fetching = CancellationTokenSource.CreateLinkedTokenSource(
-            _stopFetching,
-            cancellationToken
-        );
         try
         {
             //Do not fetch and lock messages if we won't be able to process them, and do not fetch
             //at all once fetching has stopped, however long the wait for room was
-            await _maxConcurrent.WaitAsync(fetching.Token).ConfigureAwait(false);
+            await _maxConcurrent.WaitAsync(stopFetching).ConfigureAwait(false);
             _maxConcurrent.Release();
-            if (fetching.IsCancellationRequested)
+            if (stopFetching.IsCancellationRequested)
                 return false;
 
             //Fetch enough messages to fill all AvailableThreads and add Prefetch on top of that as a buffer
@@ -204,7 +206,7 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
                 nameof(GenericMessagePump<TInternalRepresentation, TMessageInterface>)
             );
         }
-        catch (OperationCanceledException) when (fetching.IsCancellationRequested)
+        catch (OperationCanceledException) when (stopFetching.IsCancellationRequested)
         {
             //Fetching stopped while waiting for room, which is not an error
         }
@@ -260,8 +262,9 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
 
     /// <summary>
     /// Cleanup any expensive resources owned by this pump instance.
-    /// Called once when the pump loop has stopped after its cancellation token was cancelled.
-    /// Do not release resources shared with other components, since the pump can be stopped
+    /// Called once when the pump has stopped fetching, which can be while the messages it handed
+    /// out are still being handled, so do not release anything they need to complete or abandon.
+    /// Do not release resources shared with other components either, since the pump can be stopped
     /// while the rest of the host keeps running.
     /// </summary>
     protected abstract Task CleanupResources();
