@@ -27,13 +27,17 @@ public class GenericMessagePumpDrainTests
         private int _fetches;
         public int Fetches => Volatile.Read(ref _fetches);
 
+        //A fetch does not return until this is completed
+        public TaskCompletionSource? FetchGate { get; init; }
+
         protected override async IAsyncEnumerable<TestCommand> GetMessagesAsync<TMessage>(
             int count,
             TimeSpan? lockDuration
         )
         {
             Interlocked.Increment(ref _fetches);
-            await Task.CompletedTask;
+            if (FetchGate != null)
+                await FetchGate.Task;
             yield return new TestCommand();
         }
 
@@ -146,5 +150,34 @@ public class GenericMessagePumpDrainTests
         await cts.CancelAsync();
         handlerToken.IsCancellationRequested.Should().BeTrue("stopping cancels it");
         release.SetResult();
+    }
+
+    [Test]
+    public async Task Should_hand_on_a_message_fetched_while_stopping_with_a_cancelled_token()
+    {
+        //arrange: a fetch is under way when the receiver is drained and stopped
+        var handed = new TaskCompletionSource<CancellationToken>();
+        var pump = new Pump { FetchGate = new TaskCompletionSource() };
+        using var stopFetching = new CancellationTokenSource();
+        using var cts = new CancellationTokenSource();
+        await pump.StartAsync<TestCommand>(
+            (_, token) =>
+            {
+                handed.TrySetResult(token);
+                return Task.CompletedTask;
+            },
+            stopFetching.Token,
+            cts.Token
+        );
+        await WaitFor(() => pump.Fetches == 1);
+
+        //act
+        await stopFetching.CancelAsync();
+        await cts.CancelAsync();
+        pump.FetchGate.SetResult();
+
+        //assert: the pipeline gets the message and can give it back, instead of it staying invisible
+        var token = await handed.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        token.IsCancellationRequested.Should().BeTrue();
     }
 }

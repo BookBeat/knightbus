@@ -9,6 +9,9 @@
   before cancelling it
 * **Breaking:** `GenericMessagePump.StartAsync` takes the same two tokens. Once fetching stops the pump
   fetches nothing more, even when it was waiting for room, and `CleanupResources` runs
+* A message the pump fetched while it was stopping is handed to the pipeline with a cancelled token,
+  which gives it back to the queue, instead of staying invisible until its lock runs out. On
+  shutdown a handler can therefore be called with a token that is already cancelled
 
 # 18.5.0
 * `SingletonOptions` and `IServiceCollection.ConfigureSingletons(...)` make the poll interval, lock
