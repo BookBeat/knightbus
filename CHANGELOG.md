@@ -40,6 +40,9 @@ transport implements the new signature, and one that cannot stop fetching on its
 A singleton lock hand-over stops fetching first and waits for the running message, for up to the
 processor's `MessageLockTimeout`, before cancelling it. The pump transports drain: Azure Storage
 queues, Redis and PostgreSQL. NATS and Azure Service Bus are cancelled straight away, as before.
+A message the pump was still fetching when it stopped is handed to the pipeline with a cancelled
+token, which gives it back to the queue, instead of staying invisible until its lock runs out. On
+shutdown a handler can therefore be called with a token that is already cancelled.
 
 A transport package built against `KnightBus.Core` 18 does not load with 19, so they are all released
 together: `KnightBus.Core` 19.0.0, `KnightBus.Host` 19.0.0, `KnightBus.Azure.Storage` 19.0.0,

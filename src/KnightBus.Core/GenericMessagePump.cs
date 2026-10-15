@@ -159,7 +159,10 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
                 );
                 try
                 {
-                    await _maxConcurrent.WaitAsync(linkedToken.Token).ConfigureAwait(false);
+                    //Not the stop token: a fetched message is handed on even after a stop, with its
+                    //token cancelled, so the pipeline returns it instead of it staying invisible
+                    //until its lock runs out
+                    await _maxConcurrent.WaitAsync(timeoutToken.Token).ConfigureAwait(false);
                 }
                 catch
                 {
