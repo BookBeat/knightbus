@@ -160,20 +160,23 @@ processor's `MessageLockTimeout`, which is the longest a message may be in fligh
 cancels the handler and keeps the lock until the handler has stopped, so the next holder never
 starts while it is still running. A handler that never reacts to cancellation keeps the lock where
 it is. A handler that stays within its message lock is never cancelled by a hand-over, but every
-handler must still tolerate cancellation, as it has to on shutdown too. The cancellation is logged like any other cancelled handler.
+handler must still tolerate cancellation, as it has to on shutdown too. The cancellation is logged
+like any other cancelled handler.
 
 Stopping the fetch without cancelling the running message needs support from the receiver
 (`IDrainableChannelReceiver`). The Azure Storage queue and Azure Service Bus receivers have it.
 Receivers without it, today Redis, PostgreSQL and NATS, cancel the running message straight away,
-and the lock is still kept until it has stopped.
+and the lock is still kept until it has stopped. On Azure Service Bus a handler is not cancelled when
+its message lock is lost while the receiver drains. Completing the message then fails, and it is
+delivered again.
 
 A cancelled message is abandoned and delivered again. The delivery counts against the processor's
 `DeadLetterDeliveryLimit`, because the transport counts every delivery and KnightBus cannot take one
 back, and a message is dead-lettered when its delivery count exceeds the limit. This only matters if
 one message is cancelled repeatedly, which the 10 minute hold and the wait for the message lock make
-unlikely, but a processor with a limit of 1 or 2 should not take long to process a message. A message that reaches the processor after
-the receiver was cancelled is abandoned without running, with the cancellation recorded as its
-error.
+unlikely, but a processor with a limit of 1 or 2 should not take long to process a message. A
+message that reaches the processor after the receiver was cancelled is abandoned without running,
+with the cancellation recorded as its error.
 
 ### Leaving
 
