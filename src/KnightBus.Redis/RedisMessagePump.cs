@@ -38,6 +38,7 @@ internal class RedisMessagePump<T> : GenericMessagePump<RedisMessage<T>, IMessag
 
     public override async Task StartAsync<TMessage>(
         Func<RedisMessage<T>, CancellationToken, Task> action,
+        CancellationToken stopFetching,
         CancellationToken cancellationToken
     )
     {
@@ -52,7 +53,7 @@ internal class RedisMessagePump<T> : GenericMessagePump<RedisMessage<T>, IMessag
             new RedisChannel(_queueName, RedisChannel.PatternMode.Literal),
             MessageSignalReceivedHandler
         );
-        await base.StartAsync<TMessage>(action, cancellationToken);
+        await base.StartAsync<TMessage>(action, stopFetching, cancellationToken);
         _lostMessageService = new LostMessageBackgroundService<T>(
             _connectionMultiplexer,
             _redisConfiguration.DatabaseId,

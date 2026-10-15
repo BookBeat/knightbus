@@ -45,9 +45,15 @@ internal abstract class ServiceBusChannelReceiverBase<T> : IChannelReceiver
 
     public IProcessingSettings Settings { get; set; }
 
-    public async Task StartAsync(CancellationToken cancellationToken)
+    public async Task StartAsync(
+        CancellationToken stopFetching,
+        CancellationToken cancellationToken
+    )
     {
-        _cancellationToken = cancellationToken;
+        //Stopping the processor cancels the messages it is handling, so a drain stops it altogether
+        _cancellationToken = CancellationTokenSource
+            .CreateLinkedTokenSource(stopFetching, cancellationToken)
+            .Token;
         _deadLetterLimit = Settings.DeadLetterDeliveryLimit;
 
         await InitializeAsync().ConfigureAwait(false);

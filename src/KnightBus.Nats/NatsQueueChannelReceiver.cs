@@ -47,8 +47,14 @@ public class NatsQueueChannelReceiver<T> : IChannelReceiver
         );
     }
 
-    public Task StartAsync(CancellationToken cancellationToken)
+    public Task StartAsync(CancellationToken stopFetching, CancellationToken cancellationToken)
     {
+        //A NATS subscription cannot stop fetching and keep its messages going, so a drain stops it
+        var stopping = CancellationTokenSource.CreateLinkedTokenSource(
+            stopFetching,
+            cancellationToken
+        );
+        cancellationToken = stopping.Token;
         _cancellationToken = cancellationToken;
         _connection = _factory.CreateConnection(_configuration.Options);
 

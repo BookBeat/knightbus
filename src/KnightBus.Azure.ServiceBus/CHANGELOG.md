@@ -1,5 +1,10 @@
 ﻿# KnightBus.Azure.ServiceBus Changelog
 
+## 25.0.0
+### Changed
+- Requires `KnightBus.Core` 19.0.0: the receivers implement `IChannelReceiver.StartAsync(stopFetching,
+  cancellationToken)`. They do not drain yet and stop on either token
+
 ## 24.2.0
 ### Changed
 - `Azure.Identity` moves to 1.21.0 and `Azure.Messaging.ServiceBus` to 7.20.2, raising the floor

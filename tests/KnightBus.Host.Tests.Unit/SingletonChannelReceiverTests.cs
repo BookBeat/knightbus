@@ -64,11 +64,14 @@ public class SingletonChannelReceiverTests
             TimerInterval = TimeSpan.FromSeconds(1),
         };
         //act
-        await singletonChannelReceiver.StartAsync(CancellationToken.None);
-        await singletonChannelReceiver.StartAsync(CancellationToken.None);
+        await singletonChannelReceiver.StartAsync(CancellationToken.None, CancellationToken.None);
+        await singletonChannelReceiver.StartAsync(CancellationToken.None, CancellationToken.None);
         await Task.Delay(1001);
         //assert
-        underlyingReceiver.Verify(x => x.StartAsync(It.IsAny<CancellationToken>()), Times.Once);
+        underlyingReceiver.Verify(
+            x => x.StartAsync(It.IsAny<CancellationToken>(), It.IsAny<CancellationToken>()),
+            Times.Once
+        );
     }
 
     [Test]
@@ -93,11 +96,11 @@ public class SingletonChannelReceiverTests
             TimerInterval = TimeSpan.FromSeconds(1),
         };
         //act
-        await singletonChannelReceiver.StartAsync(CancellationToken.None);
+        await singletonChannelReceiver.StartAsync(CancellationToken.None, CancellationToken.None);
         await Task.Delay(3000);
         //assert: started once the lock was free, and not again while it holds it
         underlyingReceiver.Verify(
-            x => x.StartAsync(It.IsAny<CancellationToken>()),
+            x => x.StartAsync(It.IsAny<CancellationToken>(), It.IsAny<CancellationToken>()),
             Times.Exactly(1)
         );
     }
@@ -136,7 +139,7 @@ public class SingletonChannelReceiverTests
             LockRefreshInterval = TimeSpan.FromMilliseconds(100),
         };
         //act
-        await singletonChannelReceiver.StartAsync(CancellationToken.None);
+        await singletonChannelReceiver.StartAsync(CancellationToken.None, CancellationToken.None);
 
         //assert: wait for the restart instead of a fixed delay
         var deadline = DateTime.UtcNow.AddSeconds(10);
@@ -154,7 +157,7 @@ public class SingletonChannelReceiverTests
         //third start in this window
         await Task.Delay(500, CancellationToken.None);
         underlyingReceiver.Verify(
-            x => x.StartAsync(It.IsAny<CancellationToken>()),
+            x => x.StartAsync(It.IsAny<CancellationToken>(), It.IsAny<CancellationToken>()),
             Times.Exactly(2)
         );
     }
@@ -185,7 +188,7 @@ public class SingletonChannelReceiverTests
             Mock.Of<ILogger>()
         );
         using var cts = new CancellationTokenSource();
-        await singletonChannelReceiver.StartAsync(cts.Token);
+        await singletonChannelReceiver.StartAsync(cts.Token, cts.Token);
 
         //act
         cts.Cancel();
@@ -229,8 +232,8 @@ public class SingletonChannelReceiverTests
         underlyingReceiver.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);
         CancellationToken receiverToken = default;
         underlyingReceiver
-            .Setup(x => x.StartAsync(It.IsAny<CancellationToken>()))
-            .Callback<CancellationToken>(t => receiverToken = t)
+            .Setup(x => x.StartAsync(It.IsAny<CancellationToken>(), It.IsAny<CancellationToken>()))
+            .Callback<CancellationToken, CancellationToken>((_, t) => receiverToken = t)
             .Returns(Task.CompletedTask);
         using var shutdown = new CancellationTokenSource();
         using var teardown = new CancellationTokenSource();
@@ -240,7 +243,7 @@ public class SingletonChannelReceiverTests
             Mock.Of<ILogger>(),
             teardownToken: teardown.Token
         );
-        await singletonChannelReceiver.StartAsync(shutdown.Token);
+        await singletonChannelReceiver.StartAsync(shutdown.Token, shutdown.Token);
 
         //act: phase one stops the wrapped receiver but must keep the lock
         shutdown.Cancel();

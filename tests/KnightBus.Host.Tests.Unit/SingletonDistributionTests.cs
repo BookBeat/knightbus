@@ -41,7 +41,7 @@ public class SingletonDistributionTests
             {
                 var receiver = CreateReceiver(manager, $"Processor{i}");
                 receivers.Add((host, receiver));
-                await receiver.StartAsync(cts.Token);
+                await receiver.StartAsync(cts.Token, cts.Token);
             }
         }
 
@@ -74,8 +74,8 @@ public class SingletonDistributionTests
         var secondReceiver = CreateReceiver(second, "Processor", TimeSpan.FromMilliseconds(50));
 
         //act: let the waiting host poll many times while the holder keeps renewing
-        await firstReceiver.StartAsync(cts.Token);
-        await secondReceiver.StartAsync(cts.Token);
+        await firstReceiver.StartAsync(cts.Token, cts.Token);
+        await secondReceiver.StartAsync(cts.Token, cts.Token);
         //a loaded machine can stall the polling, so wait for the attempts instead of a fixed time
         var deadline = DateTime.UtcNow.AddSeconds(30);
         while (second.FailedAttempts <= 5 && DateTime.UtcNow < deadline)
