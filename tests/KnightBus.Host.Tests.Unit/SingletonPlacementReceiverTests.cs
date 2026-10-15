@@ -320,6 +320,49 @@ public class SingletonPlacementReceiverTests
     }
 
     [Test]
+    public async Task Should_finish_the_hand_over_when_stopping_the_receiver_fails()
+    {
+        //arrange: something registered on the receiver's token throws when it is cancelled
+        await using var f = new Fixture();
+        f.Placement.Prefer(Lock, Me);
+        await f.Start();
+        f.Inner.Token!.Value.Register(() => throw new InvalidOperationException("callback"));
+        f.Time.Advance(TimeSpan.FromMinutes(11));
+
+        //act
+        f.Placement.Prefer(Lock, Other);
+
+        //assert: the receiver is stopped and the lock is still given up
+        await Eventually(() => f.Locks.Holder(Lock) == null);
+        f.Inner.Token!.Value.IsCancellationRequested.Should().BeTrue();
+    }
+
+    [Test]
+    public async Task Should_not_take_the_lock_again_while_the_last_message_is_still_running()
+    {
+        //arrange: a message is running when the lock is lost
+        await using var f = new Fixture();
+        f.Placement.Prefer(Lock, Me);
+        await f.Start();
+        var message = f.InFlight.ProcessAsync(
+            Mock.Of<IMessageStateHandler<TestCommand>>(),
+            CancellationToken.None
+        );
+
+        //act
+        f.Locks.FailRenewals = true;
+        await Eventually(() => f.Locks.Holder(Lock) == null);
+        f.Locks.FailRenewals = false;
+        await Task.Delay(300);
+
+        //assert: a new receiver would run alongside the old message
+        f.Locks.Holder(Lock).Should().BeNull();
+        f.Processor.Gate.SetResult();
+        await message;
+        await Eventually(() => f.Locks.Holder(Lock) == Me);
+    }
+
+    [Test]
     public async Task Should_not_hand_over_a_lock_it_has_only_just_taken()
     {
         await using var f = new Fixture();
@@ -480,6 +523,9 @@ public class SingletonPlacementReceiverTests
         //The next attempts throw, like a storage error that outlasts the SDK's retries
         public void FailNext(int attempts) => Volatile.Write(ref _failuresLeft, attempts);
 
+        //Renewals fail from now on, like a lease that another host has broken
+        public bool FailRenewals { get; set; }
+
         public void Take(string lockId, string host) => _holders[lockId] = host;
 
         public void ReleaseFor(string lockId) => _holders.TryRemove(lockId, out _);
@@ -512,7 +558,9 @@ public class SingletonPlacementReceiverTests
             public string LockId => lockId;
 
             public Task<bool> RenewAsync(ILogger log, CancellationToken cancellationToken) =>
-                Task.FromResult(true);
+                owner.FailRenewals
+                    ? throw new InvalidOperationException("lease lost")
+                    : Task.FromResult(true);
 
             public Task ReleaseAsync(CancellationToken cancellationToken)
             {
