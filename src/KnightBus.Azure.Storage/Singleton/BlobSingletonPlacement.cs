@@ -32,10 +32,6 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
     private readonly BlobLockManager _lockManager;
     private readonly TimeProvider _time;
     private IReadOnlyDictionary<string, int> _locks = new Dictionary<string, int>();
-    private readonly Dictionary<
-        string,
-        (string ETag, IReadOnlyDictionary<string, int> Locks)
-    > _contentCache = new();
 
     private readonly BlobContainerClient _container;
     private readonly string _memberPrefix;
@@ -44,7 +40,9 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
     private SingletonTimerScope? _memberLease;
     private Task? _refreshLoop;
     private Snapshot? _snapshot;
-    private readonly Dictionary<string, long> _unleasedSince = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, (ETag? ETag, long Since)> _unleasedSince = new(
+        StringComparer.Ordinal
+    );
 
     public BlobSingletonPlacement(
         IStorageBusConfiguration configuration,
@@ -253,7 +251,7 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
     /// </summary>
     internal async Task RefreshAsync(CancellationToken cancellationToken)
     {
-        var live = new List<(string HostId, string Name, string ETag)>();
+        var live = new List<(string HostId, string Name)>();
         var abandoned = new List<(string Name, ETag? ETag)>();
         var unleased = new HashSet<string>(StringComparer.Ordinal);
         await foreach (
@@ -264,15 +262,17 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
         {
             var hostId = item.Name[_memberPrefix.Length..];
             if (item.Properties.LeaseState == LeaseState.Leased)
-                live.Add((hostId, item.Name, item.Properties.ETag?.ToString() ?? string.Empty));
+                live.Add((hostId, item.Name));
             else if (hostId != HostId)
             {
-                //Lease operations do not change LastModified, so the time unleased is tracked here
+                //Lease operations do not change LastModified, so the time unleased is tracked here.
+                //A blob written again is a host rejoining, so its time starts over
                 unleased.Add(item.Name);
-                var since = _unleasedSince.GetValueOrDefault(item.Name, _time.GetTimestamp());
-                _unleasedSince[item.Name] = since;
-                if (_time.GetElapsedTime(since) >= AbandonedMemberAge)
-                    abandoned.Add((item.Name, item.Properties.ETag));
+                var etag = item.Properties.ETag;
+                if (!_unleasedSince.TryGetValue(item.Name, out var seen) || seen.ETag != etag)
+                    _unleasedSince[item.Name] = seen = (etag, _time.GetTimestamp());
+                if (_time.GetElapsedTime(seen.Since) >= AbandonedMemberAge)
+                    abandoned.Add((item.Name, etag));
             }
         }
 
@@ -280,20 +280,15 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
             _unleasedSince.Remove(name);
 
         var hosts = new List<SingletonHostInfo>();
-        foreach (var (hostId, name, etag) in live.Where(x => x.HostId != HostId))
+        foreach (var (hostId, name) in live.Where(x => x.HostId != HostId))
         {
-            var locks = await GetLocksAsync(hostId, name, etag, cancellationToken)
-                .ConfigureAwait(false);
+            var locks = await GetLocksAsync(name, cancellationToken).ConfigureAwait(false);
             if (locks != null)
                 hosts.Add(new SingletonHostInfo(hostId, locks));
         }
 
         //This host is always a member of its own view, even if the listing is behind
         hosts.Add(new SingletonHostInfo(HostId, _locks));
-
-        var ids = hosts.Select(h => h.HostId).ToHashSet(StringComparer.Ordinal);
-        foreach (var gone in _contentCache.Keys.Where(k => !ids.Contains(k)).ToList())
-            _contentCache.Remove(gone);
 
         Volatile.Write(
             ref _snapshot,
@@ -305,25 +300,17 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
     }
 
     private async Task<IReadOnlyDictionary<string, int>?> GetLocksAsync(
-        string hostId,
         string name,
-        string etag,
         CancellationToken cancellationToken
     )
     {
-        if (_contentCache.TryGetValue(hostId, out var cached) && cached.ETag == etag)
-            return cached.Locks;
         try
         {
             var content = await _container
                 .GetBlobClient(name)
                 .DownloadContentAsync(cancellationToken)
                 .ConfigureAwait(false);
-            var locks = JsonSerializer.Deserialize<Dictionary<string, int>>(content.Value.Content);
-            if (locks == null)
-                return null;
-            _contentCache[hostId] = (etag, locks);
-            return locks;
+            return JsonSerializer.Deserialize<Dictionary<string, int>>(content.Value.Content);
         }
         catch (Exception e)
             when (e is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
