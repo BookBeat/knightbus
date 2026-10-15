@@ -77,10 +77,14 @@ public class RebuildSearchIndexSettings : IProcessingSettings, ISingletonWeight
 - When an instance leaves or dies, the others take its locks over.
 - Two heavy processors are not placed on the same instance while an empty one exists.
 
-Placement is advisory. The lock itself decides who may process, so a mistake in placement can
-make the distribution worse but can never make two instances process the same singleton. If the
-placement cannot read the member list, it stops giving advice and every instance competes for the
-locks as it does without placement.
+Placement is advisory. It never takes a lock another instance holds, so a mistake in placement can
+make the distribution worse but cannot add a second holder. If the placement cannot read the member
+list, it stops giving advice and every instance competes for the locks as it does without placement.
+
+A singleton is as exclusive as its blob lease and its handler's response to cancellation. An instance
+that is paused for longer than the lease, for example by a long garbage collection, can resume a
+handler after another instance has taken the lock over. Work that must never run twice at once needs
+its own check, such as an owner or version stored with the data it changes.
 
 ## Seeing what it does
 

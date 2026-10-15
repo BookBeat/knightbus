@@ -63,8 +63,8 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
             configuration,
             _lockScheme.ContainerName
         );
-        //Every member blob name is built like a lock blob name, so a directory written with or
-        //without a trailing '/' finds the same blobs
+        //Every member blob name is built like a lock blob name, so the listing finds them whether
+        //or not the directory ends with '/'
         _memberId = $"_members/{HostId}";
         _memberPrefix = BlobLockManager.BlobName(_lockScheme, "_members/");
     }
@@ -143,13 +143,16 @@ internal sealed class BlobSingletonPlacement : ISingletonPlacement
                 .ConfigureAwait(false)
             ?? throw new InvalidOperationException($"Could not lease the member blob {_memberId}");
 
+        var leaseSource = CancellationTokenSource.CreateLinkedTokenSource(lifetime);
         _memberLease = new SingletonTimerScope(
             _log,
             handle,
             true,
             MemberRenewalInterval,
-            CancellationTokenSource.CreateLinkedTokenSource(lifetime)
+            leaseSource
         );
+        //The linked source stays registered with the lifetime until it is disposed
+        _ = _memberLease.Completion.ContinueWith(_ => leaseSource.Dispose(), TaskScheduler.Default);
     }
 
     //The renewal stops for good when the lease is lost, for example after a long pause or an

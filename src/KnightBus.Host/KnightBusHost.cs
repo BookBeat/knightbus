@@ -26,6 +26,7 @@ public class KnightBusHost : IHostedService
     internal List<IChannelReceiver> Receivers { get; } = new();
     internal List<IPlugin> Plugins { get; } = new();
     private ISingletonPlacement? _placement;
+    private static readonly TimeSpan LeaveOnFailedStartTimeout = TimeSpan.FromSeconds(10);
     internal CancellationToken TeardownToken => _teardownToken.Token;
 
     public KnightBusHost(
@@ -60,63 +61,79 @@ public class KnightBusHost : IHostedService
         );
         _configuration.Log.LogInformation("KnightBus starting");
 
-        var transports = _configuration.DependencyInjection.GetInstances<ITransport>().ToArray();
-
-        if (transports.Any())
+        try
         {
-            var locator = new MessageProcessorLocator(
-                _configuration,
-                transports.SelectMany(transport => transport.TransportChannelFactories).ToArray(),
-                _teardownToken.Token
-            );
-            Receivers.AddRange(locator.CreateReceivers());
+            var transports = _configuration
+                .DependencyInjection.GetInstances<ITransport>()
+                .ToArray();
 
-            //Join the group before the receivers start, so they get advice on which locks to take.
-            //Without it they compete for the locks as they always did
-            _placement = _configuration
-                .DependencyInjection.GetInstances<ISingletonPlacement>()
-                .LastOrDefault();
-            if (_placement != null)
+            if (transports.Any())
             {
-                try
-                {
-                    var locks = new Dictionary<string, int>(StringComparer.Ordinal);
-                    foreach (var singleton in Receivers.OfType<SingletonChannelReceiver>())
-                        locks[singleton.LockId] = singleton.Weight;
-                    await _placement.StartAsync(locks, combinedToken.Token).ConfigureAwait(false);
-                }
-                catch (Exception e)
-                    when (e is not OperationCanceledException
-                        || !combinedToken.IsCancellationRequested
-                    )
-                {
-                    _configuration.Log.LogError(
-                        e,
-                        "Could not join the singleton placement group, the singleton locks are not spread over the hosts"
-                    );
-                }
-            }
-            _configuration.Log.LogInformation("Starting receivers");
-            foreach (var receiver in Receivers)
-            {
-                _configuration.Log.LogInformation(
-                    "Starting receiver {ReceiverType}",
-                    receiver.GetType()
+                var locator = new MessageProcessorLocator(
+                    _configuration,
+                    transports
+                        .SelectMany(transport => transport.TransportChannelFactories)
+                        .ToArray(),
+                    _teardownToken.Token
                 );
-                await receiver.StartAsync(combinedToken.Token).ConfigureAwait(false);
+                Receivers.AddRange(locator.CreateReceivers());
+
+                //Join the group before the receivers start, so they get advice on which locks to take.
+                //Without it they compete for the locks as they always did
+                _placement = _configuration
+                    .DependencyInjection.GetInstances<ISingletonPlacement>()
+                    .LastOrDefault();
+                if (_placement != null)
+                {
+                    try
+                    {
+                        var locks = new Dictionary<string, int>(StringComparer.Ordinal);
+                        foreach (var singleton in Receivers.OfType<SingletonChannelReceiver>())
+                            locks[singleton.LockId] = singleton.Weight;
+                        await _placement
+                            .StartAsync(locks, combinedToken.Token)
+                            .ConfigureAwait(false);
+                    }
+                    catch (Exception e)
+                        when (e is not OperationCanceledException
+                            || !combinedToken.IsCancellationRequested
+                        )
+                    {
+                        _configuration.Log.LogError(
+                            e,
+                            "Could not join the singleton placement group, the singleton locks are not spread over the hosts"
+                        );
+                    }
+                }
+                _configuration.Log.LogInformation("Starting receivers");
+                foreach (var receiver in Receivers)
+                {
+                    _configuration.Log.LogInformation(
+                        "Starting receiver {ReceiverType}",
+                        receiver.GetType()
+                    );
+                    await receiver.StartAsync(combinedToken.Token).ConfigureAwait(false);
+                }
+
+                _configuration.Log.LogInformation("Finished starting receivers");
+            }
+            else
+            {
+                _configuration.Log.LogInformation("No transports found");
             }
 
-            _configuration.Log.LogInformation("Finished starting receivers");
+            foreach (var plugin in _configuration.DependencyInjection.GetInstances<IPlugin>())
+            {
+                await plugin.StartAsync(combinedToken.Token).ConfigureAwait(false);
+                Plugins.Add(plugin);
+            }
         }
-        else
+        catch
         {
-            _configuration.Log.LogInformation("No transports found");
-        }
-
-        foreach (var plugin in _configuration.DependencyInjection.GetInstances<IPlugin>())
-        {
-            await plugin.StartAsync(combinedToken.Token).ConfigureAwait(false);
-            Plugins.Add(plugin);
+            //A host that failed to start must not stay a member, or the others keep giving it locks
+            using var leaving = new CancellationTokenSource(LeaveOnFailedStartTimeout);
+            await LeavePlacementAsync(leaving.Token).ConfigureAwait(false);
+            throw;
         }
         _configuration.Log.LogInformation("KnightBus started");
     }

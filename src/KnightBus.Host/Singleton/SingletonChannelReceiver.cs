@@ -142,8 +142,20 @@ internal class SingletonChannelReceiver : IChannelReceiver
         }
 
         if (held == null)
+        {
+            //The receiver was cancelled with the lock, but its handlers may still be running and
+            //must not overlap with the ones a new receiver would start
+            if (_inFlight != null)
+                await _inFlight.WaitUntilIdleAsync(cancellationToken).ConfigureAwait(false);
             await AcquireLock(cancellationToken).ConfigureAwait(false);
-        else if (!held.ScopeSource.IsCancellationRequested)
+        }
+        else if (held.ScopeSource.IsCancellationRequested)
+            return;
+        else if (held.ReceiverSource.IsCancellationRequested)
+            //A hand-over that did not finish has already stopped the receiver, so it is finished
+            //whatever the advice says now
+            await HandOver(held, cancellationToken).ConfigureAwait(false);
+        else
             await HandOverIfNotPreferred(held, cancellationToken).ConfigureAwait(false);
     }
 
@@ -232,7 +244,7 @@ internal class SingletonChannelReceiver : IChannelReceiver
         _held = null;
     }
 
-    private static void TryCancel(CancellationTokenSource source)
+    private void TryCancel(CancellationTokenSource source)
     {
         try
         {
@@ -241,6 +253,16 @@ internal class SingletonChannelReceiver : IChannelReceiver
         catch (ObjectDisposedException)
         {
             //The lock was already lost and the sources cleaned up
+        }
+        catch (Exception e)
+        {
+            //A callback registered on the token failed, the token is cancelled all the same
+            _log.LogWarning(
+                e,
+                "Singleton Processor with name {ProcessorName} on host {HostId} had an error while stopping",
+                _lockId,
+                HostId
+            );
         }
     }
 
