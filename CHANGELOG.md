@@ -48,16 +48,16 @@ kept them. Placement spreads the locks over the live instances, keeps heavy proc
 hands locks over when instances join or leave. It is on by default with the blob lock manager; see
 [Spreading singleton locks over hosts](https://bookbeat.github.io/knightbus/features/singleton-placement/).
 
-- `KnightBus.Core` 18.5.0: `ISingletonWeight`, and for lock managers that place locks
-  `ISingletonPlacement` and `ISingletonLockInspector`.
+- `KnightBus.Core` 18.5.0: `ISingletonWeight`, and for stores that keep track of the hosts
+  `ISingletonMembership`, `SingletonMember` and `ISingletonLockInspector`.
 - `KnightBus.Azure.Storage` 18.4.0: `UseBlobStorageLockManager` now also spreads the singleton locks
   over the hosts, which changes which instance runs a singleton processor after an upgrade. Remove
-  the `ISingletonPlacement` registration to keep the old behaviour. Lock blobs record `LockId`,
+  the `ISingletonMembership` registration to keep the old behaviour. Lock blobs record `LockId`,
   `HostId` and `AcquiredAtUtc` in their metadata, `LockId` replacing the unused `FunctionInstance`.
   A host whose member lease lapses rejoins the member list, and a member blob is only removed after
   it has been unleased for 10 minutes.
-- `KnightBus.Host` 18.4.0: the host joins the placement before the receivers start and leaves it
-  first on shutdown.
+- `KnightBus.Host` 18.4.0: the host spreads the locks over the members of the registered
+  `ISingletonMembership`. It joins before the receivers start and leaves first on shutdown.
 
 Applications that use the blob lock manager get placement without configuring anything.
 

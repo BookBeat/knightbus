@@ -12,11 +12,11 @@
   Instances waiting for a lock now add up to 20% random extra wait (`PollJitter`) so they do not poll
   in lock-step. Schedule locks keep their fixed timing
 * Singleton locks can be spread over the hosts instead of piling up on the first one to start, see
-  `docs/features/singleton-placement.md`. Nothing changes unless an `ISingletonPlacement` is
+  `docs/features/singleton-placement.md`. Nothing changes unless an `ISingletonMembership` is
   registered, which `UseBlobStorageLockManager` in `KnightBus.Azure.Storage` now does. A processor
   declares how heavy it is by implementing `ISingletonWeight` on its processing settings. New public
-  types: `ISingletonWeight`, and for lock managers that place locks `ISingletonPlacement` and
-  `ISingletonLockInspector`
+  types: `ISingletonWeight`, and for stores that keep track of the hosts `ISingletonMembership`,
+  `SingletonMember` and `ISingletonLockInspector`
 
 # 18.4.0
 * `Microsoft.Extensions.DependencyInjection.Abstractions`, `Microsoft.Extensions.Logging.Abstractions`

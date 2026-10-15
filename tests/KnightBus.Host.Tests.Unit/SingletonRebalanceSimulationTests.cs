@@ -5,7 +5,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AwesomeAssertions;
-using KnightBus.Azure.Storage.Singleton;
 using KnightBus.Core;
 using KnightBus.Core.Singleton;
 using KnightBus.Host.Singleton;
@@ -152,7 +151,7 @@ public class SingletonRebalanceSimulationTests
             SingletonAssignment
                 .Compute(
                     _members
-                        .Keys.Select(m => new SingletonHostInfo(
+                        .Keys.Select(m => new SingletonMember(
                             m,
                             LockIds.ToDictionary(l => l, _ => 1)
                         ))
