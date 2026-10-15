@@ -2,22 +2,23 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using AwesomeAssertions;
-using KnightBus.Azure.Storage.Singleton;
+using KnightBus.Core.Singleton;
+using KnightBus.Host.Singleton;
 using NUnit.Framework;
 
-namespace KnightBus.Azure.Storage.Tests.Unit;
+namespace KnightBus.Host.Tests.Unit;
 
 [TestFixture]
 public class SingletonAssignmentTests
 {
-    private static List<SingletonHostInfo> Hosts(
+    private static List<SingletonMember> Hosts(
         int count,
         IReadOnlyDictionary<string, int> locks,
         Random random
     ) =>
         Enumerable
             .Range(0, count)
-            .Select(_ => new SingletonHostInfo($"pod-{random.NextInt64():x}", locks))
+            .Select(_ => new SingletonMember($"pod-{random.NextInt64():x}", locks))
             .ToList();
 
     private static Dictionary<string, int> Locks(int light, params int[] heavy)
@@ -29,7 +30,7 @@ public class SingletonAssignmentTests
     }
 
     private static Dictionary<string, long> LoadPerHost(
-        IEnumerable<SingletonHostInfo> hosts,
+        IEnumerable<SingletonMember> hosts,
         IReadOnlyDictionary<string, string> assignment,
         IReadOnlyDictionary<string, int> weights
     )
@@ -67,7 +68,7 @@ public class SingletonAssignmentTests
             var all = Locks(random.Next(1, 25), random.Next(1, 4) == 1 ? [8] : []);
             var hosts = Enumerable
                 .Range(0, random.Next(1, 15))
-                .Select(i => new SingletonHostInfo(
+                .Select(i => new SingletonMember(
                     $"pod-{random.NextInt64():x}",
                     all.Where(_ => random.NextDouble() < 0.7).ToDictionary(x => x.Key, x => x.Value)
                 ))
@@ -102,11 +103,11 @@ public class SingletonAssignmentTests
     [Test]
     public void Should_use_the_largest_weight_when_hosts_advertise_different_ones()
     {
-        var old = new SingletonHostInfo(
+        var old = new SingletonMember(
             "old",
             new Dictionary<string, int> { ["Batch"] = 1, ["Other"] = 1 }
         );
-        var updated = new SingletonHostInfo(
+        var updated = new SingletonMember(
             "new",
             new Dictionary<string, int> { ["Batch"] = 10, ["Other"] = 1 }
         );

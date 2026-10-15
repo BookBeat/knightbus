@@ -267,13 +267,7 @@ public class TransportStarterFactoryTests
     {
         //act
         var create = () =>
-            CreateSingletonReceiver(
-                services =>
-                {
-                    services.AddSingleton(Mock.Of<ISingletonPlacement>());
-                },
-                typeof(ZeroWeightSingletonEventProcessor)
-            );
+            CreateSingletonReceiver(processor: typeof(ZeroWeightSingletonEventProcessor));
 
         //assert
         create.Should().Throw<InvalidOperationException>().WithMessage("*at least 1*");

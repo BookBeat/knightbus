@@ -641,24 +641,6 @@ public class SingletonPlacementReceiverTests
             inner.StartAsync(cancellationToken);
     }
 
-    private sealed class ListLogger : ILogger
-    {
-        public ConcurrentQueue<string> Messages { get; } = new();
-
-        public IDisposable? BeginScope<TState>(TState state)
-            where TState : notnull => null;
-
-        public bool IsEnabled(LogLevel logLevel) => true;
-
-        public void Log<TState>(
-            LogLevel logLevel,
-            EventId eventId,
-            TState state,
-            Exception? exception,
-            Func<TState, Exception?, string> formatter
-        ) => Messages.Enqueue(formatter(state, exception));
-    }
-
     //Handles a message until the gate opens, whatever its cancellation token says
     private sealed class GatedProcessor : IMessageProcessor
     {

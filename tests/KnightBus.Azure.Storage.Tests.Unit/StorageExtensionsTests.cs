@@ -11,18 +11,18 @@ namespace KnightBus.Azure.Storage.Tests.Unit;
 public class StorageExtensionsTests
 {
     [Test]
-    public void Should_register_singleton_placement_with_the_blob_lock_manager()
+    public void Should_register_singleton_membership_with_the_blob_lock_manager()
     {
         //act
         var services = new ServiceCollection().UseBlobStorageLockManager();
 
         //assert
         services.Count(x => x.ServiceType == typeof(ISingletonLockManager)).Should().Be(1);
-        services.Count(x => x.ServiceType == typeof(ISingletonPlacement)).Should().Be(1);
+        services.Count(x => x.ServiceType == typeof(ISingletonMembership)).Should().Be(1);
     }
 
     [Test]
-    public void Should_resolve_the_placement_registered_with_the_blob_lock_manager()
+    public void Should_resolve_the_membership_registered_with_the_blob_lock_manager()
     {
         //arrange
         var services = new ServiceCollection()
@@ -31,22 +31,22 @@ public class StorageExtensionsTests
 
         //act
         using var provider = services.BuildServiceProvider();
-        var placement = provider.GetRequiredService<ISingletonPlacement>();
+        var membership = provider.GetRequiredService<ISingletonMembership>();
 
         //assert
-        placement.HostId.Should().NotBeNullOrWhiteSpace();
+        membership.HostId.Should().NotBeNullOrWhiteSpace();
     }
 
     [Test]
-    public void Should_keep_the_lock_manager_when_placement_is_removed()
+    public void Should_keep_the_lock_manager_when_membership_is_removed()
     {
         //act
         var services = new ServiceCollection()
             .UseBlobStorageLockManager()
-            .RemoveAll<ISingletonPlacement>();
+            .RemoveAll<ISingletonMembership>();
 
         //assert
         services.Count(x => x.ServiceType == typeof(ISingletonLockManager)).Should().Be(1);
-        services.Any(x => x.ServiceType == typeof(ISingletonPlacement)).Should().BeFalse();
+        services.Any(x => x.ServiceType == typeof(ISingletonMembership)).Should().BeFalse();
     }
 }

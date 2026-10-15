@@ -15,16 +15,19 @@ internal class TransportStarterFactory
     private readonly ITransportChannelFactory[] _transportChannelFactories;
     private readonly IHostConfiguration _configuration;
     private readonly CancellationToken? _teardownToken;
+    private readonly ISingletonPlacement? _placement;
 
     public TransportStarterFactory(
         ITransportChannelFactory[] transportChannelFactories,
         IHostConfiguration configuration,
-        CancellationToken? teardownToken = null
+        CancellationToken? teardownToken = null,
+        ISingletonPlacement? placement = null
     )
     {
         _transportChannelFactories = transportChannelFactories;
         _configuration = configuration;
         _teardownToken = teardownToken;
+        _placement = placement;
     }
 
     internal IChannelReceiver CreateChannelReceiver(
@@ -129,17 +132,13 @@ internal class TransportStarterFactory
                 _configuration.DependencyInjection.GetInstances<SingletonOptions>().LastOrDefault()
                 ?? new SingletonOptions();
 
-            var placement = _configuration
-                .DependencyInjection.GetInstances<ISingletonPlacement>()
-                .LastOrDefault();
-
             var singletonStarter = new SingletonChannelReceiver(
                 channelReceiver,
                 lockManager,
                 _configuration.Log,
                 lockId,
                 _teardownToken,
-                placement,
+                _placement,
                 inFlight
             )
             {

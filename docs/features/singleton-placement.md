@@ -37,7 +37,7 @@ services
 
 ### Opting out
 
-To run without placement, where the first instance to start takes every lock, remove the placement
+To run without placement, where the first instance to start takes every lock, remove the membership
 registration after the lock manager has been registered:
 
 ```csharp
@@ -47,7 +47,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 services
     .UseBlobStorage(storageConnectionString)
     .UseBlobStorageLockManager()
-    .RemoveAll<ISingletonPlacement>();
+    .RemoveAll<ISingletonMembership>();
 ```
 
 ## Declaring a heavy processor
@@ -107,6 +107,9 @@ its own check, such as an owner or version stored with the data it changes.
 ## How it works
 
 ### Membership
+
+The hosts are tracked by an `ISingletonMembership`. The blob lock manager registers one that keeps
+the members in blob storage, next to the lock blobs.
 
 Each instance keeps a lease on its own member blob, `{lock directory}/_members/{host id}`, and lists
 the member blobs in that directory every 20 seconds. An instance is alive while its blob is leased.

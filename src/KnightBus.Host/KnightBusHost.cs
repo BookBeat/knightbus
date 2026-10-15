@@ -69,20 +69,24 @@ public class KnightBusHost : IHostedService
 
             if (transports.Any())
             {
+                //The receivers and the host share one placement. Without a membership the singleton
+                //receivers compete for the locks as they always did
+                var membership = _configuration
+                    .DependencyInjection.GetInstances<ISingletonMembership>()
+                    .LastOrDefault();
+                if (membership != null)
+                    _placement = new SingletonPlacement(membership, _configuration.Log);
                 var locator = new MessageProcessorLocator(
                     _configuration,
                     transports
                         .SelectMany(transport => transport.TransportChannelFactories)
                         .ToArray(),
-                    _teardownToken.Token
+                    _teardownToken.Token,
+                    _placement
                 );
                 Receivers.AddRange(locator.CreateReceivers());
 
-                //Join the group before the receivers start, so they get advice on which locks to take.
-                //Without it they compete for the locks as they always did
-                _placement = _configuration
-                    .DependencyInjection.GetInstances<ISingletonPlacement>()
-                    .LastOrDefault();
+                //Join the group before the receivers start, so they get advice on which locks to take
                 if (_placement != null)
                 {
                     try
