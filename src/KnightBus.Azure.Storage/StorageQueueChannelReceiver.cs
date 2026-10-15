@@ -10,7 +10,6 @@ using KnightBus.Messages;
 
 [assembly: InternalsVisibleTo("KnightBus.Azure.Storage.Tests.Unit")]
 [assembly: InternalsVisibleTo("KnightBus.Azure.Storage.Tests.Integration")]
-[assembly: InternalsVisibleTo("KnightBus.Host.Tests.Unit")]
 
 namespace KnightBus.Azure.Storage;
 

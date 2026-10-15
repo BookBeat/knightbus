@@ -2,14 +2,14 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace KnightBus.Core.Singleton;
+namespace KnightBus.Host.Singleton;
 
 /// <summary>
 /// Advises which host should hold which singleton lock, so the locks are spread over the hosts
 /// instead of piling up on the first one to start. The advice is not binding: the lock itself
 /// still decides who processes, and a placement that has no information returns no advice.
 /// </summary>
-public interface ISingletonPlacement
+internal interface ISingletonPlacement
 {
     /// <summary>
     /// Identifies this host among the others sharing the locks

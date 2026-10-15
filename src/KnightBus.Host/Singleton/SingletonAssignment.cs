@@ -2,13 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using KnightBus.Core.Singleton;
 
-namespace KnightBus.Azure.Storage.Singleton;
-
-/// <summary>
-/// A live host and the singleton locks it can run, with the weight of each lock.
-/// </summary>
-internal sealed record SingletonHostInfo(string HostId, IReadOnlyDictionary<string, int> Locks);
+namespace KnightBus.Host.Singleton;
 
 /// <summary>
 /// Decides which host should hold which singleton lock. Every host computes the same answer from
@@ -31,7 +27,7 @@ internal static class SingletonAssignment
     /// as evenly as the weights allow, larger values favour stability over balance.
     /// </param>
     internal static IReadOnlyDictionary<string, string> Compute(
-        IReadOnlyCollection<SingletonHostInfo> hosts,
+        IReadOnlyCollection<SingletonMember> hosts,
         double epsilon = 0.25
     )
     {

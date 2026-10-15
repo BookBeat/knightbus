@@ -81,16 +81,16 @@ public static class StorageExtensions
     /// <summary>
     /// Uses blob leases as singleton locks. The locks are also spread over the hosts instead of
     /// letting the first host take them all, see <see cref="ISingletonWeight"/>. To keep the old
-    /// behaviour, remove the <see cref="ISingletonPlacement"/> registration.
+    /// behaviour, remove the <see cref="ISingletonMembership"/> registration.
     /// </summary>
     public static IServiceCollection UseBlobStorageLockManager(this IServiceCollection services)
     {
         services.AddSingleton<ISingletonLockManager, BlobLockManager>();
         //The plain ILogger is not registered, so the logger is passed on explicitly
-        services.AddSingleton<ISingletonPlacement>(provider => new BlobSingletonPlacement(
+        services.AddSingleton<ISingletonMembership>(provider => new BlobSingletonMembership(
             provider.GetRequiredService<IStorageBusConfiguration>(),
             provider.GetService<IBlobLockScheme>(),
-            provider.GetService<ILogger<BlobSingletonPlacement>>()
+            provider.GetService<ILogger<BlobSingletonMembership>>()
         ));
         return services;
     }
