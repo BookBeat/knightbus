@@ -57,6 +57,8 @@ public class ServiceBusDrainTests
         _host.Dispose();
         _stopFetching?.Dispose();
         _receiverCts?.Dispose();
+        _stopFetching = null;
+        _receiverCts = null;
     }
 
     [Test]
@@ -171,6 +173,33 @@ public class ServiceBusDrainTests
         await EventuallyProcessed(processor, "after restart");
     }
 
+    [Test]
+    public async Task Should_cancel_a_message_whose_lock_ran_out_before_it_was_handled()
+    {
+        //arrange: a message that waited, for example in the prefetch buffer, until its lock ran out
+        var serializer = new MicrosoftJsonSerializer();
+        var processor = new TokenRecordingProcessor();
+        var receiver = new ServiceBusQueueChannelReceiver<DrainCommand>(
+            new DrainSettings(),
+            serializer,
+            new ServiceBusConfiguration(ServiceBusSetup.ConnectionString),
+            _host.Services.GetRequiredService<IHostConfiguration>(),
+            processor
+        );
+        var message = ServiceBusModelFactory.ServiceBusReceivedMessage(
+            body: new BinaryData(serializer.Serialize(new DrainCommand { Message = "late" })),
+            lockedUntil: DateTimeOffset.UtcNow.AddSeconds(-1)
+        );
+        var args = new ProcessMessageEventArgs(message, null, CancellationToken.None);
+
+        //act
+        await receiver.ClientOnProcessMessageAsync(args, CancellationToken.None);
+
+        //assert: the SDK raises no lock lost event for it, so the receiver must notice itself
+        processor.Token.Should().NotBeNull();
+        processor.Token!.Value.IsCancellationRequested.Should().BeTrue();
+    }
+
     private static async Task EventuallyProcessed(GatedProcessor processor, string message)
     {
         var deadline = DateTime.UtcNow.AddSeconds(15);
@@ -259,6 +288,21 @@ public class ShortLockSettings : IProcessingSettings
     public int PrefetchCount => 0;
     public TimeSpan MessageLockTimeout => TimeSpan.FromSeconds(3);
     public int DeadLetterDeliveryLimit => 5;
+}
+
+internal class TokenRecordingProcessor : IMessageProcessor
+{
+    public CancellationToken? Token { get; private set; }
+
+    public Task ProcessAsync<T>(
+        IMessageStateHandler<T> messageStateHandler,
+        CancellationToken cancellationToken
+    )
+        where T : class, IMessage
+    {
+        Token = cancellationToken;
+        return Task.CompletedTask;
+    }
 }
 
 // Holds every message until the test opens the gate. A cancelled message is abandoned the way
