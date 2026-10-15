@@ -18,22 +18,18 @@ namespace KnightBus.Host.Singleton;
 /// </remarks>
 internal static class SingletonAssignment
 {
+    //How far above its fair share a host may go before the next ranked host is used, which favours
+    //keeping locks where they are over spreading them as evenly as the weights allow
+    private const double Slack = 0.25;
+
     /// <summary>
     /// Returns the preferred host for every lock that at least one host can run.
     /// </summary>
     /// <param name="hosts">The live hosts. Order does not matter.</param>
-    /// <param name="epsilon">
-    /// How far above its fair share a host may go before the next ranked host is used. 0 spreads
-    /// as evenly as the weights allow, larger values favour stability over balance.
-    /// </param>
     internal static IReadOnlyDictionary<string, string> Compute(
-        IReadOnlyCollection<SingletonMember> hosts,
-        double epsilon = 0.25
+        IReadOnlyCollection<SingletonMember> hosts
     )
     {
-        if (epsilon < 0)
-            throw new ArgumentOutOfRangeException(nameof(epsilon), epsilon, "Must not be negative");
-
         var result = new Dictionary<string, string>(StringComparer.Ordinal);
         if (hosts.Count == 0)
             return result;
@@ -66,7 +62,7 @@ internal static class SingletonAssignment
                     ? 0
                     : (long)
                         Math.Ceiling(
-                            (1 + epsilon) * (remaining + open.Sum(h => load[h.HostId])) / open.Count
+                            (1 + Slack) * (remaining + open.Sum(h => load[h.HostId])) / open.Count
                         );
 
             var ranking = hosts

@@ -225,29 +225,6 @@ public class SingletonAssignmentTests
     }
 
     [Test]
-    public void Should_give_every_host_work_when_there_are_enough_locks_and_no_slack()
-    {
-        var random = new Random(9);
-        var locks = Locks(19);
-        for (var run = 0; run < 200; run++)
-        {
-            var hosts = Hosts(11, locks, random);
-
-            var load = LoadPerHost(hosts, SingletonAssignment.Compute(hosts, epsilon: 0), locks);
-
-            load.Values.Should().OnlyContain(v => v >= 1 && v <= 2);
-        }
-    }
-
-    [Test]
-    public void Should_reject_a_negative_epsilon()
-    {
-        var assign = () => SingletonAssignment.Compute([], -0.1);
-
-        assign.Should().Throw<ArgumentOutOfRangeException>();
-    }
-
-    [Test]
     public void Should_score_the_same_on_every_runtime()
     {
         //if this changes, hosts running different versions would disagree about who owns a lock
