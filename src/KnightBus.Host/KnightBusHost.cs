@@ -87,27 +87,13 @@ public class KnightBusHost : IHostedService
                 Receivers.AddRange(locator.CreateReceivers());
 
                 //Join the group before the receivers start, so they get advice on which locks to take
+                //A placement that cannot join keeps trying by itself, only a cancelled start ends it
                 if (_placement != null)
                 {
-                    try
-                    {
-                        var locks = new Dictionary<string, int>(StringComparer.Ordinal);
-                        foreach (var singleton in Receivers.OfType<SingletonChannelReceiver>())
-                            locks[singleton.LockId] = singleton.Weight;
-                        await _placement
-                            .StartAsync(locks, combinedToken.Token)
-                            .ConfigureAwait(false);
-                    }
-                    catch (Exception e)
-                        when (e is not OperationCanceledException
-                            || !combinedToken.IsCancellationRequested
-                        )
-                    {
-                        _configuration.Log.LogError(
-                            e,
-                            "Could not join the singleton placement group, the singleton locks are not spread over the hosts"
-                        );
-                    }
+                    var locks = new Dictionary<string, int>(StringComparer.Ordinal);
+                    foreach (var singleton in Receivers.OfType<SingletonChannelReceiver>())
+                        locks[singleton.LockId] = singleton.Weight;
+                    await _placement.StartAsync(locks, combinedToken.Token).ConfigureAwait(false);
                 }
                 _configuration.Log.LogInformation("Starting receivers");
                 foreach (var receiver in Receivers)

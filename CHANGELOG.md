@@ -54,8 +54,8 @@ hands locks over when instances join or leave. It is on by default with the blob
   over the hosts, which changes which instance runs a singleton processor after an upgrade. Remove
   the `ISingletonMembership` registration to keep the old behaviour. Lock blobs record `LockId`,
   `HostId` and `AcquiredAtUtc` in their metadata, `LockId` replacing the unused `FunctionInstance`.
-  A host whose member lease lapses rejoins the member list, and a member blob is only removed after
-  it has been unleased for 10 minutes.
+  A host whose member lease lapses rejoins the member list, and a member blob is only removed once it
+  is unleased and has not been written for 10 minutes.
 - `KnightBus.Host` 18.4.0: the host spreads the locks over the members of the registered
   `ISingletonMembership`. It joins before the receivers start and leaves first on shutdown.
 

@@ -118,6 +118,10 @@ blob holds the processors the instance can run and their weights. The host id is
 (the pod name in Kubernetes) plus a random suffix per process start, so a restarted process is a new
 member.
 
+The member blob of an instance that died stays behind. The others delete it once it is unleased and
+has not been written for 10 minutes, measured against the storage service's time for the blob, so
+the instances' clocks only need to be within minutes of it.
+
 ### Assignment
 
 Every instance computes the same assignment from the same members, so no coordinator is needed.

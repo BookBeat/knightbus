@@ -161,9 +161,9 @@ public class BlobSingletonMembershipTests
     }
 
     [Test]
-    public async Task Should_remove_an_unleased_member_blob_only_after_it_has_been_unleased_for_a_while()
+    public async Task Should_remove_an_unleased_member_blob_only_once_it_has_not_been_written_for_a_while()
     {
-        //arrange: the blob was written long ago, but only now loses its lease
+        //arrange: what a crashed host leaves behind
         var time = new ManualTimeProvider();
         var scheme = NewScheme();
         var membership = Create(scheme, time);
@@ -172,14 +172,13 @@ public class BlobSingletonMembershipTests
         await stale.UploadAsync(BinaryData.FromObjectAsJson(new Dictionary<string, int>()), true);
 
         //act
-        await membership.GetMembersAsync(CancellationToken.None);
         time.Advance(TimeSpan.FromMinutes(9));
         await membership.GetMembersAsync(CancellationToken.None);
 
         //assert
         (await stale.ExistsAsync())
             .Value.Should()
-            .BeTrue("it has not been unleased for 10 minutes");
+            .BeTrue("it was written less than 10 minutes ago");
         time.Advance(TimeSpan.FromMinutes(2));
         await membership.GetMembersAsync(CancellationToken.None);
         (await stale.ExistsAsync()).Value.Should().BeFalse();
@@ -188,26 +187,27 @@ public class BlobSingletonMembershipTests
     }
 
     [Test]
-    public async Task Should_start_the_time_unleased_over_when_a_member_blob_is_written_again()
+    public async Task Should_remove_a_member_blob_at_once_when_a_long_held_lease_has_gone()
     {
-        //arrange: a member blob has been unleased for a long time
+        //arrange: a host that held its member blob for a long time, then died
         var time = new ManualTimeProvider();
         var scheme = NewScheme();
         var membership = Create(scheme, time);
         await membership.JoinAsync(LockWeights, CancellationToken.None);
-        var member = MemberBlob(scheme, "rejoining-host");
-        await member.UploadAsync(BinaryData.FromString("{}"), true);
-        await membership.GetMembersAsync(CancellationToken.None);
+        var stale = MemberBlob(scheme, "other-host");
+        await stale.UploadAsync(BinaryData.FromObjectAsJson(new Dictionary<string, int>()), true);
+        var lease = stale.GetBlobLeaseClient();
+        await lease.AcquireAsync(TimeSpan.FromSeconds(60));
         time.Advance(TimeSpan.FromMinutes(11));
 
-        //act: its host rejoins, and has written the blob but not leased it yet
-        await member.UploadAsync(BinaryData.FromString("{\"Lock0\":1}"), true);
+        //act
+        await lease.BreakAsync(TimeSpan.Zero);
         await membership.GetMembersAsync(CancellationToken.None);
 
-        //assert
-        (await member.ExistsAsync())
+        //assert: lease operations do not change the blob, so it is old enough already
+        (await stale.ExistsAsync())
             .Value.Should()
-            .BeTrue();
+            .BeFalse();
 
         await membership.LeaveAsync(CancellationToken.None);
     }
@@ -399,9 +399,13 @@ public class BlobSingletonMembershipTests
         await membership.LeaveAsync(CancellationToken.None);
     }
 
+    //Starts at the real time, like the storage service's clock, and moves only when advanced
     private sealed class ManualTimeProvider : TimeProvider
     {
+        private readonly DateTimeOffset _start = DateTimeOffset.UtcNow;
         private long _ticks;
+
+        public override DateTimeOffset GetUtcNow() => _start.AddTicks(Interlocked.Read(ref _ticks));
 
         public override long TimestampFrequency => TimeSpan.TicksPerSecond;
 

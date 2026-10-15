@@ -25,8 +25,8 @@ public interface ISingletonMembership
     Task JoinAsync(IReadOnlyDictionary<string, int> locks, CancellationToken cancellationToken);
 
     /// <summary>
-    /// The live members with the locks each can run. A member that cannot be read is left out, and
-    /// this host may be missing
+    /// The other live members, not this host, with the locks each can run. A member that cannot be
+    /// read is left out
     /// </summary>
     Task<IReadOnlyCollection<SingletonMember>> GetMembersAsync(CancellationToken cancellationToken);
 
