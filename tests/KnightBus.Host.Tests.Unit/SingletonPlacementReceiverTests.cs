@@ -124,8 +124,8 @@ public class SingletonPlacementReceiverTests
         await f.Start();
         await Task.Delay(300);
 
-        //assert: only the attempt at start, nothing until the poll interval has passed
-        f.Locks.Attempts.Should().BeLessThanOrEqualTo(1);
+        //assert: only the look at start, nothing until the poll interval has passed
+        f.Locks.Inspections.Should().Be(1);
     }
 
     [Test]
@@ -327,6 +327,26 @@ public class SingletonPlacementReceiverTests
     }
 
     [Test]
+    public async Task Should_release_the_lock_and_try_again_when_the_receiver_fails_to_start()
+    {
+        //arrange: another host holds the lock, and this host's receiver cannot start
+        var log = new ListLogger();
+        await using var f = new Fixture(log: log);
+        f.Locks.Take(Lock, Other);
+        await f.Start();
+        f.Inner.FailStart = true;
+
+        //act
+        f.Locks.ReleaseFor(Lock);
+        await Eventually(() => f.Inner.Started >= 2);
+        f.Inner.FailStart = false;
+
+        //assert: the lock is not held without processing, and a failed start is not a lost lock
+        await Eventually(() => f.Locks.Holder(Lock) == Me && f.Inner.Started >= 3);
+        log.Messages.Should().NotContain(m => m.Contains("lost its lock"));
+    }
+
+    [Test]
     public async Task Should_not_hand_over_a_lock_it_has_only_just_taken()
     {
         await using var f = new Fixture();
@@ -395,6 +415,8 @@ public class SingletonPlacementReceiverTests
         private int _attempts;
         private int _failuresLeft;
         public int Attempts => _attempts;
+        private int _inspections;
+        public int Inspections => _inspections;
 
         //The next attempts throw, like a storage error that outlasts the SDK's retries
         public void FailNext(int attempts) => Volatile.Write(ref _failuresLeft, attempts);
@@ -411,8 +433,11 @@ public class SingletonPlacementReceiverTests
 
         public Task InitializeAsync() => Task.CompletedTask;
 
-        public Task<bool> IsLockedAsync(string lockId, CancellationToken cancellationToken) =>
-            Task.FromResult(_holders.ContainsKey(lockId));
+        public Task<bool> IsLockedAsync(string lockId, CancellationToken cancellationToken)
+        {
+            Interlocked.Increment(ref _inspections);
+            return Task.FromResult(_holders.ContainsKey(lockId));
+        }
 
         public Task<ISingletonLockHandle?> TryLockAsync(
             string lockId,
@@ -453,10 +478,15 @@ public class SingletonPlacementReceiverTests
         public CancellationToken? Token { get; private set; }
         public IProcessingSettings Settings { get; set; } = new SingletonProcessingSettings();
 
+        //Starting throws while this is set
+        public volatile bool FailStart;
+
         public Task StartAsync(CancellationToken cancellationToken)
         {
             Interlocked.Increment(ref _started);
             Token = cancellationToken;
+            if (FailStart)
+                throw new InvalidOperationException("start");
             return Task.CompletedTask;
         }
     }

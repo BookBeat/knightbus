@@ -51,7 +51,7 @@ internal class SingletonChannelReceiver : IChannelReceiver
     internal TimeSpan HandoffInterval { get; set; } = TimeSpan.FromMinutes(10);
 
     //How often a host looks for a lock it should hold but does not, so a lock that is handed over
-    //or released does not sit idle for a whole poll interval
+    //to it does not sit idle for a whole poll interval
     internal TimeSpan PreferredPollInterval { get; set; } = TimeSpan.FromSeconds(5);
 
     internal TimeProvider Time { get; set; } = TimeProvider.System;
@@ -98,12 +98,13 @@ internal class SingletonChannelReceiver : IChannelReceiver
         {
             try
             {
-                await PollOnce(cancellationToken).ConfigureAwait(false);
+                //StartAsync has just made the first attempt
                 await Task.Delay(
                         NextPollDelay(CurrentPollInterval(), PollJitter),
                         cancellationToken
                     )
                     .ConfigureAwait(false);
+                await PollOnce(cancellationToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -118,11 +119,6 @@ internal class SingletonChannelReceiver : IChannelReceiver
                     _lockId,
                     HostId
                 );
-                await Task.Delay(
-                        NextPollDelay(CurrentPollInterval(), PollJitter),
-                        cancellationToken
-                    )
-                    .ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
             }
         }
     }
@@ -322,6 +318,8 @@ internal class SingletonChannelReceiver : IChannelReceiver
             {
                 //Holding the lock without processing would keep every other host out
                 TryCancel(scopeTokenSource);
+                await scope.Completion.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+                _held = null;
                 throw;
             }
         }
