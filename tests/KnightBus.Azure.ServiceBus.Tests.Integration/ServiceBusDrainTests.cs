@@ -17,9 +17,11 @@ public class ServiceBusDrainTests
     private static readonly string CommandQueue = AutoMessageMapper.GetQueueName<DrainCommand>();
     private static readonly string Topic = AutoMessageMapper.GetQueueName<DrainEvent>();
     private static readonly string Subscription = new DrainEventSubscription().Name;
+    private static readonly string LockQueue = AutoMessageMapper.GetQueueName<DrainLockCommand>();
     private ServiceBusClient _client = null!;
     private IHost _host = null!;
-    private IDrainableChannelReceiver? _receiver;
+    private IChannelReceiver? _receiver;
+    private CancellationTokenSource? _stopFetching;
     private CancellationTokenSource? _receiverCts;
 
     [OneTimeSetUp]
@@ -32,6 +34,7 @@ public class ServiceBusDrainTests
     public async Task SetUp()
     {
         await EmulatorEntities.PurgeQueue(_client, CommandQueue);
+        await EmulatorEntities.PurgeQueue(_client, LockQueue);
         await EmulatorEntities.PurgeSubscription(_client, Topic, Subscription);
         //The host only supplies the dependency injection and the client factory, the receiver
         //under test is started by hand so the test controls when it drains
@@ -52,6 +55,7 @@ public class ServiceBusDrainTests
         _receiverCts?.Cancel();
         await _host.StopAsync();
         _host.Dispose();
+        _stopFetching?.Dispose();
         _receiverCts?.Dispose();
     }
 
@@ -65,16 +69,16 @@ public class ServiceBusDrainTests
         await processor.Started.Task.WaitAsync(TimeSpan.FromSeconds(15));
 
         //act
-        var drain = _receiver!.StopFetchingAsync(CancellationToken.None);
+        await _stopFetching!.CancelAsync();
         await SendCommand("second");
         await Task.Delay(TimeSpan.FromSeconds(1));
-        var drainedWhileRunning = drain.IsCompleted;
+        var cancelledWhileDraining = processor.Cancelled.Task.IsCompleted;
         processor.Gate.SetResult();
-        await drain.WaitAsync(TimeSpan.FromSeconds(15));
+        await EventuallyProcessed(processor, "first");
         await Task.Delay(TimeSpan.FromSeconds(1));
 
         //assert
-        drainedWhileRunning.Should().BeFalse("the drain waits for the message being processed");
+        cancelledWhileDraining.Should().BeFalse("a drain lets the running message finish");
         processor.Processed.Should().Equal("first");
         var remaining = await Peek(CommandQueue);
         remaining.Should().ContainSingle();
@@ -82,17 +86,23 @@ public class ServiceBusDrainTests
     }
 
     [Test]
-    public async Task Should_not_throw_when_drained_twice()
+    public async Task Should_cancel_a_message_whose_lock_is_lost_while_draining()
     {
-        //arrange
-        await StartQueueReceiver(new GatedProcessor());
+        //arrange: the lock is renewed for a few seconds only, then it runs out
+        var processor = new GatedProcessor();
+        await StartLockQueueReceiver(processor);
+        using (var scope = _host.Services.CreateScope())
+            await scope
+                .ServiceProvider.GetRequiredService<IServiceBus>()
+                .SendAsync(new DrainLockCommand { Message = "slow" });
+        await processor.Started.Task.WaitAsync(TimeSpan.FromSeconds(15));
 
         //act
-        await _receiver!.StopFetchingAsync(CancellationToken.None);
-        var second = () => _receiver.StopFetchingAsync(CancellationToken.None);
+        await _stopFetching!.CancelAsync();
 
-        //assert
-        await second.Should().NotThrowAsync();
+        //assert: cancelled by the lost lock, the receiver itself was never stopped
+        await processor.Cancelled.Task.WaitAsync(TimeSpan.FromSeconds(30));
+        _receiverCts!.IsCancellationRequested.Should().BeFalse();
     }
 
     [Test]
@@ -105,8 +115,8 @@ public class ServiceBusDrainTests
         await processor.Started.Task.WaitAsync(TimeSpan.FromSeconds(15));
 
         //act: the drain timed out, so the receiver is cancelled while the handler runs
-        _ = _receiver!.StopFetchingAsync(CancellationToken.None);
-        _receiverCts!.Cancel();
+        await _stopFetching!.CancelAsync();
+        await _receiverCts!.CancelAsync();
         await processor.Abandoned.Task.WaitAsync(TimeSpan.FromSeconds(15));
 
         //assert
@@ -133,15 +143,14 @@ public class ServiceBusDrainTests
         await processor.Started.Task.WaitAsync(TimeSpan.FromSeconds(15));
 
         //act
-        var drain = _receiver!.StopFetchingAsync(CancellationToken.None);
+        await _stopFetching!.CancelAsync();
         await Task.Delay(TimeSpan.FromSeconds(1));
-        var drainedWhileRunning = drain.IsCompleted;
+        var cancelledWhileDraining = processor.Cancelled.Task.IsCompleted;
         processor.Gate.SetResult();
-        await drain.WaitAsync(TimeSpan.FromSeconds(15));
 
         //assert
-        drainedWhileRunning.Should().BeFalse();
-        processor.Processed.Should().Equal("event");
+        cancelledWhileDraining.Should().BeFalse();
+        await EventuallyProcessed(processor, "event");
     }
 
     [Test]
@@ -151,7 +160,7 @@ public class ServiceBusDrainTests
         var processor = new GatedProcessor();
         processor.Gate.SetResult();
         await StartQueueReceiver(processor);
-        await _receiver!.StopFetchingAsync(CancellationToken.None);
+        await _stopFetching!.CancelAsync();
         await _receiverCts!.CancelAsync();
 
         //act
@@ -172,35 +181,46 @@ public class ServiceBusDrainTests
 
     private async Task StartQueueReceiver(GatedProcessor processor)
     {
-        _receiver = (IDrainableChannelReceiver)
-            new ServiceBusQueueChannelReceiver<DrainCommand>(
-                new DrainSettings(),
-                new MicrosoftJsonSerializer(),
-                new ServiceBusConfiguration(ServiceBusSetup.ConnectionString),
-                _host.Services.GetRequiredService<IHostConfiguration>(),
-                processor
-            );
+        _receiver = new ServiceBusQueueChannelReceiver<DrainCommand>(
+            new DrainSettings(),
+            new MicrosoftJsonSerializer(),
+            new ServiceBusConfiguration(ServiceBusSetup.ConnectionString),
+            _host.Services.GetRequiredService<IHostConfiguration>(),
+            processor
+        );
+        await Start();
+    }
+
+    private async Task StartLockQueueReceiver(GatedProcessor processor)
+    {
+        _receiver = new ServiceBusQueueChannelReceiver<DrainLockCommand>(
+            new ShortLockSettings(),
+            new MicrosoftJsonSerializer(),
+            new ServiceBusConfiguration(ServiceBusSetup.ConnectionString),
+            _host.Services.GetRequiredService<IHostConfiguration>(),
+            processor
+        );
         await Start();
     }
 
     private async Task StartSubscriptionReceiver(GatedProcessor processor)
     {
-        _receiver = (IDrainableChannelReceiver)
-            new ServiceBusTopicChannelReceiver<DrainEvent>(
-                new DrainSettings(),
-                new MicrosoftJsonSerializer(),
-                new DrainEventSubscription(),
-                new ServiceBusConfiguration(ServiceBusSetup.ConnectionString),
-                _host.Services.GetRequiredService<IHostConfiguration>(),
-                processor
-            );
+        _receiver = new ServiceBusTopicChannelReceiver<DrainEvent>(
+            new DrainSettings(),
+            new MicrosoftJsonSerializer(),
+            new DrainEventSubscription(),
+            new ServiceBusConfiguration(ServiceBusSetup.ConnectionString),
+            _host.Services.GetRequiredService<IHostConfiguration>(),
+            processor
+        );
         await Start();
     }
 
     private async Task Start()
     {
+        _stopFetching = new CancellationTokenSource();
         _receiverCts = new CancellationTokenSource();
-        await _receiver!.StartAsync(_receiverCts.Token);
+        await _receiver!.StartAsync(_stopFetching.Token, _receiverCts.Token);
     }
 
     private async Task SendCommand(string message)
@@ -232,12 +252,22 @@ public class DrainSettings : IProcessingSettings
     public int DeadLetterDeliveryLimit => 5;
 }
 
+//The lock is renewed for this long and then runs out
+public class ShortLockSettings : IProcessingSettings
+{
+    public int MaxConcurrentCalls => 1;
+    public int PrefetchCount => 0;
+    public TimeSpan MessageLockTimeout => TimeSpan.FromSeconds(3);
+    public int DeadLetterDeliveryLimit => 5;
+}
+
 // Holds every message until the test opens the gate. A cancelled message is abandoned the way
 // ErrorHandlingMiddleware does it.
 internal class GatedProcessor : IMessageProcessor
 {
     public TaskCompletionSource Started { get; } = new();
     public TaskCompletionSource Gate { get; } = new();
+    public TaskCompletionSource Cancelled { get; } = new();
     public TaskCompletionSource Abandoned { get; } = new();
     public List<string?> Processed { get; } = new();
 
@@ -256,6 +286,7 @@ internal class GatedProcessor : IMessageProcessor
                 {
                     DrainCommand c => c.Message,
                     DrainEvent e => e.Message,
+                    DrainLockCommand l => l.Message,
                     _ => null,
                 }
             );
@@ -263,6 +294,7 @@ internal class GatedProcessor : IMessageProcessor
         }
         catch (OperationCanceledException e)
         {
+            Cancelled.TrySetResult();
             await messageStateHandler.AbandonByErrorAsync(e);
             Abandoned.TrySetResult();
         }

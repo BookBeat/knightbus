@@ -51,7 +51,10 @@ internal abstract class RedisChannelReceiver<T> : IChannelReceiver
         await _processor.ProcessAsync(stateHandler, cancellationToken).ConfigureAwait(false);
     }
 
-    public virtual async Task StartAsync(CancellationToken cancellationToken)
+    public virtual async Task StartAsync(
+        CancellationToken stopFetching,
+        CancellationToken cancellationToken
+    )
     {
         var messagePump = new RedisMessagePump<T>(
             ConnectionMultiplexer,
@@ -61,7 +64,7 @@ internal abstract class RedisChannelReceiver<T> : IChannelReceiver
             Settings,
             _hostConfiguration.Log
         );
-        await messagePump.StartAsync<T>(ProcessMessageAsync, cancellationToken);
+        await messagePump.StartAsync<T>(ProcessMessageAsync, stopFetching, cancellationToken);
     }
 
     public IProcessingSettings Settings { get; set; }

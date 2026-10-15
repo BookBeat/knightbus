@@ -102,7 +102,10 @@ public class KnightBusHost : IHostedService
                         "Starting receiver {ReceiverType}",
                         receiver.GetType()
                     );
-                    await receiver.StartAsync(combinedToken.Token).ConfigureAwait(false);
+                    //Shutdown stops a receiver and its messages at once, then waits for them below
+                    await receiver
+                        .StartAsync(combinedToken.Token, combinedToken.Token)
+                        .ConfigureAwait(false);
                 }
 
                 _configuration.Log.LogInformation("Finished starting receivers");

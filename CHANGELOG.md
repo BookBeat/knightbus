@@ -31,16 +31,20 @@ poll in lock-step. The wait is never shorter than before, so failover is not fas
 to 20% slower. Set `PollJitter` to 0 to keep the exact old timing. Schedule locks are not affected.
 
 ### Singleton placement: letting a hand-over wait for the running message
-A receiver that can stop fetching without cancelling the messages it is processing lets a singleton
-lock be handed over without cancelling work that is about to finish. The hand-over waits for up to
-the processor's `MessageLockTimeout`, then cancels.
+**Breaking:** `IChannelReceiver.StartAsync` takes two tokens, `StartAsync(stopFetching,
+cancellationToken)`. Cancelling `stopFetching` stops the receiver from taking new messages while the
+ones it is handling carry on; cancelling `cancellationToken` stops it and cancels them. A custom
+transport implements the new signature, and one that cannot stop fetching on its own treats
+`stopFetching` like `cancellationToken`. `GenericMessagePump.StartAsync` takes the same two tokens.
 
-- `KnightBus.Core` 18.6.0: `IDrainableChannelReceiver` and `GenericMessagePump.StopFetchingAsync`.
-- `KnightBus.Azure.Storage` 18.5.0: the storage queue receiver can drain.
-- `KnightBus.Azure.ServiceBus` 24.3.0: the queue and topic receivers can drain.
-- `KnightBus.Host` 18.5.0: a hand-over drains receivers that can.
+A singleton lock hand-over stops fetching first and waits for the running message, for up to the
+processor's `MessageLockTimeout`, before cancelling it. Azure Service Bus and the pump transports,
+Azure Storage queues, Redis and PostgreSQL, drain. NATS is cancelled straight away, as before.
 
-Receivers that cannot drain, today Redis, PostgreSQL and NATS, are cancelled straight away as before.
+A transport package built against `KnightBus.Core` 18 does not load with 19, so they are all released
+together: `KnightBus.Core` 19.0.0, `KnightBus.Host` 19.0.0, `KnightBus.Azure.Storage` 19.0.0,
+`KnightBus.Azure.ServiceBus` 25.0.0, `KnightBus.Redis` 18.0.0, `KnightBus.PostgreSql` 5.0.0 and
+`KnightBus.Nats` 8.0.0.
 
 ### Singleton placement: spreading singleton locks over the running instances
 Every singleton lock was an independent race, so the instance that started first took all of them and

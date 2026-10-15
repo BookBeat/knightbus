@@ -77,6 +77,17 @@ public class DrainCommandMapping : IMessageMapping<DrainCommand>
     public string QueueName => "drain-commands";
 }
 
+//On a queue with a short message lock, so a lost lock shows within seconds
+public class DrainLockCommand : IServiceBusCommand
+{
+    public string? Message { get; set; }
+}
+
+public class DrainLockCommandMapping : IMessageMapping<DrainLockCommand>
+{
+    public string QueueName => "drain-lock-commands";
+}
+
 public class DrainEvent : IServiceBusEvent
 {
     public string? Message { get; set; }

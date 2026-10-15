@@ -22,6 +22,7 @@ internal class SingletonChannelReceiver : IChannelReceiver
 
     private sealed record Held(
         SingletonTimerScope Scope,
+        CancellationTokenSource FetchSource,
         CancellationTokenSource ReceiverSource,
         CancellationTokenSource ScopeSource,
         long AcquiredAt
@@ -58,7 +59,6 @@ internal class SingletonChannelReceiver : IChannelReceiver
 
     //When the lock was first seen free while another host is the one that should hold it
     private long? _freeSince;
-    private Task? _pollingLoop;
 
     /// <summary>
     /// Completes when the lock held by this receiver has been released
@@ -233,16 +233,18 @@ internal class SingletonChannelReceiver : IChannelReceiver
 
     private async Task HandOver(Held held, CancellationToken cancellationToken)
     {
-        //Let the message being processed finish without taking new ones. It may take as long as
-        //the message lock lasts, which the transport enforces anyway.
-        if (_channelReceiver is IDrainableChannelReceiver drainable)
+        //Take no new messages and let the one being processed finish. It may take as long as the
+        //message lock lasts, which the transport enforces anyway. A receiver that cannot stop
+        //fetching on its own stops altogether
+        TryCancel(held.FetchSource);
+        if (_inFlight != null)
         {
             var drainTimeout = Settings.MessageLockTimeout;
             using var drain = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             drain.CancelAfter(drainTimeout);
             try
             {
-                await drainable.StopFetchingAsync(drain.Token).ConfigureAwait(false);
+                await _inFlight.WaitUntilIdleAsync(drain.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
@@ -311,6 +313,10 @@ internal class SingletonChannelReceiver : IChannelReceiver
                 cancellationToken,
                 scopeTokenSource.Token
             );
+            //A stopped receiver takes no new messages either
+            var fetchTokenSource = CancellationTokenSource.CreateLinkedTokenSource(
+                receiverTokenSource.Token
+            );
             _freeSince = null;
             var scope = new SingletonTimerScope(
                 _log,
@@ -328,12 +334,19 @@ internal class SingletonChannelReceiver : IChannelReceiver
                         _lockId,
                         HostId
                     );
+                    fetchTokenSource.Dispose();
                     receiverTokenSource.Dispose();
                     scopeTokenSource.Dispose();
                 },
                 TaskScheduler.Default
             );
-            _held = new Held(scope, receiverTokenSource, scopeTokenSource, Time.GetTimestamp());
+            _held = new Held(
+                scope,
+                fetchTokenSource,
+                receiverTokenSource,
+                scopeTokenSource,
+                Time.GetTimestamp()
+            );
             _log.LogInformation(
                 "Starting Singleton Processor with name {ProcessorName} on host {HostId}",
                 _lockId,
@@ -341,7 +354,9 @@ internal class SingletonChannelReceiver : IChannelReceiver
             );
             try
             {
-                await _channelReceiver.StartAsync(receiverTokenSource.Token).ConfigureAwait(false);
+                await _channelReceiver
+                    .StartAsync(fetchTokenSource.Token, receiverTokenSource.Token)
+                    .ConfigureAwait(false);
             }
             catch
             {
@@ -354,16 +369,15 @@ internal class SingletonChannelReceiver : IChannelReceiver
         }
     }
 
-    public async Task StartAsync(CancellationToken cancellationToken)
+    //The singleton receiver fetches only while it holds the lock, a drain is its own business
+    public async Task StartAsync(
+        CancellationToken stopFetching,
+        CancellationToken cancellationToken
+    )
     {
         await _lockManager.InitializeAsync().ConfigureAwait(false);
         await AcquireLock(cancellationToken).ConfigureAwait(false);
 
-#pragma warning disable 4014
-        _pollingLoop = Task.Run(
-            async () => await TimerLoop(cancellationToken),
-            CancellationToken.None
-        );
-#pragma warning restore 4014
+        _ = Task.Run(() => TimerLoop(cancellationToken), CancellationToken.None);
     }
 }

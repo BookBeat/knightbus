@@ -137,7 +137,11 @@ public class GenericMessagePumpTests
         using var cts = new CancellationTokenSource();
 
         //act
-        await pump.StartAsync<TestCommand>((_, _) => Task.CompletedTask, cts.Token);
+        await pump.StartAsync<TestCommand>(
+            (_, _) => Task.CompletedTask,
+            CancellationToken.None,
+            cts.Token
+        );
 
         //assert: the pump must skip its first polling delay instead of discarding the signal
         var deadline = DateTime.UtcNow.AddSeconds(3);
@@ -163,7 +167,11 @@ public class GenericMessagePumpTests
             pollingDelay: TimeSpan.FromSeconds(10)
         );
         using var cts = new CancellationTokenSource();
-        await pump.StartAsync<TestCommand>((_, _) => Task.CompletedTask, cts.Token);
+        await pump.StartAsync<TestCommand>(
+            (_, _) => Task.CompletedTask,
+            CancellationToken.None,
+            cts.Token
+        );
         //the first pump iteration creates the channel, returns false and enters the delay
         await Task.Delay(200, CancellationToken.None);
 
@@ -259,6 +267,7 @@ public class GenericMessagePumpTests
                 processed.TrySetResult();
                 return Task.CompletedTask;
             },
+            CancellationToken.None,
             cts.Token
         );
 
@@ -279,7 +288,11 @@ public class GenericMessagePumpTests
         //arrange
         var pump = new TestMessagePump(new RecordingLogger());
         using var cts = new CancellationTokenSource();
-        await pump.StartAsync<TestCommand>((_, _) => Task.CompletedTask, cts.Token);
+        await pump.StartAsync<TestCommand>(
+            (_, _) => Task.CompletedTask,
+            CancellationToken.None,
+            cts.Token
+        );
 
         //act
         cts.Cancel();
@@ -305,7 +318,11 @@ public class GenericMessagePumpTests
             cleanupResources: () => throw new InvalidOperationException("cleanup failed")
         );
         using var cts = new CancellationTokenSource();
-        await pump.StartAsync<TestCommand>((_, _) => Task.CompletedTask, cts.Token);
+        await pump.StartAsync<TestCommand>(
+            (_, _) => Task.CompletedTask,
+            CancellationToken.None,
+            cts.Token
+        );
 
         //act
         cts.Cancel();

@@ -163,12 +163,11 @@ it is. A handler that stays within its message lock is never cancelled by a hand
 handler must still tolerate cancellation, as it has to on shutdown too. The cancellation is logged
 like any other cancelled handler.
 
-Stopping the fetch without cancelling the running message needs support from the receiver
-(`IDrainableChannelReceiver`). The Azure Storage queue and Azure Service Bus receivers have it.
-Receivers without it, today Redis, PostgreSQL and NATS, cancel the running message straight away,
-and the lock is still kept until it has stopped. On Azure Service Bus a handler is not cancelled when
-its message lock is lost while the receiver drains. Completing the message then fails, and it is
-delivered again.
+A receiver gets two tokens when it starts: one that stops it fetching and one that stops it and
+cancels its messages (`IChannelReceiver.StartAsync(stopFetching, cancellationToken)`). The Azure
+Storage queue, Azure Service Bus, Redis and PostgreSQL receivers stop fetching and let the running
+message finish. Receivers that cannot, today NATS, cancel the running message straight away, and
+the lock is still kept until it has stopped.
 
 A cancelled message is abandoned and delivered again. The delivery counts against the processor's
 `DeadLetterDeliveryLimit`, because the transport counts every delivery and KnightBus cannot take one

@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace KnightBus.Azure.ServiceBus;
 
-internal abstract class ServiceBusChannelReceiverBase<T> : IDrainableChannelReceiver
+internal abstract class ServiceBusChannelReceiverBase<T> : IChannelReceiver
     where T : class, IMessage
 {
     private readonly IServiceBusConfiguration _configuration;
@@ -28,7 +28,6 @@ internal abstract class ServiceBusChannelReceiverBase<T> : IDrainableChannelRece
     {
         public ServiceBusProcessor Client { get; } = client;
         public CancellationToken CancellationToken { get; } = cancellationToken;
-        public volatile bool FetchingStopped;
     }
 
     protected readonly IClientFactory ClientFactory;
@@ -56,17 +55,10 @@ internal abstract class ServiceBusChannelReceiverBase<T> : IDrainableChannelRece
 
     public IProcessingSettings Settings { get; set; }
 
-    public async Task StopFetchingAsync(CancellationToken cancellationToken)
-    {
-        //Stops the processor from taking messages and waits for the running handlers to finish
-        var run = _run;
-        if (run == null)
-            return;
-        run.FetchingStopped = true;
-        await run.Client.StopProcessingAsync(cancellationToken).ConfigureAwait(false);
-    }
-
-    public async Task StartAsync(CancellationToken cancellationToken)
+    public async Task StartAsync(
+        CancellationToken stopFetching,
+        CancellationToken cancellationToken
+    )
     {
         _deadLetterLimit = Settings.DeadLetterDeliveryLimit;
 
@@ -77,7 +69,21 @@ internal abstract class ServiceBusChannelReceiverBase<T> : IDrainableChannelRece
         _run = run;
         await client.StartProcessingAsync(cancellationToken).ConfigureAwait(false);
 
+        //Stopping the processor ends receiving and lets the running handlers finish
+        stopFetching.Register(() => _ = StopProcessingAsync(client));
         cancellationToken.Register(() => _ = CloseAsync(client));
+    }
+
+    private async Task StopProcessingAsync(ServiceBusProcessor client)
+    {
+        try
+        {
+            await client.StopProcessingAsync(CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception e)
+        {
+            Log.LogWarning(e, "Failed to stop fetching from {MessageType}", typeof(T).Name);
+        }
     }
 
     private async Task CloseAsync(ServiceBusProcessor client)
@@ -122,15 +128,23 @@ internal abstract class ServiceBusChannelReceiverBase<T> : IDrainableChannelRece
                 _deadLetterLimit,
                 _hostConfiguration.DependencyInjection
             );
+            //Not arg.CancellationToken: the SDK cancels it when processing stops, which is also how a
+            //drain stops fetching, and a drain must let the message finish
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(run.CancellationToken);
-            //The SDK cancels this token when processing stops, which must not cancel the
-            //message a drain is waiting for. It is still honoured for a lost message lock.
-            await using var lockLost = arg.CancellationToken.Register(() =>
+            Task OnLockLost(MessageLockLostEventArgs _)
             {
-                if (!run.FetchingStopped)
-                    cts.Cancel();
-            });
-            await _processor.ProcessAsync(stateHandler, cts.Token).ConfigureAwait(false);
+                cts.Cancel();
+                return Task.CompletedTask;
+            }
+            arg.MessageLockLostAsync += OnLockLost;
+            try
+            {
+                await _processor.ProcessAsync(stateHandler, cts.Token).ConfigureAwait(false);
+            }
+            finally
+            {
+                arg.MessageLockLostAsync -= OnLockLost;
+            }
         }
         catch (Exception e)
         {

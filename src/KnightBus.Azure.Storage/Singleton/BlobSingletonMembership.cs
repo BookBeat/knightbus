@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
+using Azure.Storage.Blobs.Specialized;
 using KnightBus.Core.Singleton;
 using Microsoft.Extensions.Logging;
 
@@ -28,7 +29,6 @@ internal sealed class BlobSingletonMembership : ISingletonMembership
 
     private readonly IBlobLockScheme _lockScheme;
     private readonly ILogger _log;
-    private readonly BlobLockManager _lockManager;
     private readonly TimeProvider _time;
     private readonly BlobContainerClient _container;
     private readonly string _memberPrefix;
@@ -47,7 +47,6 @@ internal sealed class BlobSingletonMembership : ISingletonMembership
         _time = timeProvider ?? TimeProvider.System;
         _lockScheme = lockScheme ?? new DefaultBlobLockScheme();
         _log = log ?? Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance;
-        _lockManager = new BlobLockManager(configuration, _lockScheme);
         HostId = hostId ?? HostIdentity.Id;
         _container = AzureStorageClientFactory.CreateBlobContainerClient(
             configuration,
@@ -78,7 +77,6 @@ internal sealed class BlobSingletonMembership : ISingletonMembership
         }
         _lifetime ??= new CancellationTokenSource();
 
-        await _lockManager.InitializeAsync().ConfigureAwait(false);
         await _container
             .CreateIfNotExistsAsync(cancellationToken: cancellationToken)
             .ConfigureAwait(false);
@@ -91,11 +89,15 @@ internal sealed class BlobSingletonMembership : ISingletonMembership
             )
             .ConfigureAwait(false);
 
-        var handle =
-            await _lockManager
-                .TryLockAsync(_memberId, MemberLeaseDuration, cancellationToken)
-                .ConfigureAwait(false)
-            ?? throw new InvalidOperationException($"Could not lease the member blob {_memberId}");
+        var lease = await blob.GetBlobLeaseClient()
+            .AcquireAsync(MemberLeaseDuration, cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
+        var handle = new BlobLockHandle(
+            lease.Value.LeaseId,
+            _memberId,
+            blob.GetBlobLeaseClient(lease.Value.LeaseId),
+            MemberLeaseDuration
+        );
 
         var leaseSource = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
         _memberLease = new SingletonTimerScope(

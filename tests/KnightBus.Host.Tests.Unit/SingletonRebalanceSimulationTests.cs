@@ -241,7 +241,7 @@ public class SingletonRebalanceSimulationTests
                     Time = _world.Time,
                 };
                 _receivers.Add(receiver);
-                await receiver.StartAsync(_shutdown.Token);
+                await receiver.StartAsync(_shutdown.Token, _shutdown.Token);
             }
         }
 
@@ -301,13 +301,14 @@ public class SingletonRebalanceSimulationTests
         }
     }
 
-    private sealed class Inner : IDrainableChannelReceiver
+    private sealed class Inner : IChannelReceiver
     {
         public IProcessingSettings Settings { get; set; } =
             new SingletonProcessingSettings { MessageLockTimeout = TimeSpan.FromSeconds(5) };
 
-        public Task StartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
-
-        public Task StopFetchingAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+        public Task StartAsync(
+            CancellationToken stopFetching,
+            CancellationToken cancellationToken
+        ) => Task.CompletedTask;
     }
 }

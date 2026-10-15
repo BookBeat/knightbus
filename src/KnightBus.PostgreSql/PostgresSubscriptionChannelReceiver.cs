@@ -35,7 +35,10 @@ public class PostgresSubscriptionChannelReceiver<T> : IChannelReceiver
         _postgresConfiguration = postgresConfiguration;
     }
 
-    public async Task StartAsync(CancellationToken cancellationToken)
+    public async Task StartAsync(
+        CancellationToken stopFetching,
+        CancellationToken cancellationToken
+    )
     {
         _queueClient = new PostgresSubscriptionClient<T>(
             _npgsqlDataSource,
@@ -50,7 +53,7 @@ public class PostgresSubscriptionChannelReceiver<T> : IChannelReceiver
             _postgresConfiguration,
             _hostConfiguration.Log
         );
-        await pump.StartAsync<T>(ProcessMessageAsync, cancellationToken);
+        await pump.StartAsync<T>(ProcessMessageAsync, stopFetching, cancellationToken);
     }
 
     private async Task ProcessMessageAsync(

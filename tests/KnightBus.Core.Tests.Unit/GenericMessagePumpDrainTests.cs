@@ -64,61 +64,66 @@ public class GenericMessagePumpDrainTests
     {
         //arrange
         var pump = new Pump();
+        using var stopFetching = new CancellationTokenSource();
         using var cts = new CancellationTokenSource();
-        await pump.StartAsync<TestCommand>((_, _) => Task.CompletedTask, cts.Token);
+        await pump.StartAsync<TestCommand>(
+            (_, _) => Task.CompletedTask,
+            stopFetching.Token,
+            cts.Token
+        );
         await WaitFor(() => pump.Fetches > 0);
 
         //act
-        await pump.StopFetchingAsync(CancellationToken.None);
+        await stopFetching.CancelAsync();
+        await Task.Delay(50);
         var fetchesWhenStopped = pump.Fetches;
         await Task.Delay(200);
 
         //assert
         pump.Fetches.Should().Be(fetchesWhenStopped);
-        cts.Cancel();
+        await cts.CancelAsync();
     }
 
     [Test]
-    public async Task Should_wait_for_a_running_handler_without_cancelling_it()
+    public async Task Should_not_fetch_when_room_frees_up_after_fetching_has_stopped()
     {
-        //arrange
+        //arrange: one message is being handled, and the next round waits for room to fetch
         var started = new TaskCompletionSource();
         var release = new TaskCompletionSource();
-        var handlerToken = CancellationToken.None;
         var pump = new Pump();
+        using var stopFetching = new CancellationTokenSource();
         using var cts = new CancellationTokenSource();
         await pump.StartAsync<TestCommand>(
-            async (_, token) =>
+            async (_, _) =>
             {
-                handlerToken = token;
                 started.TrySetResult();
                 await release.Task;
             },
+            stopFetching.Token,
             cts.Token
         );
         await started.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        await Task.Delay(100);
 
-        //act
-        var stopping = pump.StopFetchingAsync(CancellationToken.None);
+        //act: fetching stops, then the message finishes and frees the room
+        await stopFetching.CancelAsync();
+        release.SetResult();
         await Task.Delay(200);
 
-        //assert: still waiting, and the handler was left alone
-        stopping.IsCompleted.Should().BeFalse();
-        handlerToken.IsCancellationRequested.Should().BeFalse();
-
-        release.SetResult();
-        await stopping.WaitAsync(TimeSpan.FromSeconds(10));
-        cts.Cancel();
+        //assert
+        pump.Fetches.Should().Be(1);
+        await cts.CancelAsync();
     }
 
     [Test]
-    public async Task Should_stop_waiting_when_the_wait_is_cancelled_and_leave_the_handler_running()
+    public async Task Should_leave_a_running_handler_alone_when_fetching_stops()
     {
         //arrange
         var started = new TaskCompletionSource();
         var release = new TaskCompletionSource();
         var handlerToken = CancellationToken.None;
         var pump = new Pump();
+        using var stopFetching = new CancellationTokenSource();
         using var cts = new CancellationTokenSource();
         await pump.StartAsync<TestCommand>(
             async (_, token) =>
@@ -127,19 +132,19 @@ public class GenericMessagePumpDrainTests
                 started.TrySetResult();
                 await release.Task;
             },
+            stopFetching.Token,
             cts.Token
         );
         await started.Task.WaitAsync(TimeSpan.FromSeconds(10));
-        using var waitLimit = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
 
         //act
-        var stopping = () => pump.StopFetchingAsync(waitLimit.Token);
+        await stopFetching.CancelAsync();
+        await Task.Delay(100);
 
         //assert
-        await stopping.Should().ThrowAsync<OperationCanceledException>();
         handlerToken.IsCancellationRequested.Should().BeFalse();
-
+        await cts.CancelAsync();
+        handlerToken.IsCancellationRequested.Should().BeTrue("stopping cancels it");
         release.SetResult();
-        cts.Cancel();
     }
 }

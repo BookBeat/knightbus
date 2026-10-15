@@ -169,7 +169,7 @@ public class KnightBusHostShutdownTests
             Mock.Of<ILogger>(),
             teardownToken: host.TeardownToken
         );
-        await singletonReceiver.StartAsync(CancellationToken.None);
+        await singletonReceiver.StartAsync(CancellationToken.None, CancellationToken.None);
         host.Receivers.Add(singletonReceiver);
 
         //one in-flight message that finishes after 500ms
