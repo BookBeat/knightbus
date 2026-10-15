@@ -17,10 +17,20 @@ internal abstract class ServiceBusChannelReceiverBase<T> : IDrainableChannelRece
     private readonly IMessageProcessor _processor;
     private readonly IMessageSerializer _serializer;
     protected readonly ILogger Log;
-    private CancellationToken _cancellationToken;
-    private ServiceBusProcessor _client = null!;
     private int _deadLetterLimit;
-    private volatile bool _fetchingStopped;
+
+    //The receiver is started again whenever its singleton lock comes back, so everything that
+    //belongs to one start is kept together: a callback or watcher from an earlier start must never
+    //act on the client of a later one
+    private volatile Run? _run;
+
+    private sealed class Run(ServiceBusProcessor client, CancellationToken cancellationToken)
+    {
+        public ServiceBusProcessor Client { get; } = client;
+        public CancellationToken CancellationToken { get; } = cancellationToken;
+        public volatile bool FetchingStopped;
+    }
+
     protected readonly IClientFactory ClientFactory;
     protected readonly ServiceBusAdministrationClient ManagementClient;
 
@@ -49,50 +59,44 @@ internal abstract class ServiceBusChannelReceiverBase<T> : IDrainableChannelRece
     public async Task StopFetchingAsync(CancellationToken cancellationToken)
     {
         //Stops the processor from taking messages and waits for the running handlers to finish
-        _fetchingStopped = true;
-        if (_client != null)
-            await _client.StopProcessingAsync(cancellationToken).ConfigureAwait(false);
+        var run = _run;
+        if (run == null)
+            return;
+        run.FetchingStopped = true;
+        await run.Client.StopProcessingAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        _cancellationToken = cancellationToken;
         _deadLetterLimit = Settings.DeadLetterDeliveryLimit;
 
-        await InitializeAsync().ConfigureAwait(false);
+        var client = await CreateClient(cancellationToken).ConfigureAwait(false);
+        var run = new Run(client, cancellationToken);
+        client.ProcessMessageAsync += arg => ClientOnProcessMessageAsync(run, arg);
+        client.ProcessErrorAsync += arg => ClientOnProcessErrorAsync(run, arg);
+        _run = run;
+        await client.StartProcessingAsync(cancellationToken).ConfigureAwait(false);
 
-#pragma warning disable 4014
-        Task.Run(
-            async () =>
-            {
-                _cancellationToken.WaitHandle.WaitOne();
-                try
-                {
-                    Log.LogInformation($"Closing ServiceBus channel receiver for {typeof(T).Name}");
-                    await _client.CloseAsync(CancellationToken.None);
-                }
-                catch (Exception)
-                {
-                    //Swallow
-                }
-            },
-            _cancellationToken
-        );
-#pragma warning restore 4014
+        cancellationToken.Register(() => _ = CloseAsync(client));
+    }
+
+    private async Task CloseAsync(ServiceBusProcessor client)
+    {
+        try
+        {
+            Log.LogInformation($"Closing ServiceBus channel receiver for {typeof(T).Name}");
+            await client.CloseAsync(CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception)
+        {
+            //Swallow
+        }
     }
 
     protected abstract Task<ServiceBusProcessor> CreateClient(CancellationToken cancellationToken);
     protected abstract Task CreateMessagingEntity(CancellationToken cancellationToken);
 
-    private async Task InitializeAsync()
-    {
-        _client = await CreateClient(_cancellationToken).ConfigureAwait(false);
-        _client.ProcessMessageAsync += ClientOnProcessMessageAsync;
-        _client.ProcessErrorAsync += ClientOnProcessErrorAsync;
-        await _client.StartProcessingAsync(_cancellationToken).ConfigureAwait(false);
-    }
-
-    private async Task ClientOnProcessErrorAsync(ProcessErrorEventArgs arg)
+    private async Task ClientOnProcessErrorAsync(Run run, ProcessErrorEventArgs arg)
     {
         if (
             arg.Exception is ServiceBusException
@@ -102,13 +106,13 @@ internal abstract class ServiceBusChannelReceiverBase<T> : IDrainableChannelRece
         )
         {
             Log.LogInformation($"{typeof(T).Name} not found. Creating.");
-            await CreateMessagingEntity(_cancellationToken).ConfigureAwait(false);
+            await CreateMessagingEntity(run.CancellationToken).ConfigureAwait(false);
         }
         else if (!(arg.Exception is OperationCanceledException))
             Log.LogError(arg.Exception, $"{typeof(T).Name}");
     }
 
-    private async Task ClientOnProcessMessageAsync(ProcessMessageEventArgs arg)
+    private async Task ClientOnProcessMessageAsync(Run run, ProcessMessageEventArgs arg)
     {
         try
         {
@@ -118,12 +122,12 @@ internal abstract class ServiceBusChannelReceiverBase<T> : IDrainableChannelRece
                 _deadLetterLimit,
                 _hostConfiguration.DependencyInjection
             );
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken);
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(run.CancellationToken);
             //The SDK cancels this token when processing stops, which must not cancel the
             //message a drain is waiting for. It is still honoured for a lost message lock.
             await using var lockLost = arg.CancellationToken.Register(() =>
             {
-                if (!_fetchingStopped)
+                if (!run.FetchingStopped)
                     cts.Cancel();
             });
             await _processor.ProcessAsync(stateHandler, cts.Token).ConfigureAwait(false);

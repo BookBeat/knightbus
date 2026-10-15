@@ -6,6 +6,10 @@
   handed over without cancelling the message being processed. Requires `KnightBus.Core` 18.6.0
 - Stopping the processor no longer cancels the token of a message being handled, which the
   Service Bus SDK does on its own. The token is still cancelled when the message lock is lost
+- A receiver that is started again, as a singleton receiver is when it gets its lock back, keeps
+  the client of each start apart: closing an earlier start no longer closes the new client, and a
+  drain no longer outlives the start it stopped
+- Disposing the `ClientFactory` also closes its Service Bus connection, which stayed open before
 
 ## 24.2.0
 ### Changed

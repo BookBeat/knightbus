@@ -144,6 +144,32 @@ public class ServiceBusDrainTests
         processor.Processed.Should().Equal("event");
     }
 
+    [Test]
+    public async Task Should_process_messages_again_after_being_drained_and_started_again()
+    {
+        //arrange: a hand-over drained and stopped the receiver, later it gets the lock back
+        var processor = new GatedProcessor();
+        processor.Gate.SetResult();
+        await StartQueueReceiver(processor);
+        await _receiver!.StopFetchingAsync(CancellationToken.None);
+        await _receiverCts!.CancelAsync();
+
+        //act
+        await Start();
+        await SendCommand("after restart");
+
+        //assert: the earlier start's close does not touch the new client
+        await EventuallyProcessed(processor, "after restart");
+    }
+
+    private static async Task EventuallyProcessed(GatedProcessor processor, string message)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(15);
+        while (!processor.Processed.Contains(message) && DateTime.UtcNow < deadline)
+            await Task.Delay(100);
+        processor.Processed.Should().Contain(message);
+    }
+
     private async Task StartQueueReceiver(GatedProcessor processor)
     {
         _receiver = (IDrainableChannelReceiver)
