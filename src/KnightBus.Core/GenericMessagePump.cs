@@ -130,15 +130,9 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
             var fetchCount = Settings.PrefetchCount + AvailableThreads;
             fetchCount = Math.Min(fetchCount, MaxFetch);
 
-            TimeSpan visibilityTimeout;
-            if (Settings is IExtendMessageLockTimeout extendMessageLockTimeout)
-            {
-                visibilityTimeout = extendMessageLockTimeout.ExtensionDuration;
-            }
-            else
-            {
-                visibilityTimeout = Settings.MessageLockTimeout;
-            }
+            var visibilityTimeout = Settings is IExtendMessageLockTimeout extendMessageLockTimeout
+                ? extendMessageLockTimeout.ExtensionDuration
+                : Settings.MessageLockTimeout;
 
             var stopWatch = Stopwatch.StartNew();
             var messages = GetMessagesAsync<TMessage>(fetchCount, visibilityTimeout);
@@ -154,49 +148,12 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
                     return true;
                 }
 
-                var timeoutToken = new CancellationTokenSource(remainingLockDuration);
-                var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(
-                    cancellationToken,
-                    timeoutToken.Token
-                );
-                try
-                {
-                    //Not the stop token: a fetched message is handed on even after a stop, with its
-                    //token cancelled, so the pipeline returns it instead of it staying invisible
-                    //until its lock runs out
-                    await _maxConcurrent.WaitAsync(timeoutToken.Token).ConfigureAwait(false);
-                }
-                catch
-                {
-                    timeoutToken.Dispose();
-                    linkedToken.Dispose();
+                if (
+                    !await DispatchAsync(message, remainingLockDuration, action, cancellationToken)
+                        .ConfigureAwait(false)
+                )
                     return true;
-                }
-
                 messageCount++;
-#pragma warning disable 4014 //No need to await the result, let's keep the pump going
-                //No scheduling token here: if the lock timeout fired before the task started,
-                //the delegate would be skipped and the finally would never release the slot
-                Task.Run(
-                        async () =>
-                        {
-                            try
-                            {
-                                await action
-                                    .Invoke(message, linkedToken.Token)
-                                    .ConfigureAwait(false);
-                            }
-                            finally
-                            {
-                                _maxConcurrent.Release();
-                                timeoutToken.Dispose();
-                                linkedToken.Dispose();
-                            }
-                        },
-                        CancellationToken.None
-                    )
-                    .ConfigureAwait(false);
-#pragma warning restore 4014
             }
 
             Log.LogDebug(
@@ -234,6 +191,60 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
         }
 
         return messageCount > 0;
+    }
+
+    /// <summary>
+    /// Hands a fetched message to <paramref name="action"/> once there is room, false when its lock
+    /// ran out first
+    /// </summary>
+    private async Task<bool> DispatchAsync(
+        TInternalRepresentation message,
+        TimeSpan remainingLockDuration,
+        Func<TInternalRepresentation, CancellationToken, Task> action,
+        CancellationToken cancellationToken
+    )
+    {
+        var timeoutToken = new CancellationTokenSource(remainingLockDuration);
+        var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken,
+            timeoutToken.Token
+        );
+        try
+        {
+            //Not the stop token: a fetched message is handed on even after a stop, with its
+            //token cancelled, so the pipeline returns it instead of it staying invisible
+            //until its lock runs out
+            await _maxConcurrent.WaitAsync(timeoutToken.Token).ConfigureAwait(false);
+        }
+        catch
+        {
+            timeoutToken.Dispose();
+            linkedToken.Dispose();
+            return false;
+        }
+
+#pragma warning disable 4014 //No need to await the result, let's keep the pump going
+        //No scheduling token here: if the lock timeout fired before the task started,
+        //the delegate would be skipped and the finally would never release the slot
+        Task.Run(
+                async () =>
+                {
+                    try
+                    {
+                        await action.Invoke(message, linkedToken.Token).ConfigureAwait(false);
+                    }
+                    finally
+                    {
+                        _maxConcurrent.Release();
+                        timeoutToken.Dispose();
+                        linkedToken.Dispose();
+                    }
+                },
+                CancellationToken.None
+            )
+            .ConfigureAwait(false);
+#pragma warning restore 4014
+        return true;
     }
 
     /// <summary>

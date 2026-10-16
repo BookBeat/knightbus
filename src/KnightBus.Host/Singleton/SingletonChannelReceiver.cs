@@ -244,9 +244,10 @@ internal class SingletonChannelReceiver : IChannelReceiver
             {
                 await _inFlight.WaitUntilIdleAsync(drain.Token).ConfigureAwait(false);
             }
-            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            catch (OperationCanceledException e) when (!cancellationToken.IsCancellationRequested)
             {
                 _log.LogWarning(
+                    e,
                     "Singleton Processor with name {ProcessorName} did not finish its message in {Timeout}, cancelling it",
                     _lockId,
                     drainTimeout

@@ -85,6 +85,10 @@ public class NatsQueueChannelReceiver<T> : IChannelReceiver
             {
                 //Swallow
             }
+            finally
+            {
+                stopping.Dispose();
+            }
         });
         return Task.CompletedTask;
 #pragma warning restore 4014
