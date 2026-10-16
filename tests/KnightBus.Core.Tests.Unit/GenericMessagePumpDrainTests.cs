@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using AwesomeAssertions;
 using KnightBus.Messages;
+using KnightBus.Tests.Shared;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
@@ -58,17 +59,6 @@ public class GenericMessagePumpDrainTests
         protected override int MaxFetch => 10;
     }
 
-    private static async Task WaitFor(Func<bool> condition)
-    {
-        var deadline = DateTime.UtcNow.AddSeconds(10);
-        while (!condition())
-        {
-            if (DateTime.UtcNow > deadline)
-                Assert.Fail("Timed out waiting for the condition");
-            await Task.Delay(10);
-        }
-    }
-
     [Test]
     public async Task Should_not_fetch_again_once_fetching_is_stopped()
     {
@@ -81,7 +71,7 @@ public class GenericMessagePumpDrainTests
             stopFetching.Token,
             cts.Token
         );
-        await WaitFor(() => pump.Fetches > 0);
+        await Eventually.True(() => pump.Fetches > 0);
 
         //act
         await stopFetching.CancelAsync();
@@ -204,7 +194,7 @@ public class GenericMessagePumpDrainTests
             stopFetching.Token,
             cts.Token
         );
-        await WaitFor(() => pump.Fetches == 1);
+        await Eventually.True(() => pump.Fetches == 1);
 
         //act
         await stopFetching.CancelAsync();

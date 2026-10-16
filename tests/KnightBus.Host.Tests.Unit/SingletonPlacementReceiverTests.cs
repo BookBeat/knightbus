@@ -9,6 +9,7 @@ using KnightBus.Core;
 using KnightBus.Core.Singleton;
 using KnightBus.Host.Singleton;
 using KnightBus.Messages;
+using KnightBus.Tests.Shared;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
@@ -26,15 +27,23 @@ public class SingletonPlacementReceiverTests
     {
         public readonly ManualTime Time = new();
         public readonly FakePlacement Placement = new();
-        public readonly InMemoryLocks Locks = new();
+        public readonly InMemoryLockStore Store = new();
+        public readonly InMemoryLockManager Locks;
         public readonly FakeReceiver Inner = new();
         public readonly CancellationTokenSource Shutdown = new();
+        public readonly CancellationTokenSource Teardown = new();
         public readonly GatedProcessor Processor = new();
         public readonly InFlightMessages InFlight;
         public SingletonChannelReceiver Receiver { get; }
 
-        public Fixture(bool inspectable = true, TimeSpan? lockTimeout = null, ILogger? log = null)
+        public Fixture(
+            bool inspectable = true,
+            TimeSpan? lockTimeout = null,
+            ILogger? log = null,
+            bool teardown = false
+        )
         {
+            Locks = new InMemoryLockManager(Store, Me);
             InFlight = new InFlightMessages(Processor);
             //A hand-over lets the running message finish for as long as its lock lasts
             Inner.Settings = new SingletonProcessingSettings
@@ -47,7 +56,8 @@ public class SingletonPlacementReceiverTests
                 inspectable ? Locks : new NotInspectable(Locks),
                 log ?? Mock.Of<ILogger>(),
                 Lock,
-                null,
+                //As in the host, which keeps the locks until its drain is over
+                teardown ? Teardown.Token : null,
                 Placement
             )
             {
@@ -62,6 +72,7 @@ public class SingletonPlacementReceiverTests
         public ValueTask DisposeAsync()
         {
             Shutdown.Cancel();
+            Teardown.Cancel();
             return ValueTask.CompletedTask;
         }
     }
@@ -74,7 +85,7 @@ public class SingletonPlacementReceiverTests
 
         await f.Start();
 
-        f.Locks.Holder(Lock).Should().Be(Me);
+        f.Store.Holder(Lock).Should().Be(Me);
         f.Inner.Started.Should().Be(1);
     }
 
@@ -83,16 +94,16 @@ public class SingletonPlacementReceiverTests
     {
         //arrange: another host holds the lock, and the next attempts fail
         await using var f = new Fixture();
-        f.Locks.Take(Lock, Other);
+        f.Store.Take(Lock, Other);
         await f.Start();
         f.Locks.FailNext(3);
 
         //act: the other host goes away once the failures are over
-        await Eventually(() => f.Locks.Attempts >= 5);
-        f.Locks.ReleaseFor(Lock);
+        await Eventually.True(() => f.Locks.Attempts >= 5);
+        f.Store.ReleaseFor(Lock);
 
         //assert
-        await Eventually(() => f.Locks.Holder(Lock) == Me);
+        await Eventually.True(() => f.Store.Holder(Lock) == Me);
         f.Inner.Started.Should().Be(1);
     }
 
@@ -103,17 +114,17 @@ public class SingletonPlacementReceiverTests
         await using var f = new Fixture();
         f.Receiver.TimerInterval = TimeSpan.FromMinutes(1);
         f.Receiver.PreferredPollInterval = TimeSpan.FromMilliseconds(20);
-        f.Locks.Take(Lock, Other);
+        f.Store.Take(Lock, Other);
         f.Placement.Prefer(Lock, Me);
         await f.Start();
-        await Eventually(() => f.Locks.Inspections >= 3);
+        await Eventually.True(() => f.Locks.Inspections >= 3);
 
         //act: the other host hands it over after this host has polled and is waiting again
-        f.Locks.ReleaseFor(Lock);
+        f.Store.ReleaseFor(Lock);
 
         //assert: picked up well within one poll interval, without trying to take a held lock
         f.Locks.Attempts.Should().Be(0);
-        await Eventually(() => f.Locks.Holder(Lock) == Me);
+        await Eventually.True(() => f.Store.Holder(Lock) == Me);
     }
 
     [Test]
@@ -123,7 +134,7 @@ public class SingletonPlacementReceiverTests
         await using var f = new Fixture();
         f.Receiver.TimerInterval = TimeSpan.FromMinutes(1);
         f.Receiver.PreferredPollInterval = TimeSpan.FromMilliseconds(20);
-        f.Locks.Take(Lock, Other);
+        f.Store.Take(Lock, Other);
         f.Placement.Prefer(Lock, Other);
 
         //act
@@ -144,7 +155,7 @@ public class SingletonPlacementReceiverTests
         await f.Start();
 
         //assert: acts as if there were no placement
-        f.Locks.Holder(Lock).Should().Be(Me);
+        f.Store.Holder(Lock).Should().Be(Me);
     }
 
     [Test]
@@ -158,13 +169,13 @@ public class SingletonPlacementReceiverTests
         await f.Start();
         f.Time.Advance(TimeSpan.FromMinutes(2) - TimeSpan.FromSeconds(1));
         var inspections = f.Locks.Inspections;
-        await Eventually(() => f.Locks.Inspections >= inspections + 3);
+        await Eventually.True(() => f.Locks.Inspections >= inspections + 3);
 
         //assert: free for a second short of the grace period, then taken once it is over
-        f.Locks.Holder(Lock).Should().BeNull();
+        f.Store.Holder(Lock).Should().BeNull();
         f.Locks.Attempts.Should().Be(0);
         f.Time.Advance(TimeSpan.FromSeconds(1));
-        await Eventually(() => f.Locks.Holder(Lock) == Me);
+        await Eventually.True(() => f.Store.Holder(Lock) == Me);
     }
 
     [Test]
@@ -177,10 +188,10 @@ public class SingletonPlacementReceiverTests
 
         //act
         f.Time.Advance(TimeSpan.FromMinutes(2));
-        await Eventually(() => f.Locks.Holder(Lock) == Me);
+        await Eventually.True(() => f.Store.Holder(Lock) == Me);
 
         //assert: the receiver starts right after the lock is taken
-        await Eventually(() => f.Inner.Started == 1);
+        await Eventually.True(() => f.Inner.Started == 1);
     }
 
     [Test]
@@ -188,20 +199,20 @@ public class SingletonPlacementReceiverTests
     {
         //arrange: another host holds the lock for a long time, and a third host should have it
         await using var f = new Fixture();
-        f.Locks.Take(Lock, Other);
+        f.Store.Take(Lock, Other);
         f.Placement.Prefer(Lock, "third");
         await f.Start();
         f.Time.Advance(TimeSpan.FromHours(1));
         await Task.Delay(100);
 
         //act: the holder lets go, but this host is not the one that should have it
-        f.Locks.ReleaseFor(Lock);
+        f.Store.ReleaseFor(Lock);
         await Task.Delay(300);
 
         //assert: the hour of waiting does not count, the lock has only just been free
-        f.Locks.Holder(Lock).Should().BeNull();
+        f.Store.Holder(Lock).Should().BeNull();
         f.Time.Advance(TimeSpan.FromMinutes(2));
-        await Eventually(() => f.Locks.Holder(Lock) == Me);
+        await Eventually.True(() => f.Store.Holder(Lock) == Me);
     }
 
     [Test]
@@ -232,14 +243,14 @@ public class SingletonPlacementReceiverTests
 
         //act
         f.Placement.Prefer(Lock, Other);
-        await Eventually(() => f.Locks.Holder(Lock) == null);
+        await Eventually.True(() => f.Store.Holder(Lock) == null);
 
         //assert: the receiver was stopped before the lock was released
         f.Inner.FetchToken!.Value.IsCancellationRequested.Should().BeTrue();
         f.Inner.Token!.Value.IsCancellationRequested.Should().BeTrue();
         //and it leaves the lock alone for the grace period so the other host gets there first
         await Task.Delay(200);
-        f.Locks.Holder(Lock).Should().BeNull();
+        f.Store.Holder(Lock).Should().BeNull();
     }
 
     [Test]
@@ -254,7 +265,7 @@ public class SingletonPlacementReceiverTests
 
         //act
         f.Placement.Prefer(Lock, Other);
-        await Eventually(() => f.Locks.Holder(Lock) == null);
+        await Eventually.True(() => f.Store.Holder(Lock) == null);
 
         //assert
         log.Messages.Should()
@@ -262,7 +273,7 @@ public class SingletonPlacementReceiverTests
             .And.Contain(
                 $"Singleton Processor with name {Lock} on host {Me} hands its lock over to {Other}"
             );
-        await Eventually(() =>
+        await Eventually.True(() =>
             log.Messages.Contains(
                 $"Singleton Processor with name {Lock} on host {Me} stopped holding its lock"
             )
@@ -284,13 +295,13 @@ public class SingletonPlacementReceiverTests
 
         //act
         f.Placement.Prefer(Lock, Other);
-        await Eventually(() => f.Inner.Token!.Value.IsCancellationRequested);
+        await Eventually.True(() => f.Inner.Token!.Value.IsCancellationRequested);
         await Task.Delay(500);
 
         //assert: the next holder must not start while the message is still running
-        f.Locks.Holder(Lock).Should().Be(Me);
+        f.Store.Holder(Lock).Should().Be(Me);
         f.Processor.Gate.SetResult();
-        await Eventually(() => f.Locks.Holder(Lock) == null);
+        await Eventually.True(() => f.Store.Holder(Lock) == null);
     }
 
     [Test]
@@ -307,7 +318,7 @@ public class SingletonPlacementReceiverTests
         f.Placement.Prefer(Lock, Other);
 
         //assert: the receiver is stopped and the lock is still given up
-        await Eventually(() => f.Locks.Holder(Lock) == null);
+        await Eventually.True(() => f.Store.Holder(Lock) == null);
         f.Inner.Token!.Value.IsCancellationRequested.Should().BeTrue();
     }
 
@@ -325,15 +336,15 @@ public class SingletonPlacementReceiverTests
 
         //act
         f.Locks.FailRenewals = true;
-        await Eventually(() => f.Locks.Holder(Lock) == null);
+        await Eventually.True(() => f.Store.Holder(Lock) == null);
         f.Locks.FailRenewals = false;
         await Task.Delay(300);
 
         //assert: a new receiver would run alongside the old message
-        f.Locks.Holder(Lock).Should().BeNull();
+        f.Store.Holder(Lock).Should().BeNull();
         f.Processor.Gate.SetResult();
         await message;
-        await Eventually(() => f.Locks.Holder(Lock) == Me);
+        await Eventually.True(() => f.Store.Holder(Lock) == Me);
     }
 
     [Test]
@@ -342,17 +353,17 @@ public class SingletonPlacementReceiverTests
         //arrange: another host holds the lock, and this host's receiver cannot start
         var log = new ListLogger();
         await using var f = new Fixture(log: log);
-        f.Locks.Take(Lock, Other);
+        f.Store.Take(Lock, Other);
         await f.Start();
         f.Inner.FailStart = true;
 
         //act
-        f.Locks.ReleaseFor(Lock);
-        await Eventually(() => f.Inner.Started >= 2);
+        f.Store.ReleaseFor(Lock);
+        await Eventually.True(() => f.Inner.Started >= 2);
         f.Inner.FailStart = false;
 
         //assert: the lock is not held without processing, and a failed start is not a lost lock
-        await Eventually(() => f.Locks.Holder(Lock) == Me && f.Inner.Started >= 3);
+        await Eventually.True(() => f.Store.Holder(Lock) == Me && f.Inner.Started >= 3);
         log.Messages.Should().NotContain(m => m.Contains("lost its lock"));
     }
 
@@ -370,9 +381,9 @@ public class SingletonPlacementReceiverTests
         await Task.Delay(300);
 
         //assert: kept a second short of the hand-over interval, handed over once it is reached
-        f.Locks.Holder(Lock).Should().Be(Me);
+        f.Store.Holder(Lock).Should().Be(Me);
         f.Time.Advance(TimeSpan.FromSeconds(1));
-        await Eventually(() => f.Locks.Holder(Lock) == null);
+        await Eventually.True(() => f.Store.Holder(Lock) == null);
     }
 
     [Test]
@@ -390,23 +401,23 @@ public class SingletonPlacementReceiverTests
 
         //act
         f.Placement.Prefer(Lock, Other);
-        await Eventually(() => f.Inner.FetchToken!.Value.IsCancellationRequested);
+        await Eventually.True(() => f.Inner.FetchToken!.Value.IsCancellationRequested);
         await Task.Delay(200);
 
         //assert: no new messages, but the running one is neither cancelled nor cut off
         f.Inner.Token!.Value.IsCancellationRequested.Should().BeFalse();
-        f.Locks.Holder(Lock).Should().Be(Me);
+        f.Store.Holder(Lock).Should().Be(Me);
 
         f.Processor.Gate.SetResult();
         await message;
-        await Eventually(() => f.Locks.Holder(Lock) == null);
+        await Eventually.True(() => f.Store.Holder(Lock) == null);
         f.Inner.Token!.Value.IsCancellationRequested.Should().BeTrue();
     }
 
     [Test]
-    public async Task Should_release_the_lock_when_the_host_stops_during_a_hand_over()
+    public async Task Should_release_the_lock_when_stopped_during_a_hand_over_without_a_teardown()
     {
-        //arrange: a hand-over is waiting for a message that takes a long time
+        //arrange: a receiver without a teardown token, and a hand-over waiting for a long message
         await using var f = new Fixture();
         f.Placement.Prefer(Lock, Me);
         await f.Start();
@@ -416,15 +427,46 @@ public class SingletonPlacementReceiverTests
         );
         f.Time.Advance(TimeSpan.FromMinutes(11));
         f.Placement.Prefer(Lock, Other);
-        await Eventually(() => f.Inner.FetchToken!.Value.IsCancellationRequested);
-        f.Locks.Holder(Lock).Should().Be(Me);
+        await Eventually.True(() => f.Inner.FetchToken!.Value.IsCancellationRequested);
+        f.Store.Holder(Lock).Should().Be(Me);
 
         //act
         f.Shutdown.Cancel();
 
         //assert: stopping the host does not wait for the drain, the lock is given up
-        await Eventually(() => f.Locks.Holder(Lock) == null);
+        await Eventually.True(() => f.Store.Holder(Lock) == null);
         f.Processor.Gate.SetResult();
+    }
+
+    [Test]
+    public async Task Should_keep_the_lock_until_teardown_when_the_host_stops_during_a_hand_over()
+    {
+        //arrange: a hand-over is waiting for a message that takes a long time
+        await using var f = new Fixture(teardown: true);
+        f.Placement.Prefer(Lock, Me);
+        await f.Start();
+        var message = f.InFlight.ProcessAsync(
+            Mock.Of<IMessageStateHandler<TestCommand>>(),
+            CancellationToken.None
+        );
+        f.Time.Advance(TimeSpan.FromMinutes(11));
+        f.Placement.Prefer(Lock, Other);
+        await Eventually.True(() => f.Inner.FetchToken!.Value.IsCancellationRequested);
+
+        //act
+        f.Shutdown.Cancel();
+        await Task.Delay(300);
+
+        //assert: the message is cancelled, but the lock is kept through the host's drain
+        f.Inner.Token!.Value.IsCancellationRequested.Should().BeTrue();
+        f.Store.Holder(Lock).Should().Be(Me);
+        f.Receiver.TeardownCompletion.IsCompleted.Should().BeFalse();
+
+        f.Processor.Gate.SetResult();
+        await message;
+        await f.Teardown.CancelAsync();
+        await f.Receiver.TeardownCompletion.WaitAsync(TimeSpan.FromSeconds(10));
+        f.Store.Holder(Lock).Should().BeNull();
     }
 
     [Test]
@@ -441,18 +483,7 @@ public class SingletonPlacementReceiverTests
         await Task.Delay(300);
 
         //assert
-        f.Locks.Holder(Lock).Should().Be(Me);
-    }
-
-    private static async Task Eventually(Func<bool> condition)
-    {
-        var deadline = DateTime.UtcNow.AddSeconds(10);
-        while (!condition())
-        {
-            if (DateTime.UtcNow > deadline)
-                Assert.Fail("Timed out waiting for the condition");
-            await Task.Delay(10);
-        }
+        f.Store.Holder(Lock).Should().Be(Me);
     }
 
     private sealed class FakePlacement : ISingletonPlacement
@@ -474,68 +505,6 @@ public class SingletonPlacementReceiverTests
 
         public string? Advise(string lockId) =>
             _advice.TryGetValue(lockId, out var advice) ? advice : null;
-    }
-
-    private sealed class InMemoryLocks : ISingletonLockManager, ISingletonLockInspector
-    {
-        private readonly ConcurrentDictionary<string, string> _holders = new();
-        private int _attempts;
-        private int _failuresLeft;
-        public int Attempts => _attempts;
-        private int _inspections;
-        public int Inspections => _inspections;
-
-        //The next attempts throw, like a storage error that outlasts the SDK's retries
-        public void FailNext(int attempts) => Volatile.Write(ref _failuresLeft, attempts);
-
-        //Renewals fail from now on, like a lease that another host has broken
-        public bool FailRenewals { get; set; }
-
-        public void Take(string lockId, string host) => _holders[lockId] = host;
-
-        public void ReleaseFor(string lockId) => _holders.TryRemove(lockId, out _);
-
-        public string? Holder(string lockId) =>
-            _holders.TryGetValue(lockId, out var holder) ? holder : null;
-
-        public Task InitializeAsync() => Task.CompletedTask;
-
-        public Task<bool> IsLockedAsync(string lockId, CancellationToken cancellationToken)
-        {
-            Interlocked.Increment(ref _inspections);
-            return Task.FromResult(_holders.ContainsKey(lockId));
-        }
-
-        public Task<ISingletonLockHandle?> TryLockAsync(
-            string lockId,
-            TimeSpan lockPeriod,
-            CancellationToken cancellationToken
-        )
-        {
-            Interlocked.Increment(ref _attempts);
-            if (Interlocked.Decrement(ref _failuresLeft) >= 0)
-                throw new InvalidOperationException("storage unavailable");
-            return Task.FromResult<ISingletonLockHandle?>(
-                _holders.TryAdd(lockId, Me) ? new Handle(this, lockId) : null
-            );
-        }
-
-        private sealed class Handle(InMemoryLocks owner, string lockId) : ISingletonLockHandle
-        {
-            public string LeaseId => Me;
-            public string LockId => lockId;
-
-            public Task<bool> RenewAsync(ILogger log, CancellationToken cancellationToken) =>
-                owner.FailRenewals
-                    ? throw new InvalidOperationException("lease lost")
-                    : Task.FromResult(true);
-
-            public Task ReleaseAsync(CancellationToken cancellationToken)
-            {
-                owner._holders.TryRemove(lockId, out _);
-                return Task.CompletedTask;
-            }
-        }
     }
 
     private class FakeReceiver : IChannelReceiver

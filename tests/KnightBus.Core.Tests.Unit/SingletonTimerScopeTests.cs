@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using AwesomeAssertions;
 using KnightBus.Core.Singleton;
+using KnightBus.Tests.Shared;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
@@ -134,23 +135,5 @@ public class SingletonTimerScopeTests
             );
         releaseGate.TrySetResult();
         await disposeTask.WaitAsync(TimeSpan.FromSeconds(5));
-    }
-
-    private sealed class ListLogger : ILogger
-    {
-        public ConcurrentQueue<string> Messages { get; } = new();
-
-        public IDisposable? BeginScope<TState>(TState state)
-            where TState : notnull => null;
-
-        public bool IsEnabled(LogLevel logLevel) => true;
-
-        public void Log<TState>(
-            LogLevel logLevel,
-            EventId eventId,
-            TState state,
-            Exception? exception,
-            Func<TState, Exception?, string> formatter
-        ) => Messages.Enqueue(formatter(state, exception));
     }
 }

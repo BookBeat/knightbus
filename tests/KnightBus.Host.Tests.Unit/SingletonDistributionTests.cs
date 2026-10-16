@@ -28,7 +28,7 @@ public class SingletonDistributionTests
     public async Task First_host_to_start_takes_every_lock()
     {
         //arrange: one shared "storage account", HostCount hosts each running LockCount singleton processors
-        var storage = new SharedLockStorage();
+        var storage = new InMemoryLockStore();
         var receivers = new List<(int Host, SingletonChannelReceiver Receiver)>();
 
         //act: hosts start one after another, and each host starts its receivers in sequence,
@@ -46,9 +46,7 @@ public class SingletonDistributionTests
         }
 
         //assert: the first host owns everything, the others own nothing
-        var locksPerHost = storage
-            .Holders.Values.GroupBy(h => h)
-            .ToDictionary(g => g.Key, g => g.Count());
+        var locksPerHost = storage.HoldersByHost();
         TestContext.Out.WriteLine(
             "Locks per host: "
                 + string.Join(
@@ -66,7 +64,7 @@ public class SingletonDistributionTests
     public async Task Waiting_hosts_do_not_take_over_a_healthy_holder()
     {
         //arrange
-        var storage = new SharedLockStorage();
+        var storage = new InMemoryLockStore();
         using var cts = new CancellationTokenSource();
         var first = new InMemoryLockManager(storage, "host-0");
         var second = new InMemoryLockManager(storage, "host-1");
@@ -83,7 +81,7 @@ public class SingletonDistributionTests
 
         //assert: no matter how long the second host waits, it never gets the lock
         second.FailedAttempts.Should().BeGreaterThan(5);
-        storage.Holders["Processor"].Should().Be("host-0");
+        storage.Holder("Processor").Should().Be("host-0");
 
         cts.Cancel();
     }
@@ -107,49 +105,5 @@ public class SingletonDistributionTests
             TimerInterval = timerInterval ?? TimeSpan.FromMinutes(1),
             LockRefreshInterval = TimeSpan.FromMilliseconds(100),
         };
-    }
-
-    private class SharedLockStorage
-    {
-        public ConcurrentDictionary<string, string> Holders { get; } = new();
-    }
-
-    /// <summary>A blob-lease stand-in: an uncontended lock is granted to whoever asks first.</summary>
-    private class InMemoryLockManager(SharedLockStorage storage, string hostId)
-        : ISingletonLockManager
-    {
-        private int _failedAttempts;
-        public int FailedAttempts => _failedAttempts;
-
-        public Task InitializeAsync() => Task.CompletedTask;
-
-        public Task<ISingletonLockHandle?> TryLockAsync(
-            string lockId,
-            TimeSpan lockPeriod,
-            CancellationToken cancellationToken
-        )
-        {
-            if (storage.Holders.TryAdd(lockId, hostId))
-                return Task.FromResult<ISingletonLockHandle?>(new Handle(storage, lockId, hostId));
-
-            Interlocked.Increment(ref _failedAttempts);
-            return Task.FromResult<ISingletonLockHandle?>(null);
-        }
-    }
-
-    private class Handle(SharedLockStorage storage, string lockId, string hostId)
-        : ISingletonLockHandle
-    {
-        public string LeaseId => hostId;
-        public string LockId => lockId;
-
-        public Task<bool> RenewAsync(ILogger log, CancellationToken cancellationToken) =>
-            Task.FromResult(true);
-
-        public Task ReleaseAsync(CancellationToken cancellationToken)
-        {
-            storage.Holders.TryRemove(new KeyValuePair<string, string>(lockId, hostId));
-            return Task.CompletedTask;
-        }
     }
 }

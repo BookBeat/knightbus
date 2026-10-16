@@ -2,12 +2,12 @@ using System;
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 
-namespace KnightBus.Host.Tests.Unit;
+namespace KnightBus.Tests.Shared;
 
 /// <summary>
 /// A logger that keeps the formatted messages, so a test can assert on them
 /// </summary>
-internal sealed class ListLogger : ILogger
+public sealed class ListLogger : ILogger
 {
     public ConcurrentQueue<string> Messages { get; } = new();
 

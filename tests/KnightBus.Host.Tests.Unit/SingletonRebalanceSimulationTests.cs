@@ -9,6 +9,7 @@ using KnightBus.Core;
 using KnightBus.Core.Singleton;
 using KnightBus.Host.Singleton;
 using KnightBus.Messages;
+using KnightBus.Tests.Shared;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
@@ -30,6 +31,8 @@ public class SingletonRebalanceSimulationTests
         .Select(i => $"Lock{i:D2}")
         .ToArray();
 
+    private static readonly TimeSpan Settle = TimeSpan.FromSeconds(20);
+
     [Test]
     public async Task Should_spread_the_locks_when_hosts_join_and_take_them_over_when_one_leaves()
     {
@@ -37,8 +40,8 @@ public class SingletonRebalanceSimulationTests
 
         //the first host starts alone and, as always, takes everything
         var first = await world.StartHost("host-0");
-        world.HoldersByHost().Should().ContainSingle().Which.Key.Should().Be("host-0");
-        world.HoldersByHost()["host-0"].Should().Be(LockIds.Length);
+        world.Locks.HoldersByHost().Should().ContainSingle().Which.Key.Should().Be("host-0");
+        world.Locks.HoldersByHost()["host-0"].Should().Be(LockIds.Length);
 
         //three more join, and time passes until the first host has held its locks long enough
         var others = new List<Host>
@@ -48,9 +51,9 @@ public class SingletonRebalanceSimulationTests
             await world.StartHost("host-3"),
         };
         world.Time.Advance(TimeSpan.FromMinutes(11));
-        await Eventually(() => world.HoldsWhatIsPreferred(), world);
+        await Eventually.True(() => world.HoldsWhatIsPreferred(), Settle, world.Describe);
 
-        var spread = world.HoldersByHost();
+        var spread = world.Locks.HoldersByHost();
         TestContext.Out.WriteLine(
             "After join: "
                 + string.Join(", ", spread.OrderBy(x => x.Key).Select(x => $"{x.Key}={x.Value}"))
@@ -62,13 +65,17 @@ public class SingletonRebalanceSimulationTests
         await others[0].Leave();
         //its locks go to the preferred hosts at once. The time must not jump while one is still free,
         //or a host that is not preferred has seen it free for the whole grace period and takes it
-        await Eventually(() => world.HoldersByHost().Values.Sum() == LockIds.Length, world);
+        await Eventually.True(
+            () => world.Locks.HoldersByHost().Values.Sum() == LockIds.Length,
+            Settle,
+            world.Describe
+        );
         //locks that had to move between the remaining hosts wait out the hand-over interval so that
         //nothing moves back and forth
         world.Time.Advance(TimeSpan.FromMinutes(11));
-        await Eventually(() => world.HoldsWhatIsPreferred(), world);
+        await Eventually.True(() => world.HoldsWhatIsPreferred(), Settle, world.Describe);
 
-        var after = world.HoldersByHost();
+        var after = world.Locks.HoldersByHost();
         TestContext.Out.WriteLine(
             "After leave: "
                 + string.Join(", ", after.OrderBy(x => x.Key).Select(x => $"{x.Key}={x.Value}"))
@@ -92,9 +99,9 @@ public class SingletonRebalanceSimulationTests
         for (var i = 0; i < 4; i++)
             hosts.Add(await world.StartHost($"host-{i}"));
         world.Time.Advance(TimeSpan.FromMinutes(11));
-        await Eventually(() => world.HoldsWhatIsPreferred(), world);
-        var settled = world.Holders();
-        var takes = world.Takes;
+        await Eventually.True(() => world.HoldsWhatIsPreferred(), Settle, world.Describe);
+        var settled = world.Locks.Holders();
+        var takes = world.Locks.Takes;
 
         //act: an hour passes, well past the minimum hold, while every receiver keeps polling
         for (var i = 0; i < 6; i++)
@@ -104,39 +111,22 @@ public class SingletonRebalanceSimulationTests
         }
 
         //assert: the minimum hold is not a period, a lock on its preferred host never moves
-        world.Holders().Should().BeEquivalentTo(settled);
-        world.Takes.Should().Be(takes);
+        world.Locks.Holders().Should().BeEquivalentTo(settled);
+        world.Locks.Takes.Should().Be(takes);
 
         foreach (var host in hosts)
             await host.Leave();
         world.MaxConcurrentWork.Should().Be(1, "a lock's work never runs on two hosts at once");
     }
 
-    private static async Task Eventually(Func<bool> condition, World world)
-    {
-        var deadline = DateTime.UtcNow.AddSeconds(20);
-        while (!condition())
-        {
-            if (DateTime.UtcNow > deadline)
-                Assert.Fail("Timed out waiting for the locks to settle: " + world.Describe());
-            await Task.Delay(20);
-        }
-    }
-
     private sealed class World
     {
         public readonly ManualTime Time = new();
-        private readonly ConcurrentDictionary<string, string> _holders = new();
+        public readonly InMemoryLockStore Locks = new();
         private readonly ConcurrentDictionary<string, long> _members = new();
         private readonly ConcurrentDictionary<string, int> _work = new();
         private int _maxConcurrentWork;
-        private int _takes;
         public int MaxConcurrentWork => Volatile.Read(ref _maxConcurrentWork);
-
-        //How many times a lock has been taken, so a lock that moves away and back is noticed too
-        public int Takes => Volatile.Read(ref _takes);
-
-        public Dictionary<string, string> Holders() => new(_holders);
 
         public async Task<Host> StartHost(string id)
         {
@@ -147,9 +137,6 @@ public class SingletonRebalanceSimulationTests
         }
 
         public void Remove(string id) => _members.TryRemove(id, out _);
-
-        public Dictionary<string, int> HoldersByHost() =>
-            _holders.Values.GroupBy(h => h).ToDictionary(g => g.Key, g => g.Count());
 
         public Dictionary<string, string> Preferred() =>
             SingletonAssignment
@@ -169,9 +156,9 @@ public class SingletonRebalanceSimulationTests
             return string.Join(
                 "; ",
                 LockIds
-                    .Where(l => !_holders.TryGetValue(l, out var h) || h != preferred[l])
+                    .Where(l => Locks.Holder(l) != preferred[l])
                     .Select(l =>
-                        $"{l} held by {(_holders.TryGetValue(l, out var h) ? h : "nobody")}, preferred {preferred[l]}"
+                        $"{l} held by {Locks.Holder(l) ?? "nobody"}, preferred {preferred[l]}"
                     )
             );
         }
@@ -179,9 +166,7 @@ public class SingletonRebalanceSimulationTests
         public bool HoldsWhatIsPreferred()
         {
             var preferred = Preferred();
-            return LockIds.All(l =>
-                _holders.TryGetValue(l, out var holder) && holder == preferred[l]
-            );
+            return LockIds.All(l => Locks.Holder(l) == preferred[l]);
         }
 
         public string? Advise(string self, string lockId)
@@ -189,16 +174,6 @@ public class SingletonRebalanceSimulationTests
             if (!_members.ContainsKey(self))
                 return null;
             return Preferred()[lockId];
-        }
-
-        public bool IsLocked(string lockId) => _holders.ContainsKey(lockId);
-
-        public bool TryTake(string lockId, string host)
-        {
-            var taken = _holders.TryAdd(lockId, host);
-            if (taken)
-                Interlocked.Increment(ref _takes);
-            return taken;
         }
 
         public void StartWork(string lockId)
@@ -212,9 +187,6 @@ public class SingletonRebalanceSimulationTests
         }
 
         public void EndWork(string lockId) => _work.AddOrUpdate(lockId, 0, (_, count) => count - 1);
-
-        public void Release(string lockId, string host) =>
-            _holders.TryRemove(new KeyValuePair<string, string>(lockId, host));
     }
 
     private sealed class Host
@@ -241,7 +213,7 @@ public class SingletonRebalanceSimulationTests
                 var receiver = new SingletonChannelReceiver(
                     new Inner(inFlight),
                     inFlight,
-                    new Locks(_world, _id),
+                    new InMemoryLockManager(_world.Locks, _id),
                     Mock.Of<ILogger>(),
                     lockId,
                     _teardown.Token,
@@ -280,40 +252,6 @@ public class SingletonRebalanceSimulationTests
         public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
         public string? Advise(string lockId) => world.Advise(self, lockId);
-    }
-
-    private sealed class Locks(World world, string host)
-        : ISingletonLockManager,
-            ISingletonLockInspector
-    {
-        public Task InitializeAsync() => Task.CompletedTask;
-
-        public Task<bool> IsLockedAsync(string lockId, CancellationToken cancellationToken) =>
-            Task.FromResult(world.IsLocked(lockId));
-
-        public Task<ISingletonLockHandle?> TryLockAsync(
-            string lockId,
-            TimeSpan lockPeriod,
-            CancellationToken cancellationToken
-        ) =>
-            Task.FromResult<ISingletonLockHandle?>(
-                world.TryTake(lockId, host) ? new Handle(world, lockId, host) : null
-            );
-    }
-
-    private sealed class Handle(World world, string lockId, string host) : ISingletonLockHandle
-    {
-        public string LeaseId => host;
-        public string LockId => lockId;
-
-        public Task<bool> RenewAsync(ILogger log, CancellationToken cancellationToken) =>
-            Task.FromResult(true);
-
-        public Task ReleaseAsync(CancellationToken cancellationToken)
-        {
-            world.Release(lockId, host);
-            return Task.CompletedTask;
-        }
     }
 
     //Hands one message to the pipeline on every start, which runs until fetching stops

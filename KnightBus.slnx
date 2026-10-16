@@ -13,6 +13,7 @@
     <Project Path="tests/KnightBus.Core.Tests.Unit/KnightBus.Core.Tests.Unit.csproj" />
     <Project Path="tests/KnightBus.Host.Tests.Unit/KnightBus.Host.Tests.Unit.csproj" />
     <Project Path="tests/KnightBus.Shared.Tests.Integration/KnightBus.Shared.Tests.Integration.csproj" />
+    <Project Path="tests/KnightBus.Tests.Shared/KnightBus.Tests.Shared.csproj" />
   </Folder>
 
   <Folder Name="/Transports/" />

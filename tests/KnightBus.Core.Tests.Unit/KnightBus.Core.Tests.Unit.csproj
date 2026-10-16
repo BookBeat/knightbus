@@ -7,6 +7,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\KnightBus.Newtonsoft\KnightBus.Newtonsoft.csproj" />
     <ProjectReference Include="..\..\src\KnightBus.Schedule\KnightBus.Schedule.csproj" />
+    <ProjectReference Include="..\KnightBus.Tests.Shared\KnightBus.Tests.Shared.csproj" />
     <ProjectReference Include="..\..\src\KnightBus.Core\KnightBus.Core.csproj" />
   </ItemGroup>
 </Project>

@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using AwesomeAssertions;
 using KnightBus.Core.Singleton;
 using KnightBus.Host.Singleton;
+using KnightBus.Tests.Shared;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
@@ -115,7 +116,7 @@ public class SingletonPlacementTests
 
         //act
         membership.FailReads = true;
-        await Eventually(() =>
+        await Eventually.True(() =>
             log.Messages.Count(m => m == "Could not read the singleton placement members") >= 3
         );
 
@@ -182,7 +183,7 @@ public class SingletonPlacementTests
             .Contain("Host me could not join the singleton placement yet, it keeps trying");
 
         membership.FailJoins = false;
-        await Eventually(() => placement.Advise("Lock0") == "me");
+        await Eventually.True(() => placement.Advise("Lock0") == "me");
 
         await placement.StopAsync(CancellationToken.None);
     }
@@ -220,7 +221,7 @@ public class SingletonPlacementTests
         await placement.StartAsync(Locks, CancellationToken.None);
 
         //assert
-        await Eventually(() => membership.Joins >= 3);
+        await Eventually.True(() => membership.Joins >= 3);
 
         await placement.StopAsync(CancellationToken.None);
     }
@@ -233,7 +234,7 @@ public class SingletonPlacementTests
         var placement = Create(membership, refreshInterval: TimeSpan.FromMilliseconds(20));
         await placement.StartAsync(Locks, CancellationToken.None);
         membership.Stuck = new TaskCompletionSource();
-        await Eventually(() => membership.StuckReads > 0);
+        await Eventually.True(() => membership.StuckReads > 0);
 
         //act
         using var stopping = new CancellationTokenSource(TimeSpan.FromMilliseconds(200));
@@ -254,17 +255,6 @@ public class SingletonPlacementTests
         await placement.StopAsync(new CancellationToken(canceled: true));
 
         membership.Leaves.Should().Be(1);
-    }
-
-    private static async Task Eventually(Func<bool> condition)
-    {
-        var deadline = DateTime.UtcNow.AddSeconds(10);
-        while (!condition())
-        {
-            if (DateTime.UtcNow > deadline)
-                Assert.Fail("Timed out waiting for the condition");
-            await Task.Delay(10);
-        }
     }
 
     //What every host sees, like the member blobs

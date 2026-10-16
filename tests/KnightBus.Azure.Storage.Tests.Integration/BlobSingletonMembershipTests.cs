@@ -9,6 +9,7 @@ using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
 using KnightBus.Azure.Storage.Singleton;
 using KnightBus.Core.Singleton;
+using KnightBus.Tests.Shared;
 using NUnit.Framework;
 
 namespace KnightBus.Azure.Storage.Tests.Integration;
@@ -164,7 +165,7 @@ public class BlobSingletonMembershipTests
     public async Task Should_remove_an_unleased_member_blob_only_once_it_has_not_been_written_for_a_while()
     {
         //arrange: what a crashed host leaves behind
-        var time = new ManualTimeProvider();
+        var time = new ManualTime();
         var scheme = NewScheme();
         var membership = Create(scheme, time);
         await membership.JoinAsync(LockWeights, CancellationToken.None);
@@ -190,7 +191,7 @@ public class BlobSingletonMembershipTests
     public async Task Should_remove_a_member_blob_at_once_when_a_long_held_lease_has_gone()
     {
         //arrange: a host that held its member blob for a long time, then died
-        var time = new ManualTimeProvider();
+        var time = new ManualTime();
         var scheme = NewScheme();
         var membership = Create(scheme, time);
         await membership.JoinAsync(LockWeights, CancellationToken.None);
@@ -397,20 +398,5 @@ public class BlobSingletonMembershipTests
             .Be($"{scheme.Directory}/_members/{membership.HostId}");
 
         await membership.LeaveAsync(CancellationToken.None);
-    }
-
-    //Starts at the real time, like the storage service's clock, and moves only when advanced
-    private sealed class ManualTimeProvider : TimeProvider
-    {
-        private readonly DateTimeOffset _start = DateTimeOffset.UtcNow;
-        private long _ticks;
-
-        public override DateTimeOffset GetUtcNow() => _start.AddTicks(Interlocked.Read(ref _ticks));
-
-        public override long TimestampFrequency => TimeSpan.TicksPerSecond;
-
-        public override long GetTimestamp() => Interlocked.Read(ref _ticks);
-
-        public void Advance(TimeSpan by) => Interlocked.Add(ref _ticks, by.Ticks);
     }
 }

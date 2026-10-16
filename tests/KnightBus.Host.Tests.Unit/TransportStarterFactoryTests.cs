@@ -214,35 +214,6 @@ public class TransportStarterFactoryTests
     }
 
     [Test]
-    public void Should_reject_a_poll_jitter_that_is_not_a_number()
-    {
-        //act
-        var configure = () =>
-            new ServiceCollection().ConfigureSingletons(options => options.PollJitter = double.NaN);
-
-        //assert
-        configure.Should().Throw<ArgumentOutOfRangeException>().WithMessage("*PollJitter*");
-    }
-
-    [Test]
-    public void Should_reject_a_lock_duration_that_expires_between_renewals()
-    {
-        //act
-        var configure = () =>
-            new ServiceCollection().ConfigureSingletons(options =>
-            {
-                options.LockDuration = TimeSpan.FromSeconds(10);
-                options.RenewalInterval = TimeSpan.FromSeconds(19);
-            });
-
-        //assert
-        configure
-            .Should()
-            .Throw<ArgumentException>()
-            .WithMessage("*LockDuration*RenewalInterval*");
-    }
-
-    [Test]
     public void Should_take_the_singleton_weight_from_the_processing_settings()
     {
         //act

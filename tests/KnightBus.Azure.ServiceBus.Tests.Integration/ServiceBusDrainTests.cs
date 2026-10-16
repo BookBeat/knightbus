@@ -4,6 +4,7 @@ using KnightBus.Core;
 using KnightBus.Core.DependencyInjection;
 using KnightBus.Host;
 using KnightBus.Messages;
+using KnightBus.Tests.Shared;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -224,10 +225,11 @@ public class ServiceBusDrainTests
 
     private static async Task EventuallyProcessed(GatedProcessor processor, string message)
     {
-        var deadline = DateTime.UtcNow.AddSeconds(15);
-        while (!processor.Processed.Contains(message) && DateTime.UtcNow < deadline)
-            await Task.Delay(100);
-        processor.Processed.Should().Contain(message);
+        await Eventually.True(
+            () => processor.Processed.Contains(message),
+            TimeSpan.FromSeconds(15),
+            () => "processed " + string.Join(", ", processor.Processed)
+        );
     }
 
     private async Task StartQueueReceiver(GatedProcessor processor)
