@@ -45,7 +45,13 @@ public class GenericMessagePumpDrainTests
 
         protected override bool ShouldCreateChannel(Exception e) => false;
 
-        protected override Task CleanupResources() => Task.CompletedTask;
+        public TaskCompletionSource CleanedUp { get; } = new();
+
+        protected override Task CleanupResources()
+        {
+            CleanedUp.TrySetResult();
+            return Task.CompletedTask;
+        }
 
         protected override TimeSpan PollingDelay => TimeSpan.FromMilliseconds(10);
 
@@ -116,6 +122,35 @@ public class GenericMessagePumpDrainTests
 
         //assert
         pump.Fetches.Should().Be(1);
+        await cts.CancelAsync();
+    }
+
+    [Test]
+    public async Task Should_end_the_pump_once_fetching_stops_while_a_message_is_still_running()
+    {
+        //arrange
+        var started = new TaskCompletionSource();
+        var release = new TaskCompletionSource();
+        var pump = new Pump();
+        using var stopFetching = new CancellationTokenSource();
+        using var cts = new CancellationTokenSource();
+        await pump.StartAsync<TestCommand>(
+            async (_, _) =>
+            {
+                started.TrySetResult();
+                await release.Task;
+            },
+            stopFetching.Token,
+            cts.Token
+        );
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(10));
+
+        //act
+        await stopFetching.CancelAsync();
+
+        //assert: the loop ends on the fetch token, not on the stop token
+        await pump.CleanedUp.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        release.SetResult();
         await cts.CancelAsync();
     }
 

@@ -8,6 +8,7 @@ using AwesomeAssertions;
 using KnightBus.Core;
 using KnightBus.Core.Singleton;
 using KnightBus.Host.Singleton;
+using KnightBus.Messages;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
@@ -18,7 +19,8 @@ namespace KnightBus.Host.Tests.Unit;
 /// Several hosts with real receivers share one lock store and one view of the group, and the
 /// preferred holder comes from the real <see cref="SingletonAssignment"/>. Checks the thing the
 /// feature is for: locks that piled up on the first host spread out when others join, and a host
-/// that leaves has its locks taken over.
+/// that leaves has its locks taken over. Every start of a receiver runs one message, so a lock
+/// that moves before its message has stopped shows up as work running on two hosts.
 /// </summary>
 [TestFixture]
 public class SingletonRebalanceSimulationTests
@@ -78,7 +80,7 @@ public class SingletonRebalanceSimulationTests
         await first.Leave();
         foreach (var host in others.Skip(1))
             await host.Leave();
-        world.MaxConcurrentHolders.Should().Be(1, "a lock is never held by two hosts at once");
+        world.MaxConcurrentWork.Should().Be(1, "a lock's work never runs on two hosts at once");
     }
 
     [Test]
@@ -107,6 +109,7 @@ public class SingletonRebalanceSimulationTests
 
         foreach (var host in hosts)
             await host.Leave();
+        world.MaxConcurrentWork.Should().Be(1, "a lock's work never runs on two hosts at once");
     }
 
     private static async Task Eventually(Func<bool> condition, World world)
@@ -125,9 +128,10 @@ public class SingletonRebalanceSimulationTests
         public readonly ManualTime Time = new();
         private readonly ConcurrentDictionary<string, string> _holders = new();
         private readonly ConcurrentDictionary<string, long> _members = new();
-        private int _maxConcurrentHolders = 1;
+        private readonly ConcurrentDictionary<string, int> _work = new();
+        private int _maxConcurrentWork;
         private int _takes;
-        public int MaxConcurrentHolders => _maxConcurrentHolders;
+        public int MaxConcurrentWork => Volatile.Read(ref _maxConcurrentWork);
 
         //How many times a lock has been taken, so a lock that moves away and back is noticed too
         public int Takes => Volatile.Read(ref _takes);
@@ -193,17 +197,21 @@ public class SingletonRebalanceSimulationTests
         {
             var taken = _holders.TryAdd(lockId, host);
             if (taken)
-            {
                 Interlocked.Increment(ref _takes);
-                var current = _holders.Count(x => x.Key == lockId);
-                int seen;
-                while (
-                    (seen = _maxConcurrentHolders) < current
-                    && Interlocked.CompareExchange(ref _maxConcurrentHolders, current, seen) != seen
-                ) { }
-            }
             return taken;
         }
+
+        public void StartWork(string lockId)
+        {
+            var current = _work.AddOrUpdate(lockId, 1, (_, count) => count + 1);
+            int seen;
+            while (
+                (seen = _maxConcurrentWork) < current
+                && Interlocked.CompareExchange(ref _maxConcurrentWork, current, seen) != seen
+            ) { }
+        }
+
+        public void EndWork(string lockId) => _work.AddOrUpdate(lockId, 0, (_, count) => count - 1);
 
         public void Release(string lockId, string host) =>
             _holders.TryRemove(new KeyValuePair<string, string>(lockId, host));
@@ -214,7 +222,9 @@ public class SingletonRebalanceSimulationTests
         private readonly World _world;
         private readonly string _id;
         private readonly CancellationTokenSource _shutdown = new();
+        private readonly CancellationTokenSource _teardown = new();
         private readonly List<SingletonChannelReceiver> _receivers = new();
+        private readonly List<InFlightMessages> _inFlight = new();
 
         public Host(World world, string id)
         {
@@ -226,14 +236,15 @@ public class SingletonRebalanceSimulationTests
         {
             foreach (var lockId in LockIds)
             {
-                var inner = new Inner();
+                var inFlight = new InFlightMessages(new Work(_world, lockId));
+                _inFlight.Add(inFlight);
                 var receiver = new SingletonChannelReceiver(
-                    inner,
-                    new InFlightMessages(Mock.Of<IMessageProcessor>()),
+                    new Inner(inFlight),
+                    inFlight,
                     new Locks(_world, _id),
                     Mock.Of<ILogger>(),
                     lockId,
-                    null,
+                    _teardown.Token,
                     new Placement(_world, _id)
                 )
                 {
@@ -246,10 +257,13 @@ public class SingletonRebalanceSimulationTests
             }
         }
 
+        //Stops the way the host does: the locks are kept until the running messages have stopped
         public async Task Leave()
         {
             _world.Remove(_id);
             await _shutdown.CancelAsync();
+            await Task.WhenAll(_inFlight.Select(f => f.WaitUntilIdleAsync(CancellationToken.None)));
+            await _teardown.CancelAsync();
             await Task.WhenAll(_receivers.Select(r => r.TeardownCompletion));
         }
     }
@@ -302,14 +316,45 @@ public class SingletonRebalanceSimulationTests
         }
     }
 
-    private sealed class Inner : IChannelReceiver
+    //Hands one message to the pipeline on every start, which runs until fetching stops
+    private sealed class Inner(InFlightMessages inFlight) : IChannelReceiver
     {
         public IProcessingSettings Settings { get; set; } =
             new SingletonProcessingSettings { MessageLockTimeout = TimeSpan.FromSeconds(5) };
 
-        public Task StartAsync(
-            CancellationToken stopFetching,
+        public Task StartAsync(CancellationToken stopFetching, CancellationToken cancellationToken)
+        {
+            var running = CancellationTokenSource.CreateLinkedTokenSource(
+                stopFetching,
+                cancellationToken
+            );
+            _ = inFlight
+                .ProcessAsync(Mock.Of<IMessageStateHandler<TestCommand>>(), running.Token)
+                .ContinueWith(_ => running.Dispose(), TaskScheduler.Default);
+            return Task.CompletedTask;
+        }
+    }
+
+    //Takes a while to wrap up once told to stop, so another host that starts too early overlaps it
+    private sealed class Work(World world, string lockId) : IMessageProcessor
+    {
+        public async Task ProcessAsync<T>(
+            IMessageStateHandler<T> messageStateHandler,
             CancellationToken cancellationToken
-        ) => Task.CompletedTask;
+        )
+            where T : class, IMessage
+        {
+            world.StartWork(lockId);
+            try
+            {
+                await Task.Delay(Timeout.Infinite, cancellationToken)
+                    .ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+                await Task.Delay(50, CancellationToken.None);
+            }
+            finally
+            {
+                world.EndWork(lockId);
+            }
+        }
     }
 }

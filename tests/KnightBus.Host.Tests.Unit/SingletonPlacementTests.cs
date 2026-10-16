@@ -98,6 +98,47 @@ public class SingletonPlacementTests
     }
 
     [Test]
+    public async Task Should_keep_its_advice_through_failed_refreshes_until_it_goes_stale()
+    {
+        //arrange
+        var log = new ListLogger();
+        var time = new ManualTime();
+        var membership = new Membership(new Members(), "me");
+        var placement = Create(
+            membership,
+            log,
+            time,
+            refreshInterval: TimeSpan.FromMilliseconds(20)
+        );
+        await placement.StartAsync(Locks, CancellationToken.None);
+        placement.Advise("Lock0").Should().Be("me");
+
+        //act
+        membership.FailReads = true;
+        await Eventually(() =>
+            log.Messages.Count(m => m == "Could not read the singleton placement members") >= 3
+        );
+
+        //assert: one storage error must not send every host back to competing for every lock
+        placement.Advise("Lock0").Should().Be("me");
+        time.Advance(TimeSpan.FromMinutes(31));
+        placement.Advise("Lock0").Should().BeNull();
+
+        await placement.StopAsync(CancellationToken.None);
+    }
+
+    [Test]
+    public void Should_outlast_more_than_one_failed_refresh_before_going_stale()
+    {
+        var placement = new SingletonPlacement(
+            new Membership(new Members(), "me"),
+            Mock.Of<ILogger>()
+        );
+
+        placement.StaleAfter.Should().BeGreaterThan(placement.RefreshInterval * 2);
+    }
+
+    [Test]
     public async Task Should_give_no_advice_for_unknown_locks_or_before_it_has_started()
     {
         var placement = Create(new Membership(new Members(), "me"));

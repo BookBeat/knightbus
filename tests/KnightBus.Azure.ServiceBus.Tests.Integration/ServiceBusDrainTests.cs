@@ -102,9 +102,8 @@ public class ServiceBusDrainTests
         //act
         await _stopFetching!.CancelAsync();
 
-        //assert: cancelled by the lost lock, the receiver itself was never stopped
+        //assert: cancelled by the lost lock, the test never stops the receiver
         await processor.Cancelled.Task.WaitAsync(TimeSpan.FromSeconds(30));
-        _receiverCts!.IsCancellationRequested.Should().BeFalse();
     }
 
     [Test]
@@ -169,8 +168,31 @@ public class ServiceBusDrainTests
         await Start();
         await SendCommand("after restart");
 
-        //assert: the earlier start's close does not touch the new client
+        //assert
         await EventuallyProcessed(processor, "after restart");
+    }
+
+    [Test]
+    public async Task Should_keep_a_new_start_running_when_an_earlier_start_is_stopped()
+    {
+        //arrange: the receiver is started again before the earlier start has been stopped
+        var processor = new GatedProcessor();
+        processor.Gate.SetResult();
+        await StartQueueReceiver(processor);
+        using var earlierStopFetching = _stopFetching!;
+        using var earlierReceiverCts = _receiverCts!;
+        await Start();
+
+        //act
+        await earlierStopFetching.CancelAsync();
+        await earlierReceiverCts.CancelAsync();
+        //The earlier start closes its client in the background
+        await Task.Delay(TimeSpan.FromSeconds(1));
+        await SendCommand("after the earlier stop");
+
+        //assert: the new start handled it, the earlier one was stopped and the new one was not
+        await EventuallyProcessed(processor, "after the earlier stop");
+        processor.HandledWithCancelledToken.Should().Equal(false);
     }
 
     [Test]
@@ -315,6 +337,9 @@ internal class GatedProcessor : IMessageProcessor
     public TaskCompletionSource Abandoned { get; } = new();
     public List<string?> Processed { get; } = new();
 
+    //Whether the token of each handled message was cancelled, which tells the starts apart
+    public List<bool> HandledWithCancelledToken { get; } = new();
+
     public async Task ProcessAsync<T>(
         IMessageStateHandler<T> messageStateHandler,
         CancellationToken cancellationToken
@@ -325,6 +350,7 @@ internal class GatedProcessor : IMessageProcessor
         try
         {
             await Gate.Task.WaitAsync(cancellationToken);
+            HandledWithCancelledToken.Add(cancellationToken.IsCancellationRequested);
             Processed.Add(
                 messageStateHandler.GetMessage() switch
                 {

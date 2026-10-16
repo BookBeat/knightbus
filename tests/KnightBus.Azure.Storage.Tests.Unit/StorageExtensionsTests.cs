@@ -1,5 +1,8 @@
+using System;
 using System.Linq;
 using AwesomeAssertions;
+using KnightBus.Azure.Storage.Singleton;
+using KnightBus.Core;
 using KnightBus.Core.Singleton;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -48,5 +51,43 @@ public class StorageExtensionsTests
         //assert
         services.Count(x => x.ServiceType == typeof(ISingletonLockManager)).Should().Be(1);
         services.Any(x => x.ServiceType == typeof(ISingletonMembership)).Should().BeFalse();
+    }
+
+    [TestCase(61)]
+    [TestCase(10)]
+    public void Should_refuse_a_lock_duration_a_blob_lease_cannot_have(int seconds)
+    {
+        //arrange
+        var services = new ServiceCollection()
+            .UseBlobStorage("UseDevelopmentStorage=true")
+            .UseBlobStorageLockManager()
+            .ConfigureSingletons(options =>
+            {
+                options.LockDuration = TimeSpan.FromSeconds(seconds);
+                options.RenewalInterval = TimeSpan.FromSeconds(5);
+            });
+        using var provider = services.BuildServiceProvider();
+
+        //act
+        var resolve = () => provider.GetRequiredService<ISingletonLockManager>();
+
+        //assert
+        resolve.Should().Throw<ArgumentOutOfRangeException>().WithMessage("*15 and 60 seconds*");
+    }
+
+    [Test]
+    public void Should_accept_the_default_lock_duration()
+    {
+        //arrange
+        var services = new ServiceCollection()
+            .UseBlobStorage("UseDevelopmentStorage=true")
+            .UseBlobStorageLockManager();
+        using var provider = services.BuildServiceProvider();
+
+        //act
+        var lockManager = provider.GetRequiredService<ISingletonLockManager>();
+
+        //assert
+        lockManager.Should().BeOfType<BlobLockManager>();
     }
 }

@@ -14,3 +14,11 @@ public class SingletonCommandProcessor
         return Task.CompletedTask;
     }
 }
+
+public class WeightedSingletonCommandProcessor
+    : IProcessCommand<SingletonCommand, WeightedTopicSettings>,
+        ISingletonProcessor
+{
+    public Task ProcessAsync(SingletonCommand message, CancellationToken cancellationToken) =>
+        Task.CompletedTask;
+}

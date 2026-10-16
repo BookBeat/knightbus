@@ -48,6 +48,20 @@ internal class BlobLockManager : ISingletonLockManager, ISingletonLockInspector
         return Task.CompletedTask;
     }
 
+    //A blob lease lasts between 15 and 60 seconds, or until it is released
+    internal static void EnsureLeasePeriod(TimeSpan lockPeriod, string paramName)
+    {
+        if (
+            lockPeriod != Timeout.InfiniteTimeSpan
+            && (lockPeriod < TimeSpan.FromSeconds(15) || lockPeriod > TimeSpan.FromSeconds(60))
+        )
+            throw new ArgumentOutOfRangeException(
+                paramName,
+                lockPeriod,
+                "A blob lease lasts between 15 and 60 seconds, see SingletonOptions.LockDuration"
+            );
+    }
+
     public async Task<bool> IsLockedAsync(string lockId, CancellationToken cancellationToken)
     {
         var blob = _client.GetBlobClient(BlobName(_lockScheme, lockId));
@@ -70,16 +84,7 @@ internal class BlobLockManager : ISingletonLockManager, ISingletonLockInspector
         CancellationToken cancellationToken
     )
     {
-        //A blob lease lasts between 15 and 60 seconds, or until it is released
-        if (
-            lockPeriod != Timeout.InfiniteTimeSpan
-            && (lockPeriod < TimeSpan.FromSeconds(15) || lockPeriod > TimeSpan.FromSeconds(60))
-        )
-            throw new ArgumentOutOfRangeException(
-                nameof(lockPeriod),
-                lockPeriod,
-                "A blob lease lasts between 15 and 60 seconds, see SingletonOptions.LockDuration"
-            );
+        EnsureLeasePeriod(lockPeriod, nameof(lockPeriod));
         var blob = _client.GetBlobClient(BlobName(_lockScheme, lockId));
 
         var lease = await TryAcquireLeaseAsync(blob, lockPeriod, cancellationToken)

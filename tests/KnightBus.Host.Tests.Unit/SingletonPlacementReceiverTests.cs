@@ -156,11 +156,15 @@ public class SingletonPlacementReceiverTests
 
         //act: the lock is free, but another host should have it
         await f.Start();
-        await Task.Delay(200);
+        f.Time.Advance(TimeSpan.FromMinutes(2) - TimeSpan.FromSeconds(1));
+        var inspections = f.Locks.Inspections;
+        await Eventually(() => f.Locks.Inspections >= inspections + 3);
 
-        //assert
+        //assert: free for a second short of the grace period, then taken once it is over
         f.Locks.Holder(Lock).Should().BeNull();
         f.Locks.Attempts.Should().Be(0);
+        f.Time.Advance(TimeSpan.FromSeconds(1));
+        await Eventually(() => f.Locks.Holder(Lock) == Me);
     }
 
     [Test]
@@ -353,17 +357,22 @@ public class SingletonPlacementReceiverTests
     }
 
     [Test]
-    public async Task Should_not_hand_over_a_lock_it_has_only_just_taken()
+    public async Task Should_not_hand_over_a_lock_before_it_has_been_held_long_enough()
     {
+        //arrange
         await using var f = new Fixture();
         f.Placement.Prefer(Lock, Me);
         await f.Start();
-        f.Time.Advance(TimeSpan.FromMinutes(1));
+        f.Time.Advance(TimeSpan.FromMinutes(10) - TimeSpan.FromSeconds(1));
 
+        //act
         f.Placement.Prefer(Lock, Other);
         await Task.Delay(300);
 
+        //assert: kept a second short of the hand-over interval, handed over once it is reached
         f.Locks.Holder(Lock).Should().Be(Me);
+        f.Time.Advance(TimeSpan.FromSeconds(1));
+        await Eventually(() => f.Locks.Holder(Lock) == null);
     }
 
     [Test]

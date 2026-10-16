@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using AwesomeAssertions;
 using Azure;
 using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Specialized;
 using KnightBus.Azure.Storage.Singleton;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -167,5 +168,77 @@ public class BlobLockManagerTests
             .Awaiting(x => x.RenewAsync(Mock.Of<ILogger>(), CancellationToken.None))
             .Should()
             .ThrowAsync<RequestFailedException>();
+    }
+
+    [Test]
+    [Parallelizable]
+    public async Task Should_report_a_lock_that_was_never_taken_as_free()
+    {
+        //arrange
+        var lockManager = new BlobLockManager(
+            StorageSetup.ConnectionString,
+            new DefaultBlobLockScheme()
+        );
+        await lockManager.InitializeAsync();
+
+        //act
+        var locked = await lockManager.IsLockedAsync(
+            Guid.NewGuid().ToString(),
+            CancellationToken.None
+        );
+
+        //assert
+        locked.Should().BeFalse();
+    }
+
+    [Test]
+    [Parallelizable]
+    public async Task Should_report_a_lock_as_taken_until_it_is_released()
+    {
+        //arrange
+        var lockManager = new BlobLockManager(
+            StorageSetup.ConnectionString,
+            new DefaultBlobLockScheme()
+        );
+        await lockManager.InitializeAsync();
+        var lockId = Guid.NewGuid().ToString();
+        var handle = await lockManager.TryLockAsync(
+            lockId,
+            TimeSpan.FromMinutes(1),
+            CancellationToken.None
+        );
+
+        //act
+        var whileHeld = await lockManager.IsLockedAsync(lockId, CancellationToken.None);
+        await handle!.ReleaseAsync(CancellationToken.None);
+        var afterRelease = await lockManager.IsLockedAsync(lockId, CancellationToken.None);
+
+        //assert
+        whileHeld.Should().BeTrue();
+        afterRelease.Should().BeFalse();
+    }
+
+    [Test]
+    [Parallelizable]
+    public async Task Should_report_a_broken_lease_as_free()
+    {
+        //arrange
+        var scheme = new DefaultBlobLockScheme();
+        var lockManager = new BlobLockManager(StorageSetup.ConnectionString, scheme);
+        await lockManager.InitializeAsync();
+        var lockId = Guid.NewGuid().ToString();
+        await lockManager.TryLockAsync(lockId, TimeSpan.FromMinutes(1), CancellationToken.None);
+        var blob = new BlobContainerClient(
+            StorageSetup.ConnectionString,
+            scheme.ContainerName
+        ).GetBlobClient(Path.Combine(scheme.Directory, lockId));
+
+        //act
+        await blob.GetBlobLeaseClient().BreakAsync(TimeSpan.Zero);
+
+        //assert
+        (await lockManager.IsLockedAsync(lockId, CancellationToken.None))
+            .Should()
+            .BeFalse();
     }
 }

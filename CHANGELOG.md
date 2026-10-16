@@ -34,8 +34,9 @@ these are released together:
 - `KnightBus.Azure.Storage` 19.0.0: `UseBlobStorageLockManager` also registers the blob membership,
   which changes which instance runs a singleton processor after an upgrade. Remove the
   `ISingletonMembership` registration to keep the old behaviour. Lock blobs record `LockId`, `HostId`
-  and `AcquiredAtUtc` in their metadata, `LockId` replacing the unused `FunctionInstance`. The queue
-  receiver drains.
+  and `AcquiredAtUtc` in their metadata, `LockId` replacing the unused `FunctionInstance`. A
+  `SingletonOptions.LockDuration` outside the 15 to 60 seconds a blob lease allows now fails the host
+  start instead of every attempt to take a lock. The queue receiver drains.
 - `KnightBus.Azure.ServiceBus` 25.0.0: the queue and topic receivers drain, see its changelog.
 - `KnightBus.Redis` 18.0.0 and `KnightBus.PostgreSql` 5.0.0: the receivers drain.
 - `KnightBus.Nats` 8.0.0: the new signature; the receiver stops on either token, as before.

@@ -28,7 +28,7 @@ public class KnightBusHostPlacementTests
         public readonly Mock<ISingletonLockManager> Locks = new();
         public readonly KnightBusHost Host;
 
-        public Fixture(IPlugin? plugin = null)
+        public Fixture(IPlugin? plugin = null, bool weighted = false)
         {
             Membership.Setup(x => x.HostId).Returns(Me);
             Membership
@@ -59,7 +59,10 @@ public class KnightBusHostPlacementTests
             var services = new ServiceCollection()
                 .AddSingleton(Membership.Object)
                 .AddSingleton(transport.Object);
-            services.RegisterProcessor<SingletonCommandProcessor>();
+            if (weighted)
+                services.RegisterProcessor<WeightedSingletonCommandProcessor>();
+            else
+                services.RegisterProcessor<SingletonCommandProcessor>();
             services.UseSingletonLocks(Locks.Object);
             if (plugin != null)
                 services.AddSingleton(plugin);
@@ -115,6 +118,27 @@ public class KnightBusHostPlacementTests
 
         await f.Host.StopAsync(CancellationToken.None);
         f.VerifyLeft();
+    }
+
+    [Test]
+    public async Task Should_join_with_the_weight_of_each_singleton()
+    {
+        //arrange
+        var f = new Fixture(weighted: true);
+
+        //act
+        await f.Host.StartAsync(CancellationToken.None);
+
+        //assert
+        f.Membership.Verify(x =>
+            x.JoinAsync(
+                It.Is<IReadOnlyDictionary<string, int>>(locks =>
+                    locks.Count == 1 && locks.Values.Single() == 10
+                ),
+                It.IsAny<CancellationToken>()
+            )
+        );
+        await f.Host.StopAsync(CancellationToken.None);
     }
 
     [Test]

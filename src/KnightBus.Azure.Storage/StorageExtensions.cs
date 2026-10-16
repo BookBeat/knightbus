@@ -85,7 +85,16 @@ public static class StorageExtensions
     /// </summary>
     public static IServiceCollection UseBlobStorageLockManager(this IServiceCollection services)
     {
-        services.AddSingleton<ISingletonLockManager, BlobLockManager>();
+        services.AddSingleton<ISingletonLockManager>(provider =>
+        {
+            //Fails the host start, instead of every attempt to take a lock
+            if (provider.GetService<SingletonOptions>() is { } options)
+                BlobLockManager.EnsureLeasePeriod(options.LockDuration, nameof(options));
+            return new BlobLockManager(
+                provider.GetRequiredService<IStorageBusConfiguration>(),
+                provider.GetService<IBlobLockScheme>()
+            );
+        });
         //The plain ILogger is not registered, so the logger is passed on explicitly
         services.AddSingleton<ISingletonMembership>(provider => new BlobSingletonMembership(
             provider.GetRequiredService<IStorageBusConfiguration>(),
