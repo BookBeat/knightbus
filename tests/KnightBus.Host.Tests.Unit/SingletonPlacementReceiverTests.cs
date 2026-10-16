@@ -33,17 +33,22 @@ public class SingletonPlacementReceiverTests
         public readonly InFlightMessages InFlight;
         public SingletonChannelReceiver Receiver { get; }
 
-        public Fixture(bool inspectable = true, ILogger? log = null)
+        public Fixture(bool inspectable = true, TimeSpan? lockTimeout = null, ILogger? log = null)
         {
             InFlight = new InFlightMessages(Processor);
+            //A hand-over lets the running message finish for as long as its lock lasts
+            Inner.Settings = new SingletonProcessingSettings
+            {
+                MessageLockTimeout = lockTimeout ?? TimeSpan.FromMinutes(5),
+            };
             Receiver = new SingletonChannelReceiver(
                 Inner,
+                InFlight,
                 inspectable ? Locks : new NotInspectable(Locks),
                 log ?? Mock.Of<ILogger>(),
                 Lock,
                 null,
-                Placement,
-                InFlight
+                Placement
             )
             {
                 TimerInterval = TimeSpan.FromMilliseconds(20),
@@ -52,7 +57,7 @@ public class SingletonPlacementReceiverTests
             };
         }
 
-        public Task Start() => Receiver.StartAsync(Shutdown.Token);
+        public Task Start() => Receiver.StartAsync(Shutdown.Token, Shutdown.Token);
 
         public ValueTask DisposeAsync()
         {
@@ -226,6 +231,7 @@ public class SingletonPlacementReceiverTests
         await Eventually(() => f.Locks.Holder(Lock) == null);
 
         //assert: the receiver was stopped before the lock was released
+        f.Inner.FetchToken!.Value.IsCancellationRequested.Should().BeTrue();
         f.Inner.Token!.Value.IsCancellationRequested.Should().BeTrue();
         //and it leaves the lock alone for the grace period so the other host gets there first
         await Task.Delay(200);
@@ -260,13 +266,13 @@ public class SingletonPlacementReceiverTests
     }
 
     [Test]
-    public async Task Should_keep_the_lock_until_the_cancelled_message_has_stopped()
+    public async Task Should_cancel_a_message_that_outlasts_its_message_lock_and_keep_the_lock_until_it_stops()
     {
-        //arrange: a message that keeps running after it is cancelled
-        await using var f = new Fixture();
+        //arrange: a message that runs past its message lock and ignores its cancellation
+        await using var f = new Fixture(lockTimeout: TimeSpan.FromMilliseconds(100));
         f.Placement.Prefer(Lock, Me);
         await f.Start();
-        var message = f.InFlight.ProcessAsync(
+        _ = f.InFlight.ProcessAsync(
             Mock.Of<IMessageStateHandler<TestCommand>>(),
             CancellationToken.None
         );
@@ -275,12 +281,11 @@ public class SingletonPlacementReceiverTests
         //act
         f.Placement.Prefer(Lock, Other);
         await Eventually(() => f.Inner.Token!.Value.IsCancellationRequested);
-        await Task.Delay(300);
+        await Task.Delay(500);
 
-        //assert: the receiver is stopped, but the lock stays until the message is done
+        //assert: the next holder must not start while the message is still running
         f.Locks.Holder(Lock).Should().Be(Me);
         f.Processor.Gate.SetResult();
-        await message;
         await Eventually(() => f.Locks.Holder(Lock) == null);
     }
 
@@ -359,6 +364,58 @@ public class SingletonPlacementReceiverTests
         await Task.Delay(300);
 
         f.Locks.Holder(Lock).Should().Be(Me);
+    }
+
+    [Test]
+    public async Task Should_let_the_running_message_finish_before_cancelling_it()
+    {
+        //arrange
+        await using var f = new Fixture();
+        f.Placement.Prefer(Lock, Me);
+        await f.Start();
+        var message = f.InFlight.ProcessAsync(
+            Mock.Of<IMessageStateHandler<TestCommand>>(),
+            CancellationToken.None
+        );
+        f.Time.Advance(TimeSpan.FromMinutes(11));
+
+        //act
+        f.Placement.Prefer(Lock, Other);
+        await Eventually(() => f.Inner.FetchToken!.Value.IsCancellationRequested);
+        await Task.Delay(200);
+
+        //assert: no new messages, but the running one is neither cancelled nor cut off
+        f.Inner.Token!.Value.IsCancellationRequested.Should().BeFalse();
+        f.Locks.Holder(Lock).Should().Be(Me);
+
+        f.Processor.Gate.SetResult();
+        await message;
+        await Eventually(() => f.Locks.Holder(Lock) == null);
+        f.Inner.Token!.Value.IsCancellationRequested.Should().BeTrue();
+    }
+
+    [Test]
+    public async Task Should_release_the_lock_when_the_host_stops_during_a_hand_over()
+    {
+        //arrange: a hand-over is waiting for a message that takes a long time
+        await using var f = new Fixture();
+        f.Placement.Prefer(Lock, Me);
+        await f.Start();
+        _ = f.InFlight.ProcessAsync(
+            Mock.Of<IMessageStateHandler<TestCommand>>(),
+            CancellationToken.None
+        );
+        f.Time.Advance(TimeSpan.FromMinutes(11));
+        f.Placement.Prefer(Lock, Other);
+        await Eventually(() => f.Inner.FetchToken!.Value.IsCancellationRequested);
+        f.Locks.Holder(Lock).Should().Be(Me);
+
+        //act
+        f.Shutdown.Cancel();
+
+        //assert: stopping the host does not wait for the drain, the lock is given up
+        await Eventually(() => f.Locks.Holder(Lock) == null);
+        f.Processor.Gate.SetResult();
     }
 
     [Test]
@@ -476,15 +533,17 @@ public class SingletonPlacementReceiverTests
     {
         private int _started;
         public int Started => _started;
+        public CancellationToken? FetchToken { get; private set; }
         public CancellationToken? Token { get; private set; }
         public IProcessingSettings Settings { get; set; } = new SingletonProcessingSettings();
 
         //Starting throws while this is set
         public volatile bool FailStart;
 
-        public Task StartAsync(CancellationToken cancellationToken)
+        public Task StartAsync(CancellationToken stopFetching, CancellationToken cancellationToken)
         {
             Interlocked.Increment(ref _started);
+            FetchToken = stopFetching;
             Token = cancellationToken;
             if (FailStart)
                 throw new InvalidOperationException("start");

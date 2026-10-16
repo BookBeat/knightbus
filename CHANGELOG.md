@@ -30,6 +30,25 @@ instance waits between attempts to take a singleton lock, so instances that star
 poll in lock-step. The wait is never shorter than before, so failover is not faster, and it can be up
 to 20% slower. Set `PollJitter` to 0 to keep the exact old timing. Schedule locks are not affected.
 
+### Singleton placement: letting a hand-over wait for the running message
+**Breaking:** `IChannelReceiver.StartAsync` takes two tokens, `StartAsync(stopFetching,
+cancellationToken)`. Cancelling `stopFetching` stops the receiver from taking new messages while the
+ones it is handling carry on; cancelling `cancellationToken` stops it and cancels them. A custom
+transport implements the new signature, and one that cannot stop fetching on its own treats
+`stopFetching` like `cancellationToken`. `GenericMessagePump.StartAsync` takes the same two tokens.
+
+A singleton lock hand-over stops fetching first and waits for the running message, for up to the
+processor's `MessageLockTimeout`, before cancelling it. Azure Service Bus and the pump transports,
+Azure Storage queues, Redis and PostgreSQL, drain. NATS is cancelled straight away, as before.
+A message the pump was still fetching when it stopped is handed to the pipeline with a cancelled
+token, which gives it back to the queue, instead of staying invisible until its lock runs out. On
+shutdown a handler can therefore be called with a token that is already cancelled.
+
+A transport package built against `KnightBus.Core` 18 does not load with 19, so they are all released
+together: `KnightBus.Core` 19.0.0, `KnightBus.Host` 19.0.0, `KnightBus.Azure.Storage` 19.0.0,
+`KnightBus.Azure.ServiceBus` 25.0.0, `KnightBus.Redis` 18.0.0, `KnightBus.PostgreSql` 5.0.0 and
+`KnightBus.Nats` 8.0.0.
+
 ### Singleton placement: spreading singleton locks over the running instances
 Every singleton lock was an independent race, so the instance that started first took all of them and
 kept them. Placement spreads the locks over the live instances, keeps heavy processors apart, and

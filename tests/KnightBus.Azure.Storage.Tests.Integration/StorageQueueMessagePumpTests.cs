@@ -41,7 +41,11 @@ public class StorageQueueMessagePumpTests
     {
         // Arrange
         // Act
-        await _pump.PumpAsync<TestCommand>((_, _) => Task.CompletedTask, CancellationToken.None);
+        await _pump.PumpAsync<TestCommand>(
+            (_, _) => Task.CompletedTask,
+            CancellationToken.None,
+            CancellationToken.None
+        );
 
         // Assert - should not throw
         await _storageQueueClient.GetQueueCountAsync();

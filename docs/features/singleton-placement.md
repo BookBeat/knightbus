@@ -136,8 +136,8 @@ may hold is its fair share of the weight that is left, plus some slack (25%).
   lock heavier than the cap still gets placed, on an instance that holds nothing yet.
 - A lock is only assigned to an instance that can run it.
 
-The slack trades balance for stability. Every move is a hand-over, which cancels the message being
-processed, so the slack keeps locks where they are when an instance leaves, at the cost that a few
+The slack trades balance for stability. Every move is a hand-over, which costs a drain and possibly a
+cancellation, so the slack keeps locks where they are when an instance leaves, at the cost that a few
 instances may hold nothing: a cap bounds the largest load, not the smallest.
 
 ### Taking a lock
@@ -155,25 +155,33 @@ An instance that holds a lock it is not the preferred holder of hands it over on
 lock for 10 minutes, so that locks do not move back and forth while instances come and go, for
 example during a rolling deploy.
 
-A hand-over cancels the receiver, and with it the message being processed, and keeps the lock until
-that message has stopped, so the next holder never starts while it is still running. A handler that
-never reacts to cancellation keeps the lock where it is. The handler is stopped through its
-cancellation token, so every handler must tolerate cancellation, as it has to on shutdown too. The
-cancellation is logged like any other cancelled handler.
+A hand-over stops fetching new messages and lets the message being processed finish, for up to the
+processor's `MessageLockTimeout`, which is the longest a message may be in flight anyway. Then it
+cancels the handler and keeps the lock until the handler has stopped, so the next holder never
+starts while it is still running. A handler that never reacts to cancellation keeps the lock where
+it is. A handler that stays within its message lock is never cancelled by a hand-over, but every
+handler must still tolerate cancellation, as it has to on shutdown too. The cancellation is logged
+like any other cancelled handler.
+
+A receiver gets two tokens when it starts: one that stops it fetching and one that stops it and
+cancels its messages (`IChannelReceiver.StartAsync(stopFetching, cancellationToken)`). The Azure
+Storage queue, Azure Service Bus, Redis and PostgreSQL receivers stop fetching and let the running
+message finish. Receivers that cannot, today NATS, cancel the running message straight away, and
+the lock is still kept until it has stopped.
 
 A cancelled message is abandoned and delivered again. The delivery counts against the processor's
 `DeadLetterDeliveryLimit`, because the transport counts every delivery and KnightBus cannot take one
 back, and a message is dead-lettered when its delivery count exceeds the limit. This only matters if
-one message is cancelled repeatedly, which the 10 minute hold makes unlikely, but a processor with a
-limit of 1 or 2 should not take long to process a message. A message that reaches the processor after
-the receiver was cancelled is abandoned without running, with the cancellation recorded as its
-error.
+one message is cancelled repeatedly, which the 10 minute hold and the wait for the message lock make
+unlikely, but a processor with a limit of 1 or 2 should not take long to process a message. A
+message that reaches the processor after the receiver was cancelled is abandoned without running,
+with the cancellation recorded as its error.
 
 ### Leaving
 
 On shutdown an instance leaves the member list first, so the others start counting on its locks
-while it finishes its messages, and then releases its own locks. An instance that becomes the preferred
-holder of one of those locks takes it at its next poll, so within the singleton poll interval.
+while it drains, and then releases its own locks. An instance that becomes the preferred holder of
+one of those locks takes it at its next poll, so within the singleton poll interval.
 
 ## Fixed behaviour
 

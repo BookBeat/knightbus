@@ -33,7 +33,10 @@ internal class RedisCommandChannelReceiver<T> : RedisChannelReceiver<T>
         _configuration = configuration;
     }
 
-    public override async Task StartAsync(CancellationToken cancellationToken)
+    public override async Task StartAsync(
+        CancellationToken stopFetching,
+        CancellationToken cancellationToken
+    )
     {
         var db = ConnectionMultiplexer.GetDatabase(_configuration.DatabaseId);
         await db.SetAddAsync(
@@ -41,6 +44,6 @@ internal class RedisCommandChannelReceiver<T> : RedisChannelReceiver<T>
                 AutoMessageMapper.GetQueueName<T>()
             )
             .ConfigureAwait(false);
-        await base.StartAsync(cancellationToken).ConfigureAwait(false);
+        await base.StartAsync(stopFetching, cancellationToken).ConfigureAwait(false);
     }
 }

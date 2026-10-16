@@ -1,5 +1,19 @@
 ﻿# KnightBus.Azure.ServiceBus Changelog
 
+## 25.0.0
+### Changed
+- Requires `KnightBus.Core` 19.0.0: the queue and topic receivers implement
+  `IChannelReceiver.StartAsync(stopFetching, cancellationToken)`. Cancelling `stopFetching` stops the
+  processor from taking messages while the handlers carry on, so a singleton lock can be handed over
+  without cancelling the message being processed
+- A handler's token is cancelled when the receiver stops, when the message lock is lost, also while
+  the receiver drains or before the message reached the handler, and once `MessageLockTimeout` has passed and the lock is no longer renewed,
+  as on the other transports. It is no longer cancelled when the Service Bus processor stops on its
+  own, which is what a drain does
+- A receiver that is started again, as a singleton receiver is when it gets its lock back, keeps
+  the client of each start apart: closing an earlier start no longer closes the new client
+- Disposing the `ClientFactory` also closes its Service Bus connection, which stayed open before
+
 ## 24.2.0
 ### Changed
 - `Azure.Identity` moves to 1.21.0 and `Azure.Messaging.ServiceBus` to 7.20.2, raising the floor

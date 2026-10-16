@@ -38,27 +38,34 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
     /// Starts the message pump
     /// </summary>
     /// <param name="action">The action to be executed for each message, typically the entry into the middleware pipeline</param>
-    /// <param name="cancellationToken">CancellationToken, usually the process main shutdown token</param>
+    /// <param name="stopFetching">Stops fetching new messages, the ones already being handled carry on</param>
+    /// <param name="cancellationToken">Stops the pump and cancels the messages being handled, usually the process main shutdown token</param>
     /// <typeparam name="TMessage">The specific message</typeparam>
     /// <returns>A completed Task when the pump has started</returns>
+    /// <remarks><see cref="CleanupResources"/> runs once fetching has stopped</remarks>
     public virtual Task StartAsync<TMessage>(
         Func<TInternalRepresentation, CancellationToken, Task> action,
+        CancellationToken stopFetching,
         CancellationToken cancellationToken
     )
         where TMessage : TMessageInterface
     {
         _queueName = AutoMessageMapper.GetQueueName<TMessage>();
-        //The polling delay observes this token so a sleeping pump exits promptly on shutdown
-        _pumpCancellationToken = cancellationToken;
+        var fetching = CancellationTokenSource.CreateLinkedTokenSource(
+            stopFetching,
+            cancellationToken
+        );
+        //The polling delay observes this token so a sleeping pump exits promptly
+        _pumpCancellationToken = fetching.Token;
         _runningTask = Task.Run(
             async () =>
             {
-                while (!cancellationToken.IsCancellationRequested)
+                while (!fetching.IsCancellationRequested)
                 {
                     try
                     {
                         if (
-                            !await PumpAsync<TMessage>(action, cancellationToken)
+                            !await PumpAsync<TMessage>(action, fetching.Token, cancellationToken)
                                 .ConfigureAwait(false)
                         )
                             await DelayPolling().ConfigureAwait(false);
@@ -74,6 +81,7 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
                         await DelayPolling().ConfigureAwait(false);
                     }
                 }
+                fetching.Dispose();
 
                 try
                 {
@@ -94,8 +102,16 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Fetches once and hands the messages to <paramref name="action"/>
+    /// </summary>
+    /// <param name="action">The action to be executed for each message</param>
+    /// <param name="stopFetching">Ends the wait for room and stops the fetch. It must also fire when
+    /// <paramref name="cancellationToken"/> does, as the one <see cref="StartAsync{TMessage}"/> passes does</param>
+    /// <param name="cancellationToken">Cancels the messages being handled</param>
     public async Task<bool> PumpAsync<TMessage>(
         Func<TInternalRepresentation, CancellationToken, Task> action,
+        CancellationToken stopFetching,
         CancellationToken cancellationToken
     )
         where TMessage : TMessageInterface
@@ -103,26 +119,19 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
         var messageCount = 0;
         try
         {
-            //Do not fetch and lock messages if we won't be able to process them
-            await _maxConcurrent.WaitAsync(cancellationToken).ConfigureAwait(false);
+            //Do not fetch and lock messages if we won't be able to process them, and do not fetch
+            //at all once fetching has stopped, however long the wait for room was
+            await _maxConcurrent.WaitAsync(stopFetching).ConfigureAwait(false);
             _maxConcurrent.Release();
+            if (stopFetching.IsCancellationRequested)
+                return false;
 
             //Fetch enough messages to fill all AvailableThreads and add Prefetch on top of that as a buffer
             var fetchCount = Settings.PrefetchCount + AvailableThreads;
             fetchCount = Math.Min(fetchCount, MaxFetch);
 
-            TimeSpan visibilityTimeout;
-            if (Settings is IExtendMessageLockTimeout extendMessageLockTimeout)
-            {
-                visibilityTimeout = extendMessageLockTimeout.ExtensionDuration;
-            }
-            else
-            {
-                visibilityTimeout = Settings.MessageLockTimeout;
-            }
-
             var stopWatch = Stopwatch.StartNew();
-            var messages = GetMessagesAsync<TMessage>(fetchCount, visibilityTimeout);
+            var messages = GetMessagesAsync<TMessage>(fetchCount, VisibilityTimeout);
 
             await foreach (var message in messages.ConfigureAwait(false))
             {
@@ -135,46 +144,12 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
                     return true;
                 }
 
-                var timeoutToken = new CancellationTokenSource(remainingLockDuration);
-                var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(
-                    cancellationToken,
-                    timeoutToken.Token
-                );
-                try
-                {
-                    await _maxConcurrent.WaitAsync(linkedToken.Token).ConfigureAwait(false);
-                }
-                catch
-                {
-                    timeoutToken.Dispose();
-                    linkedToken.Dispose();
+                if (
+                    !await DispatchAsync(message, remainingLockDuration, action, cancellationToken)
+                        .ConfigureAwait(false)
+                )
                     return true;
-                }
-
                 messageCount++;
-#pragma warning disable 4014 //No need to await the result, let's keep the pump going
-                //No scheduling token here: if the lock timeout fired before the task started,
-                //the delegate would be skipped and the finally would never release the slot
-                Task.Run(
-                        async () =>
-                        {
-                            try
-                            {
-                                await action
-                                    .Invoke(message, linkedToken.Token)
-                                    .ConfigureAwait(false);
-                            }
-                            finally
-                            {
-                                _maxConcurrent.Release();
-                                timeoutToken.Dispose();
-                                linkedToken.Dispose();
-                            }
-                        },
-                        CancellationToken.None
-                    )
-                    .ConfigureAwait(false);
-#pragma warning restore 4014
             }
 
             Log.LogDebug(
@@ -183,6 +158,10 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
                 _queueName,
                 nameof(GenericMessagePump<TInternalRepresentation, TMessageInterface>)
             );
+        }
+        catch (OperationCanceledException) when (stopFetching.IsCancellationRequested)
+        {
+            //Fetching stopped while waiting for room, which is not an error
         }
         catch (Exception e)
         {
@@ -208,6 +187,66 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
         }
 
         return messageCount > 0;
+    }
+
+    //How long a fetched message stays invisible to other receivers
+    private TimeSpan VisibilityTimeout =>
+        Settings is IExtendMessageLockTimeout extendMessageLockTimeout
+            ? extendMessageLockTimeout.ExtensionDuration
+            : Settings.MessageLockTimeout;
+
+    /// <summary>
+    /// Hands a fetched message to <paramref name="action"/> once there is room, false when its lock
+    /// ran out first
+    /// </summary>
+    private async Task<bool> DispatchAsync(
+        TInternalRepresentation message,
+        TimeSpan remainingLockDuration,
+        Func<TInternalRepresentation, CancellationToken, Task> action,
+        CancellationToken cancellationToken
+    )
+    {
+        var timeoutToken = new CancellationTokenSource(remainingLockDuration);
+        var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken,
+            timeoutToken.Token
+        );
+        try
+        {
+            //Not the stop token: a fetched message is handed on even after a stop, with its
+            //token cancelled, so the pipeline returns it instead of it staying invisible
+            //until its lock runs out
+            await _maxConcurrent.WaitAsync(timeoutToken.Token).ConfigureAwait(false);
+        }
+        catch
+        {
+            timeoutToken.Dispose();
+            linkedToken.Dispose();
+            return false;
+        }
+
+#pragma warning disable 4014 //No need to await the result, let's keep the pump going
+        //No scheduling token here: if the lock timeout fired before the task started,
+        //the delegate would be skipped and the finally would never release the slot
+        Task.Run(
+                async () =>
+                {
+                    try
+                    {
+                        await action.Invoke(message, linkedToken.Token).ConfigureAwait(false);
+                    }
+                    finally
+                    {
+                        _maxConcurrent.Release();
+                        timeoutToken.Dispose();
+                        linkedToken.Dispose();
+                    }
+                },
+                CancellationToken.None
+            )
+            .ConfigureAwait(false);
+#pragma warning restore 4014
+        return true;
     }
 
     /// <summary>
@@ -236,8 +275,9 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
 
     /// <summary>
     /// Cleanup any expensive resources owned by this pump instance.
-    /// Called once when the pump loop has stopped after its cancellation token was cancelled.
-    /// Do not release resources shared with other components, since the pump can be stopped
+    /// Called once when the pump has stopped fetching, which can be while the messages it handed
+    /// out are still being handled, so do not release anything they need to complete or abandon.
+    /// Do not release resources shared with other components either, since the pump can be stopped
     /// while the rest of the host keeps running.
     /// </summary>
     protected abstract Task CleanupResources();
