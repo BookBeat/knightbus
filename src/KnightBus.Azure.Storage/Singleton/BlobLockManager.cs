@@ -12,7 +12,7 @@ using KnightBus.Core.Singleton;
 
 namespace KnightBus.Azure.Storage.Singleton;
 
-internal class BlobLockManager : ISingletonLockManager
+internal class BlobLockManager : ISingletonLockManager, ISingletonLockInspector
 {
     private readonly IStorageBusConfiguration _configuration;
     private BlobContainerClient _client = null!;
@@ -30,6 +30,11 @@ internal class BlobLockManager : ISingletonLockManager
         _lockScheme = lockScheme ?? new DefaultBlobLockScheme();
     }
 
+    //Every blob is named the way lock blobs always have been, so hosts on different versions take
+    //the same lock blob during a rolling upgrade
+    internal static string BlobName(IBlobLockScheme lockScheme, string lockId) =>
+        Path.Combine(lockScheme.Directory, lockId);
+
     public Task InitializeAsync()
     {
         if (_client == null)
@@ -43,13 +48,44 @@ internal class BlobLockManager : ISingletonLockManager
         return Task.CompletedTask;
     }
 
+    //A blob lease lasts between 15 and 60 seconds, or until it is released
+    internal static void EnsureLeasePeriod(TimeSpan lockPeriod, string paramName)
+    {
+        if (
+            lockPeriod != Timeout.InfiniteTimeSpan
+            && (lockPeriod < TimeSpan.FromSeconds(15) || lockPeriod > TimeSpan.FromSeconds(60))
+        )
+            throw new ArgumentOutOfRangeException(
+                paramName,
+                lockPeriod,
+                "A blob lease lasts between 15 and 60 seconds, see SingletonOptions.LockDuration"
+            );
+    }
+
+    public async Task<bool> IsLockedAsync(string lockId, CancellationToken cancellationToken)
+    {
+        var blob = _client.GetBlobClient(BlobName(_lockScheme, lockId));
+        try
+        {
+            var properties = await blob.GetPropertiesAsync(cancellationToken: cancellationToken)
+                .ConfigureAwait(false);
+            return properties.Value.LeaseState == LeaseState.Leased;
+        }
+        catch (RequestFailedException exception) when (exception.Status == 404)
+        {
+            //The blob is created the first time the lock is taken
+            return false;
+        }
+    }
+
     public async Task<ISingletonLockHandle?> TryLockAsync(
         string lockId,
         TimeSpan lockPeriod,
         CancellationToken cancellationToken
     )
     {
-        var blob = _client.GetBlobClient(Path.Combine(_lockScheme.Directory, lockId));
+        EnsureLeasePeriod(lockPeriod, nameof(lockPeriod));
+        var blob = _client.GetBlobClient(BlobName(_lockScheme, lockId));
 
         var lease = await TryAcquireLeaseAsync(blob, lockPeriod, cancellationToken)
             .ConfigureAwait(false);
@@ -78,12 +114,18 @@ internal class BlobLockManager : ISingletonLockManager
     private static async Task WriteLeaseBlobMetadata(
         BlobBaseClient blob,
         string leaseId,
-        string functionInstanceId,
+        string lockId,
         CancellationToken cancellationToken
     )
     {
         await blob.SetMetadataAsync(
-            new Dictionary<string, string> { { "FunctionInstance", functionInstanceId } },
+            new Dictionary<string, string>
+            {
+                { "LockId", lockId },
+                //Who holds the lock, so the current distribution can be read from storage
+                { "HostId", HostIdentity.Id },
+                { "AcquiredAtUtc", DateTimeOffset.UtcNow.ToString("O") },
+            },
             new BlobRequestConditions { LeaseId = leaseId },
             cancellationToken
         );

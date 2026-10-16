@@ -45,10 +45,15 @@ internal class StorageQueueChannelReceiver<T> : IChannelReceiver
         _hostConfiguration = hostConfiguration;
     }
 
-    public async Task StartAsync(CancellationToken cancellationToken)
+    public async Task StartAsync(
+        CancellationToken stopFetching,
+        CancellationToken cancellationToken
+    )
     {
         Initialize();
-        await _messagePump.StartAsync<T>(Handle, cancellationToken).ConfigureAwait(false);
+        await _messagePump
+            .StartAsync<T>(Handle, stopFetching, cancellationToken)
+            .ConfigureAwait(false);
     }
 
     private void Initialize()

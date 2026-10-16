@@ -165,11 +165,12 @@ public class KnightBusHostShutdownTests
         underlyingReceiver.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);
         var singletonReceiver = new Singleton.SingletonChannelReceiver(
             underlyingReceiver.Object,
+            new Singleton.InFlightMessages(Mock.Of<IMessageProcessor>()),
             lockManager.Object,
             Mock.Of<ILogger>(),
             teardownToken: host.TeardownToken
         );
-        await singletonReceiver.StartAsync(CancellationToken.None);
+        await singletonReceiver.StartAsync(CancellationToken.None, CancellationToken.None);
         host.Receivers.Add(singletonReceiver);
 
         //one in-flight message that finishes after 500ms

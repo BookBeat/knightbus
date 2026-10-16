@@ -15,16 +15,19 @@ internal class TransportStarterFactory
     private readonly ITransportChannelFactory[] _transportChannelFactories;
     private readonly IHostConfiguration _configuration;
     private readonly CancellationToken? _teardownToken;
+    private readonly ISingletonPlacement? _placement;
 
     public TransportStarterFactory(
         ITransportChannelFactory[] transportChannelFactories,
         IHostConfiguration configuration,
-        CancellationToken? teardownToken = null
+        CancellationToken? teardownToken = null,
+        ISingletonPlacement? placement = null
     )
     {
         _transportChannelFactories = transportChannelFactories;
         _configuration = configuration;
         _teardownToken = teardownToken;
+        _placement = placement;
     }
 
     internal IChannelReceiver CreateChannelReceiver(
@@ -60,15 +63,28 @@ internal class TransportStarterFactory
             _configuration.DependencyInjection.GetInstances<IMessageProcessorMiddleware>();
         var pipeline = new MiddlewarePipeline(middlewares, pipelineInformation, _configuration.Log);
         var serializer = GetSerializer(channelFactory, processorTypes.MessageType);
+        var messageProcessor = pipeline.GetPipeline(processorInstance);
+        //A singleton keeps its lock until the messages it is handling have stopped
+        var inFlight = typeof(ISingletonProcessor).IsAssignableFrom(processor)
+            ? new InFlightMessages(messageProcessor)
+            : null;
         var starter = channelFactory.Create(
             processorTypes.MessageType,
             eventSubscription,
             processingSettings,
             serializer,
             _configuration,
-            pipeline.GetPipeline(processorInstance)
+            inFlight ?? messageProcessor
         );
-        return WrapSingletonReceiver(starter, processor, eventSubscription);
+        if (inFlight == null)
+            return starter;
+        return WrapSingletonReceiver(
+            starter,
+            processor,
+            eventSubscription,
+            processingSettings,
+            inFlight
+        );
     }
 
     private IMessageSerializer GetSerializer(
@@ -83,34 +99,54 @@ internal class TransportStarterFactory
         return channelFactory.Configuration.MessageSerializer;
     }
 
+    private static int WeightOf(IProcessingSettings settings, Type processor)
+    {
+        if (settings is not ISingletonWeight weighted)
+            return 1;
+        if (weighted.Weight < 1)
+            throw new InvalidOperationException(
+                $"The singleton weight of {processor.Name} must be at least 1, it is {weighted.Weight}"
+            );
+        return weighted.Weight;
+    }
+
     private IChannelReceiver WrapSingletonReceiver(
         IChannelReceiver channelReceiver,
         Type type,
-        IEventSubscription? subscription
+        IEventSubscription? subscription,
+        IProcessingSettings processingSettings,
+        InFlightMessages inFlight
     )
     {
-        if (typeof(ISingletonProcessor).IsAssignableFrom(type))
+        var lockManager = _configuration.DependencyInjection.GetInstance<ISingletonLockManager>();
+        _configuration.Log.LogInformation("Setting {SettingName} in Singleton mode", type.Name);
+
+        var lockId = channelReceiver.GetType().FullName ?? channelReceiver.GetType().Name;
+        if (!string.IsNullOrWhiteSpace(subscription?.Name))
         {
-            var lockManager =
-                _configuration.DependencyInjection.GetInstance<ISingletonLockManager>();
-            _configuration.Log.LogInformation("Setting {SettingName} in Singleton mode", type.Name);
-
-            var lockId = channelReceiver.GetType().FullName;
-            if (!string.IsNullOrWhiteSpace(subscription?.Name))
-            {
-                lockId = $"{lockId}:{subscription.Name}";
-            }
-
-            var singletonStarter = new SingletonChannelReceiver(
-                channelReceiver,
-                lockManager,
-                _configuration.Log,
-                lockId,
-                _teardownToken
-            );
-            return singletonStarter;
+            lockId = $"{lockId}:{subscription.Name}";
         }
 
-        return channelReceiver;
+        var options =
+            _configuration.DependencyInjection.GetInstances<SingletonOptions>().LastOrDefault()
+            ?? new SingletonOptions();
+
+        var singletonStarter = new SingletonChannelReceiver(
+            channelReceiver,
+            inFlight,
+            lockManager,
+            _configuration.Log,
+            lockId,
+            _teardownToken,
+            _placement
+        )
+        {
+            TimerInterval = options.PollInterval,
+            PollJitter = options.PollJitter,
+            LockDuration = options.LockDuration,
+            LockRefreshInterval = options.RenewalInterval,
+            Weight = WeightOf(processingSettings, type),
+        };
+        return singletonStarter;
     }
 }

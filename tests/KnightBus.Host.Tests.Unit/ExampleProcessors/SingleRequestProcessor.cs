@@ -1,6 +1,7 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
+using KnightBus.Tests.Shared;
 
 namespace KnightBus.Host.Tests.Unit.ExampleProcessors;
 

@@ -102,13 +102,13 @@ public class SingletonTimerScope : IDisposable
             return;
         try
         {
-            _log.LogInformation("Releasing lock {LockHandle}", _lockHandle);
+            _log.LogInformation("Releasing lock {LockId}", _lockHandle.LockId);
             await _lockHandle.ReleaseAsync(CancellationToken.None).ConfigureAwait(false);
         }
         catch (Exception e)
         {
             //The lock will expire by itself when it cannot be released
-            _log.LogWarning(e, "Failed to release lock {LockHandle}", _lockHandle);
+            _log.LogWarning(e, "Failed to release lock {LockId}", _lockHandle.LockId);
         }
     }
 

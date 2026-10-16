@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 using AwesomeAssertions;
 using KnightBus.Core.Singleton;
+using KnightBus.Tests.Shared;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
@@ -54,6 +56,42 @@ public class SingletonTimerScopeTests
                         + $"and disposed right after the scope is created (iteration {i})"
                 );
         }
+    }
+
+    [Test]
+    public async Task Should_name_the_lock_when_releasing()
+    {
+        //arrange
+        var released = new TaskCompletionSource();
+        var handle = new Mock<ISingletonLockHandle>();
+        handle.Setup(x => x.LockId).Returns("the-lock");
+        handle
+            .Setup(x => x.RenewAsync(It.IsAny<ILogger>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        handle
+            .Setup(x => x.ReleaseAsync(It.IsAny<CancellationToken>()))
+            .Returns(() =>
+            {
+                released.TrySetResult();
+                return Task.CompletedTask;
+            });
+        var log = new ListLogger();
+        using var cts = new CancellationTokenSource();
+        var scope = new SingletonTimerScope(
+            log,
+            handle.Object,
+            true,
+            TimeSpan.FromSeconds(19),
+            cts
+        );
+
+        //act
+        cts.Cancel();
+        await released.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await scope.Completion.WaitAsync(TimeSpan.FromSeconds(5));
+
+        //assert
+        log.Messages.Should().Contain("Releasing lock the-lock");
     }
 
     [Test]
