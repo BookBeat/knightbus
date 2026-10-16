@@ -130,12 +130,8 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
             var fetchCount = Settings.PrefetchCount + AvailableThreads;
             fetchCount = Math.Min(fetchCount, MaxFetch);
 
-            var visibilityTimeout = Settings is IExtendMessageLockTimeout extendMessageLockTimeout
-                ? extendMessageLockTimeout.ExtensionDuration
-                : Settings.MessageLockTimeout;
-
             var stopWatch = Stopwatch.StartNew();
-            var messages = GetMessagesAsync<TMessage>(fetchCount, visibilityTimeout);
+            var messages = GetMessagesAsync<TMessage>(fetchCount, VisibilityTimeout);
 
             await foreach (var message in messages.ConfigureAwait(false))
             {
@@ -192,6 +188,12 @@ public abstract class GenericMessagePump<TInternalRepresentation, TMessageInterf
 
         return messageCount > 0;
     }
+
+    //How long a fetched message stays invisible to other receivers
+    private TimeSpan VisibilityTimeout =>
+        Settings is IExtendMessageLockTimeout extendMessageLockTimeout
+            ? extendMessageLockTimeout.ExtensionDuration
+            : Settings.MessageLockTimeout;
 
     /// <summary>
     /// Hands a fetched message to <paramref name="action"/> once there is room, false when its lock
