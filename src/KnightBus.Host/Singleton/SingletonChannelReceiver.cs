@@ -144,9 +144,8 @@ internal class SingletonChannelReceiver : IChannelReceiver
             await _inFlight.WaitUntilIdleAsync(cancellationToken).ConfigureAwait(false);
             await AcquireLock(cancellationToken).ConfigureAwait(false);
         }
-        else if (held.ScopeSource.IsCancellationRequested)
-            return;
-        else
+        //A lock that is already being released is left alone
+        else if (!held.ScopeSource.IsCancellationRequested)
             await HandOverIfNotPreferred(held, cancellationToken).ConfigureAwait(false);
     }
 
@@ -171,13 +170,14 @@ internal class SingletonChannelReceiver : IChannelReceiver
     /// </summary>
     private async Task<bool> MayTryToAcquire(CancellationToken cancellationToken)
     {
-        var preferred = _placement?.Advise(_lockId);
-        if (preferred == null)
+        var placement = _placement;
+        var preferred = placement?.Advise(_lockId);
+        if (placement == null || preferred == null)
         {
             _freeSince = null;
             return true;
         }
-        var isPreferred = preferred == _placement!.HostId;
+        var isPreferred = preferred == placement.HostId;
 
         //Look before taking: the preferred host polls often while another host still holds the
         //lock, and an attempt to take a held lock is a failed request. Another host takes it only
