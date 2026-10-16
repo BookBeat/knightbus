@@ -683,14 +683,6 @@ public class TestPreProcessor : IMessagePreProcessor
     }
 }
 
-public class TestMessageSettings : IProcessingSettings
-{
-    public int MaxConcurrentCalls { get; set; } = 1;
-    public TimeSpan MessageLockTimeout { get; set; } = TimeSpan.FromMinutes(1);
-    public int DeadLetterDeliveryLimit { get; set; } = 1;
-    public int PrefetchCount { get; set; }
-}
-
 public class TestCommandMessageMapping : IMessageMapping<TestCommand>
 {
     public string QueueName => "my_queue";

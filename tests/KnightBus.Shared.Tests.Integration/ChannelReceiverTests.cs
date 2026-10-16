@@ -5,6 +5,7 @@ using AwesomeAssertions;
 using KnightBus.Core;
 using KnightBus.Core.DependencyInjection;
 using KnightBus.Messages;
+using KnightBus.Tests.Shared;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
@@ -22,7 +23,8 @@ public abstract class ChannelReceiverTests
     private CancellationTokenSource? _stopFetching;
     private CancellationTokenSource? _stop;
 
-    protected static IProcessingSettings Settings { get; } = new ReceiverSettings();
+    protected static IProcessingSettings Settings { get; } =
+        new TestMessageSettings { DeadLetterDeliveryLimit = 5 };
     protected static IHostConfiguration HostConfiguration { get; } =
         new ReceiverHostConfiguration();
 
@@ -89,14 +91,6 @@ public abstract class ChannelReceiverTests
         _stopFetching = new CancellationTokenSource();
         _stop = new CancellationTokenSource();
         await CreateReceiver(processor).StartAsync(_stopFetching.Token, _stop.Token);
-    }
-
-    private sealed class ReceiverSettings : IProcessingSettings
-    {
-        public int MaxConcurrentCalls => 1;
-        public int PrefetchCount => 0;
-        public TimeSpan MessageLockTimeout => TimeSpan.FromMinutes(1);
-        public int DeadLetterDeliveryLimit => 5;
     }
 
     private sealed class ReceiverHostConfiguration : IHostConfiguration

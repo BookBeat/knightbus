@@ -2,6 +2,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Messages;
+using KnightBus.Tests.Shared;
 
 namespace KnightBus.Core.Tests.Unit;
 
@@ -31,14 +32,6 @@ public interface ICountable
 }
 
 public class TestMessage : ICommand { }
-
-public class TestMessageSettings : IProcessingSettings
-{
-    public int MaxConcurrentCalls { get; set; } = 1;
-    public TimeSpan MessageLockTimeout => TimeSpan.FromMinutes(1);
-    public int DeadLetterDeliveryLimit { get; set; } = 1;
-    public int PrefetchCount { get; set; }
-}
 
 public class TestCommandHandler : IProcessCommand<TestMessage, TestMessageSettings>
 {

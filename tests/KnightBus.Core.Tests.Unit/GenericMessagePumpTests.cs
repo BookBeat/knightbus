@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using AwesomeAssertions;
 using KnightBus.Messages;
+using KnightBus.Tests.Shared;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 
@@ -15,14 +16,6 @@ namespace KnightBus.Core.Tests.Unit;
 public class GenericMessagePumpTests
 {
     private class ChannelMissingException : Exception { }
-
-    private class TestPumpSettings : IProcessingSettings
-    {
-        public int MaxConcurrentCalls => 1;
-        public int PrefetchCount => 0;
-        public TimeSpan MessageLockTimeout => TimeSpan.FromMinutes(1);
-        public int DeadLetterDeliveryLimit => 1;
-    }
 
     private class ExtendingLockPumpSettings : IProcessingSettings, IExtendMessageLockTimeout
     {
@@ -81,7 +74,7 @@ public class GenericMessagePumpTests
             TimeSpan? pollingDelay = null,
             IProcessingSettings? settings = null
         )
-            : base(settings ?? new TestPumpSettings(), log)
+            : base(settings ?? new TestMessageSettings(), log)
         {
             _createChannel = createChannel;
             _cleanupResources = cleanupResources;
@@ -203,7 +196,7 @@ public class GenericMessagePumpTests
         );
 
         //assert
-        pump.LastLockDuration.Should().Be(new TestPumpSettings().MessageLockTimeout);
+        pump.LastLockDuration.Should().Be(new TestMessageSettings().MessageLockTimeout);
     }
 
     [Test]

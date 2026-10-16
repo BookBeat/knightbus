@@ -8,6 +8,7 @@ using KnightBus.Core;
 using KnightBus.Core.DependencyInjection;
 using KnightBus.Host.MessageProcessing.Processors;
 using KnightBus.Messages;
+using KnightBus.Tests.Shared;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -147,7 +148,7 @@ public class MiddlewarePipelineTest
         pipelineInformation.Setup(x => x.HostConfiguration).Returns(hostConfiguration);
 
         var finalProcessor = new MessageProcessor(
-            typeof(IProcessCommand<DiTestMessage, DiTestMessageSettings>)
+            typeof(IProcessCommand<DiTestMessage, TestMessageSettings>)
         );
         var pipeline = new MiddlewarePipeline(
             new List<IMessageProcessorMiddleware>(),
@@ -176,15 +177,7 @@ public class MiddlewarePipelineTest
 
     public class DiTestMessage : ICommand { }
 
-    public class DiTestMessageSettings : IProcessingSettings
-    {
-        public int MaxConcurrentCalls { get; set; } = 1;
-        public TimeSpan MessageLockTimeout => TimeSpan.FromMinutes(1);
-        public int DeadLetterDeliveryLimit { get; set; } = 1;
-        public int PrefetchCount { get; set; }
-    }
-
-    public class DiTestCommandHandler : IProcessCommand<DiTestMessage, DiTestMessageSettings>
+    public class DiTestCommandHandler : IProcessCommand<DiTestMessage, TestMessageSettings>
     {
         private readonly ICountable _countable;
 

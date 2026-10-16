@@ -19,6 +19,14 @@ public class ServiceBusDrainTests
     private static readonly string Topic = AutoMessageMapper.GetQueueName<DrainEvent>();
     private static readonly string Subscription = new DrainEventSubscription().Name;
     private static readonly string LockQueue = AutoMessageMapper.GetQueueName<DrainLockCommand>();
+    private static readonly TestMessageSettings Drain = new() { DeadLetterDeliveryLimit = 5 };
+
+    //The lock is renewed for this long and then runs out
+    private static readonly TestMessageSettings ShortLock = new()
+    {
+        MessageLockTimeout = TimeSpan.FromSeconds(3),
+        DeadLetterDeliveryLimit = 5,
+    };
     private ServiceBusClient _client = null!;
     private IHost _host = null!;
     private IChannelReceiver? _receiver;
@@ -203,7 +211,7 @@ public class ServiceBusDrainTests
         var serializer = new MicrosoftJsonSerializer();
         var processor = new TokenRecordingProcessor();
         var receiver = new ServiceBusQueueChannelReceiver<DrainCommand>(
-            new DrainSettings(),
+            Drain,
             serializer,
             new ServiceBusConfiguration(ServiceBusSetup.ConnectionString),
             _host.Services.GetRequiredService<IHostConfiguration>(),
@@ -235,7 +243,7 @@ public class ServiceBusDrainTests
     private async Task StartQueueReceiver(GatedProcessor processor)
     {
         _receiver = new ServiceBusQueueChannelReceiver<DrainCommand>(
-            new DrainSettings(),
+            Drain,
             new MicrosoftJsonSerializer(),
             new ServiceBusConfiguration(ServiceBusSetup.ConnectionString),
             _host.Services.GetRequiredService<IHostConfiguration>(),
@@ -247,7 +255,7 @@ public class ServiceBusDrainTests
     private async Task StartLockQueueReceiver(GatedProcessor processor)
     {
         _receiver = new ServiceBusQueueChannelReceiver<DrainLockCommand>(
-            new ShortLockSettings(),
+            ShortLock,
             new MicrosoftJsonSerializer(),
             new ServiceBusConfiguration(ServiceBusSetup.ConnectionString),
             _host.Services.GetRequiredService<IHostConfiguration>(),
@@ -259,7 +267,7 @@ public class ServiceBusDrainTests
     private async Task StartSubscriptionReceiver(GatedProcessor processor)
     {
         _receiver = new ServiceBusTopicChannelReceiver<DrainEvent>(
-            new DrainSettings(),
+            Drain,
             new MicrosoftJsonSerializer(),
             new DrainEventSubscription(),
             new ServiceBusConfiguration(ServiceBusSetup.ConnectionString),
@@ -295,23 +303,6 @@ public class ServiceBusDrainTests
         );
         return await receiver.PeekMessagesAsync(10);
     }
-}
-
-public class DrainSettings : IProcessingSettings
-{
-    public int MaxConcurrentCalls => 1;
-    public int PrefetchCount => 0;
-    public TimeSpan MessageLockTimeout => TimeSpan.FromMinutes(1);
-    public int DeadLetterDeliveryLimit => 5;
-}
-
-//The lock is renewed for this long and then runs out
-public class ShortLockSettings : IProcessingSettings
-{
-    public int MaxConcurrentCalls => 1;
-    public int PrefetchCount => 0;
-    public TimeSpan MessageLockTimeout => TimeSpan.FromSeconds(3);
-    public int DeadLetterDeliveryLimit => 5;
 }
 
 internal class TokenRecordingProcessor : IMessageProcessor

@@ -9,6 +9,7 @@ using KnightBus.Core.Singleton;
 using KnightBus.Host.MessageProcessing.Factories;
 using KnightBus.Host.Singleton;
 using KnightBus.Messages;
+using KnightBus.Tests.Shared;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;

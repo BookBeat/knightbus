@@ -14,16 +14,8 @@ namespace KnightBus.Core.Tests.Unit;
 [TestFixture]
 public class GenericMessagePumpDrainTests
 {
-    private class Settings : IProcessingSettings
-    {
-        public int MaxConcurrentCalls => 1;
-        public int PrefetchCount => 0;
-        public TimeSpan MessageLockTimeout => TimeSpan.FromMinutes(1);
-        public int DeadLetterDeliveryLimit => 1;
-    }
-
     private class Pump()
-        : GenericMessagePump<TestCommand, ICommand>(new Settings(), Mock.Of<ILogger>())
+        : GenericMessagePump<TestCommand, ICommand>(new TestMessageSettings(), Mock.Of<ILogger>())
     {
         private int _fetches;
         public int Fetches => Volatile.Read(ref _fetches);
