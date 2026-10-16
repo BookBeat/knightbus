@@ -165,9 +165,9 @@ like any other cancelled handler.
 
 A receiver gets two tokens when it starts: one that stops it fetching and one that stops it and
 cancels its messages (`IChannelReceiver.StartAsync(stopFetching, cancellationToken)`). The Azure
-Storage queue, Redis and PostgreSQL receivers stop fetching and let the running message finish.
-Receivers that cannot, today NATS, cancel the running message straight away, and the lock is still
-kept until it has stopped.
+Storage queue, Azure Service Bus, Redis and PostgreSQL receivers stop fetching and let the running
+message finish. Receivers that cannot, today NATS, cancel the running message straight away, and
+the lock is still kept until it has stopped.
 
 A cancelled message is abandoned and delivered again. The delivery counts against the processor's
 `DeadLetterDeliveryLimit`, because the transport counts every delivery and KnightBus cannot take one

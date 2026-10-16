@@ -17,9 +17,8 @@ internal abstract class ServiceBusChannelReceiverBase<T> : IChannelReceiver
     private readonly IMessageProcessor _processor;
     private readonly IMessageSerializer _serializer;
     protected readonly ILogger Log;
-    private CancellationToken _cancellationToken;
-    private ServiceBusProcessor _client = null!;
     private int _deadLetterLimit;
+
     protected readonly IClientFactory ClientFactory;
     protected readonly ServiceBusAdministrationClient ManagementClient;
 
@@ -50,46 +49,52 @@ internal abstract class ServiceBusChannelReceiverBase<T> : IChannelReceiver
         CancellationToken cancellationToken
     )
     {
-        //Stopping the processor cancels the messages it is handling, so a drain stops it altogether
-        _cancellationToken = CancellationTokenSource
-            .CreateLinkedTokenSource(stopFetching, cancellationToken)
-            .Token;
         _deadLetterLimit = Settings.DeadLetterDeliveryLimit;
 
-        await InitializeAsync().ConfigureAwait(false);
+        //The receiver is started again whenever its singleton lock comes back, so the callbacks of
+        //one start only ever use that start's client and token, never those of a later one
+        var client = await CreateClient(cancellationToken).ConfigureAwait(false);
+        client.ProcessMessageAsync += arg => ClientOnProcessMessageAsync(arg, cancellationToken);
+        client.ProcessErrorAsync += arg => ClientOnProcessErrorAsync(arg, cancellationToken);
+        await client.StartProcessingAsync(cancellationToken).ConfigureAwait(false);
 
-#pragma warning disable 4014
-        Task.Run(
-            async () =>
-            {
-                _cancellationToken.WaitHandle.WaitOne();
-                try
-                {
-                    Log.LogInformation($"Closing ServiceBus channel receiver for {typeof(T).Name}");
-                    await _client.CloseAsync(CancellationToken.None);
-                }
-                catch (Exception)
-                {
-                    //Swallow
-                }
-            },
-            _cancellationToken
-        );
-#pragma warning restore 4014
+        //Stopping the processor ends receiving and lets the running handlers finish
+        stopFetching.Register(() => _ = StopProcessingAsync(client));
+        cancellationToken.Register(() => _ = CloseAsync(client));
+    }
+
+    private async Task StopProcessingAsync(ServiceBusProcessor client)
+    {
+        try
+        {
+            await client.StopProcessingAsync(CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception e)
+        {
+            Log.LogWarning(e, "Failed to stop fetching from {MessageType}", typeof(T).Name);
+        }
+    }
+
+    private async Task CloseAsync(ServiceBusProcessor client)
+    {
+        try
+        {
+            Log.LogInformation($"Closing ServiceBus channel receiver for {typeof(T).Name}");
+            await client.CloseAsync(CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception)
+        {
+            //Swallow
+        }
     }
 
     protected abstract Task<ServiceBusProcessor> CreateClient(CancellationToken cancellationToken);
     protected abstract Task CreateMessagingEntity(CancellationToken cancellationToken);
 
-    private async Task InitializeAsync()
-    {
-        _client = await CreateClient(_cancellationToken).ConfigureAwait(false);
-        _client.ProcessMessageAsync += ClientOnProcessMessageAsync;
-        _client.ProcessErrorAsync += ClientOnProcessErrorAsync;
-        await _client.StartProcessingAsync(_cancellationToken).ConfigureAwait(false);
-    }
-
-    private async Task ClientOnProcessErrorAsync(ProcessErrorEventArgs arg)
+    private async Task ClientOnProcessErrorAsync(
+        ProcessErrorEventArgs arg,
+        CancellationToken cancellationToken
+    )
     {
         if (
             arg.Exception is ServiceBusException
@@ -99,31 +104,55 @@ internal abstract class ServiceBusChannelReceiverBase<T> : IChannelReceiver
         )
         {
             Log.LogInformation($"{typeof(T).Name} not found. Creating.");
-            await CreateMessagingEntity(_cancellationToken).ConfigureAwait(false);
+            await CreateMessagingEntity(cancellationToken).ConfigureAwait(false);
         }
         else if (!(arg.Exception is OperationCanceledException))
             Log.LogError(arg.Exception, $"{typeof(T).Name}");
     }
 
-    private async Task ClientOnProcessMessageAsync(ProcessMessageEventArgs arg)
+    internal async Task ClientOnProcessMessageAsync(
+        ProcessMessageEventArgs arg,
+        CancellationToken cancellationToken
+    )
     {
+        //Not arg.CancellationToken: the SDK cancels it when processing stops, which is also how a
+        //drain stops fetching, and a drain must let the message finish
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        Task OnLockLost(MessageLockLostEventArgs _)
+        {
+            try
+            {
+                cts.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+                //The SDK can still raise it while the handler returns and the source is disposed
+            }
+            return Task.CompletedTask;
+        }
+        //Listen before anything else: the SDK raises the event once and does not repeat it for a
+        //handler that subscribes later. A lock that ran out before the message got here, for
+        //example while it waited in the prefetch buffer, raises nothing at all
+        arg.MessageLockLostAsync += OnLockLost;
         try
         {
+            if (arg.Message.LockedUntil <= DateTimeOffset.UtcNow)
+                await cts.CancelAsync().ConfigureAwait(false);
             var stateHandler = new ServiceBusMessageStateHandler<T>(
                 arg,
                 _serializer,
                 _deadLetterLimit,
                 _hostConfiguration.DependencyInjection
             );
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(
-                _cancellationToken,
-                arg.CancellationToken
-            );
             await _processor.ProcessAsync(stateHandler, cts.Token).ConfigureAwait(false);
         }
         catch (Exception e)
         {
             Log.LogError(e, "ServiceBus OnMessage Failed");
+        }
+        finally
+        {
+            arg.MessageLockLostAsync -= OnLockLost;
         }
     }
 
