@@ -7,13 +7,12 @@
   receiver that cannot stop fetching on its own treats both alike. A singleton lock hand-over stops
   fetching first and waits for the running message, for up to the processor's `MessageLockTimeout`,
   before cancelling it
-* **Breaking:** `GenericMessagePump.StartAsync` and `PumpAsync` take the same two tokens. Once fetching stops the pump
-  fetches nothing more, even when it was waiting for room, and `CleanupResources` runs
+* **Breaking:** `GenericMessagePump.StartAsync` and `PumpAsync` take the same two tokens. Once
+  fetching stops the pump fetches nothing more, even when it was waiting for room, and
+  `CleanupResources` runs
 * A message the pump fetched while it was stopping is handed to the pipeline with a cancelled token,
   which gives it back to the queue, instead of staying invisible until its lock runs out. On
   shutdown a handler can therefore be called with a token that is already cancelled
-
-# 18.5.0
 * `SingletonOptions` and `IServiceCollection.ConfigureSingletons(...)` make the poll interval, lock
   duration and renewal interval of singleton processors configurable. The defaults are unchanged.
   Instances waiting for a lock now add up to 20% random extra wait (`PollJitter`) so they do not poll

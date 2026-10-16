@@ -1,5 +1,45 @@
 # CHANGELOG
 
+# 2026-10-16
+
+### Singleton placement, hand-over drain and configurable lock timing
+Every singleton lock was an independent race, so the instance that started first took all of them and
+kept them. Placement spreads the locks over the live instances, keeps heavy processors apart, and
+hands locks over when instances join or leave. A hand-over lets the running message finish before
+the lock moves. Placement is on by default with the blob lock manager; see
+[Spreading singleton locks over hosts](https://bookbeat.github.io/knightbus/features/singleton-placement/).
+
+**Breaking:** `IChannelReceiver.StartAsync` takes two tokens, `StartAsync(stopFetching,
+cancellationToken)`. Cancelling `stopFetching` stops the receiver from taking new messages while the
+ones it is handling carry on; cancelling `cancellationToken` stops it and cancels them. A custom
+transport implements the new signature, and one that cannot stop fetching on its own treats
+`stopFetching` like `cancellationToken`. `GenericMessagePump.StartAsync` and `PumpAsync` take the
+same two tokens. A transport package built against `KnightBus.Core` 18 does not load with 19, so
+these are released together:
+
+- `KnightBus.Core` 19.0.0: the two-token `IChannelReceiver`; `SingletonOptions` and
+  `services.ConfigureSingletons(...)` for the poll interval, lock duration and renewal interval of
+  singleton processors (defaults unchanged: 1 minute, 1 minute and 19 seconds); `ISingletonWeight`;
+  and for stores that keep track of the hosts `ISingletonMembership`, `SingletonMember` and
+  `ISingletonLockInspector`. A message the pump was still fetching when it stopped is handed to the
+  pipeline with a cancelled token, which gives it back to the queue, instead of staying invisible
+  until its lock runs out. On shutdown a handler can therefore be called with a token that is
+  already cancelled.
+- `KnightBus.Host` 19.0.0: spreads the singleton locks over the members of the registered
+  `ISingletonMembership`, joining before the receivers start and leaving first on shutdown. A
+  hand-over stops fetching and waits for the running message, for up to the processor's
+  `MessageLockTimeout`, before cancelling it. Instances waiting for a lock add up to 20% random extra
+  wait (`PollJitter`), so instances that started together no longer poll in lock-step; set it to 0
+  for the exact old timing. Schedule locks are not affected.
+- `KnightBus.Azure.Storage` 19.0.0: `UseBlobStorageLockManager` also registers the blob membership,
+  which changes which instance runs a singleton processor after an upgrade. Remove the
+  `ISingletonMembership` registration to keep the old behaviour. Lock blobs record `LockId`, `HostId`
+  and `AcquiredAtUtc` in their metadata, `LockId` replacing the unused `FunctionInstance`. The queue
+  receiver drains.
+- `KnightBus.Azure.ServiceBus` 25.0.0: the queue and topic receivers drain, see its changelog.
+- `KnightBus.Redis` 18.0.0 and `KnightBus.PostgreSql` 5.0.0: the receivers drain.
+- `KnightBus.Nats` 8.0.0: the new signature; the receiver stops on either token, as before.
+
 # 2026-10-13
 
 ### Service Bus integration tests on the emulator
@@ -19,54 +59,6 @@ for as long as the storage service returned 5xx errors, so a holder whose lease 
 kept processing while another instance could take the lock. Once the lease period has passed since
 the last successful renewal the handle now throws, which cancels the singleton scope and releases the
 receiver.
-
-### Singleton lock timing is configurable, and waiting hosts poll with jitter
-`KnightBus.Core` 18.5.0 adds `SingletonOptions` and `services.ConfigureSingletons(...)` for the poll
-interval, lock duration and renewal interval of singleton processors. The defaults are the values that
-were hardcoded before: 1 minute, 1 minute and 19 seconds.
-
-`KnightBus.Host` 18.4.0 uses them, and adds up to 20% random extra wait (`PollJitter`) to the time an
-instance waits between attempts to take a singleton lock, so instances that started together no longer
-poll in lock-step. The wait is never shorter than before, so failover is not faster, and it can be up
-to 20% slower. Set `PollJitter` to 0 to keep the exact old timing. Schedule locks are not affected.
-
-### Singleton placement: letting a hand-over wait for the running message
-**Breaking:** `IChannelReceiver.StartAsync` takes two tokens, `StartAsync(stopFetching,
-cancellationToken)`. Cancelling `stopFetching` stops the receiver from taking new messages while the
-ones it is handling carry on; cancelling `cancellationToken` stops it and cancels them. A custom
-transport implements the new signature, and one that cannot stop fetching on its own treats
-`stopFetching` like `cancellationToken`. `GenericMessagePump.StartAsync` takes the same two tokens.
-
-A singleton lock hand-over stops fetching first and waits for the running message, for up to the
-processor's `MessageLockTimeout`, before cancelling it. Azure Service Bus and the pump transports,
-Azure Storage queues, Redis and PostgreSQL, drain. NATS is cancelled straight away, as before.
-A message the pump was still fetching when it stopped is handed to the pipeline with a cancelled
-token, which gives it back to the queue, instead of staying invisible until its lock runs out. On
-shutdown a handler can therefore be called with a token that is already cancelled.
-
-A transport package built against `KnightBus.Core` 18 does not load with 19, so they are all released
-together: `KnightBus.Core` 19.0.0, `KnightBus.Host` 19.0.0, `KnightBus.Azure.Storage` 19.0.0,
-`KnightBus.Azure.ServiceBus` 25.0.0, `KnightBus.Redis` 18.0.0, `KnightBus.PostgreSql` 5.0.0 and
-`KnightBus.Nats` 8.0.0.
-
-### Singleton placement: spreading singleton locks over the running instances
-Every singleton lock was an independent race, so the instance that started first took all of them and
-kept them. Placement spreads the locks over the live instances, keeps heavy processors apart, and
-hands locks over when instances join or leave. It is on by default with the blob lock manager; see
-[Spreading singleton locks over hosts](https://bookbeat.github.io/knightbus/features/singleton-placement/).
-
-- `KnightBus.Core` 18.5.0: `ISingletonWeight`, and for stores that keep track of the hosts
-  `ISingletonMembership`, `SingletonMember` and `ISingletonLockInspector`.
-- `KnightBus.Azure.Storage` 18.4.0: `UseBlobStorageLockManager` now also spreads the singleton locks
-  over the hosts, which changes which instance runs a singleton processor after an upgrade. Remove
-  the `ISingletonMembership` registration to keep the old behaviour. Lock blobs record `LockId`,
-  `HostId` and `AcquiredAtUtc` in their metadata, `LockId` replacing the unused `FunctionInstance`.
-  A host whose member lease lapses rejoins the member list, and a member blob is only removed once it
-  is unleased and has not been written for 10 minutes.
-- `KnightBus.Host` 18.4.0: the host spreads the locks over the members of the registered
-  `ISingletonMembership`. It joins before the receivers start and leaves first on shutdown.
-
-Applications that use the blob lock manager get placement without configuring anything.
 
 # 2026-10-06
 
