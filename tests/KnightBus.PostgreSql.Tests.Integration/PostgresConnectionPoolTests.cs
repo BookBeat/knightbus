@@ -18,7 +18,6 @@ public class PostgresConnectionPoolTests
         AutoMessageMapper.GetQueueName<PoolCommand>()
     );
     private PostgresManagementClient _managementClient = null!;
-    private PostgresQueueClient<PoolCommand> _queueClient = null!;
     private string _singleConnectionString = null!;
 
     [SetUp]
@@ -28,10 +27,6 @@ public class PostgresConnectionPoolTests
         _managementClient = new PostgresManagementClient(
             PostgresSetup.DataSource,
             new PostgresConfiguration { MessageSerializer = new MicrosoftJsonSerializer() }
-        );
-        _queueClient = new PostgresQueueClient<PoolCommand>(
-            PostgresSetup.DataSource,
-            new MicrosoftJsonSerializer()
         );
         _singleConnectionString = new NpgsqlConnectionStringBuilder(PostgresSetup.ConnectionString)
         {
@@ -60,7 +55,7 @@ public class PostgresConnectionPoolTests
         await using var messages = client
             .GetMessagesAsync(2, TimeSpan.FromSeconds(30), default)
             .GetAsyncEnumerator();
-        await messages.MoveNextAsync();
+        (await messages.MoveNextAsync()).Should().BeTrue();
 
         //act & assert: the only connection in the pool must be free while the batch is consumed
         await client.Awaiting(c => c.CompleteAsync(messages.Current)).Should().NotThrowAsync();
@@ -92,10 +87,10 @@ public class PostgresConnectionPoolTests
 
         //assert
         PoolProcessor.Invocations.Should().Be(PoolProcessor.Expected);
-        var remaining = await _queueClient.GetMessagesAsync(10, 0, default).ToListAsync();
-        remaining.Should().BeEmpty();
-        var deadLetters = await _queueClient.PeekDeadLetterMessagesAsync(10, default).ToListAsync();
-        deadLetters.Should().BeEmpty();
+        //counts locked rows too, so a message handled but never completed is caught
+        var queue = await _managementClient.GetQueue(QueueName, default);
+        queue.ActiveMessagesCount.Should().Be(0);
+        queue.DeadLetterMessagesCount.Should().Be(0);
     }
 
     private static async Task SendMessages(int count)

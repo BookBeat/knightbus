@@ -6,6 +6,9 @@
 no longer holds a pooled connection while prefetched messages wait for a free handler. On a small
 pool, handlers could not get a connection to complete their messages until the pool timed out.
 
+# 4.4.0
+(minor): `PostgresQueueName` rejects empty names and gains `TryCreate`.
+
 # 4.3.0
 (minor): `Npgsql` and `Npgsql.DependencyInjection` move to 9.0.5 on `net9.0` and 10.0.3 on `net10.0`,
 raising the floor consumers resolve against. No API change.
