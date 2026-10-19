@@ -81,11 +81,9 @@ public class PostgresSubscriptionManagerTests : QueueManagerTests<PostgresTestEv
         }
 
         return new PostgresMessageStateHandler<PostgresTestEvent>(
-            PostgresSetup.DataSource,
             _postgresQueueClient,
             result.First(),
             5,
-            new MicrosoftJsonSerializer(),
             null!
         );
     }
