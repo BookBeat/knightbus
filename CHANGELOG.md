@@ -2,10 +2,12 @@
 
 # 2026-10-19
 
-### KnightBus.PostgreSql 4.4.1
-The message pump no longer holds a pooled connection while prefetched messages wait for a free
-handler. The fetched batch is read in full and the connection returned before messages are handed out,
-so handlers no longer compete with the fetch for the pool to complete their messages.
+### KnightBus.PostgreSql 5.0.0
+* **Breaking:** the `PostgresMessageStateHandler` constructor no longer takes the unused
+  `npgsqlDataSource` and `serializer` parameters
+* The message pump no longer holds a pooled connection while prefetched messages wait for a free
+  handler. The fetched batch is read in full and the connection returned before messages are handed
+  out, so handlers no longer compete with the fetch for the pool to complete their messages.
 
 # 2026-10-13
 

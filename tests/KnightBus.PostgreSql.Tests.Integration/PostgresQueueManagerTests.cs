@@ -77,11 +77,9 @@ public class PostgresQueueManagerTests : QueueManagerTests<PostgresTestCommand>
         }
 
         return new PostgresMessageStateHandler<PostgresTestCommand>(
-            PostgresSetup.DataSource,
             _postgresQueueClient,
             result.First(),
             5,
-            new MicrosoftJsonSerializer(),
             null!
         );
     }
