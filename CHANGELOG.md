@@ -1,6 +1,6 @@
 # CHANGELOG
 
-# 2026-10-16
+# 2026-10-19
 
 ### Singleton placement, hand-over drain and configurable lock timing
 Every singleton lock was an independent race, so the instance that started first took all of them and
@@ -38,8 +38,15 @@ these are released together:
   `SingletonOptions.LockDuration` outside the 15 to 60 seconds a blob lease allows now fails the host
   start instead of every attempt to take a lock. The queue receiver drains.
 - `KnightBus.Azure.ServiceBus` 25.0.0: the queue and topic receivers drain, see its changelog.
-- `KnightBus.Redis` 18.0.0 and `KnightBus.PostgreSql` 5.0.0: the receivers drain.
+- `KnightBus.Redis` 18.0.0 and `KnightBus.PostgreSql` 6.0.0: the receivers drain.
 - `KnightBus.Nats` 8.0.0: the new signature; the receiver stops on either token, as before.
+
+### KnightBus.PostgreSql 5.0.0
+* **Breaking:** the `PostgresMessageStateHandler` constructor no longer takes the unused
+  `npgsqlDataSource` and `serializer` parameters
+* The message pump no longer holds a pooled connection while prefetched messages wait for a free
+  handler. The fetched batch is read in full and the connection returned before messages are handed
+  out, so handlers no longer compete with the fetch for the pool to complete their messages.
 
 # 2026-10-13
 

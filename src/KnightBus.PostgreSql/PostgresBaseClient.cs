@@ -42,6 +42,22 @@ public class PostgresBaseClient<T>
         [EnumeratorCancellation] CancellationToken ct
     )
     {
+        //Read the whole batch first, the pump hands messages out while it waits for free handlers
+        //and must not hold a pooled connection the handlers need to complete them
+        var messages = await FetchMessagesAsync(count, visibilityTimeout, ct).ConfigureAwait(false);
+        foreach (var message in messages)
+        {
+            yield return message;
+        }
+    }
+
+    private async Task<List<PostgresMessage<T>>> FetchMessagesAsync(
+        int count,
+        TimeSpan visibilityTimeout,
+        CancellationToken ct
+    )
+    {
+        var messages = new List<PostgresMessage<T>>();
         await using var connection = await _npgsqlDataSource
             .OpenConnectionAsync(ct)
             .ConfigureAwait(false);
@@ -98,8 +114,10 @@ UPDATE {SchemaName}.{_prefix}_{_queueName} t
                     ),
                 Time = reader.GetDateTime(enqueuedAtOrdinal),
             };
-            yield return postgresMessage;
+            messages.Add(postgresMessage);
         }
+
+        return messages;
     }
 
     public async Task CompleteAsync(PostgresMessage<T> message)

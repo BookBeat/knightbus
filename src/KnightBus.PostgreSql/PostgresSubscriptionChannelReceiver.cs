@@ -62,11 +62,9 @@ public class PostgresSubscriptionChannelReceiver<T> : IChannelReceiver
     )
     {
         var stateHandler = new PostgresMessageStateHandler<T>(
-            _npgsqlDataSource,
             _queueClient,
             postgresMessage,
             Settings.DeadLetterDeliveryLimit,
-            _serializer,
             _hostConfiguration.DependencyInjection
         );
 

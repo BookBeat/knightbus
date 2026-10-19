@@ -1,6 +1,5 @@
 ﻿using KnightBus.Core;
 using KnightBus.Messages;
-using Npgsql;
 
 namespace KnightBus.PostgreSql;
 
@@ -11,11 +10,9 @@ public class PostgresMessageStateHandler<T> : IMessageStateHandler<T>, IMessageL
     private readonly PostgresMessage<T> _message;
 
     public PostgresMessageStateHandler(
-        NpgsqlDataSource npgsqlDataSource,
         PostgresBaseClient<T> queueClient,
         PostgresMessage<T> message,
         int deadLetterDeliveryLimit,
-        IMessageSerializer serializer,
         IDependencyInjection messageScope
     )
     {
