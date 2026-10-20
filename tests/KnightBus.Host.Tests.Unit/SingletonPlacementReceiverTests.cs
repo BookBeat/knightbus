@@ -102,8 +102,8 @@ public class SingletonPlacementReceiverTests
         await Eventually.True(() => f.Locks.Attempts >= 5);
         f.Store.ReleaseFor(Lock);
 
-        //assert
-        await Eventually.True(() => f.Store.Holder(Lock) == Me);
+        //assert: the receiver starts just after the lock is taken
+        await Eventually.True(() => f.Store.Holder(Lock) == Me && f.Inner.Started >= 1);
         f.Inner.Started.Should().Be(1);
     }
 
@@ -124,6 +124,28 @@ public class SingletonPlacementReceiverTests
 
         //assert: picked up well within one poll interval, without trying to take a held lock
         f.Locks.Attempts.Should().Be(0);
+        await Eventually.True(() => f.Store.Holder(Lock) == Me);
+    }
+
+    [Test]
+    public async Task Should_take_a_lock_soon_after_it_becomes_this_hosts_while_waiting()
+    {
+        //arrange: another host should hold the lock and has it, and the poll interval is long
+        await using var f = new Fixture();
+        f.Receiver.TimerInterval = TimeSpan.FromMinutes(1);
+        f.Receiver.PreferredPollInterval = TimeSpan.FromMilliseconds(20);
+        f.Store.Take(Lock, Other);
+        f.Placement.Prefer(Lock, Other);
+        await f.Start();
+        //the poll loop is in its long wait, it looked only once
+        await Task.Delay(TimeSpan.FromMilliseconds(200));
+        f.Locks.Inspections.Should().Be(1);
+
+        //act: the holder leaves, and the placement now prefers this host
+        f.Store.ReleaseFor(Lock);
+        f.Placement.Prefer(Lock, Me);
+
+        //assert: well within the poll interval this host was waiting out
         await Eventually.True(() => f.Store.Holder(Lock) == Me);
     }
 

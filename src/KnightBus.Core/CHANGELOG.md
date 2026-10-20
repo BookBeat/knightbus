@@ -23,6 +23,8 @@
   declares how heavy it is by implementing `ISingletonWeight` on its processing settings. New public
   types: `ISingletonWeight`, and for stores that keep track of the hosts `ISingletonMembership`,
   `SingletonMember` and `ISingletonLockInspector`
+* `SingletonTimerScope` logs `Releasing lock` at Debug instead of Information. The owner of the lock
+  logs what the release means; a failed release is still a warning
 
 # 18.4.0
 * `Microsoft.Extensions.DependencyInjection.Abstractions`, `Microsoft.Extensions.Logging.Abstractions`

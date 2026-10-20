@@ -108,11 +108,7 @@ internal class SingletonChannelReceiver : IChannelReceiver
             try
             {
                 //StartAsync has just made the first attempt
-                await Task.Delay(
-                        NextPollDelay(CurrentPollInterval(), PollJitter),
-                        cancellationToken
-                    )
-                    .ConfigureAwait(false);
+                await WaitForNextPoll(cancellationToken).ConfigureAwait(false);
                 await PollOnce(cancellationToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -149,13 +145,40 @@ internal class SingletonChannelReceiver : IChannelReceiver
             await HandOverIfNotPreferred(held, cancellationToken).ConfigureAwait(false);
     }
 
-    private TimeSpan CurrentPollInterval() =>
+    //A lock this host should take but does not hold is looked at more often
+    private bool PollsOften() =>
         _held == null
         && _placement != null
         && _placement.Advise(_lockId) == _placement.HostId
-        && PreferredPollInterval < TimerInterval
-            ? PreferredPollInterval
-            : TimerInterval;
+        && PreferredPollInterval > TimeSpan.Zero
+        && PreferredPollInterval < TimerInterval;
+
+    private TimeSpan CurrentPollInterval() => PollsOften() ? PreferredPollInterval : TimerInterval;
+
+    //Looks again at the preferred interval, so a lock that becomes this host's while it waits, for
+    //example because its holder left, is not left idle for the rest of a full poll interval
+    private async Task WaitForNextPoll(CancellationToken cancellationToken)
+    {
+        var pollsOften = PollsOften();
+        var remaining = NextPollDelay(CurrentPollInterval(), PollJitter);
+        //Only a host without the lock can become its preferred holder
+        if (pollsOften || _held != null || _placement == null)
+        {
+            await Task.Delay(remaining, cancellationToken).ConfigureAwait(false);
+            return;
+        }
+        while (remaining > TimeSpan.Zero)
+        {
+            var step =
+                PreferredPollInterval > TimeSpan.Zero && PreferredPollInterval < remaining
+                    ? PreferredPollInterval
+                    : remaining;
+            await Task.Delay(step, cancellationToken).ConfigureAwait(false);
+            remaining -= step;
+            if (PollsOften())
+                return;
+        }
+    }
 
     internal static TimeSpan NextPollDelay(TimeSpan interval, double jitter, Random? random = null)
     {

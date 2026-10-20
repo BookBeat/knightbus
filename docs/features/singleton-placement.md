@@ -181,8 +181,12 @@ with the cancellation recorded as its error.
 ### Leaving
 
 On shutdown an instance leaves the member list first, so the others start counting on its locks
-while it drains, and then releases its own locks. An instance that becomes the preferred holder of
-one of those locks takes it at its next poll, so within the singleton poll interval.
+while it drains, and then releases its own locks. The others notice it has left when they next read
+the member list, within 20 seconds. From then on the instance that should hold one of its locks
+looks for it every 5 seconds, even if it was waiting out a longer poll interval, and takes it within
+5 seconds of its release. A holder that could not remove itself from the member list is noticed
+once its member lease runs out, and a holder that crashed releases nothing, so its locks are free
+once their lease runs out.
 
 ## Fixed behaviour
 

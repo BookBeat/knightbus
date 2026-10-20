@@ -24,7 +24,8 @@ these are released together:
   `ISingletonLockInspector`. A message the pump was still fetching when it stopped is handed to the
   pipeline with a cancelled token, which gives it back to the queue, instead of staying invisible
   until its lock runs out. On shutdown a handler can therefore be called with a token that is
-  already cancelled.
+  already cancelled. `SingletonTimerScope` logs `Releasing lock` at Debug instead of Information,
+  since the owner of the lock logs what the release means.
 - `KnightBus.Host` 19.0.0: spreads the singleton locks over the members of the registered
   `ISingletonMembership`, joining before the receivers start and leaving first on shutdown. A
   hand-over stops fetching and waits for the running message, for up to the processor's
@@ -38,7 +39,10 @@ these are released together:
   overlaps, and the lock blobs with the old names are left behind and can be deleted. The singleton
   log lines name the lock and say what happened to it: `Acquired lock`, `Released lock`,
   `Lost lock`, `Handing lock … over`, and `Waiting for lock` when the host that should hold a lock
-  finds it held elsewhere.
+  finds it held elsewhere. A host that becomes the preferred holder of a lock while it waits looks
+  for it every 5 seconds from then on, instead of at the end of its poll interval, so it takes the
+  lock within 5 seconds of its release once it has noticed, within 20 seconds, that the holder
+  left.
 - `KnightBus.Azure.Storage` 19.0.0: `UseBlobStorageLockManager` also registers the blob membership,
   which changes which instance runs a singleton processor after an upgrade. Remove the
   `ISingletonMembership` registration to keep the old behaviour. Lock blobs record `LockId`, `HostId`

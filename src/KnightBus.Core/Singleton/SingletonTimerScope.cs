@@ -102,7 +102,8 @@ public class SingletonTimerScope : IDisposable
             return;
         try
         {
-            _log.LogInformation("Releasing lock {LockId}", _lockHandle.LockId);
+            //The owner of the lock logs what the release means
+            _log.LogDebug("Releasing lock {LockId}", _lockHandle.LockId);
             await _lockHandle.ReleaseAsync(CancellationToken.None).ConfigureAwait(false);
         }
         catch (Exception e)
