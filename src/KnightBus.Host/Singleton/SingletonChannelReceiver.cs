@@ -31,6 +31,9 @@ internal class SingletonChannelReceiver : IChannelReceiver
     private readonly string _lockId;
     internal string LockId => _lockId;
 
+    //Type arguments without their assembly versions, so every build of a host takes the same lock
+    internal static string LockIdOf(Type receiverType) => receiverType.ToString();
+
     //How heavy this processor is when the locks are spread over the hosts
     internal int Weight { get; init; } = 1;
 
@@ -81,7 +84,7 @@ internal class SingletonChannelReceiver : IChannelReceiver
         _lockManager = lockManager;
         _log = log;
         _teardownToken = teardownToken;
-        _lockId = lockId ?? channelReceiver.GetType().FullName!;
+        _lockId = lockId ?? LockIdOf(channelReceiver.GetType());
         //MaxConcurrent and Prefetch must have specific  values to work with a singleton implementation.
         //Override those and let the other values be set from the specific implementation
         Settings = new SingletonProcessingSettings

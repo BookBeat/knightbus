@@ -121,7 +121,7 @@ internal class TransportStarterFactory
         var lockManager = _configuration.DependencyInjection.GetInstance<ISingletonLockManager>();
         _configuration.Log.LogInformation("Setting {SettingName} in Singleton mode", type.Name);
 
-        var lockId = channelReceiver.GetType().FullName ?? channelReceiver.GetType().Name;
+        var lockId = SingletonChannelReceiver.LockIdOf(channelReceiver.GetType());
         if (!string.IsNullOrWhiteSpace(subscription?.Name))
         {
             lockId = $"{lockId}:{subscription.Name}";

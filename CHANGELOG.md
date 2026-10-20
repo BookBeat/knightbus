@@ -30,7 +30,11 @@ these are released together:
   hand-over stops fetching and waits for the running message, for up to the processor's
   `MessageLockTimeout`, before cancelling it. Instances waiting for a lock add up to 20% random extra
   wait (`PollJitter`), so instances that started together no longer poll in lock-step; set it to 0
-  for the exact old timing. Schedule locks are not affected.
+  for the exact old timing. Schedule locks are not affected. A singleton lock id no longer carries
+  the assembly versions of the message type, which change with every build of an application that
+  versions its assemblies per build, so two builds held separate locks for the same processor and
+  both processed during a rolling deploy. Upgrading changes every lock id once: that deploy still
+  overlaps, and the lock blobs named with versions are left behind and can be deleted.
 - `KnightBus.Azure.Storage` 19.0.0: `UseBlobStorageLockManager` also registers the blob membership,
   which changes which instance runs a singleton processor after an upgrade. Remove the
   `ISingletonMembership` registration to keep the old behaviour. Lock blobs record `LockId`, `HostId`

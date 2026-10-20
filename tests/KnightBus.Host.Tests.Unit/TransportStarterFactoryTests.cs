@@ -245,9 +245,31 @@ public class TransportStarterFactoryTests
         create.Should().Throw<InvalidOperationException>().WithMessage("*at least 1*");
     }
 
+    [Test]
+    public void Should_leave_assembly_versions_out_of_the_singleton_lock_id()
+    {
+        //act
+        var receiver = CreateSingletonReceiver(
+            inner: new GenericReceiver<TestEvent>
+            {
+                Settings = new SingletonProcessingSettings
+                {
+                    MessageLockTimeout = TimeSpan.FromMinutes(1),
+                    DeadLetterDeliveryLimit = 1,
+                },
+            }
+        );
+
+        //assert: a new build of the host must take the lock the previous build held
+        receiver
+            .LockId.Should()
+            .Be($"{typeof(GenericReceiver<>).FullName}[{typeof(TestEvent).FullName}]:test-sub");
+    }
+
     private static SingletonChannelReceiver CreateSingletonReceiver(
         Action<IServiceCollection>? configure = null,
-        Type? processor = null
+        Type? processor = null,
+        IChannelReceiver? inner = null
     )
     {
         var config = new Mock<ITransportConfiguration>();
@@ -276,7 +298,7 @@ public class TransportStarterFactoryTests
                     It.IsAny<IMessageProcessor>()
                 )
             )
-            .Returns(underlyingReceiver.Object);
+            .Returns(inner ?? underlyingReceiver.Object);
 
         var collection = new ServiceCollection();
         collection.UseSingletonLocks(Mock.Of<ISingletonLockManager>());
@@ -305,6 +327,14 @@ public class TransportStarterFactoryTests
                 processor
             );
     }
+}
+
+public class GenericReceiver<T> : IChannelReceiver
+{
+    public required IProcessingSettings Settings { get; set; }
+
+    public Task StartAsync(CancellationToken stopFetching, CancellationToken cancellationToken) =>
+        Task.CompletedTask;
 }
 
 public class JsonProcessor : IProcessCommand<TestCommand, TestMessageSettings>
