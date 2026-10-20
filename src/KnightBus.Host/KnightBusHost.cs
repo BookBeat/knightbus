@@ -98,10 +98,17 @@ public class KnightBusHost : IHostedService
                 _configuration.Log.LogInformation("Starting receivers");
                 foreach (var receiver in Receivers)
                 {
-                    _configuration.Log.LogInformation(
-                        "Starting receiver {ReceiverType}",
-                        receiver.GetType()
-                    );
+                    //The lock id names the wrapped receiver and its subscription
+                    if (receiver is SingletonChannelReceiver singleton)
+                        _configuration.Log.LogInformation(
+                            "Starting singleton receiver {LockId}",
+                            singleton.LockId
+                        );
+                    else
+                        _configuration.Log.LogInformation(
+                            "Starting receiver {ReceiverType}",
+                            receiver.GetType()
+                        );
                     //Shutdown stops a receiver and its messages at once, then waits for them below
                     await receiver
                         .StartAsync(combinedToken.Token, combinedToken.Token)

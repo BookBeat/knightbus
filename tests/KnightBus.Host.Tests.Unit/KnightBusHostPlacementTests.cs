@@ -10,6 +10,7 @@ using KnightBus.Core.Singleton;
 using KnightBus.Host.Singleton;
 using KnightBus.Host.Tests.Unit.ExampleProcessors;
 using KnightBus.Messages;
+using KnightBus.Tests.Shared;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -26,6 +27,7 @@ public class KnightBusHostPlacementTests
     {
         public readonly Mock<ISingletonMembership> Membership = new();
         public readonly Mock<ISingletonLockManager> Locks = new();
+        public readonly ListLogger Log = new();
         public readonly KnightBusHost Host;
 
         public Fixture(IPlugin? plugin = null, bool weighted = false)
@@ -69,8 +71,24 @@ public class KnightBusHostPlacementTests
             Host = new KnightBusHost(
                 new HostConfiguration(),
                 services.BuildServiceProvider(),
-                Mock.Of<ILogger<KnightBusHost>>()
+                new HostLog(Log)
             );
+        }
+
+        private sealed class HostLog(ILogger inner) : ILogger<KnightBusHost>
+        {
+            public IDisposable? BeginScope<TState>(TState state)
+                where TState : notnull => inner.BeginScope(state);
+
+            public bool IsEnabled(LogLevel logLevel) => inner.IsEnabled(logLevel);
+
+            public void Log<TState>(
+                LogLevel logLevel,
+                EventId eventId,
+                TState state,
+                Exception? exception,
+                Func<TState, Exception?, string> formatter
+            ) => inner.Log(logLevel, eventId, state, exception, formatter);
         }
 
         public void VerifyLeft() =>
@@ -118,6 +136,33 @@ public class KnightBusHostPlacementTests
 
         await f.Host.StopAsync(CancellationToken.None);
         f.VerifyLeft();
+    }
+
+    [Test]
+    public async Task Should_name_the_lock_when_starting_a_singleton_receiver()
+    {
+        //arrange
+        var f = new Fixture();
+        string? lockId = null;
+        f.Membership.Setup(x =>
+                x.JoinAsync(
+                    It.IsAny<IReadOnlyDictionary<string, int>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback(
+                (IReadOnlyDictionary<string, int> locks, CancellationToken _) =>
+                    lockId = locks.Keys.Single()
+            );
+
+        //act
+        await f.Host.StartAsync(CancellationToken.None);
+
+        //assert
+        f.Log.Messages.Should().Contain($"Starting singleton receiver {lockId}");
+        f.Log.Messages.Should().NotContain(m => m.Contains(nameof(SingletonChannelReceiver)));
+
+        await f.Host.StopAsync(CancellationToken.None);
     }
 
     [Test]
