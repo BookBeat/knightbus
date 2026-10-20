@@ -81,6 +81,7 @@ internal class TransportStarterFactory
         return WrapSingletonReceiver(
             starter,
             processor,
+            processorTypes.MessageType,
             eventSubscription,
             processingSettings,
             inFlight
@@ -113,6 +114,7 @@ internal class TransportStarterFactory
     private IChannelReceiver WrapSingletonReceiver(
         IChannelReceiver channelReceiver,
         Type type,
+        Type messageType,
         IEventSubscription? subscription,
         IProcessingSettings processingSettings,
         InFlightMessages inFlight
@@ -121,11 +123,7 @@ internal class TransportStarterFactory
         var lockManager = _configuration.DependencyInjection.GetInstance<ISingletonLockManager>();
         _configuration.Log.LogInformation("Setting {SettingName} in Singleton mode", type.Name);
 
-        var lockId = SingletonChannelReceiver.LockIdOf(channelReceiver.GetType());
-        if (!string.IsNullOrWhiteSpace(subscription?.Name))
-        {
-            lockId = $"{lockId}:{subscription.Name}";
-        }
+        var lockId = SingletonChannelReceiver.LockIdOf(messageType, subscription);
 
         var options =
             _configuration.DependencyInjection.GetInstances<SingletonOptions>().LastOrDefault()

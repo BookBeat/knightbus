@@ -80,8 +80,10 @@ and registration throws. Schedule locks use their own fixed timing.
 Events get one lock per subscription, so two subscriptions on the same event each process singly but
 independently of one another.
 
-A lock is named after the receiver and message types, without assembly versions, so every build of
-an application takes the same lock and two builds exclude each other during a rolling deploy.
+A lock is named after the message type, plus the subscription for an event, for example
+`MyApp.Messages.RebuildIndexCommand` or `MyApp.Messages.OrderPlaced:invoicing`. The name carries no
+assembly version, so every build of an application takes the same lock and two builds exclude each
+other during a rolling deploy.
 
 ## Spreading the locks over hosts
 

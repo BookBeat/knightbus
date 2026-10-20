@@ -246,30 +246,28 @@ public class TransportStarterFactoryTests
     }
 
     [Test]
+    public void Should_name_the_singleton_lock_after_the_message_and_its_subscription()
+    {
+        //act
+        var receiver = CreateSingletonReceiver();
+
+        //assert
+        receiver.LockId.Should().Be($"{typeof(TestEvent).FullName}:test-sub");
+    }
+
+    [Test]
     public void Should_leave_assembly_versions_out_of_the_singleton_lock_id()
     {
         //act
-        var receiver = CreateSingletonReceiver(
-            inner: new GenericReceiver<TestEvent>
-            {
-                Settings = new SingletonProcessingSettings
-                {
-                    MessageLockTimeout = TimeSpan.FromMinutes(1),
-                    DeadLetterDeliveryLimit = 1,
-                },
-            }
-        );
+        var lockId = SingletonChannelReceiver.LockIdOf(typeof(GenericMessage<TestCommand>), null);
 
         //assert: a new build of the host must take the lock the previous build held
-        receiver
-            .LockId.Should()
-            .Be($"{typeof(GenericReceiver<>).FullName}[{typeof(TestEvent).FullName}]:test-sub");
+        lockId.Should().NotContain("Version=").And.Contain(typeof(TestCommand).FullName!);
     }
 
     private static SingletonChannelReceiver CreateSingletonReceiver(
         Action<IServiceCollection>? configure = null,
-        Type? processor = null,
-        IChannelReceiver? inner = null
+        Type? processor = null
     )
     {
         var config = new Mock<ITransportConfiguration>();
@@ -298,7 +296,7 @@ public class TransportStarterFactoryTests
                     It.IsAny<IMessageProcessor>()
                 )
             )
-            .Returns(inner ?? underlyingReceiver.Object);
+            .Returns(underlyingReceiver.Object);
 
         var collection = new ServiceCollection();
         collection.UseSingletonLocks(Mock.Of<ISingletonLockManager>());
@@ -329,13 +327,7 @@ public class TransportStarterFactoryTests
     }
 }
 
-public class GenericReceiver<T> : IChannelReceiver
-{
-    public required IProcessingSettings Settings { get; set; }
-
-    public Task StartAsync(CancellationToken stopFetching, CancellationToken cancellationToken) =>
-        Task.CompletedTask;
-}
+public class GenericMessage<T> : ICommand;
 
 public class JsonProcessor : IProcessCommand<TestCommand, TestMessageSettings>
 {

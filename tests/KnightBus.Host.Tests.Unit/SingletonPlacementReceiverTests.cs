@@ -269,15 +269,48 @@ public class SingletonPlacementReceiverTests
 
         //assert
         log.Messages.Should()
-            .Contain($"Starting Singleton Processor with name {Lock} on host {Me}")
-            .And.Contain(
-                $"Singleton Processor with name {Lock} on host {Me} hands its lock over to {Other}"
-            );
-        await Eventually.True(() =>
-            log.Messages.Contains(
-                $"Singleton Processor with name {Lock} on host {Me} stopped holding its lock"
-            )
-        );
+            .Contain($"Acquired lock {Lock} on host {Me}")
+            .And.Contain($"Handing lock {Lock} on host {Me} over to {Other}");
+        await Eventually.True(() => log.Messages.Contains($"Released lock {Lock} on host {Me}"));
+    }
+
+    [Test]
+    public async Task Should_log_once_that_it_waits_for_a_lock_it_should_hold()
+    {
+        //arrange: this host should hold the lock, but another host still has it
+        var log = new ListLogger();
+        await using var f = new Fixture(log: log);
+        f.Store.Take(Lock, Other);
+        f.Placement.Prefer(Lock, Me);
+        await f.Start();
+        await Eventually.True(() => f.Locks.Inspections >= 3);
+
+        //act
+        f.Store.ReleaseFor(Lock);
+        await Eventually.True(() => f.Store.Holder(Lock) == Me);
+
+        //assert
+        log.Messages.Where(m => m == $"Waiting for lock {Lock} on host {Me}")
+            .Should()
+            .HaveCount(1);
+        log.Messages.Should().Contain($"Acquired lock {Lock} on host {Me}");
+    }
+
+    [Test]
+    public async Task Should_not_log_waiting_for_a_lock_another_host_should_hold()
+    {
+        //arrange
+        var log = new ListLogger();
+        await using var f = new Fixture(log: log);
+        f.Store.Take(Lock, Other);
+        f.Placement.Prefer(Lock, Other);
+
+        //act
+        await f.Start();
+        await Eventually.True(() => f.Locks.Inspections >= 3);
+
+        //assert: standing by for a lock is the normal state of most hosts
+        log.Messages.Should().NotContain(m => m.StartsWith("Waiting for lock"));
     }
 
     [Test]
@@ -364,7 +397,7 @@ public class SingletonPlacementReceiverTests
 
         //assert: the lock is not held without processing, and a failed start is not a lost lock
         await Eventually.True(() => f.Store.Holder(Lock) == Me && f.Inner.Started >= 3);
-        log.Messages.Should().NotContain(m => m.Contains("lost its lock"));
+        log.Messages.Should().NotContain(m => m.StartsWith("Lost lock"));
     }
 
     [Test]

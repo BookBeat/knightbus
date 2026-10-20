@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using KnightBus.Core;
 using KnightBus.Core.Singleton;
+using KnightBus.Messages;
 using Microsoft.Extensions.Logging;
 
 namespace KnightBus.Host.Singleton;
@@ -31,8 +32,11 @@ internal class SingletonChannelReceiver : IChannelReceiver
     private readonly string _lockId;
     internal string LockId => _lockId;
 
-    //Type arguments without their assembly versions, so every build of a host takes the same lock
-    internal static string LockIdOf(Type receiverType) => receiverType.ToString();
+    //Named after the message, without assembly versions, so every build of a host takes the same lock
+    internal static string LockIdOf(Type messageType, IEventSubscription? subscription) =>
+        string.IsNullOrWhiteSpace(subscription?.Name)
+            ? messageType.ToString()
+            : $"{messageType}:{subscription.Name}";
 
     //How heavy this processor is when the locks are spread over the hosts
     internal int Weight { get; init; } = 1;
@@ -63,6 +67,8 @@ internal class SingletonChannelReceiver : IChannelReceiver
     //When the lock was first seen free while another host is the one that should hold it
     private long? _freeSince;
 
+    private bool _waiting;
+
     /// <summary>
     /// Completes when the lock held by this receiver has been released
     /// </summary>
@@ -84,7 +90,7 @@ internal class SingletonChannelReceiver : IChannelReceiver
         _lockManager = lockManager;
         _log = log;
         _teardownToken = teardownToken;
-        _lockId = lockId ?? LockIdOf(channelReceiver.GetType());
+        _lockId = lockId ?? channelReceiver.GetType().ToString();
         //MaxConcurrent and Prefetch must have specific  values to work with a singleton implementation.
         //Override those and let the other values be set from the specific implementation
         Settings = new SingletonProcessingSettings
@@ -116,12 +122,7 @@ internal class SingletonChannelReceiver : IChannelReceiver
             catch (Exception e)
             {
                 //A failed attempt must not end the loop, or this host never takes the lock again
-                _log.LogError(
-                    e,
-                    "Singleton Processor with name {ProcessorName} on host {HostId} failed to check its lock",
-                    _lockId,
-                    HostId
-                );
+                _log.LogError(e, "Failed to check lock {LockId} on host {HostId}", _lockId, HostId);
             }
         }
     }
@@ -132,11 +133,7 @@ internal class SingletonChannelReceiver : IChannelReceiver
         if (held is { Scope.Completion.IsCompleted: true })
         {
             //The scope ends by itself only when the lock could not be renewed
-            _log.LogInformation(
-                "Singleton Processor with name {ProcessorName} lost its lock on host {HostId}",
-                _lockId,
-                HostId
-            );
+            _log.LogInformation("Lost lock {LockId} on host {HostId}", _lockId, HostId);
             _held = held = null;
         }
 
@@ -200,7 +197,7 @@ internal class SingletonChannelReceiver : IChannelReceiver
         catch (Exception e)
             when (e is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
-            _log.LogWarning(e, "Could not tell whether {ProcessorName} is locked", _lockId);
+            _log.LogWarning(e, "Could not tell whether lock {LockId} is held", _lockId);
             _freeSince = null;
             return isPreferred;
         }
@@ -225,7 +222,7 @@ internal class SingletonChannelReceiver : IChannelReceiver
             return;
 
         _log.LogInformation(
-            "Singleton Processor with name {ProcessorName} on host {HostId} hands its lock over to {PreferredHost}",
+            "Handing lock {LockId} on host {HostId} over to {PreferredHost}",
             _lockId,
             HostId,
             preferred
@@ -251,7 +248,7 @@ internal class SingletonChannelReceiver : IChannelReceiver
             {
                 _log.LogWarning(
                     e,
-                    "Singleton Processor with name {ProcessorName} did not finish its message in {Timeout}, cancelling it",
+                    "The message under lock {LockId} did not finish in {Timeout}, cancelling it",
                     _lockId,
                     drainTimeout
                 );
@@ -283,7 +280,7 @@ internal class SingletonChannelReceiver : IChannelReceiver
             //A callback registered on the token failed, the token is cancelled all the same
             _log.LogWarning(
                 e,
-                "Singleton Processor with name {ProcessorName} on host {HostId} had an error while stopping",
+                "Stopping the processor under lock {LockId} on host {HostId} failed",
                 _lockId,
                 HostId
             );
@@ -292,16 +289,25 @@ internal class SingletonChannelReceiver : IChannelReceiver
 
     private async Task AcquireLock(CancellationToken cancellationToken)
     {
-        if (!await MayTryToAcquire(cancellationToken).ConfigureAwait(false))
-            return;
-
         //Try and get the lock
-        var lockHandle = await _lockManager
-            .TryLockAsync(_lockId, LockDuration, cancellationToken)
-            .ConfigureAwait(false);
+        var lockHandle = await MayTryToAcquire(cancellationToken).ConfigureAwait(false)
+            ? await _lockManager
+                .TryLockAsync(_lockId, LockDuration, cancellationToken)
+                .ConfigureAwait(false)
+            : null;
 
-        if (lockHandle != null)
+        if (lockHandle == null)
         {
+            //Only the host that should hold the lock waits for it, the others stand by. Logged once
+            //per wait, not on every poll
+            var preferred = _placement != null && _placement.Advise(_lockId) == _placement.HostId;
+            if (preferred && !_waiting)
+                _log.LogInformation("Waiting for lock {LockId} on host {HostId}", _lockId, HostId);
+            _waiting = preferred;
+        }
+        else
+        {
+            _waiting = false;
             //The lock is held and renewed until the teardown token fires, while the wrapped
             //receiver stops on the ordinary shutdown token. This keeps the lock through the
             //host's message drain, so no other instance can start processing while this one
@@ -328,11 +334,7 @@ internal class SingletonChannelReceiver : IChannelReceiver
             _ = scope.Completion.ContinueWith(
                 _ =>
                 {
-                    _log.LogInformation(
-                        "Singleton Processor with name {ProcessorName} on host {HostId} stopped holding its lock",
-                        _lockId,
-                        HostId
-                    );
+                    _log.LogInformation("Released lock {LockId} on host {HostId}", _lockId, HostId);
                     fetchTokenSource.Dispose();
                     receiverTokenSource.Dispose();
                     scopeTokenSource.Dispose();
@@ -346,11 +348,7 @@ internal class SingletonChannelReceiver : IChannelReceiver
                 scopeTokenSource,
                 Time.GetTimestamp()
             );
-            _log.LogInformation(
-                "Starting Singleton Processor with name {ProcessorName} on host {HostId}",
-                _lockId,
-                HostId
-            );
+            _log.LogInformation("Acquired lock {LockId} on host {HostId}", _lockId, HostId);
             try
             {
                 await _channelReceiver

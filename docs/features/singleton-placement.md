@@ -95,14 +95,15 @@ its own check, such as an owner or version stored with the data it changes.
   the lock metadata records. Without placement the logs name the machine only:
     - `Host {HostId} joined the singleton placement with {LockCount} singleton processors` and
       `Host {HostId} left the singleton placement`, at startup and shutdown.
-    - `Starting Singleton Processor with name {ProcessorName} on host {HostId}` when a host acquires
-      a lock.
-    - `Singleton Processor with name {ProcessorName} on host {HostId} hands its lock over to
-      {PreferredHost}` when a holder gives a lock up for another host.
-    - `Singleton Processor with name {ProcessorName} on host {HostId} stopped holding its lock`
-      whenever a host lets go of a lock: on shutdown, after a hand-over or when the lock is lost.
-    - `Singleton Processor with name {ProcessorName} lost its lock on host {HostId}` when a lock
-      is lost.
+    - `Waiting for lock {LockId} on host {HostId}` when the host that should hold a lock finds
+      another host holding it, for example a new instance during a rolling deploy. It is logged
+      once per wait; hosts that only stand by for a lock log nothing.
+    - `Acquired lock {LockId} on host {HostId}` when a host takes a lock.
+    - `Handing lock {LockId} on host {HostId} over to {PreferredHost}` when a holder gives a lock up
+      for another host.
+    - `Released lock {LockId} on host {HostId}` whenever a host lets go of a lock: on shutdown,
+      after a hand-over or when the lock is lost.
+    - `Lost lock {LockId} on host {HostId}` when a lock is lost.
 
 ## How it works
 
