@@ -6,6 +6,7 @@ using KnightBus.Core;
 using KnightBus.Core.PreProcessors;
 using KnightBus.Messages;
 using KnightBus.Newtonsoft;
+using KnightBus.Tests.Shared;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
@@ -41,7 +42,11 @@ public class StorageQueueMessagePumpTests
     {
         // Arrange
         // Act
-        await _pump.PumpAsync<TestCommand>((_, _) => Task.CompletedTask, CancellationToken.None);
+        await _pump.PumpAsync<TestCommand>(
+            (_, _) => Task.CompletedTask,
+            CancellationToken.None,
+            CancellationToken.None
+        );
 
         // Assert - should not throw
         await _storageQueueClient.GetQueueCountAsync();
@@ -53,14 +58,6 @@ public class StorageQueueMessagePumpTests
     {
         await _storageQueueClient.DeleteIfExistsAsync();
     }
-}
-
-public class TestMessageSettings : IProcessingSettings
-{
-    public int MaxConcurrentCalls { get; set; } = 1;
-    public TimeSpan MessageLockTimeout { get; set; } = TimeSpan.FromMinutes(1);
-    public int DeadLetterDeliveryLimit { get; set; } = 1;
-    public int PrefetchCount { get; set; }
 }
 
 public class TestCommandMessageMapping : IMessageMapping<TestCommand>

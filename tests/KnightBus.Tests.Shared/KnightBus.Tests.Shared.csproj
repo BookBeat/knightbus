@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!--
+      Helpers the unit and integration suites share, not a suite of its own.
+      See tests/Directory.Build.targets for why the runner packages are kept out.
+    -->
+    <IsTestSuite>false</IsTestSuite>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\KnightBus.Core\KnightBus.Core.csproj" />
+  </ItemGroup>
+</Project>

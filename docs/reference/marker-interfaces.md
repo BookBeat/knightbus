@@ -157,6 +157,7 @@ parameterless constructor.
 | --- | --- | --- |
 | `IProcessingSettings` | **Yes** | `MaxConcurrentCalls`, `PrefetchCount`, `MessageLockTimeout`, `DeadLetterDeliveryLimit`. |
 | `IExtendMessageLockTimeout` | No | Renews the transport lock while the handler runs, via `ExtensionDuration` and `ExtensionInterval`. |
+| `ISingletonWeight` | No | How heavy a singleton processor is, via `Weight` (at least 1, default 1), so heavy ones are kept on different hosts. See [singleton placement](../features/singleton-placement.md). |
 
 !!! warning "`IExtendMessageLockTimeout` needs two more things"
     Implementing it is not sufficient. You must also register the middleware yourself —

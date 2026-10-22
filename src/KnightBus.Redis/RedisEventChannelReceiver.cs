@@ -39,7 +39,10 @@ internal class RedisEventChannelReceiver<T> : RedisChannelReceiver<T>
         _redisConfiguration = configuration;
     }
 
-    public override async Task StartAsync(CancellationToken cancellationToken)
+    public override async Task StartAsync(
+        CancellationToken stopFetching,
+        CancellationToken cancellationToken
+    )
     {
         var db = ConnectionMultiplexer.GetDatabase(_redisConfiguration.DatabaseId);
         await db.SetAddAsync(
@@ -53,6 +56,6 @@ internal class RedisEventChannelReceiver<T> : RedisChannelReceiver<T>
             )
             .ConfigureAwait(false);
 
-        await base.StartAsync(cancellationToken).ConfigureAwait(false);
+        await base.StartAsync(stopFetching, cancellationToken).ConfigureAwait(false);
     }
 }

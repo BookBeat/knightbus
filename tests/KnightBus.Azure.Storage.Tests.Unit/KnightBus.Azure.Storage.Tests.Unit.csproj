@@ -1,9 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <PackageReference Include="AwesomeAssertions" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="Moq" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\KnightBus.Tests.Shared\KnightBus.Tests.Shared.csproj" />
     <ProjectReference Include="..\..\src\KnightBus.Azure.Storage\KnightBus.Azure.Storage.csproj" />
   </ItemGroup>
 </Project>

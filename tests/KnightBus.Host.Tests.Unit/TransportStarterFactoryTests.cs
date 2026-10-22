@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AwesomeAssertions;
@@ -8,6 +9,7 @@ using KnightBus.Core.Singleton;
 using KnightBus.Host.MessageProcessing.Factories;
 using KnightBus.Host.Singleton;
 using KnightBus.Messages;
+using KnightBus.Tests.Shared;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -119,7 +121,213 @@ public class TransportStarterFactoryTests
         var singletonReceiver = (SingletonChannelReceiver)result;
         singletonReceiver.LockId.Should().Contain("test-sub");
     }
+
+    [Test]
+    public void Should_count_the_messages_a_singleton_is_handling()
+    {
+        //arrange
+        var config = new Mock<ITransportConfiguration>();
+        config.Setup(x => x.MessageSerializer).Returns(new MicrosoftJsonSerializer());
+        var channel = new Mock<ITransportChannelFactory>();
+        channel.Setup(x => x.CanCreate(typeof(TestEvent))).Returns(true);
+        channel.Setup(x => x.Configuration).Returns(config.Object);
+        var underlyingReceiver = new Mock<IChannelReceiver>();
+        underlyingReceiver
+            .Setup(x => x.Settings)
+            .Returns(new SingletonProcessingSettings { DeadLetterDeliveryLimit = 1 });
+        channel
+            .Setup(x =>
+                x.Create(
+                    typeof(TestEvent),
+                    It.IsAny<TestSubscription>(),
+                    It.IsAny<IProcessingSettings>(),
+                    It.IsAny<IMessageSerializer>(),
+                    It.IsAny<IHostConfiguration>(),
+                    It.IsAny<IMessageProcessor>()
+                )
+            )
+            .Returns(underlyingReceiver.Object);
+        var collection = new ServiceCollection();
+        collection.UseSingletonLocks(Mock.Of<ISingletonLockManager>());
+        var starter = new TransportStarterFactory(
+            new[] { channel.Object },
+            new HostConfiguration
+            {
+                DependencyInjection = new MicrosoftDependencyInjection(
+                    collection.BuildServiceProvider()
+                ),
+                Log = Mock.Of<ILogger>(),
+            }
+        );
+
+        //act
+        starter.CreateChannelReceiver(
+            new EventProcessorFactory(),
+            typeof(IProcessEvent<TestEvent, TestSubscription, TestTopicSettings>),
+            typeof(SingletonEventProcessor)
+        );
+
+        //assert: a hand-over keeps the lock until these messages have stopped
+        channel.Verify(x =>
+            x.Create(
+                typeof(TestEvent),
+                It.IsAny<TestSubscription>(),
+                It.IsAny<IProcessingSettings>(),
+                It.IsAny<IMessageSerializer>(),
+                It.IsAny<IHostConfiguration>(),
+                It.Is<IMessageProcessor>(p => p is InFlightMessages)
+            )
+        );
+    }
+
+    [Test]
+    public void Should_apply_singleton_options_to_the_receiver()
+    {
+        //act
+        var receiver = CreateSingletonReceiver(services =>
+            services.ConfigureSingletons(options =>
+            {
+                options.PollInterval = TimeSpan.FromSeconds(30);
+                options.PollJitter = 0.5;
+                options.LockDuration = TimeSpan.FromSeconds(90);
+                options.RenewalInterval = TimeSpan.FromSeconds(10);
+            })
+        );
+
+        //assert
+        receiver.TimerInterval.Should().Be(TimeSpan.FromSeconds(30));
+        receiver.PollJitter.Should().Be(0.5);
+        receiver.LockDuration.Should().Be(TimeSpan.FromSeconds(90));
+        receiver.LockRefreshInterval.Should().Be(TimeSpan.FromSeconds(10));
+    }
+
+    [Test]
+    public void Should_keep_the_established_lock_timing_without_options()
+    {
+        //act
+        var receiver = CreateSingletonReceiver();
+
+        //assert: the durations are what they were before the options existed, only jitter is new
+        receiver.TimerInterval.Should().Be(TimeSpan.FromMinutes(1));
+        receiver.LockDuration.Should().Be(TimeSpan.FromMinutes(1));
+        receiver.LockRefreshInterval.Should().Be(TimeSpan.FromSeconds(19));
+        receiver.PollJitter.Should().Be(0.2);
+    }
+
+    [Test]
+    public void Should_take_the_singleton_weight_from_the_processing_settings()
+    {
+        //act
+        var receiver = CreateSingletonReceiver(processor: typeof(WeightedSingletonEventProcessor));
+
+        //assert
+        receiver.Weight.Should().Be(10);
+    }
+
+    [Test]
+    public void Should_count_a_singleton_without_a_declared_weight_as_one()
+    {
+        //act
+        var receiver = CreateSingletonReceiver();
+
+        //assert
+        receiver.Weight.Should().Be(1);
+    }
+
+    [Test]
+    public void Should_reject_a_singleton_weight_below_one()
+    {
+        //act
+        var create = () =>
+            CreateSingletonReceiver(processor: typeof(ZeroWeightSingletonEventProcessor));
+
+        //assert
+        create.Should().Throw<InvalidOperationException>().WithMessage("*at least 1*");
+    }
+
+    [Test]
+    public void Should_name_the_singleton_lock_after_the_message_and_its_subscription()
+    {
+        //act
+        var receiver = CreateSingletonReceiver();
+
+        //assert
+        receiver.LockId.Should().Be($"{typeof(TestEvent).FullName}:test-sub");
+    }
+
+    [Test]
+    public void Should_leave_assembly_versions_out_of_the_singleton_lock_id()
+    {
+        //act
+        var lockId = SingletonChannelReceiver.LockIdOf(typeof(GenericMessage<TestCommand>), null);
+
+        //assert: a new build of the host must take the lock the previous build held
+        lockId.Should().NotContain("Version=").And.Contain(typeof(TestCommand).FullName!);
+    }
+
+    private static SingletonChannelReceiver CreateSingletonReceiver(
+        Action<IServiceCollection>? configure = null,
+        Type? processor = null
+    )
+    {
+        var config = new Mock<ITransportConfiguration>();
+        config.Setup(x => x.MessageSerializer).Returns(new MicrosoftJsonSerializer());
+        var channel = new Mock<ITransportChannelFactory>();
+        channel.Setup(x => x.CanCreate(typeof(TestEvent))).Returns(true);
+        channel.Setup(x => x.Configuration).Returns(config.Object);
+        var underlyingReceiver = new Mock<IChannelReceiver>();
+        underlyingReceiver
+            .Setup(x => x.Settings)
+            .Returns(
+                new SingletonProcessingSettings
+                {
+                    MessageLockTimeout = TimeSpan.FromMinutes(1),
+                    DeadLetterDeliveryLimit = 1,
+                }
+            );
+        channel
+            .Setup(x =>
+                x.Create(
+                    typeof(TestEvent),
+                    It.IsAny<TestSubscription>(),
+                    It.IsAny<IProcessingSettings>(),
+                    It.IsAny<IMessageSerializer>(),
+                    It.IsAny<IHostConfiguration>(),
+                    It.IsAny<IMessageProcessor>()
+                )
+            )
+            .Returns(underlyingReceiver.Object);
+
+        var collection = new ServiceCollection();
+        collection.UseSingletonLocks(Mock.Of<ISingletonLockManager>());
+        configure?.Invoke(collection);
+
+        var starter = new TransportStarterFactory(
+            new[] { channel.Object },
+            new HostConfiguration
+            {
+                DependencyInjection = new MicrosoftDependencyInjection(
+                    collection.BuildServiceProvider()
+                ),
+                Log = Mock.Of<ILogger>(),
+            }
+        );
+        processor ??= typeof(SingletonEventProcessor);
+        var processorInterface = processor
+            .GetInterfaces()
+            .Single(i =>
+                i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IProcessEvent<,,>)
+            );
+        return (SingletonChannelReceiver)
+            starter.CreateChannelReceiver(
+                new EventProcessorFactory(),
+                processorInterface,
+                processor
+            );
+    }
 }
+
+public class GenericMessage<T> : ICommand;
 
 public class JsonProcessor : IProcessCommand<TestCommand, TestMessageSettings>
 {
@@ -137,4 +345,30 @@ public class SingletonEventProcessor
     {
         return Task.CompletedTask;
     }
+}
+
+public class WeightedTopicSettings : TestTopicSettings, ISingletonWeight
+{
+    public int Weight => 10;
+}
+
+public class ZeroWeightTopicSettings : TestTopicSettings, ISingletonWeight
+{
+    public int Weight => 0;
+}
+
+public class WeightedSingletonEventProcessor
+    : IProcessEvent<TestEvent, TestSubscription, WeightedTopicSettings>,
+        ISingletonProcessor
+{
+    public Task ProcessAsync(TestEvent message, CancellationToken cancellationToken) =>
+        Task.CompletedTask;
+}
+
+public class ZeroWeightSingletonEventProcessor
+    : IProcessEvent<TestEvent, TestSubscription, ZeroWeightTopicSettings>,
+        ISingletonProcessor
+{
+    public Task ProcessAsync(TestEvent message, CancellationToken cancellationToken) =>
+        Task.CompletedTask;
 }

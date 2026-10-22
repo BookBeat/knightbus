@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using AwesomeAssertions;
 using KnightBus.Core.DependencyInjection;
 using KnightBus.Schedule;
+using KnightBus.Tests.Shared;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using NUnit.Framework;

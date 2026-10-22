@@ -1,5 +1,10 @@
 # KnightBus.PostgreSql Changelog
 
+# 6.0.0
+(major): Requires `KnightBus.Core` 19.0.0. The receivers implement `IChannelReceiver.StartAsync(stopFetching,
+cancellationToken)` and drain: once fetching stops, the messages being handled finish before they are
+cancelled.
+
 # 5.0.0
 (major): The `PostgresMessageStateHandler` constructor drops its unused `npgsqlDataSource` and
 `serializer` parameters. `GetMessagesAsync` now reads the fetched batch before yielding it, so the pump

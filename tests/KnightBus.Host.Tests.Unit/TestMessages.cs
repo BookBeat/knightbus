@@ -73,14 +73,6 @@ public class TestTopicSettings : IProcessingSettings
     public int PrefetchCount { get; }
 }
 
-public class TestMessageSettings : IProcessingSettings
-{
-    public int MaxConcurrentCalls { get; set; } = 1;
-    public TimeSpan MessageLockTimeout => TimeSpan.FromMinutes(1);
-    public int DeadLetterDeliveryLimit { get; set; } = 1;
-    public int PrefetchCount { get; set; }
-}
-
 public class TestSubscription : IEventSubscription<TestEvent>
 {
     public string Name => "test-sub";

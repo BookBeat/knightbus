@@ -12,6 +12,7 @@
     <ProjectReference Include="..\KnightBus.Shared.Tests.Integration\KnightBus.Shared.Tests.Integration.csproj" />
     <ProjectReference Include="..\..\src\KnightBus.Azure.ServiceBus.Management\KnightBus.Azure.ServiceBus.Management.csproj" />
     <ProjectReference Include="..\..\src\KnightBus.Azure.ServiceBus\KnightBus.Azure.ServiceBus.csproj" />
+    <ProjectReference Include="..\KnightBus.Tests.Shared\KnightBus.Tests.Shared.csproj" />
     <ProjectReference Include="..\..\src\KnightBus.Host\KnightBus.Host.csproj" />
   </ItemGroup>
 

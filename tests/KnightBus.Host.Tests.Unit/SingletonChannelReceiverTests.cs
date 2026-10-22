@@ -16,6 +16,33 @@ namespace KnightBus.Host.Tests.Unit;
 public class SingletonChannelReceiverTests
 {
     [Test]
+    public void Should_wait_exactly_the_interval_without_jitter()
+    {
+        SingletonChannelReceiver
+            .NextPollDelay(TimeSpan.FromSeconds(60), 0)
+            .Should()
+            .Be(TimeSpan.FromSeconds(60));
+    }
+
+    [Test]
+    public void Should_spread_the_wait_over_the_jitter_share_and_never_shorten_it()
+    {
+        //arrange
+        var interval = TimeSpan.FromSeconds(60);
+        var random = new Random(1234);
+
+        //act
+        var delays = Enumerable
+            .Range(0, 1000)
+            .Select(_ => SingletonChannelReceiver.NextPollDelay(interval, 0.2, random))
+            .ToList();
+
+        //assert: between 60 s and 72 s, and not all the same so hosts drift apart
+        delays.Should().OnlyContain(d => d >= interval && d <= interval * 1.2);
+        delays.Distinct().Count().Should().BeGreaterThan(900);
+    }
+
+    [Test]
     public async Task Should_only_start_one_queue_reader()
     {
         //arrange
@@ -30,6 +57,7 @@ public class SingletonChannelReceiverTests
         underlyingReceiver.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);
         var singletonChannelReceiver = new SingletonChannelReceiver(
             underlyingReceiver.Object,
+            new InFlightMessages(Mock.Of<IMessageProcessor>()),
             lockManager.Object,
             Mock.Of<ILogger>()
         )
@@ -37,29 +65,32 @@ public class SingletonChannelReceiverTests
             TimerInterval = TimeSpan.FromSeconds(1),
         };
         //act
-        await singletonChannelReceiver.StartAsync(CancellationToken.None);
-        await singletonChannelReceiver.StartAsync(CancellationToken.None);
+        await singletonChannelReceiver.StartAsync(CancellationToken.None, CancellationToken.None);
+        await singletonChannelReceiver.StartAsync(CancellationToken.None, CancellationToken.None);
         await Task.Delay(1001);
         //assert
-        underlyingReceiver.Verify(x => x.StartAsync(It.IsAny<CancellationToken>()), Times.Once);
+        underlyingReceiver.Verify(
+            x => x.StartAsync(It.IsAny<CancellationToken>(), It.IsAny<CancellationToken>()),
+            Times.Once
+        );
     }
 
     [Test]
     public async Task Should_start_new_queue_reader_when_lock_is_released()
     {
-        //arrange
+        //arrange: another instance holds the lock at first and releases it later
         var lockManager = new Mock<ISingletonLockManager>();
         lockManager
             .SetupSequence(x =>
                 x.TryLockAsync(It.IsAny<string>(), TimeSpan.FromSeconds(60), CancellationToken.None)
             )
-            .ReturnsAsync(Mock.Of<ISingletonLockHandle>())
             .ReturnsAsync((ISingletonLockHandle?)null)
             .ReturnsAsync(Mock.Of<ISingletonLockHandle>());
         var underlyingReceiver = new Mock<IChannelReceiver>();
         underlyingReceiver.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);
         var singletonChannelReceiver = new SingletonChannelReceiver(
             underlyingReceiver.Object,
+            new InFlightMessages(Mock.Of<IMessageProcessor>()),
             lockManager.Object,
             Mock.Of<ILogger>()
         )
@@ -67,13 +98,12 @@ public class SingletonChannelReceiverTests
             TimerInterval = TimeSpan.FromSeconds(1),
         };
         //act
-        await singletonChannelReceiver.StartAsync(CancellationToken.None);
-        await singletonChannelReceiver.StartAsync(CancellationToken.None);
+        await singletonChannelReceiver.StartAsync(CancellationToken.None, CancellationToken.None);
         await Task.Delay(3000);
-        //assert
+        //assert: started once the lock was free, and not again while it holds it
         underlyingReceiver.Verify(
-            x => x.StartAsync(It.IsAny<CancellationToken>()),
-            Times.Exactly(2)
+            x => x.StartAsync(It.IsAny<CancellationToken>(), It.IsAny<CancellationToken>()),
+            Times.Exactly(1)
         );
     }
 
@@ -103,6 +133,7 @@ public class SingletonChannelReceiverTests
         underlyingReceiver.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);
         var singletonChannelReceiver = new SingletonChannelReceiver(
             underlyingReceiver.Object,
+            new InFlightMessages(Mock.Of<IMessageProcessor>()),
             lockManager.Object,
             Mock.Of<ILogger>()
         )
@@ -111,7 +142,7 @@ public class SingletonChannelReceiverTests
             LockRefreshInterval = TimeSpan.FromMilliseconds(100),
         };
         //act
-        await singletonChannelReceiver.StartAsync(CancellationToken.None);
+        await singletonChannelReceiver.StartAsync(CancellationToken.None, CancellationToken.None);
 
         //assert: wait for the restart instead of a fixed delay
         var deadline = DateTime.UtcNow.AddSeconds(10);
@@ -129,7 +160,7 @@ public class SingletonChannelReceiverTests
         //third start in this window
         await Task.Delay(500, CancellationToken.None);
         underlyingReceiver.Verify(
-            x => x.StartAsync(It.IsAny<CancellationToken>()),
+            x => x.StartAsync(It.IsAny<CancellationToken>(), It.IsAny<CancellationToken>()),
             Times.Exactly(2)
         );
     }
@@ -156,11 +187,12 @@ public class SingletonChannelReceiverTests
         underlyingReceiver.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);
         var singletonChannelReceiver = new SingletonChannelReceiver(
             underlyingReceiver.Object,
+            new InFlightMessages(Mock.Of<IMessageProcessor>()),
             lockManager.Object,
             Mock.Of<ILogger>()
         );
         using var cts = new CancellationTokenSource();
-        await singletonChannelReceiver.StartAsync(cts.Token);
+        await singletonChannelReceiver.StartAsync(cts.Token, cts.Token);
 
         //act
         cts.Cancel();
@@ -204,18 +236,19 @@ public class SingletonChannelReceiverTests
         underlyingReceiver.Setup(x => x.Settings).Returns(new Mock<IProcessingSettings>().Object);
         CancellationToken receiverToken = default;
         underlyingReceiver
-            .Setup(x => x.StartAsync(It.IsAny<CancellationToken>()))
-            .Callback<CancellationToken>(t => receiverToken = t)
+            .Setup(x => x.StartAsync(It.IsAny<CancellationToken>(), It.IsAny<CancellationToken>()))
+            .Callback<CancellationToken, CancellationToken>((_, t) => receiverToken = t)
             .Returns(Task.CompletedTask);
         using var shutdown = new CancellationTokenSource();
         using var teardown = new CancellationTokenSource();
         var singletonChannelReceiver = new SingletonChannelReceiver(
             underlyingReceiver.Object,
+            new InFlightMessages(Mock.Of<IMessageProcessor>()),
             lockManager.Object,
             Mock.Of<ILogger>(),
             teardownToken: teardown.Token
         );
-        await singletonChannelReceiver.StartAsync(shutdown.Token);
+        await singletonChannelReceiver.StartAsync(shutdown.Token, shutdown.Token);
 
         //act: phase one stops the wrapped receiver but must keep the lock
         shutdown.Cancel();
@@ -249,6 +282,7 @@ public class SingletonChannelReceiverTests
         //act
         var starter = new SingletonChannelReceiver(
             underlyingReceiver.Object,
+            new InFlightMessages(Mock.Of<IMessageProcessor>()),
             lockManager.Object,
             Mock.Of<ILogger>()
         )
@@ -273,6 +307,7 @@ public class SingletonChannelReceiverTests
         //act
         var starter = new SingletonChannelReceiver(
             underlyingReceiver.Object,
+            new InFlightMessages(Mock.Of<IMessageProcessor>()),
             lockManager.Object,
             Mock.Of<ILogger>()
         );
@@ -293,6 +328,7 @@ public class SingletonChannelReceiverTests
         //act
         var starter = new SingletonChannelReceiver(
             underlyingReceiver.Object,
+            new InFlightMessages(Mock.Of<IMessageProcessor>()),
             lockManager.Object,
             Mock.Of<ILogger>(),
             customLockId
@@ -319,12 +355,14 @@ public class SingletonChannelReceiverTests
         //act
         var starter1 = new SingletonChannelReceiver(
             underlyingReceiver1.Object,
+            new InFlightMessages(Mock.Of<IMessageProcessor>()),
             lockManager.Object,
             Mock.Of<ILogger>(),
             subscription1LockId
         );
         var starter2 = new SingletonChannelReceiver(
             underlyingReceiver2.Object,
+            new InFlightMessages(Mock.Of<IMessageProcessor>()),
             lockManager.Object,
             Mock.Of<ILogger>(),
             subscription2LockId

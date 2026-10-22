@@ -1,0 +1,61 @@
+using System;
+
+namespace KnightBus.Core.Singleton;
+
+/// <summary>
+/// Timing of the lock that guards an <see cref="ISingletonProcessor"/>. The defaults match the
+/// values used before they were configurable.
+/// </summary>
+public class SingletonOptions
+{
+    /// <summary>
+    /// How often an instance that does not hold the lock tries to take it.
+    /// </summary>
+    public TimeSpan PollInterval { get; set; } = TimeSpan.FromMinutes(1);
+
+    /// <summary>
+    /// A random share of <see cref="PollInterval"/>, between 0 and 1, added to each wait so that
+    /// instances that started together do not poll in lock-step. The wait is never shorter than
+    /// <see cref="PollInterval"/>. 0 disables the jitter.
+    /// </summary>
+    public double PollJitter { get; set; } = 0.2;
+
+    /// <summary>
+    /// How long a lock is held without being renewed. Must be longer than
+    /// <see cref="RenewalInterval"/> with room for failed renewals. The lock manager may limit it:
+    /// a blob lease lasts between 15 and 60 seconds.
+    /// </summary>
+    public TimeSpan LockDuration { get; set; } = TimeSpan.FromMinutes(1);
+
+    /// <summary>
+    /// How often the holder renews the lock.
+    /// </summary>
+    public TimeSpan RenewalInterval { get; set; } = TimeSpan.FromSeconds(19);
+
+    internal void Validate(string paramName)
+    {
+        if (PollInterval <= TimeSpan.Zero)
+            throw new ArgumentOutOfRangeException(
+                paramName,
+                PollInterval,
+                $"{nameof(PollInterval)} must be positive"
+            );
+        if (!double.IsFinite(PollJitter) || PollJitter < 0 || PollJitter > 1)
+            throw new ArgumentOutOfRangeException(
+                paramName,
+                PollJitter,
+                $"{nameof(PollJitter)} must be between 0 and 1"
+            );
+        if (RenewalInterval <= TimeSpan.Zero)
+            throw new ArgumentOutOfRangeException(
+                paramName,
+                RenewalInterval,
+                $"{nameof(RenewalInterval)} must be positive"
+            );
+        if (LockDuration <= RenewalInterval)
+            throw new ArgumentException(
+                $"{nameof(LockDuration)} ({LockDuration}) must be longer than {nameof(RenewalInterval)} ({RenewalInterval}), or the lock expires between renewals",
+                paramName
+            );
+    }
+}

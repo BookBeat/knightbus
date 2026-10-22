@@ -102,5 +102,7 @@ public class ClientFactory : IClientFactory
         }
 
         SenderClients.Clear();
+        //The connection is shared by every sender and processor, so it is closed last
+        await _serviceBusClient.DisposeAsync().ConfigureAwait(false);
     }
 }

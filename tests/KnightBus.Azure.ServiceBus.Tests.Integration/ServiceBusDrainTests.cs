@@ -1,0 +1,365 @@
+using AwesomeAssertions;
+using Azure.Messaging.ServiceBus;
+using KnightBus.Core;
+using KnightBus.Core.DependencyInjection;
+using KnightBus.Host;
+using KnightBus.Messages;
+using KnightBus.Tests.Shared;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging.Abstractions;
+using NUnit.Framework;
+
+namespace KnightBus.Azure.ServiceBus.Tests.Integration;
+
+[TestFixture]
+public class ServiceBusDrainTests
+{
+    private static readonly string CommandQueue = AutoMessageMapper.GetQueueName<DrainCommand>();
+    private static readonly string Topic = AutoMessageMapper.GetQueueName<DrainEvent>();
+    private static readonly string Subscription = new DrainEventSubscription().Name;
+    private static readonly string LockQueue = AutoMessageMapper.GetQueueName<DrainLockCommand>();
+    private static readonly TestMessageSettings Drain = new() { DeadLetterDeliveryLimit = 5 };
+
+    //The lock is renewed for this long and then runs out
+    private static readonly TestMessageSettings ShortLock = new()
+    {
+        MessageLockTimeout = TimeSpan.FromSeconds(3),
+        DeadLetterDeliveryLimit = 5,
+    };
+    private ServiceBusClient _client = null!;
+    private IHost _host = null!;
+    private IChannelReceiver? _receiver;
+    private CancellationTokenSource? _stopFetching;
+    private CancellationTokenSource? _receiverCts;
+
+    [OneTimeSetUp]
+    public void OneTimeSetUp() => _client = new ServiceBusClient(ServiceBusSetup.ConnectionString);
+
+    [OneTimeTearDown]
+    public async Task OneTimeTearDown() => await _client.DisposeAsync();
+
+    [SetUp]
+    public async Task SetUp()
+    {
+        await EmulatorEntities.PurgeQueue(_client, CommandQueue);
+        await EmulatorEntities.PurgeQueue(_client, LockQueue);
+        await EmulatorEntities.PurgeSubscription(_client, Topic, Subscription);
+        //The host only supplies the dependency injection and the client factory, the receiver
+        //under test is started by hand so the test controls when it drains
+        _host = new HostBuilder()
+            .ConfigureServices(services =>
+                services
+                    .UseServiceBus(new ServiceBusConfiguration(ServiceBusSetup.ConnectionString))
+                    .UseTransport<ServiceBusTransport>()
+            )
+            .UseKnightBus()
+            .Build();
+        await _host.StartAsync();
+    }
+
+    [TearDown]
+    public async Task TearDown()
+    {
+        _receiverCts?.Cancel();
+        await _host.StopAsync();
+        _host.Dispose();
+        _stopFetching?.Dispose();
+        _receiverCts?.Dispose();
+        _stopFetching = null;
+        _receiverCts = null;
+    }
+
+    [Test]
+    public async Task Should_finish_the_running_message_and_take_no_more_when_drained()
+    {
+        //arrange
+        var processor = new GatedProcessor();
+        await StartQueueReceiver(processor);
+        await SendCommand("first");
+        await processor.Started.Task.WaitAsync(TimeSpan.FromSeconds(15));
+
+        //act
+        await _stopFetching!.CancelAsync();
+        await SendCommand("second");
+        await Task.Delay(TimeSpan.FromSeconds(1));
+        var cancelledWhileDraining = processor.Cancelled.Task.IsCompleted;
+        processor.Gate.SetResult();
+        await EventuallyProcessed(processor, "first");
+        await Task.Delay(TimeSpan.FromSeconds(1));
+
+        //assert
+        cancelledWhileDraining.Should().BeFalse("a drain lets the running message finish");
+        processor.Processed.Should().Equal("first");
+        var remaining = await Peek(CommandQueue);
+        remaining.Should().ContainSingle();
+        remaining[0].DeliveryCount.Should().Be(0, "nothing fetched the second message");
+    }
+
+    [Test]
+    public async Task Should_cancel_a_message_whose_lock_is_lost_while_draining()
+    {
+        //arrange: the lock is renewed for a few seconds only, then it runs out
+        var processor = new GatedProcessor();
+        await StartLockQueueReceiver(processor);
+        using (var scope = _host.Services.CreateScope())
+            await scope
+                .ServiceProvider.GetRequiredService<IServiceBus>()
+                .SendAsync(new DrainLockCommand { Message = "slow" });
+        await processor.Started.Task.WaitAsync(TimeSpan.FromSeconds(15));
+
+        //act
+        await _stopFetching!.CancelAsync();
+
+        //assert: cancelled by the lost lock, the test never stops the receiver
+        await processor.Cancelled.Task.WaitAsync(TimeSpan.FromSeconds(30));
+    }
+
+    [Test]
+    public async Task Should_abandon_a_cancelled_message_without_dead_lettering_it()
+    {
+        //arrange
+        var processor = new GatedProcessor();
+        await StartQueueReceiver(processor);
+        await SendCommand("cancelled");
+        await processor.Started.Task.WaitAsync(TimeSpan.FromSeconds(15));
+
+        //act: the drain timed out, so the receiver is cancelled while the handler runs
+        await _stopFetching!.CancelAsync();
+        await _receiverCts!.CancelAsync();
+        await processor.Abandoned.Task.WaitAsync(TimeSpan.FromSeconds(15));
+
+        //assert
+        (await Peek(CommandQueue, SubQueue.DeadLetter))
+            .Should()
+            .BeEmpty();
+        var queued = await EmulatorEntities.Eventually(() => Peek(CommandQueue), m => m.Count > 0);
+        queued.Should().ContainSingle();
+        queued[0]
+            .DeliveryCount.Should()
+            .Be(1, "the abandoned delivery counts, the abandon adds none");
+    }
+
+    [Test]
+    public async Task Should_drain_a_subscription_the_same_way()
+    {
+        //arrange
+        var processor = new GatedProcessor();
+        await StartSubscriptionReceiver(processor);
+        using (var scope = _host.Services.CreateScope())
+            await scope
+                .ServiceProvider.GetRequiredService<IServiceBus>()
+                .PublishEventAsync(new DrainEvent { Message = "event" });
+        await processor.Started.Task.WaitAsync(TimeSpan.FromSeconds(15));
+
+        //act
+        await _stopFetching!.CancelAsync();
+        await Task.Delay(TimeSpan.FromSeconds(1));
+        var cancelledWhileDraining = processor.Cancelled.Task.IsCompleted;
+        processor.Gate.SetResult();
+
+        //assert
+        cancelledWhileDraining.Should().BeFalse();
+        await EventuallyProcessed(processor, "event");
+    }
+
+    [Test]
+    public async Task Should_process_messages_again_after_being_drained_and_started_again()
+    {
+        //arrange: a hand-over drained and stopped the receiver, later it gets the lock back
+        var processor = new GatedProcessor();
+        processor.Gate.SetResult();
+        await StartQueueReceiver(processor);
+        await _stopFetching!.CancelAsync();
+        await _receiverCts!.CancelAsync();
+
+        //act
+        await Start();
+        await SendCommand("after restart");
+
+        //assert
+        await EventuallyProcessed(processor, "after restart");
+    }
+
+    [Test]
+    public async Task Should_keep_a_new_start_running_when_an_earlier_start_is_stopped()
+    {
+        //arrange: the receiver is started again before the earlier start has been stopped
+        var processor = new GatedProcessor();
+        processor.Gate.SetResult();
+        await StartQueueReceiver(processor);
+        using var earlierStopFetching = _stopFetching!;
+        using var earlierReceiverCts = _receiverCts!;
+        await Start();
+
+        //act
+        await earlierStopFetching.CancelAsync();
+        await earlierReceiverCts.CancelAsync();
+        //The earlier start closes its client in the background
+        await Task.Delay(TimeSpan.FromSeconds(1));
+        await SendCommand("after the earlier stop");
+
+        //assert: the new start handled it, the earlier one was stopped and the new one was not
+        await EventuallyProcessed(processor, "after the earlier stop");
+        processor.HandledWithCancelledToken.Should().Equal(false);
+    }
+
+    [Test]
+    public async Task Should_cancel_a_message_whose_lock_ran_out_before_it_was_handled()
+    {
+        //arrange: a message that waited, for example in the prefetch buffer, until its lock ran out
+        var serializer = new MicrosoftJsonSerializer();
+        var processor = new TokenRecordingProcessor();
+        var receiver = new ServiceBusQueueChannelReceiver<DrainCommand>(
+            Drain,
+            serializer,
+            new ServiceBusConfiguration(ServiceBusSetup.ConnectionString),
+            _host.Services.GetRequiredService<IHostConfiguration>(),
+            processor
+        );
+        var message = ServiceBusModelFactory.ServiceBusReceivedMessage(
+            body: new BinaryData(serializer.Serialize(new DrainCommand { Message = "late" })),
+            lockedUntil: DateTimeOffset.UtcNow.AddSeconds(-1)
+        );
+        var args = new ProcessMessageEventArgs(message, null, CancellationToken.None);
+
+        //act
+        await receiver.ClientOnProcessMessageAsync(args, CancellationToken.None);
+
+        //assert: the SDK raises no lock lost event for it, so the receiver must notice itself
+        processor.Token.Should().NotBeNull();
+        processor.Token!.Value.IsCancellationRequested.Should().BeTrue();
+    }
+
+    private static async Task EventuallyProcessed(GatedProcessor processor, string message)
+    {
+        await Eventually.True(
+            () => processor.Processed.Contains(message),
+            TimeSpan.FromSeconds(15),
+            () => "processed " + string.Join(", ", processor.Processed)
+        );
+    }
+
+    private async Task StartQueueReceiver(GatedProcessor processor)
+    {
+        _receiver = new ServiceBusQueueChannelReceiver<DrainCommand>(
+            Drain,
+            new MicrosoftJsonSerializer(),
+            new ServiceBusConfiguration(ServiceBusSetup.ConnectionString),
+            _host.Services.GetRequiredService<IHostConfiguration>(),
+            processor
+        );
+        await Start();
+    }
+
+    private async Task StartLockQueueReceiver(GatedProcessor processor)
+    {
+        _receiver = new ServiceBusQueueChannelReceiver<DrainLockCommand>(
+            ShortLock,
+            new MicrosoftJsonSerializer(),
+            new ServiceBusConfiguration(ServiceBusSetup.ConnectionString),
+            _host.Services.GetRequiredService<IHostConfiguration>(),
+            processor
+        );
+        await Start();
+    }
+
+    private async Task StartSubscriptionReceiver(GatedProcessor processor)
+    {
+        _receiver = new ServiceBusTopicChannelReceiver<DrainEvent>(
+            Drain,
+            new MicrosoftJsonSerializer(),
+            new DrainEventSubscription(),
+            new ServiceBusConfiguration(ServiceBusSetup.ConnectionString),
+            _host.Services.GetRequiredService<IHostConfiguration>(),
+            processor
+        );
+        await Start();
+    }
+
+    private async Task Start()
+    {
+        _stopFetching = new CancellationTokenSource();
+        _receiverCts = new CancellationTokenSource();
+        await _receiver!.StartAsync(_stopFetching.Token, _receiverCts.Token);
+    }
+
+    private async Task SendCommand(string message)
+    {
+        using var scope = _host.Services.CreateScope();
+        await scope
+            .ServiceProvider.GetRequiredService<IServiceBus>()
+            .SendAsync(new DrainCommand { Message = message });
+    }
+
+    private async Task<IReadOnlyList<ServiceBusReceivedMessage>> Peek(
+        string queue,
+        SubQueue subQueue = SubQueue.None
+    )
+    {
+        await using var receiver = _client.CreateReceiver(
+            queue,
+            new ServiceBusReceiverOptions { SubQueue = subQueue }
+        );
+        return await receiver.PeekMessagesAsync(10);
+    }
+}
+
+internal class TokenRecordingProcessor : IMessageProcessor
+{
+    public CancellationToken? Token { get; private set; }
+
+    public Task ProcessAsync<T>(
+        IMessageStateHandler<T> messageStateHandler,
+        CancellationToken cancellationToken
+    )
+        where T : class, IMessage
+    {
+        Token = cancellationToken;
+        return Task.CompletedTask;
+    }
+}
+
+// Holds every message until the test opens the gate. A cancelled message is abandoned the way
+// ErrorHandlingMiddleware does it.
+internal class GatedProcessor : IMessageProcessor
+{
+    public TaskCompletionSource Started { get; } = new();
+    public TaskCompletionSource Gate { get; } = new();
+    public TaskCompletionSource Cancelled { get; } = new();
+    public TaskCompletionSource Abandoned { get; } = new();
+    public List<string?> Processed { get; } = new();
+
+    //Whether the token of each handled message was cancelled, which tells the starts apart
+    public List<bool> HandledWithCancelledToken { get; } = new();
+
+    public async Task ProcessAsync<T>(
+        IMessageStateHandler<T> messageStateHandler,
+        CancellationToken cancellationToken
+    )
+        where T : class, IMessage
+    {
+        Started.TrySetResult();
+        try
+        {
+            await Gate.Task.WaitAsync(cancellationToken);
+            HandledWithCancelledToken.Add(cancellationToken.IsCancellationRequested);
+            Processed.Add(
+                messageStateHandler.GetMessage() switch
+                {
+                    DrainCommand c => c.Message,
+                    DrainEvent e => e.Message,
+                    DrainLockCommand l => l.Message,
+                    _ => null,
+                }
+            );
+            await messageStateHandler.CompleteAsync();
+        }
+        catch (OperationCanceledException e)
+        {
+            Cancelled.TrySetResult();
+            await messageStateHandler.AbandonByErrorAsync(e);
+            Abandoned.TrySetResult();
+        }
+    }
+}

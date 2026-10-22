@@ -66,3 +66,39 @@ public class HostEventSubscription : IEventSubscription<HostEvent>
 {
     public string Name => "host-sub";
 }
+
+public class DrainCommand : IServiceBusCommand
+{
+    public string? Message { get; set; }
+}
+
+public class DrainCommandMapping : IMessageMapping<DrainCommand>
+{
+    public string QueueName => "drain-commands";
+}
+
+//On a queue with a short message lock, so a lost lock shows within seconds
+public class DrainLockCommand : IServiceBusCommand
+{
+    public string? Message { get; set; }
+}
+
+public class DrainLockCommandMapping : IMessageMapping<DrainLockCommand>
+{
+    public string QueueName => "drain-lock-commands";
+}
+
+public class DrainEvent : IServiceBusEvent
+{
+    public string? Message { get; set; }
+}
+
+public class DrainEventMapping : IMessageMapping<DrainEvent>
+{
+    public string QueueName => "drain-events";
+}
+
+public class DrainEventSubscription : IEventSubscription<DrainEvent>
+{
+    public string Name => "drain-sub";
+}
