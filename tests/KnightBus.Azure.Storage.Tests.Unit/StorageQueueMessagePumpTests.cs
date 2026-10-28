@@ -188,10 +188,12 @@ public class StorageQueueMessagePumpTests
             .ReturnsAsync(messages);
         var pump = new StorageQueueMessagePump(_clientMock.Object, settings, Mock.Of<ILogger>());
         var invocations = 0;
+        // Handlers run concurrently and hold their slot until released
+        var release = new TaskCompletionSource();
         Task Function(StorageQueueMessage a, CancellationToken b)
         {
-            invocations++;
-            return Task.Delay(1000);
+            Interlocked.Increment(ref invocations);
+            return release.Task;
         }
         //act
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
@@ -201,9 +203,12 @@ public class StorageQueueMessagePumpTests
             CancellationToken.None
         );
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
-        await Task.Delay(100);
+        await Eventually.True(() => Volatile.Read(ref invocations) >= 10);
+        // Give the pump time to start an eleventh handler if it wrongly would
+        await Task.Delay(200);
         //assert
-        invocations.Should().Be(10);
+        Volatile.Read(ref invocations).Should().Be(10);
+        release.SetResult();
     }
 
     [Test]
