@@ -342,6 +342,85 @@ LIMIT ($1);
         }
     }
 
+    public IAsyncEnumerable<PostgresMessage<DictionaryMessage>> ReceiveMessagesAsync(
+        PostgresQueueName queueName,
+        int count,
+        CancellationToken ct
+    )
+    {
+        return ExecuteDeleteAsync(ReceiveSql($"{QueuePrefix}_{queueName}"), false, count, ct);
+    }
+
+    public IAsyncEnumerable<PostgresMessage<DictionaryMessage>> ReceiveMessagesAsync(
+        PostgresQueueName topic,
+        PostgresQueueName subscription,
+        int count,
+        CancellationToken ct
+    )
+    {
+        return ExecuteDeleteAsync(
+            ReceiveSql($"{SubscriptionPrefix}_{topic}_{subscription}"),
+            false,
+            count,
+            ct
+        );
+    }
+
+    // table must be built from validated PostgresQueueName values only
+    private static string ReceiveSql(string table) =>
+        @$"
+WITH deleted_rows AS (
+    DELETE FROM {SchemaName}.{table}
+    WHERE message_id IN (
+        SELECT message_id
+        FROM {SchemaName}.{table}
+        WHERE visibility_timeout <= clock_timestamp()
+        ORDER BY message_id ASC
+        LIMIT ($1)
+        FOR UPDATE SKIP LOCKED
+    )
+    RETURNING *
+)
+SELECT message_id, enqueued_at, read_count, message, properties
+FROM deleted_rows
+ORDER BY message_id ASC;
+";
+
+    // table must be built from validated PostgresQueueName values only
+    private static string ReadDeadLetterSql(string table) =>
+        @$"
+WITH deleted_rows AS (
+    DELETE FROM {SchemaName}.{table}
+    WHERE message_id IN (
+        SELECT message_id
+        FROM {SchemaName}.{table}
+        ORDER BY message_id ASC
+        LIMIT ($1)
+        FOR UPDATE
+    )
+    RETURNING *
+)
+SELECT message_id, enqueued_at, created_at, message, properties
+FROM deleted_rows;
+";
+
+    private async IAsyncEnumerable<PostgresMessage<DictionaryMessage>> ExecuteDeleteAsync(
+        string sql,
+        bool isDeadLetter,
+        int count,
+        [EnumeratorCancellation] CancellationToken ct
+    )
+    {
+        await using var command = _npgsqlDataSource.CreateCommand(sql);
+        command.Parameters.Add(new NpgsqlParameter<int> { TypedValue = count });
+        await using var reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
+
+        await foreach (var p in ReadMessages(reader, isDeadLetter, ct))
+        {
+            yield return p;
+        }
+    }
+
     public async IAsyncEnumerable<PostgresMessage<DictionaryMessage>> PeekDeadLettersAsync(
         PostgresQueueName queueName,
         int count,
@@ -391,71 +470,33 @@ LIMIT ($1);
         }
     }
 
-    public async IAsyncEnumerable<PostgresMessage<DictionaryMessage>> ReadDeadLettersAsync(
+    public IAsyncEnumerable<PostgresMessage<DictionaryMessage>> ReadDeadLettersAsync(
         PostgresQueueName queueName,
         int count,
-        [EnumeratorCancellation] CancellationToken ct
+        CancellationToken ct
     )
     {
-        await using var command = _npgsqlDataSource.CreateCommand(
-            @$"
-WITH deleted_rows AS (
-    DELETE FROM {SchemaName}.{DlQueuePrefix}_{queueName}  
-    WHERE message_id IN (
-        SELECT message_id
-        FROM {SchemaName}.{DlQueuePrefix}_{queueName}  
-        ORDER BY message_id ASC
-        LIMIT ($1)
-        FOR UPDATE
-    )
-    RETURNING *
-)
-SELECT message_id, enqueued_at, created_at, message, properties
-FROM deleted_rows;
-"
+        return ExecuteDeleteAsync(
+            ReadDeadLetterSql($"{DlQueuePrefix}_{queueName}"),
+            true,
+            count,
+            ct
         );
-
-        command.Parameters.Add(new NpgsqlParameter<int> { TypedValue = count });
-        await using var reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
-
-        await foreach (var p in ReadMessages(reader, true, ct))
-        {
-            yield return p;
-        }
     }
 
-    public async IAsyncEnumerable<PostgresMessage<DictionaryMessage>> ReadDeadLettersAsync(
+    public IAsyncEnumerable<PostgresMessage<DictionaryMessage>> ReadDeadLettersAsync(
         PostgresQueueName topic,
         PostgresQueueName subscription,
         int count,
-        [EnumeratorCancellation] CancellationToken ct
+        CancellationToken ct
     )
     {
-        await using var command = _npgsqlDataSource.CreateCommand(
-            @$"
-WITH deleted_rows AS (
-    DELETE FROM {SchemaName}.{DlQueuePrefix}_{topic}_{subscription}  
-    WHERE message_id IN (
-        SELECT message_id
-        FROM {SchemaName}.{DlQueuePrefix}_{topic}_{subscription}  
-        ORDER BY message_id ASC
-        LIMIT ($1)
-        FOR UPDATE
-    )
-    RETURNING *
-)
-SELECT message_id, enqueued_at, created_at, message, properties
-FROM deleted_rows;
-"
+        return ExecuteDeleteAsync(
+            ReadDeadLetterSql($"{DlQueuePrefix}_{topic}_{subscription}"),
+            true,
+            count,
+            ct
         );
-
-        command.Parameters.Add(new NpgsqlParameter<int> { TypedValue = count });
-        await using var reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
-
-        await foreach (var p in ReadMessages(reader, true, ct))
-        {
-            yield return p;
-        }
     }
 
     public async Task<long> RequeueDeadLettersAsync(

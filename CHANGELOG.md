@@ -1,5 +1,36 @@
 # CHANGELOG
 
+# 2026-10-28
+
+### Receive active messages through IQueueManager
+`IQueueManager` could peek active messages but only receive dead letters. `Receive(path, count, ct)`
+reads up to `count` active messages and removes them from the queue, the counterpart of
+`ReadDeadLetter`. Scheduled messages are not returned.
+
+### KnightBus.Core.Management 19.0.0
+* **Breaking:** added `Receive` to `IQueueManager`
+### KnightBus.Azure.ServiceBus.Management 5.0.0
+* Implements `Receive` for queues and subscriptions. The subscription manager disposes the receiver
+  it creates for `ReadDeadLetter` and `Receive`, which it previously left open. `ReadDeadLetter` and
+  `Receive` wait at most 5 seconds per batch instead of the SDK default of one minute, so draining an
+  empty or nearly empty queue returns sooner
+### KnightBus.Azure.Storage.Management 5.0.0
+* Implements `Receive`
+### KnightBus.Redis.Management 4.0.0
+* Implements `Receive`
+### KnightBus.PostgreSql.Management 6.0.0
+* Implements `Receive` for queues and subscriptions. Messages currently locked by a consumer are
+  skipped
+* Added `ReceiveMessagesAsync` to `PostgresManagementClient`
+### KnightBus.PostgreSql.Management.Extensions.Azure 5.0.0
+* Bump version to pick up `KnightBus.PostgreSql.Management` 6.0.0
+### KnightBus.Azure.Storage 19.1.0
+* Added `ReceiveAsync<T>` to `StorageQueueClient`, which receives a message and deletes it
+### KnightBus.Redis 19.0.0
+* **Breaking:** added `ReceiveMessagesAsync<T>` to `IRedisManagementClient`
+
+Topic managers throw `NotImplementedException` from `Receive`, like their other message operations.
+
 # 2026-10-19
 
 ### Singleton placement, hand-over drain and configurable lock timing

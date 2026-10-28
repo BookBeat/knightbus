@@ -195,15 +195,27 @@ public class StorageQueueClient(
         }
     }
 
-    public async Task<StorageQueueMessage?> ReceiveDeadLetterAsync<T>()
+    public Task<StorageQueueMessage?> ReceiveDeadLetterAsync<T>()
         where T : IStorageQueueCommand
     {
-        var messages = await GetMessagesAsync<T>(1, null, _dlQueue).ConfigureAwait(false);
+        return ReceiveAsync<T>(_dlQueue);
+    }
+
+    public Task<StorageQueueMessage?> ReceiveAsync<T>()
+        where T : IStorageQueueCommand
+    {
+        return ReceiveAsync<T>(_queue);
+    }
+
+    private async Task<StorageQueueMessage?> ReceiveAsync<T>(QueueClient queue)
+        where T : IStorageQueueCommand
+    {
+        var messages = await GetMessagesAsync<T>(1, null, queue).ConfigureAwait(false);
         if (!messages.Any())
             return null;
         var message = messages.Single();
 
-        await _dlQueue
+        await queue
             .DeleteMessageAsync(message.QueueMessageId, message.PopReceipt)
             .ConfigureAwait(false);
         await TryDeleteBlob(message.BlobMessageId).ConfigureAwait(false);
