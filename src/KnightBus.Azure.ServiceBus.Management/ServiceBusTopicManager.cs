@@ -50,6 +50,12 @@ public class ServiceBusTopicManager : IQueueManager, IAsyncDisposable
         throw new NotImplementedException();
     }
 
+    public Task<IReadOnlyList<QueueMessage>> Receive(
+        string path,
+        int count,
+        CancellationToken ct
+    ) => throw new NotImplementedException();
+
     public Task<IReadOnlyList<QueueMessage>> Peek(string name, int count, CancellationToken ct)
     {
         throw new NotImplementedException();
@@ -78,11 +84,6 @@ public class ServiceBusTopicManager : IQueueManager, IAsyncDisposable
         int count,
         CancellationToken ct
     )
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task<IReadOnlyList<QueueMessage>> Receive(string path, int count, CancellationToken ct)
     {
         throw new NotImplementedException();
     }

@@ -89,15 +89,16 @@ public class PostgresTopicManager : IQueueManager
         throw new NotImplementedException();
     }
 
-    public Task<IReadOnlyList<QueueMessage>> Receive(string path, int count, CancellationToken ct)
-    {
-        throw new NotImplementedException();
-    }
-
     public Task<int> MoveDeadLetters(string path, int count, CancellationToken ct)
     {
         throw new NotImplementedException();
     }
 
     public QueueType QueueType => QueueType.Topic;
+
+    public Task<IReadOnlyList<QueueMessage>> Receive(
+        string path,
+        int count,
+        CancellationToken ct
+    ) => throw new NotImplementedException();
 }
