@@ -56,24 +56,7 @@ public class PostgresQueueManager : IQueueManager, IQueueMessageSender
             ct
         );
 
-        var result = new List<QueueMessage>();
-        await foreach (var m in messages)
-        {
-            m.Properties.TryGetValue("error_message", out var error);
-            result.Add(
-                new QueueMessage(
-                    Encoding.UTF8.GetString(_messageSerializer.Serialize(m.Message)),
-                    error ?? string.Empty,
-                    m.Time,
-                    null,
-                    m.ReadCount,
-                    m.Id.ToString(),
-                    m.Properties
-                )
-            );
-        }
-
-        return result;
+        return await ToQueueMessages(messages).ConfigureAwait(false);
     }
 
     public async Task<IReadOnlyList<QueueMessage>> Receive(
@@ -88,24 +71,7 @@ public class PostgresQueueManager : IQueueManager, IQueueMessageSender
             ct
         );
 
-        var result = new List<QueueMessage>();
-        await foreach (var m in messages)
-        {
-            m.Properties.TryGetValue("error_message", out var error);
-            result.Add(
-                new QueueMessage(
-                    Encoding.UTF8.GetString(_messageSerializer.Serialize(m.Message)),
-                    error ?? string.Empty,
-                    m.Time,
-                    null,
-                    m.ReadCount,
-                    m.Id.ToString(),
-                    m.Properties
-                )
-            );
-        }
-
-        return result;
+        return await ToQueueMessages(messages).ConfigureAwait(false);
     }
 
     public Task<IReadOnlyList<QueueMessage>> PeekScheduled(
@@ -129,24 +95,7 @@ public class PostgresQueueManager : IQueueManager, IQueueMessageSender
             ct
         );
 
-        var result = new List<QueueMessage>();
-        await foreach (var m in deadLetters)
-        {
-            m.Properties.TryGetValue("error_message", out var error);
-            result.Add(
-                new QueueMessage(
-                    Encoding.UTF8.GetString(_messageSerializer.Serialize(m.Message)),
-                    error ?? string.Empty,
-                    m.Time,
-                    null,
-                    m.ReadCount,
-                    m.Id.ToString(),
-                    m.Properties
-                )
-            );
-        }
-
-        return result;
+        return await ToQueueMessages(deadLetters).ConfigureAwait(false);
     }
 
     public async Task<IReadOnlyList<QueueMessage>> ReadDeadLetter(
@@ -161,24 +110,7 @@ public class PostgresQueueManager : IQueueManager, IQueueMessageSender
             ct
         );
 
-        var result = new List<QueueMessage>();
-        await foreach (var m in deadLetters)
-        {
-            m.Properties.TryGetValue("error_message", out var error);
-            result.Add(
-                new QueueMessage(
-                    Encoding.UTF8.GetString(_messageSerializer.Serialize(m.Message)),
-                    error ?? string.Empty,
-                    m.Time,
-                    null,
-                    m.ReadCount,
-                    m.Id.ToString(),
-                    m.Properties
-                )
-            );
-        }
-
-        return result;
+        return await ToQueueMessages(deadLetters).ConfigureAwait(false);
     }
 
     public async Task<int> MoveDeadLetters(string path, int count, CancellationToken ct)
@@ -223,4 +155,28 @@ public class PostgresQueueManager : IQueueManager, IQueueMessageSender
     }
 
     public QueueType QueueType => QueueType.Queue;
+
+    private async Task<IReadOnlyList<QueueMessage>> ToQueueMessages(
+        IAsyncEnumerable<PostgresMessage<DictionaryMessage>> messages
+    )
+    {
+        var result = new List<QueueMessage>();
+        await foreach (var m in messages.ConfigureAwait(false))
+        {
+            m.Properties.TryGetValue("error_message", out var error);
+            result.Add(
+                new QueueMessage(
+                    Encoding.UTF8.GetString(_messageSerializer.Serialize(m.Message)),
+                    error ?? string.Empty,
+                    m.Time,
+                    null,
+                    m.ReadCount,
+                    m.Id.ToString(),
+                    m.Properties
+                )
+            );
+        }
+
+        return result;
+    }
 }

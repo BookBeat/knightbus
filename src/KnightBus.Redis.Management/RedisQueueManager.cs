@@ -54,26 +54,7 @@ public class RedisQueueManager : IQueueManager
     )
     {
         var redisMessages = _managementClient.PeekMessagesAsync<DictionaryMessage>(path, count);
-        var messages = new List<QueueMessage>();
-        await foreach (var message in redisMessages)
-        {
-            var body = Encoding.UTF8.GetString(
-                _configuration.MessageSerializer.Serialize(message.Message)
-            );
-            messages.Add(
-                new QueueMessage(
-                    body,
-                    message.Error,
-                    message.LastProcessed,
-                    null,
-                    message.DeliveryCount,
-                    message.Id,
-                    message.HashEntries.AsReadOnly()
-                )
-            );
-        }
-
-        return messages;
+        return await ToQueueMessages(redisMessages).ConfigureAwait(false);
     }
 
     public async Task<IReadOnlyList<QueueMessage>> Receive(
@@ -83,26 +64,7 @@ public class RedisQueueManager : IQueueManager
     )
     {
         var redisMessages = _managementClient.ReceiveMessagesAsync<DictionaryMessage>(path, count);
-        var messages = new List<QueueMessage>();
-        await foreach (var message in redisMessages)
-        {
-            var body = Encoding.UTF8.GetString(
-                _configuration.MessageSerializer.Serialize(message.Message)
-            );
-            messages.Add(
-                new QueueMessage(
-                    body,
-                    message.Error,
-                    message.LastProcessed,
-                    null,
-                    message.DeliveryCount,
-                    message.Id,
-                    message.HashEntries.AsReadOnly()
-                )
-            );
-        }
-
-        return messages;
+        return await ToQueueMessages(redisMessages).ConfigureAwait(false);
     }
 
     public Task<IReadOnlyList<QueueMessage>> PeekScheduled(
@@ -178,4 +140,30 @@ public class RedisQueueManager : IQueueManager
     }
 
     public QueueType QueueType => QueueType.Queue;
+
+    private async Task<IReadOnlyList<QueueMessage>> ToQueueMessages(
+        IAsyncEnumerable<RedisMessage<DictionaryMessage>> redisMessages
+    )
+    {
+        var messages = new List<QueueMessage>();
+        await foreach (var message in redisMessages.ConfigureAwait(false))
+        {
+            var body = Encoding.UTF8.GetString(
+                _configuration.MessageSerializer.Serialize(message.Message)
+            );
+            messages.Add(
+                new QueueMessage(
+                    body,
+                    message.Error,
+                    message.LastProcessed,
+                    null,
+                    message.DeliveryCount,
+                    message.Id,
+                    message.HashEntries.AsReadOnly()
+                )
+            );
+        }
+
+        return messages;
+    }
 }
