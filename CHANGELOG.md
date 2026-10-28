@@ -12,10 +12,10 @@ reads up to `count` active messages and removes them from the queue, the counter
 ### KnightBus.Azure.ServiceBus.Management 5.0.0
 * Implements `Receive` for queues and subscriptions. The subscription manager disposes the receiver
   it creates for `ReadDeadLetter` and `Receive`, which it previously left open. `ReadDeadLetter` and
-  `Receive` wait at most
-  5 seconds per batch instead of the SDK default of one minute, so draining an empty or nearly empty
-  queue returns sooner
+  `Receive` wait at most 5 seconds per batch instead of the SDK default of one minute, so draining an
+  empty or nearly empty queue returns sooner
 ### KnightBus.Azure.Storage.Management 5.0.0
+* Implements `Receive`
 ### KnightBus.Redis.Management 4.0.0
 * Implements `Receive`
 ### KnightBus.PostgreSql.Management 6.0.0
