@@ -348,7 +348,7 @@ LIMIT ($1);
         CancellationToken ct
     )
     {
-        return DeleteMessagesAsync($"{QueuePrefix}_{queueName}", false, count, ct);
+        return ExecuteDeleteAsync(ReceiveSql($"{QueuePrefix}_{queueName}"), false, count, ct);
     }
 
     public IAsyncEnumerable<PostgresMessage<DictionaryMessage>> ReceiveMessagesAsync(
@@ -358,48 +358,60 @@ LIMIT ($1);
         CancellationToken ct
     )
     {
-        return DeleteMessagesAsync(
-            $"{SubscriptionPrefix}_{topic}_{subscription}",
+        return ExecuteDeleteAsync(
+            ReceiveSql($"{SubscriptionPrefix}_{topic}_{subscription}"),
             false,
             count,
             ct
         );
     }
 
-    /// <summary>
-    /// Deletes up to count messages from the table and returns them. Active messages that a consumer
-    /// currently holds are skipped. table must be built from validated PostgresQueueName values.
-    /// </summary>
-    private async IAsyncEnumerable<PostgresMessage<DictionaryMessage>> DeleteMessagesAsync(
-        string table,
-        bool isDeadLetter,
-        int count,
-        [EnumeratorCancellation] CancellationToken ct
-    )
-    {
-        var filter = isDeadLetter ? "" : "WHERE visibility_timeout <= clock_timestamp()";
-        var skipLocked = isDeadLetter ? "" : "SKIP LOCKED";
-        var readCount = isDeadLetter ? "created_at" : "read_count";
-        await using var command = _npgsqlDataSource.CreateCommand(
-            @$"
+    // table must be built from validated PostgresQueueName values only
+    private static string ReceiveSql(string table) =>
+        @$"
 WITH deleted_rows AS (
     DELETE FROM {SchemaName}.{table}
     WHERE message_id IN (
         SELECT message_id
         FROM {SchemaName}.{table}
-        {filter}
+        WHERE visibility_timeout <= clock_timestamp()
         ORDER BY message_id ASC
         LIMIT ($1)
-        FOR UPDATE {skipLocked}
+        FOR UPDATE SKIP LOCKED
     )
     RETURNING *
 )
-SELECT message_id, enqueued_at, {readCount}, message, properties
+SELECT message_id, enqueued_at, read_count, message, properties
 FROM deleted_rows
 ORDER BY message_id ASC;
-"
-        );
+";
 
+    // table must be built from validated PostgresQueueName values only
+    private static string ReadDeadLetterSql(string table) =>
+        @$"
+WITH deleted_rows AS (
+    DELETE FROM {SchemaName}.{table}
+    WHERE message_id IN (
+        SELECT message_id
+        FROM {SchemaName}.{table}
+        ORDER BY message_id ASC
+        LIMIT ($1)
+        FOR UPDATE
+    )
+    RETURNING *
+)
+SELECT message_id, enqueued_at, created_at, message, properties
+FROM deleted_rows;
+";
+
+    private async IAsyncEnumerable<PostgresMessage<DictionaryMessage>> ExecuteDeleteAsync(
+        string sql,
+        bool isDeadLetter,
+        int count,
+        [EnumeratorCancellation] CancellationToken ct
+    )
+    {
+        await using var command = _npgsqlDataSource.CreateCommand(sql);
         command.Parameters.Add(new NpgsqlParameter<int> { TypedValue = count });
         await using var reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
 
@@ -464,7 +476,12 @@ LIMIT ($1);
         CancellationToken ct
     )
     {
-        return DeleteMessagesAsync($"{DlQueuePrefix}_{queueName}", true, count, ct);
+        return ExecuteDeleteAsync(
+            ReadDeadLetterSql($"{DlQueuePrefix}_{queueName}"),
+            true,
+            count,
+            ct
+        );
     }
 
     public IAsyncEnumerable<PostgresMessage<DictionaryMessage>> ReadDeadLettersAsync(
@@ -474,7 +491,12 @@ LIMIT ($1);
         CancellationToken ct
     )
     {
-        return DeleteMessagesAsync($"{DlQueuePrefix}_{topic}_{subscription}", true, count, ct);
+        return ExecuteDeleteAsync(
+            ReadDeadLetterSql($"{DlQueuePrefix}_{topic}_{subscription}"),
+            true,
+            count,
+            ct
+        );
     }
 
     public async Task<long> RequeueDeadLettersAsync(
