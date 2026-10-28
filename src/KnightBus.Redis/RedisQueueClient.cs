@@ -216,11 +216,14 @@ internal class RedisQueueClient<T>
 
         foreach (byte[]? value in values)
         {
-            var message = _serializer.Deserialize<RedisListItem<T>>(value!.AsSpan());
+            if (value is null)
+                continue;
+
+            var message = _serializer.Deserialize<RedisListItem<T>>(value.AsSpan());
             var hashKey = RedisQueueConventions.GetMessageHashKey(_queueName, message.Id);
             var hash = await _db.HashGetAllAsync(hashKey).ConfigureAwait(false);
             await _db.KeyDeleteAsync(hashKey).ConfigureAwait(false);
-            yield return new RedisMessage<T>(value!, message.Id, message.Body, hash, _queueName);
+            yield return new RedisMessage<T>(value, message.Id, message.Body, hash, _queueName);
         }
     }
 
