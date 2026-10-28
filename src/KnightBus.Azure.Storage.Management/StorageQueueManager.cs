@@ -165,10 +165,24 @@ public class StorageQueueManager : IQueueManager
             .ToList();
     }
 
-    public async Task<IReadOnlyList<QueueMessage>> ReadDeadLetter(
+    public Task<IReadOnlyList<QueueMessage>> ReadDeadLetter(
         string path,
         int count,
         CancellationToken ct
+    )
+    {
+        return ReceiveMessages(path, count, qc => qc.ReceiveDeadLetterAsync<DictionaryMessage>());
+    }
+
+    public Task<IReadOnlyList<QueueMessage>> Receive(string path, int count, CancellationToken ct)
+    {
+        return ReceiveMessages(path, count, qc => qc.ReceiveAsync<DictionaryMessage>());
+    }
+
+    private async Task<IReadOnlyList<QueueMessage>> ReceiveMessages(
+        string path,
+        int count,
+        Func<StorageQueueClient, Task<StorageQueueMessage?>> receive
     )
     {
         var qc = new StorageQueueClient(
@@ -181,8 +195,7 @@ public class StorageQueueManager : IQueueManager
         var messages = new List<QueueMessage>();
         for (var i = 0; i < count; i++)
         {
-            var message = await qc.ReceiveDeadLetterAsync<DictionaryMessage>()
-                .ConfigureAwait(false);
+            var message = await receive(qc).ConfigureAwait(false);
             if (message == null)
                 break;
             messages.Add(

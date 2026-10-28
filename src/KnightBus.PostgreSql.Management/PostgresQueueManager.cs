@@ -76,6 +76,38 @@ public class PostgresQueueManager : IQueueManager, IQueueMessageSender
         return result;
     }
 
+    public async Task<IReadOnlyList<QueueMessage>> Receive(
+        string name,
+        int count,
+        CancellationToken ct
+    )
+    {
+        var messages = _managementClient.ReceiveMessagesAsync(
+            PostgresQueueName.Create(name),
+            count,
+            ct
+        );
+
+        var result = new List<QueueMessage>();
+        await foreach (var m in messages)
+        {
+            m.Properties.TryGetValue("error_message", out var error);
+            result.Add(
+                new QueueMessage(
+                    Encoding.UTF8.GetString(_messageSerializer.Serialize(m.Message)),
+                    error ?? string.Empty,
+                    m.Time,
+                    null,
+                    m.ReadCount,
+                    m.Id.ToString(),
+                    m.Properties
+                )
+            );
+        }
+
+        return result;
+    }
+
     public Task<IReadOnlyList<QueueMessage>> PeekScheduled(
         string name,
         int count,

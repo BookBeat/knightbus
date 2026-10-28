@@ -75,6 +75,34 @@ public abstract class QueueManagerTests<TCommand>
     }
 
     [Test]
+    public async Task Should_receive_message_and_delete_it()
+    {
+        //arrange
+        var messageText = Guid.NewGuid().ToString("N");
+        var queueName = await SendMessage(messageText);
+        //act
+        var messages = await QueueManager.Receive(queueName, 10, CancellationToken.None);
+        //assert
+        using var scope = new AssertionScope();
+        messages.Should().HaveCount(1);
+        messages[0].Body.Should().Contain(messageText);
+        messages[0].Time.Should().NotBeNull();
+        var verifyDeleted = await QueueManager.Peek(queueName, 10, CancellationToken.None);
+        verifyDeleted.Should().BeEmpty("The message should be deleted after receiving");
+    }
+
+    [Test]
+    public async Task Should_receive_no_messages_from_empty_queue()
+    {
+        //arrange
+        var queueName = await CreateQueue();
+        //act
+        var messages = await QueueManager.Receive(queueName, 10, CancellationToken.None);
+        //assert
+        messages.Should().BeEmpty();
+    }
+
+    [Test]
     public async Task Should_peek_dead_letter_message_without_deleting_it()
     {
         //arrange

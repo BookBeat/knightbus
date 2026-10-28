@@ -76,6 +76,35 @@ public class RedisQueueManager : IQueueManager
         return messages;
     }
 
+    public async Task<IReadOnlyList<QueueMessage>> Receive(
+        string path,
+        int count,
+        CancellationToken ct
+    )
+    {
+        var redisMessages = _managementClient.ReceiveMessagesAsync<DictionaryMessage>(path, count);
+        var messages = new List<QueueMessage>();
+        await foreach (var message in redisMessages)
+        {
+            var body = Encoding.UTF8.GetString(
+                _configuration.MessageSerializer.Serialize(message.Message)
+            );
+            messages.Add(
+                new QueueMessage(
+                    body,
+                    message.Error,
+                    message.LastProcessed,
+                    null,
+                    message.DeliveryCount,
+                    message.Id,
+                    message.HashEntries.AsReadOnly()
+                )
+            );
+        }
+
+        return messages;
+    }
+
     public Task<IReadOnlyList<QueueMessage>> PeekScheduled(
         string name,
         int count,

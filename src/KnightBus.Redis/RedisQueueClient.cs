@@ -208,6 +208,22 @@ internal class RedisQueueClient<T>
         }
     }
 
+    internal async IAsyncEnumerable<RedisMessage<T>> ReceiveMessagesAsync(int limit)
+    {
+        var values = await _db.ListRightPopAsync(_queueName, limit).ConfigureAwait(false);
+        if (values == null)
+            yield break;
+
+        foreach (byte[]? value in values)
+        {
+            var message = _serializer.Deserialize<RedisListItem<T>>(value!.AsSpan());
+            var hashKey = RedisQueueConventions.GetMessageHashKey(_queueName, message.Id);
+            var hash = await _db.HashGetAllAsync(hashKey).ConfigureAwait(false);
+            await _db.KeyDeleteAsync(hashKey).ConfigureAwait(false);
+            yield return new RedisMessage<T>(value!, message.Id, message.Body, hash, _queueName);
+        }
+    }
+
     internal async IAsyncEnumerable<RedisDeadletter<T>> PeekDeadlettersAsync(int limit)
     {
         if (limit >= 1)

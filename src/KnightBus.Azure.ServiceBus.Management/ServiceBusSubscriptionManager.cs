@@ -117,61 +117,28 @@ public class ServiceBusSubscriptionManager : IQueueManager
             .ToList();
     }
 
-    public async Task<IReadOnlyList<QueueMessage>> ReadDeadLetter(
+    public Task<IReadOnlyList<QueueMessage>> ReadDeadLetter(
         string path,
         int receiveLimit,
         CancellationToken ct
     )
     {
-        var queueMessages = new List<QueueMessage>();
         var receiver = _client.CreateReceiver(
             _topic,
             path,
             new ServiceBusReceiverOptions { SubQueue = SubQueue.DeadLetter }
         );
-        // Receive messages
-        var movedMessages = 0;
-        var batchSize = 10;
-        while (movedMessages < receiveLimit)
-        {
-            batchSize =
-                batchSize > (receiveLimit - movedMessages)
-                    ? receiveLimit - movedMessages
-                    : batchSize;
-            // Receive batch
-            var messages = await receiver
-                .ReceiveMessagesAsync(batchSize, cancellationToken: ct)
-                .ConfigureAwait(false);
-            queueMessages.AddRange(
-                messages.Select(m =>
-                {
-                    m.ApplicationProperties.TryGetValue("Exception", out var error);
-                    return new QueueMessage(
-                        Encoding.UTF8.GetString(m.Body),
-                        error?.ToString() ?? string.Empty,
-                        m.EnqueuedTime,
-                        m.ScheduledEnqueueTime != default ? m.ScheduledEnqueueTime : null,
-                        m.DeliveryCount,
-                        m.MessageId,
-                        m.ApplicationProperties
-                    );
-                })
-            );
-            if (messages.Count == 0)
-            {
-                // No more messages to move => We're done
-                break;
-            }
+        return ServiceBusQueueManager.ReceiveAndComplete(receiver, receiveLimit, ct);
+    }
 
-            // Complete original messages
-            await Task.WhenAll(messages.Select(m => receiver.CompleteMessageAsync(m, ct)))
-                .ConfigureAwait(false);
-
-            // Keep track of received messages
-            movedMessages += messages.Count;
-        }
-
-        return queueMessages;
+    public Task<IReadOnlyList<QueueMessage>> Receive(
+        string path,
+        int receiveLimit,
+        CancellationToken ct
+    )
+    {
+        var receiver = _client.CreateReceiver(_topic, path);
+        return ServiceBusQueueManager.ReceiveAndComplete(receiver, receiveLimit, ct);
     }
 
     public Task<int> MoveDeadLetters(string path, int count, CancellationToken ct)

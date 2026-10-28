@@ -342,6 +342,77 @@ LIMIT ($1);
         }
     }
 
+    public async IAsyncEnumerable<PostgresMessage<DictionaryMessage>> ReceiveMessagesAsync(
+        PostgresQueueName queueName,
+        int count,
+        [EnumeratorCancellation] CancellationToken ct
+    )
+    {
+        await using var command = _npgsqlDataSource.CreateCommand(
+            @$"
+WITH deleted_rows AS (
+    DELETE FROM {SchemaName}.{QueuePrefix}_{queueName}
+    WHERE message_id IN (
+        SELECT message_id
+        FROM {SchemaName}.{QueuePrefix}_{queueName}
+        WHERE visibility_timeout <= clock_timestamp()
+        ORDER BY message_id ASC
+        LIMIT ($1)
+        FOR UPDATE SKIP LOCKED
+    )
+    RETURNING *
+)
+SELECT message_id, enqueued_at, read_count, message, properties
+FROM deleted_rows
+ORDER BY message_id ASC;
+"
+        );
+
+        command.Parameters.Add(new NpgsqlParameter<int> { TypedValue = count });
+        await using var reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
+
+        await foreach (var p in ReadMessages(reader, false, ct))
+        {
+            yield return p;
+        }
+    }
+
+    public async IAsyncEnumerable<PostgresMessage<DictionaryMessage>> ReceiveMessagesAsync(
+        PostgresQueueName topic,
+        PostgresQueueName subscription,
+        int count,
+        [EnumeratorCancellation] CancellationToken ct
+    )
+    {
+        await using var command = _npgsqlDataSource.CreateCommand(
+            @$"
+WITH deleted_rows AS (
+    DELETE FROM {SchemaName}.{SubscriptionPrefix}_{topic}_{subscription}
+    WHERE message_id IN (
+        SELECT message_id
+        FROM {SchemaName}.{SubscriptionPrefix}_{topic}_{subscription}
+        WHERE visibility_timeout <= clock_timestamp()
+        ORDER BY message_id ASC
+        LIMIT ($1)
+        FOR UPDATE SKIP LOCKED
+    )
+    RETURNING *
+)
+SELECT message_id, enqueued_at, read_count, message, properties
+FROM deleted_rows
+ORDER BY message_id ASC;
+"
+        );
+
+        command.Parameters.Add(new NpgsqlParameter<int> { TypedValue = count });
+        await using var reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
+
+        await foreach (var p in ReadMessages(reader, false, ct))
+        {
+            yield return p;
+        }
+    }
+
     public async IAsyncEnumerable<PostgresMessage<DictionaryMessage>> PeekDeadLettersAsync(
         PostgresQueueName queueName,
         int count,

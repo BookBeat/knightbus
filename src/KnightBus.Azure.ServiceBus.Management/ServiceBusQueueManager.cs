@@ -13,6 +13,7 @@ namespace KnightBus.Azure.ServiceBus.Management;
 
 public class ServiceBusQueueManager : IQueueManager, IQueueMessageSender, IAsyncDisposable
 {
+    private static readonly TimeSpan ReceiveMaxWaitTime = TimeSpan.FromSeconds(5);
     private readonly ServiceBusAdministrationClient _adminClient;
     private readonly ServiceBusClient _client;
     private bool _disposed;
@@ -69,7 +70,7 @@ public class ServiceBusQueueManager : IQueueManager, IQueueMessageSender, IAsync
             .ToList();
     }
 
-    private static QueueMessage MapToQueueMessage(ServiceBusReceivedMessage m, object? error)
+    internal static QueueMessage MapToQueueMessage(ServiceBusReceivedMessage m, object? error)
     {
         return new QueueMessage(
             Encoding.UTF8.GetString(m.Body),
@@ -133,24 +134,43 @@ public class ServiceBusQueueManager : IQueueManager, IQueueMessageSender, IAsync
         CancellationToken ct
     )
     {
-        var queueMessages = new List<QueueMessage>();
         await using var receiver = _client.CreateReceiver(
             path,
             new ServiceBusReceiverOptions { SubQueue = SubQueue.DeadLetter }
         );
+        return await ReceiveAndComplete(receiver, receiveLimit, ct).ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyList<QueueMessage>> Receive(
+        string path,
+        int receiveLimit,
+        CancellationToken ct
+    )
+    {
+        await using var receiver = _client.CreateReceiver(path);
+        return await ReceiveAndComplete(receiver, receiveLimit, ct).ConfigureAwait(false);
+    }
+
+    internal static async Task<IReadOnlyList<QueueMessage>> ReceiveAndComplete(
+        ServiceBusReceiver receiver,
+        int receiveLimit,
+        CancellationToken ct
+    )
+    {
+        var queueMessages = new List<QueueMessage>();
 
         // Receive messages
-        var movedMessages = 0;
+        var receivedMessages = 0;
         var batchSize = 10;
-        while (movedMessages < receiveLimit)
+        while (receivedMessages < receiveLimit)
         {
             batchSize =
-                batchSize > (receiveLimit - movedMessages)
-                    ? receiveLimit - movedMessages
+                batchSize > (receiveLimit - receivedMessages)
+                    ? receiveLimit - receivedMessages
                     : batchSize;
-            // Receive batch
+            // Receive batch, don't wait the default minute for messages on an empty queue
             var messages = await receiver
-                .ReceiveMessagesAsync(batchSize, cancellationToken: ct)
+                .ReceiveMessagesAsync(batchSize, ReceiveMaxWaitTime, ct)
                 .ConfigureAwait(false);
             queueMessages.AddRange(
                 messages.Select(m =>
@@ -161,7 +181,7 @@ public class ServiceBusQueueManager : IQueueManager, IQueueMessageSender, IAsync
             );
             if (messages.Count == 0)
             {
-                // No more messages to move => We're done
+                // No more messages to receive => We're done
                 break;
             }
 
@@ -170,7 +190,7 @@ public class ServiceBusQueueManager : IQueueManager, IQueueMessageSender, IAsync
                 .ConfigureAwait(false);
 
             // Keep track of received messages
-            movedMessages += messages.Count;
+            receivedMessages += messages.Count;
         }
 
         return queueMessages;
