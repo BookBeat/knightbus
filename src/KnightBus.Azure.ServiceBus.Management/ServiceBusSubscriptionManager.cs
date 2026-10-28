@@ -119,7 +119,7 @@ public class ServiceBusSubscriptionManager : IQueueManager
 
     public async Task<IReadOnlyList<QueueMessage>> ReadDeadLetter(
         string path,
-        int receiveLimit,
+        int count,
         CancellationToken ct
     )
     {
@@ -129,19 +129,19 @@ public class ServiceBusSubscriptionManager : IQueueManager
             new ServiceBusReceiverOptions { SubQueue = SubQueue.DeadLetter }
         );
         return await ServiceBusQueueManager
-            .ReceiveAndComplete(receiver, receiveLimit, ct)
+            .ReceiveAndComplete(receiver, count, ct)
             .ConfigureAwait(false);
     }
 
     public async Task<IReadOnlyList<QueueMessage>> Receive(
         string path,
-        int receiveLimit,
+        int count,
         CancellationToken ct
     )
     {
         await using var receiver = _client.CreateReceiver(_topic, path);
         return await ServiceBusQueueManager
-            .ReceiveAndComplete(receiver, receiveLimit, ct)
+            .ReceiveAndComplete(receiver, count, ct)
             .ConfigureAwait(false);
     }
 

@@ -59,13 +59,13 @@ public class PostgresQueueManager : IQueueManager, IQueueMessageSender
     }
 
     public async Task<IReadOnlyList<QueueMessage>> Receive(
-        string name,
+        string path,
         int count,
         CancellationToken ct
     )
     {
         var messages = _managementClient.ReceiveMessagesAsync(
-            PostgresQueueName.Create(name),
+            PostgresQueueName.Create(path),
             count,
             ct
         );
