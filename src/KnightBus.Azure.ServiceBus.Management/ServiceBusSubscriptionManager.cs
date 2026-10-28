@@ -117,28 +117,32 @@ public class ServiceBusSubscriptionManager : IQueueManager
             .ToList();
     }
 
-    public Task<IReadOnlyList<QueueMessage>> ReadDeadLetter(
+    public async Task<IReadOnlyList<QueueMessage>> ReadDeadLetter(
         string path,
         int receiveLimit,
         CancellationToken ct
     )
     {
-        var receiver = _client.CreateReceiver(
+        await using var receiver = _client.CreateReceiver(
             _topic,
             path,
             new ServiceBusReceiverOptions { SubQueue = SubQueue.DeadLetter }
         );
-        return ServiceBusQueueManager.ReceiveAndComplete(receiver, receiveLimit, ct);
+        return await ServiceBusQueueManager
+            .ReceiveAndComplete(receiver, receiveLimit, ct)
+            .ConfigureAwait(false);
     }
 
-    public Task<IReadOnlyList<QueueMessage>> Receive(
+    public async Task<IReadOnlyList<QueueMessage>> Receive(
         string path,
         int receiveLimit,
         CancellationToken ct
     )
     {
-        var receiver = _client.CreateReceiver(_topic, path);
-        return ServiceBusQueueManager.ReceiveAndComplete(receiver, receiveLimit, ct);
+        await using var receiver = _client.CreateReceiver(_topic, path);
+        return await ServiceBusQueueManager
+            .ReceiveAndComplete(receiver, receiveLimit, ct)
+            .ConfigureAwait(false);
     }
 
     public Task<int> MoveDeadLetters(string path, int count, CancellationToken ct)

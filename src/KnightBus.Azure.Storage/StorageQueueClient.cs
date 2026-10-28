@@ -22,8 +22,6 @@ public interface IStorageQueueClient
         where T : IStorageQueueCommand;
     Task<StorageQueueMessage?> ReceiveDeadLetterAsync<T>()
         where T : IStorageQueueCommand;
-    Task<StorageQueueMessage?> ReceiveAsync<T>()
-        where T : IStorageQueueCommand;
     Task RequeueDeadLettersAsync<T>(int count, Func<T, bool>? shouldRequeue)
         where T : IStorageQueueCommand;
     Task CompleteAsync(StorageQueueMessage message);

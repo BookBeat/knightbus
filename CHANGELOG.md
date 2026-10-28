@@ -10,7 +10,9 @@ reads up to `count` active messages and removes them from the queue, the counter
 ### KnightBus.Core.Management 19.0.0
 * **Breaking:** added `Receive` to `IQueueManager`
 ### KnightBus.Azure.ServiceBus.Management 5.0.0
-* Implements `Receive` for queues and subscriptions. `ReadDeadLetter` and `Receive` wait at most
+* Implements `Receive` for queues and subscriptions. The subscription manager disposes the receiver
+  it creates for `ReadDeadLetter` and `Receive`, which it previously left open. `ReadDeadLetter` and
+  `Receive` wait at most
   5 seconds per batch instead of the SDK default of one minute, so draining an empty or nearly empty
   queue returns sooner
 ### KnightBus.Azure.Storage.Management 5.0.0
@@ -23,9 +25,9 @@ reads up to `count` active messages and removes them from the queue, the counter
 ### KnightBus.PostgreSql.Management.Extensions.Azure 5.0.0
 * Bump version to pick up `KnightBus.PostgreSql.Management` 6.0.0
 ### KnightBus.Azure.Storage 19.1.0
-* Added `ReceiveAsync<T>` to `IStorageQueueClient`, which receives a message and deletes it
-### KnightBus.Redis 18.1.0
-* Added `ReceiveMessagesAsync<T>` to `IRedisManagementClient`
+* Added `ReceiveAsync<T>` to `StorageQueueClient`, which receives a message and deletes it
+### KnightBus.Redis 19.0.0
+* **Breaking:** added `ReceiveMessagesAsync<T>` to `IRedisManagementClient`
 
 Topic managers throw `NotImplementedException` from `Receive`, like their other message operations.
 
