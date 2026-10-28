@@ -1,5 +1,4 @@
-﻿using System.Text;
-using KnightBus.Core.Management;
+﻿using KnightBus.Core.Management;
 using KnightBus.Messages;
 
 namespace KnightBus.PostgreSql.Management;
@@ -64,7 +63,7 @@ public class PostgresSubscriptionManager : IQueueManager
             ct
         );
 
-        return await ToQueueMessages(messages).ConfigureAwait(false);
+        return await messages.ToQueueMessages(_messageSerializer).ConfigureAwait(false);
     }
 
     public async Task<IReadOnlyList<QueueMessage>> Receive(
@@ -80,7 +79,7 @@ public class PostgresSubscriptionManager : IQueueManager
             ct
         );
 
-        return await ToQueueMessages(messages).ConfigureAwait(false);
+        return await messages.ToQueueMessages(_messageSerializer).ConfigureAwait(false);
     }
 
     public Task<IReadOnlyList<QueueMessage>> PeekScheduled(
@@ -105,7 +104,7 @@ public class PostgresSubscriptionManager : IQueueManager
             ct
         );
 
-        return await ToQueueMessages(deadLetters).ConfigureAwait(false);
+        return await deadLetters.ToQueueMessages(_messageSerializer).ConfigureAwait(false);
     }
 
     public async Task<IReadOnlyList<QueueMessage>> ReadDeadLetter(
@@ -121,7 +120,7 @@ public class PostgresSubscriptionManager : IQueueManager
             ct
         );
 
-        return await ToQueueMessages(deadLetters).ConfigureAwait(false);
+        return await deadLetters.ToQueueMessages(_messageSerializer).ConfigureAwait(false);
     }
 
     public async Task<int> MoveDeadLetters(string path, int count, CancellationToken ct)
@@ -136,28 +135,4 @@ public class PostgresSubscriptionManager : IQueueManager
     }
 
     public QueueType QueueType => QueueType.Subscription;
-
-    private async Task<IReadOnlyList<QueueMessage>> ToQueueMessages(
-        IAsyncEnumerable<PostgresMessage<DictionaryMessage>> messages
-    )
-    {
-        var result = new List<QueueMessage>();
-        await foreach (var m in messages.ConfigureAwait(false))
-        {
-            m.Properties.TryGetValue("error_message", out var error);
-            result.Add(
-                new QueueMessage(
-                    Encoding.UTF8.GetString(_messageSerializer.Serialize(m.Message)),
-                    error ?? string.Empty,
-                    m.Time,
-                    null,
-                    m.ReadCount,
-                    m.Id.ToString(),
-                    m.Properties
-                )
-            );
-        }
-
-        return result;
-    }
 }
