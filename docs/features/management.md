@@ -111,6 +111,18 @@ Bus **queue** manager. Everywhere else it throws — `NotSupportedException` on 
 Redis and PostgreSQL managers, `NotImplementedException` on the Service Bus topic and subscription
 managers.
 
+## Receiving messages
+
+```csharp
+IReadOnlyList<QueueMessage> received = await manager.Receive("order-placed", 10, ct);
+```
+
+`Receive` takes up to `count` active messages off the queue and removes them, returning the same
+`QueueMessage` shape as `Peek`. It is destructive, so use it to drain a queue, not to inspect one.
+Scheduled messages are not returned. On PostgreSQL, messages a consumer currently holds are skipped
+rather than taken from under it. On Service Bus, a call waits at most 5 seconds per batch for
+messages, so an empty queue returns after about 5 seconds.
+
 ## Dead letters
 
 This is what the API is mostly used for:
@@ -178,6 +190,7 @@ concrete `Dictionary<string, string>`, hence the copy.
 | --- | :--: | :--: | :--: | :--: |
 | `List` / `Get` | ✅ | ✅ | ✅ | ✅ |
 | `Peek` | ✅ | ✅ | ✅ | ✅ |
+| `Receive` | ✅ | ✅ | ✅ | ✅ |
 | `PeekScheduled` | ✅ | — | — | — |
 | `PeekDeadLetter` / `ReadDeadLetter` | ✅ | ✅ | ✅ | ✅ |
 | `MoveDeadLetters` | ✅ | ✅ | ✅ | ✅ |
