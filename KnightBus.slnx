@@ -59,6 +59,7 @@
     <Project Path="src/KnightBus.OpenTelemetry/KnightBus.OpenTelemetry.csproj" />
     <Project Path="src/KnightBus.Schedule/KnightBus.Schedule.csproj" />
     <Project Path="src/KnightBus.SqlServer/KnightBus.SqlServer.csproj" />
+    <Project Path="tests/KnightBus.NewRelic.Tests.Unit/KnightBus.NewRelic.Tests.Unit.csproj" />
     <Project Path="tests/KnightBus.Schedule.Tests.Unit/KnightBus.Schedule.Tests.Unit.csproj" />
     <Project Path="tests/KnightBus.SqlServer.Tests.Integration/KnightBus.SqlServer.Tests.Integration.csproj" />
   </Folder>
