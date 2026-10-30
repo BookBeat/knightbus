@@ -94,9 +94,18 @@ rather than `IServiceCollection`, so it goes inside the `UseKnightBus` callback:
 services.UseNewRelic();
 ```
 
-Each processed message becomes a New Relic transaction. Like `UseOpenTelemetry()`, this also
-configures distributed tracing with its own provider, so do not call `UseDistributedTracing()`
-alongside it.
+Each processed message becomes a New Relic transaction named `Message/<message type>`. Like
+`UseOpenTelemetry()`, this also configures distributed tracing with its own provider, so do not call
+`UseDistributedTracing()` alongside it.
+
+Every transaction carries custom attributes naming where the message came from: `knightbus.queue`
+for a command, or `knightbus.topic` and `knightbus.subscription` for an event. Only these
+infrastructure names are recorded, never message ids, bodies or properties. Use them to learn which
+message types run on which queue, and take exact counts from the per-transaction-name metrics:
+
+```sql
+FROM Transaction SELECT uniques(name) FACET knightbus.queue, knightbus.topic, knightbus.subscription SINCE 1 day ago
+```
 
 ## Distributed tracing
 

@@ -1,5 +1,17 @@
 # CHANGELOG
 
+# 2026-10-30
+
+### New Relic transactions carry their queue, topic and subscription
+`NewRelicMessageMiddleware` named each transaction after the message type but recorded nothing about
+where the message came from, so New Relic could not report throughput per queue. Each transaction
+now carries the queue a command came from, or the topic and subscription an event came from. Only
+infrastructure names are recorded, and a type without a mapping is left untagged rather than failing.
+
+### KnightBus.NewRelic 13.3.0
+* Added the custom transaction attributes `knightbus.queue` for commands and `knightbus.topic` and
+  `knightbus.subscription` for events
+
 # 2026-10-28
 
 ### Receive active messages through IQueueManager
