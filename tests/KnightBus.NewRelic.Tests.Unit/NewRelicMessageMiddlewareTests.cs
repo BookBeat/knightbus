@@ -1,5 +1,7 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using AwesomeAssertions;
 using KnightBus.Core;
 using KnightBus.Messages;
@@ -101,10 +103,46 @@ public class NewRelicMessageMiddlewareTests
     }
 
     [Test]
-    public void Attribute_names_are_the_contract_the_admin_ui_queries()
+    public void Attribute_names_match_the_documented_nrql_contract()
     {
         NewRelicMessageMiddleware.QueueAttribute.Should().Be("knightbus.queue");
         NewRelicMessageMiddleware.TopicAttribute.Should().Be("knightbus.topic");
         NewRelicMessageMiddleware.SubscriptionAttribute.Should().Be("knightbus.subscription");
+    }
+
+    [Test]
+    public async Task ProcessAsync_with_an_unmapped_type_still_calls_next()
+    {
+        var next = new Mock<IMessageProcessor>();
+        var stateHandler = new Mock<IMessageStateHandler<UnmappedCommand>>();
+
+        await new NewRelicMessageMiddleware().ProcessAsync(
+            stateHandler.Object,
+            PipelineFor(null),
+            next.Object,
+            CancellationToken.None
+        );
+
+        next.Verify(n => n.ProcessAsync(stateHandler.Object, CancellationToken.None), Times.Once);
+    }
+
+    [Test]
+    public async Task ProcessAsync_propagates_exceptions_from_next()
+    {
+        var next = new Mock<IMessageProcessor>();
+        next.Setup(n =>
+                n.ProcessAsync(It.IsAny<IMessageStateHandler<TestEvent>>(), CancellationToken.None)
+            )
+            .ThrowsAsync(new InvalidOperationException("processor failed"));
+
+        var act = () =>
+            new NewRelicMessageMiddleware().ProcessAsync(
+                new Mock<IMessageStateHandler<TestEvent>>().Object,
+                PipelineFor(new TestEventSubscription()),
+                next.Object,
+                CancellationToken.None
+            );
+
+        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("processor failed");
     }
 }
