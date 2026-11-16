@@ -20,6 +20,17 @@ public interface IClientFactory : IAsyncDisposable
     )
         where TTopic : IEvent
         where TSubscription : IEventSubscription<TTopic>;
+
+    /// <summary>
+    /// Creates a processor for a queue by name, used to read a subscription's forwarding queue.
+    /// </summary>
+    Task<ServiceBusProcessor> GetReceiverClient(
+        string queueName,
+        ServiceBusProcessorOptions options
+    ) =>
+        throw new NotSupportedException(
+            $"{GetType().Name} does not support subscription forwarding. Implement {nameof(GetReceiverClient)}(string, ServiceBusProcessorOptions)."
+        );
 }
 
 public class ClientFactory : IClientFactory
@@ -90,6 +101,14 @@ public class ClientFactory : IClientFactory
         return Task.FromResult(
             _serviceBusClient.CreateProcessor(topicName, subscription.Name, options)
         );
+    }
+
+    public Task<ServiceBusProcessor> GetReceiverClient(
+        string queueName,
+        ServiceBusProcessorOptions options
+    )
+    {
+        return Task.FromResult(_serviceBusClient.CreateProcessor(queueName, options));
     }
 
     public async ValueTask DisposeAsync()

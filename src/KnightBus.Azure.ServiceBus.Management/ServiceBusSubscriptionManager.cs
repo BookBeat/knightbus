@@ -29,10 +29,20 @@ public class ServiceBusSubscriptionManager : IQueueManager
 
     public async Task<IEnumerable<QueueProperties>> List(CancellationToken ct)
     {
+        var forwardTo = new Dictionary<string, string?>(System.StringComparer.OrdinalIgnoreCase);
+        await foreach (var sub in _adminClient.GetSubscriptionsAsync(_topic, ct))
+            forwardTo[sub.SubscriptionName] = ServiceBusEntityName.FromForwardTo(sub.ForwardTo);
+
         var subs = _adminClient.GetSubscriptionsRuntimePropertiesAsync(_topic, ct);
         var properties = new List<QueueProperties>();
         await foreach (var sub in subs)
-            properties.Add(sub.ToQueueProperties(this, _topic));
+            properties.Add(
+                sub.ToQueueProperties(
+                    this,
+                    _topic,
+                    forwardTo.GetValueOrDefault(sub.SubscriptionName)
+                )
+            );
 
         return properties;
     }
@@ -42,7 +52,16 @@ public class ServiceBusSubscriptionManager : IQueueManager
         var sub = await _adminClient
             .GetSubscriptionRuntimePropertiesAsync(_topic, path, ct)
             .ConfigureAwait(false);
-        return sub.Value.ToQueueProperties(this, _topic);
+        var forwardTo = await GetForwardTo(path, ct).ConfigureAwait(false);
+        return sub.Value.ToQueueProperties(this, _topic, forwardTo);
+    }
+
+    private async Task<string?> GetForwardTo(string subscription, CancellationToken ct)
+    {
+        var properties = await _adminClient
+            .GetSubscriptionAsync(_topic, subscription, ct)
+            .ConfigureAwait(false);
+        return ServiceBusEntityName.FromForwardTo(properties.Value.ForwardTo);
     }
 
     public Task Delete(string path, CancellationToken ct)
@@ -145,16 +164,24 @@ public class ServiceBusSubscriptionManager : IQueueManager
             .ConfigureAwait(false);
     }
 
-    public Task<int> MoveDeadLetters(string path, int count, CancellationToken ct)
+    /// <summary>
+    /// Moves dead letters back to the topic, which delivers them to every subscription. A
+    /// subscription that forwards to a queue gets them on that queue instead, so they reach only
+    /// this subscriber.
+    /// </summary>
+    public async Task<int> MoveDeadLetters(string path, int count, CancellationToken ct)
     {
-        var receiver = _client.CreateReceiver(
+        var target = await GetForwardTo(path, ct).ConfigureAwait(false) ?? _topic;
+        await using var receiver = _client.CreateReceiver(
             _topic,
             path,
             new ServiceBusReceiverOptions { SubQueue = SubQueue.DeadLetter }
         );
-        var sender = _client.CreateSender(_topic);
+        await using var sender = _client.CreateSender(target);
 
-        return ServiceBusQueueManager.MoveMessages(sender, receiver, count, 10);
+        return await ServiceBusQueueManager
+            .MoveMessages(sender, receiver, count, 10)
+            .ConfigureAwait(false);
     }
 
     public QueueType QueueType => QueueType.Subscription;

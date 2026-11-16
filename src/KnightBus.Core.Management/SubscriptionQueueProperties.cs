@@ -14,4 +14,10 @@ public class SubscriptionQueueProperties : QueueProperties
     }
 
     public string Topic { get; }
+
+    /// <summary>
+    /// The queue this subscription forwards its messages to, or null when it is read directly.
+    /// Dead letters of a forwarded subscription end up on that queue.
+    /// </summary>
+    public string? ForwardTo { get; init; }
 }
