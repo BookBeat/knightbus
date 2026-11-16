@@ -195,8 +195,11 @@ that subscriber:
   Nothing is lost: the messages wait on the queue.
 - **Rolling back.** A host without forwarding reads the subscription, which still forwards to the
   queue, so it receives nothing. Turning the setting off does **not** undo the forwarding. To go
-  back, clear the subscription's *Forward to* in Azure, then drain the queue, for example by
-  re-sending its messages to the subscription's topic.
+  back, keep one forwarding instance running, clear the subscription's *Forward to* in Azure, and
+  roll back the other instances, which then read the subscription again. Once the forwarding
+  instance has emptied the queue, stop it. It only points the subscription at the queue when it
+  starts, so it must not restart in between. Re-sending the queue's messages to the topic instead
+  delivers them to every subscription again.
 - **Old dead letters.** Dead letters from before the switch stay on the subscription. The
   management API's `MoveDeadLetters` sends them to the forwarding queue, not to the topic, so they
   still reach only this subscriber.
