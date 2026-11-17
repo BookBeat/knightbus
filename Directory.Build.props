@@ -18,6 +18,18 @@
     <WarningsAsErrors>$(WarningsAsErrors);Nullable</WarningsAsErrors>
   </PropertyGroup>
 
+  <!--
+    Pre-release builds suffix only the projects whose version is bumped, listed by project name
+    in PrereleaseProjects and separated by '|'. Every other project keeps its released version,
+    so a pre-release package depends on packages that exist on NuGet. A global VersionSuffix
+    would also stamp unbumped project references, which are never published.
+  -->
+  <PropertyGroup
+    Condition="'$(PrereleaseSuffix)' != '' and $([System.String]::Copy('|$(PrereleaseProjects)|').Contains('|$(MSBuildProjectName)|'))"
+  >
+    <VersionSuffix>$(PrereleaseSuffix)</VersionSuffix>
+  </PropertyGroup>
+
   <ItemGroup>
     <!--
       Brand assets live in the docs site's asset folder, which is the only copy. Deleting or
