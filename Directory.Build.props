@@ -24,9 +24,7 @@
     so a pre-release package depends on packages that exist on NuGet. A global VersionSuffix
     would also stamp unbumped project references, which are never published.
   -->
-  <PropertyGroup
-    Condition="'$(PrereleaseSuffix)' != '' and $([System.String]::Copy('|$(PrereleaseProjects)|').Contains('|$(MSBuildProjectName)|'))"
-  >
+  <PropertyGroup Condition="'$(PrereleaseSuffix)' != '' and $([System.String]::Copy('|$(PrereleaseProjects)|').Contains('|$(MSBuildProjectName)|'))">
     <VersionSuffix>$(PrereleaseSuffix)</VersionSuffix>
   </PropertyGroup>
 
