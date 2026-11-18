@@ -1,5 +1,33 @@
 # CHANGELOG
 
+# 2026-11-16
+
+### Forward subscriptions to queues on Azure Service Bus
+Requeueing a subscription's dead letters sent them back to the topic, so every other subscription
+received them again. A subscription can now forward its messages to a queue of its own, which the
+subscriber reads instead. Dead letters then land on that queue and requeueing them reaches only that
+subscriber. Forwarding is off by default, because turning it on changes where a subscriber reads
+from; see
+[Forwarding subscriptions to queues](https://bookbeat.github.io/knightbus/transports/azure-service-bus/#forwarding-subscriptions-to-queues).
+
+### KnightBus.Azure.ServiceBus 25.1.0
+* Added `SubscriptionForwarding` to `ServiceBusConfiguration` and `IServiceBusConfiguration`. The
+  interface member has a default implementation that returns forwarding turned off
+* A forwarded subscription creates its queue `{topic}.{subscription}`, points an existing
+  subscription at it and reads from the queue
+* Added `GetReceiverClient(string queueName, ServiceBusProcessorOptions options)` to `IClientFactory`.
+  Its default implementation throws `NotSupportedException`, so a custom factory only has to
+  implement it to use forwarding
+### KnightBus.Azure.ServiceBus.Messages 6.2.0
+* Added `IServiceBusForwardingSubscription` to turn forwarding on or off for one subscription and,
+  optionally, name its queue
+### KnightBus.Core.Management 19.1.0
+* Added `ForwardTo` to `SubscriptionQueueProperties`
+### KnightBus.Azure.ServiceBus.Management 5.1.0
+* Subscriptions report the queue they forward to in `SubscriptionQueueProperties.ForwardTo`
+* `MoveDeadLetters` on a subscription that forwards to a queue sends the dead letters to that queue
+  instead of the topic. It also disposes the sender and receiver it creates
+
 # 2026-10-30
 
 ### New Relic transactions carry their queue, topic and subscription

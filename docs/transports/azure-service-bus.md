@@ -145,6 +145,81 @@ services.UseServiceBus(new ServiceBusConfiguration
 });
 ```
 
+## Forwarding subscriptions to queues
+
+By default a subscriber reads its subscription directly, so its dead letters sit in the
+subscription's dead letter queue. Requeueing them sends them back to the **topic**, and every other
+subscription on that topic receives them again.
+
+With forwarding, each subscription forwards its messages to a queue of its own, using Service Bus
+auto-forwarding, and the subscriber reads that queue instead. Dead letters then land on the
+subscriber's queue, and requeueing them reaches only that subscriber.
+
+Forwarding is **off by default**. Turn it on for every subscription the host processes:
+
+```csharp
+services.UseServiceBus(config =>
+{
+    config.ConnectionString = connectionString;
+    config.SubscriptionForwarding.Enabled = true;
+});
+```
+
+Or choose per subscription, which overrides the host setting in either direction:
+
+```csharp
+public class OrderPlacedEmailSubscription
+    : IEventSubscription<OrderPlaced>,
+        IServiceBusForwardingSubscription
+{
+    public string Name => "email-order-placed";
+    public bool ForwardToQueue => true;
+}
+```
+
+The queue is named `{topic}.{subscription}`. A subscription can name its own queue:
+
+```csharp
+public class OrderPlacedEmailSubscription
+    : IEventSubscription<OrderPlaced>,
+        IServiceBusForwardingSubscription
+{
+    public string Name => "email-order-placed";
+    public bool ForwardToQueue => true;
+    public string QueueName => "email-order-placed";
+}
+```
+
+Renaming the queue of a subscription that already forwards points the subscription at the new
+queue on the next start. Messages left on the old queue stay there until you move them.
+
+When a forwarded subscription starts, KnightBus creates the queue if it is missing and points the
+subscription at it, creating the topic and subscription if needed. This also applies to an existing
+subscription, so the host needs **Manage** rights on the namespace, as it already does for creating
+entities. The queue is created with the same partitioning and batching options as the topic.
+
+### Turning it on for an existing subscription
+
+Enabling forwarding changes where the subscriber reads from, so treat it as a breaking change for
+that subscriber:
+
+- **Rolling deploys.** As soon as the first new instance starts, the subscription forwards to the
+  queue. Old instances still reading the subscription get nothing more until they are replaced.
+  Nothing is lost: the messages wait on the queue.
+- **Rolling back.** A host without forwarding reads the subscription, which still forwards to the
+  queue, so it receives nothing. Turning the setting off does **not** undo the forwarding. To go
+  back, keep one forwarding instance running, clear the subscription's *Forward to* in Azure, and
+  roll back the other instances, which then read the subscription again. Once the forwarding
+  instance has emptied the queue, stop it. It only points the subscription at the queue when it
+  starts, so it must not restart in between. Re-sending the queue's messages to the topic instead
+  delivers them to every subscription again.
+- **Old dead letters.** Dead letters from before the switch stay on the subscription. The
+  management API's `MoveDeadLetters` sends them to the forwarding queue, not to the topic, so they
+  still reach only this subscriber.
+- **Other tooling.** Anything that inspects the subscription for active messages or dead letters,
+  such as health checks or unused-entity cleanup, has to look at the queue as well.
+  `SubscriptionQueueProperties.ForwardTo` names the queue.
+
 ## Processing settings
 
 Settings map onto Service Bus' own processor options. Messages are received in peek-lock mode and
@@ -160,7 +235,9 @@ runs.
 ## Dead letters
 
 Service Bus provides a dead letter sub-queue per queue and per subscription. Read and requeue them
-with the [management API](../features/management.md):
+with the [management API](../features/management.md). Requeueing a subscription's dead letters sends
+them to the topic, and so to every subscription, unless the subscription
+[forwards to a queue](#forwarding-subscriptions-to-queues):
 
 ```csharp
 services.AddServiceBusManagement(connectionString);

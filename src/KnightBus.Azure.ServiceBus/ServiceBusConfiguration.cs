@@ -34,6 +34,9 @@ public class ServiceBusConfiguration : IServiceBusConfiguration
     public TokenCredential? Credential { get; set; }
     public ServiceBusCreationOptions DefaultCreationOptions { get; set; } =
         new ServiceBusCreationOptions();
+
+    /// <inheritdoc />
+    public SubscriptionForwardingOptions SubscriptionForwarding { get; set; } = new();
 }
 
 public static class ServiceBusClientFactory

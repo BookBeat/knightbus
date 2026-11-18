@@ -12,13 +12,13 @@ namespace KnightBus.Azure.ServiceBus;
 internal abstract class ServiceBusChannelReceiverBase<T> : IChannelReceiver
     where T : class, IMessage
 {
-    private readonly IServiceBusConfiguration _configuration;
     private readonly IHostConfiguration _hostConfiguration;
     private readonly IMessageProcessor _processor;
     private readonly IMessageSerializer _serializer;
     protected readonly ILogger Log;
     private int _deadLetterLimit;
 
+    protected readonly IServiceBusConfiguration Configuration;
     protected readonly IClientFactory ClientFactory;
     protected readonly ServiceBusAdministrationClient ManagementClient;
 
@@ -31,7 +31,7 @@ internal abstract class ServiceBusChannelReceiverBase<T> : IChannelReceiver
     )
     {
         _serializer = serializer;
-        _configuration = configuration;
+        Configuration = configuration;
         _hostConfiguration = hostConfiguration;
         _processor = processor;
         Settings = settings;
@@ -162,6 +162,6 @@ internal abstract class ServiceBusChannelReceiverBase<T> : IChannelReceiver
         // ReSharper disable once SuspiciousTypeConversion.Global
         var creationOptions = queueMapping as IServiceBusCreationOptions;
 
-        return creationOptions ?? _configuration.DefaultCreationOptions;
+        return creationOptions ?? Configuration.DefaultCreationOptions;
     }
 }

@@ -33,11 +33,13 @@ public static class ServiceBusExtensions
     internal static SubscriptionQueueProperties ToQueueProperties(
         this SubscriptionRuntimeProperties properties,
         IQueueManager manager,
-        string topic
+        string topic,
+        string? forwardTo = null
     )
     {
         return new SubscriptionQueueProperties(properties.SubscriptionName, manager, topic, false)
         {
+            ForwardTo = forwardTo,
             ActiveMessageCount = properties.ActiveMessageCount,
             TotalMessageCount = properties.TotalMessageCount,
             TransferMessageCount = properties.TransferMessageCount,
