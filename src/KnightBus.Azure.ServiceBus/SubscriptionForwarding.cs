@@ -19,11 +19,12 @@ internal static class SubscriptionForwarding
         IEventSubscription subscription
     )
     {
-        var options = configuration.SubscriptionForwarding;
-        var enabled = subscription is IServiceBusForwardingSubscription forwarding
-            ? forwarding.ForwardToQueue
-            : options.Enabled;
-        return enabled ? options.QueueName(topic, subscription.Name) : null;
+        var forwarding = subscription as IServiceBusForwardingSubscription;
+        var enabled = forwarding?.ForwardToQueue ?? configuration.SubscriptionForwarding.Enabled;
+        if (!enabled)
+            return null;
+        var queueName = forwarding?.QueueName;
+        return string.IsNullOrWhiteSpace(queueName) ? $"{topic}.{subscription.Name}" : queueName;
     }
 
     /// <summary>

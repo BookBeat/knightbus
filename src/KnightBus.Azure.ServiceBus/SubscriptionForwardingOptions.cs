@@ -1,5 +1,3 @@
-using System;
-
 namespace KnightBus.Azure.ServiceBus;
 
 /// <summary>
@@ -20,16 +18,4 @@ public class SubscriptionForwardingOptions
     /// </summary>
     /// <remarks>Defaults to false.</remarks>
     public bool Enabled { get; set; }
-
-    /// <summary>
-    /// Names the queue a subscription forwards to, from the topic and subscription names.
-    /// </summary>
-    /// <remarks>Defaults to <see cref="DefaultQueueName"/>, <c>{topic}.{subscription}</c>.</remarks>
-    public Func<string, string, string> QueueName { get; set; } = DefaultQueueName;
-
-    /// <summary>
-    /// The default forwarding queue name, <c>{topic}.{subscription}</c>.
-    /// </summary>
-    public static string DefaultQueueName(string topic, string subscription) =>
-        $"{topic}.{subscription}";
 }

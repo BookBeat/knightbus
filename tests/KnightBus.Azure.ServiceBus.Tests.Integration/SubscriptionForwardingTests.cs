@@ -175,18 +175,33 @@ public class SubscriptionForwardingTests
     {
         var enabled = new ServiceBusConfiguration();
         enabled.SubscriptionForwarding.Enabled = true;
-        var named = new ServiceBusConfiguration();
-        named.SubscriptionForwarding.QueueName = (topic, subscription) =>
-            $"{subscription}-from-{topic}";
 
         SubscriptionForwarding
             .GetForwardingQueue(enabled, Topic, new ForwardingSubscription(false))
             .Should()
             .BeNull();
         SubscriptionForwarding
-            .GetForwardingQueue(named, Topic, new ForwardingSubscription(true))
+            .GetForwardingQueue(
+                new ServiceBusConfiguration(),
+                Topic,
+                new ForwardingSubscription(true)
+            )
             .Should()
-            .Be("opted-from-forward-events");
+            .Be("forward-events.opted");
+    }
+
+    [TestCase("opted-queue", "opted-queue")]
+    [TestCase(null, "forward-events.opted")]
+    [TestCase(" ", "forward-events.opted")]
+    public void Should_use_the_queue_name_the_subscription_gives(string? queueName, string expected)
+    {
+        var queue = SubscriptionForwarding.GetForwardingQueue(
+            new ServiceBusConfiguration(),
+            Topic,
+            new ForwardingSubscription(true, queueName)
+        );
+
+        queue.Should().Be(expected);
     }
 
     [TestCase(null, null)]
@@ -224,11 +239,32 @@ public class SubscriptionForwardingTests
         public string Name => "plain";
     }
 
-    private class ForwardingSubscription(bool forward)
+    private class ForwardingSubscription(bool forward, string? queueName = null)
         : IEventSubscription<HostEvent>,
             IServiceBusForwardingSubscription
     {
         public string Name => "opted";
         public bool ForwardToQueue => forward;
+        public string? QueueName => queueName;
+    }
+
+    [Test]
+    public void Should_default_the_queue_name_when_a_subscription_does_not_give_one()
+    {
+        var queue = SubscriptionForwarding.GetForwardingQueue(
+            new ServiceBusConfiguration(),
+            Topic,
+            new DefaultNamedSubscription()
+        );
+
+        queue.Should().Be("forward-events.default-named");
+    }
+
+    private class DefaultNamedSubscription
+        : IEventSubscription<HostEvent>,
+            IServiceBusForwardingSubscription
+    {
+        public string Name => "default-named";
+        public bool ForwardToQueue => true;
     }
 }

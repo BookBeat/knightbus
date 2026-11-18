@@ -19,7 +19,8 @@ from; see
   Its default implementation throws `NotSupportedException`, so a custom factory only has to
   implement it to use forwarding
 ### KnightBus.Azure.ServiceBus.Messages 6.2.0
-* Added `IServiceBusForwardingSubscription` to turn forwarding on or off for one subscription
+* Added `IServiceBusForwardingSubscription` to turn forwarding on or off for one subscription and,
+  optionally, name its queue
 ### KnightBus.Core.Management 19.1.0
 * Added `ForwardTo` to `SubscriptionQueueProperties`
 ### KnightBus.Azure.ServiceBus.Management 5.1.0

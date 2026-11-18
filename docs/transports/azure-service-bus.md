@@ -177,8 +177,21 @@ public class OrderPlacedEmailSubscription
 }
 ```
 
-The queue is named `{topic}.{subscription}` unless you set
-`config.SubscriptionForwarding.QueueName`.
+The queue is named `{topic}.{subscription}`. A subscription can name its own queue:
+
+```csharp
+public class OrderPlacedEmailSubscription
+    : IEventSubscription<OrderPlaced>,
+        IServiceBusForwardingSubscription
+{
+    public string Name => "email-order-placed";
+    public bool ForwardToQueue => true;
+    public string QueueName => "email-order-placed";
+}
+```
+
+Renaming the queue of a subscription that already forwards points the subscription at the new
+queue on the next start. Messages left on the old queue stay there until you move them.
 
 When a forwarded subscription starts, KnightBus creates the queue if it is missing and points the
 subscription at it, creating the topic and subscription if needed. This also applies to an existing
