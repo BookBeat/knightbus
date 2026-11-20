@@ -34,7 +34,8 @@ internal class ServiceBusMessageStateHandler<T> : IMessageStateHandler<T>
     public IDictionary<string, string> MessageProperties =>
         _sbMessage
             .ApplicationProperties?.Where(kvp => kvp.Value is string)
-            .ToDictionary(k => k.Key, k => k.Value.ToString()!) ?? new Dictionary<string, string>();
+            .ToDictionary(k => k.Key, k => k.Value.ToString()!)
+        ?? new Dictionary<string, string>();
 
     public async Task CompleteAsync()
     {
